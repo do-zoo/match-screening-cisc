@@ -1,0 +1,36 @@
+sequenceDiagram
+    actor P as Participant
+    participant FO as Front Office
+    participant Admin as Admin Panel
+    participant DB as Database
+
+    P->>FO: Submit registration and uploads
+    FO->>DB: Create REGISTRATION and TICKETs
+    Note over FO,DB: Includes snapshot pricing
+    DB-->>FO: OK
+    FO->>DB: Set status to pending_review
+
+    Admin->>Admin: Open Inbox per Event
+    Admin->>DB: Load data and proofs
+    DB-->>Admin: Data
+
+    alt Member claim exists
+        Admin->>DB: Validate Member Number
+        DB-->>Admin: Result valid or invalid
+        alt Invalid and override to non-member
+            Admin->>Admin: Compute price delta
+            Admin->>DB: Create INVOICE_ADJUSTMENT
+        else Override to member
+            Admin->>DB: Set status overridden
+        end
+    else No claim
+        Admin->>DB: Set status unknown
+    end
+
+    alt Data and Payment OK
+        Admin->>DB: Set status approved
+    else Data issue or Underpayment
+        Admin->>DB: Set status payment_issue
+    end
+
+    Admin->>Admin: Click WhatsApp Template
