@@ -4,12 +4,12 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   test: {
     environment: "node",
     passWithNoTests: true,
-    setupFiles: ["./tests/vitest.setup.ts"],
+    setupFiles: ["./src/tests/vitest.setup.ts"],
   },
 });
