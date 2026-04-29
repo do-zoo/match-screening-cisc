@@ -7,7 +7,6 @@ import {
   Prisma,
   RegistrationStatus,
 } from "@prisma/client";
-import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import {
   fieldError,
@@ -15,26 +14,13 @@ import {
   rootError,
   type ActionResult,
 } from "@/lib/forms/action-result";
+import { submitRegistrationFormSchema } from "@/lib/forms/submit-registration-schema";
 import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
 import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
 import { UploadError } from "@/lib/uploads/errors";
 import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
 
-const phone = z.string().trim().min(8, "WhatsApp wajib diisi");
-
-const baseSchema = z.object({
-  slug: z.string().trim().min(1),
-  contactName: z.string().trim().min(2, "Nama wajib diisi"),
-  contactWhatsapp: phone,
-  claimedMemberNumber: z.string().trim().optional(),
-  qtyPartner: z.union([z.literal(0), z.literal(1)]),
-  partnerName: z.string().trim().optional(),
-  partnerWhatsapp: z.string().trim().optional(),
-  partnerMemberNumber: z.string().trim().optional(),
-  selectedMenuItemIds: z.array(z.string()).optional(),
-});
-
-export type SubmitRegistrationInput = z.infer<typeof baseSchema>;
+export type { SubmitRegistrationInput } from "@/lib/forms/submit-registration-schema";
 
 const duplicateMemberMessage = (memberNumbers: string[]) =>
   `Nomor member berikut sudah terdaftar untuk acara ini: ${memberNumbers.join(", ")}`;
@@ -84,7 +70,7 @@ export async function submitRegistration(
     .map(String)
     .filter(Boolean);
 
-  const parsed = baseSchema.safeParse({
+  const parsed = submitRegistrationFormSchema.safeParse({
     ...raw,
     qtyPartner: qtyPartnerNorm,
     selectedMenuItemIds,
