@@ -54,6 +54,13 @@ function menuLineRupiah(
 export function computeSubmitTotal(
   input: SubmitPricingInput,
 ): SubmitPricingResult {
+  const requiredMenuEntries = input.includePartner ? 2 : 1;
+  if (input.perTicketMenu.length < requiredMenuEntries) {
+    throw new Error(
+      `perTicketMenu requires at least ${requiredMenuEntries} ${requiredMenuEntries === 1 ? "entry" : "entries"} when includePartner is ${input.includePartner}`,
+    );
+  }
+
   const ticketMemberPriceApplied = input.event.ticketMemberPrice;
   const ticketNonMemberPriceApplied = input.event.ticketNonMemberPrice;
   const voucherPriceApplied =

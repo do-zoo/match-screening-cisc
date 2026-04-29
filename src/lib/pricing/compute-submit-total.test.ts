@@ -40,4 +40,32 @@ describe("computeSubmitTotal", () => {
       100_000 + 75_000 + 100_000 + 75_000,
     );
   });
+
+  it("throws a clear error when VOUCHER mode has no voucher price", () => {
+    const input: SubmitPricingInput = {
+      event: { ...baseEvent, menuMode: "VOUCHER", voucherPrice: null },
+      primaryPriceType: "member",
+      includePartner: false,
+      perTicketMenu: [{ mode: "VOUCHER" }],
+    };
+
+    expect(() => computeSubmitTotal(input)).toThrow(
+      "voucherPrice required for VOUCHER menu mode",
+    );
+  });
+
+  it("throws a clear error when partner PRESELECT is missing a menu entry", () => {
+    const input: SubmitPricingInput = {
+      event: { ...baseEvent, menuMode: "PRESELECT", voucherPrice: null },
+      primaryPriceType: "member",
+      includePartner: true,
+      perTicketMenu: [
+        { mode: "PRESELECT", selectedMenuItems: [{ price: 50_000 }] },
+      ],
+    };
+
+    expect(() => computeSubmitTotal(input)).toThrow(
+      "perTicketMenu requires at least 2 entries when includePartner is true",
+    );
+  });
 });
