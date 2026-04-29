@@ -7,9 +7,10 @@ export async function putWebpToBlob(opts: {
 }): Promise<{ url: string; pathname: string }> {
   try {
     const res = await put(opts.path, opts.bytes, {
-      access: "public",
+      access: "private",
       contentType: "image/webp",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
     return { url: res.url, pathname: res.pathname };
   } catch {
