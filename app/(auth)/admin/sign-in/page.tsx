@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Suspense, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createAuthClient } from "better-auth/react";
 
 const authClient = createAuthClient();
 
-export default function AdminSignInPage() {
+function AdminSignInForm() {
   const router = useRouter();
   const search = useSearchParams();
   const next = useMemo(() => search.get("next") ?? "/admin", [search]);
@@ -80,5 +80,13 @@ export default function AdminSignInPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+export default function AdminSignInPage() {
+  return (
+    <Suspense>
+      <AdminSignInForm />
+    </Suspense>
   );
 }

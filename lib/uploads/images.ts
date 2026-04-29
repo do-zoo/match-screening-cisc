@@ -9,7 +9,7 @@ export type WebpOutput = {
 };
 
 async function sha256Hex(buf: Buffer): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-256", buf);
+  const hash = await crypto.subtle.digest("SHA-256", new Uint8Array(buf));
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
