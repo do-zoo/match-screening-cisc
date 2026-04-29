@@ -13,7 +13,6 @@ describe("db: buildTicketCreateData", () => {
       ticketPriceType: "member",
     });
     expect(data.eventId).toBe("e1");
-    expect(data.registrationId).toBe("r1");
+    expect(data.registration).toEqual({ connect: { id: "r1" } });
   });
 });
-

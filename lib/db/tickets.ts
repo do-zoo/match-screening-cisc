@@ -11,7 +11,6 @@ export function buildTicketCreateData(input: {
 }): Prisma.TicketCreateInput {
   return {
     registration: { connect: { id: input.registrationId } },
-    registrationId: input.registrationId,
     eventId: input.eventId,
     role: input.role,
     fullName: input.fullName,
@@ -20,4 +19,3 @@ export function buildTicketCreateData(input: {
     ticketPriceType: input.ticketPriceType,
   };
 }
-
