@@ -40,6 +40,7 @@ export function templateApproved(
   startAtIso: string,
 ): string {
   const when = new Date(startAtIso).toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
     dateStyle: "long",
     timeStyle: "short",
   });
