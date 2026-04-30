@@ -1,4 +1,5 @@
 import type { RegistrationStatus } from "@prisma/client";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   status: RegistrationStatus;
@@ -51,10 +52,8 @@ export function RegistrationStatusBadge({ status }: Props) {
   const s = styles[status];
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium capitalize ${s.className}`}
-    >
+    <Badge variant="outline" className={`capitalize ${s.className}`}>
       {s.label ?? label}
-    </span>
+    </Badge>
   );
 }

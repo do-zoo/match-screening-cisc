@@ -1,0 +1,231 @@
+import type {
+  UploadPurpose,
+  RegistrationStatus,
+  TicketRole,
+  TicketPriceType,
+} from "@prisma/client";
+
+import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+export function formatCurrencyIdr(n: number): string {
+  const formatted = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(n);
+  return formatted.replace(/\s+/g, "");
+}
+
+export function formatUploadPurpose(purpose: UploadPurpose): string {
+  if (purpose === "transfer_proof") return "Bukti transfer";
+  if (purpose === "member_card_photo") return "Foto kartu member";
+  return "Bukti penyesuaian invoice";
+}
+
+type DetailRegistration = {
+  id: string;
+  createdAt: Date;
+  contactName: string;
+  contactWhatsapp: string;
+  claimedMemberNumber: string | null;
+  computedTotalAtSubmit: number;
+  status: RegistrationStatus;
+  tickets: Array<{
+    id: string;
+    role: TicketRole;
+    fullName: string;
+    whatsapp: string | null;
+    memberNumber: string | null;
+    ticketPriceType: TicketPriceType;
+    menuSelections: Array<{ menuItem: { name: string; price: number } }>;
+  }>;
+  uploads: Array<{
+    id: string;
+    purpose: UploadPurpose;
+    blobUrl: string;
+    contentType: string;
+    bytes: number;
+    width: number | null;
+    height: number | null;
+    originalFilename: string | null;
+    createdAt: Date;
+  }>;
+};
+
+type Props = {
+  eventId: string;
+  eventTitle?: string;
+  registration: DetailRegistration;
+};
+
+const dateFormatter = new Intl.DateTimeFormat("id-ID", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+function TicketRoleBadge({ role }: { role: TicketRole }) {
+  return (
+    <Badge variant="secondary" className="capitalize">
+      {role}
+    </Badge>
+  );
+}
+
+export function RegistrationDetail({ registration, eventTitle }: Props) {
+  return (
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-3">
+            <span>Registration detail</span>
+            <RegistrationStatusBadge status={registration.status} />
+          </CardTitle>
+          <CardDescription>
+            Submitted {dateFormatter.format(registration.createdAt)}
+            {eventTitle ? ` • ${eventTitle}` : ""}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-muted-foreground">Contact</div>
+              <div className="font-medium">{registration.contactName}</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-muted-foreground">WhatsApp</div>
+              <div className="font-mono">{registration.contactWhatsapp}</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-muted-foreground">Claimed member</div>
+              <div className="font-mono">
+                {registration.claimedMemberNumber ?? "-"}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-muted-foreground">Computed total</div>
+              <div className="font-mono text-base font-semibold">
+                {formatCurrencyIdr(registration.computedTotalAtSubmit)}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3 font-mono text-xs text-muted-foreground">
+            {registration.id}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Uploads</CardTitle>
+          <CardDescription>
+            Click any thumbnail to open the Blob URL in a new tab.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {registration.uploads.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              No uploads are attached to this registration.
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {registration.uploads.map((upload) => (
+                <a
+                  key={upload.id}
+                  href={upload.blobUrl}
+                  target="_blank"
+                  rel="noopener"
+                  className="group overflow-hidden rounded-lg border bg-card"
+                >
+                  <div className="flex items-center justify-between gap-3 border-b px-3 py-2 text-sm">
+                    <div className="font-medium">{formatUploadPurpose(upload.purpose)}</div>
+                    <div className="font-mono text-xs text-muted-foreground">
+                      {Math.round(upload.bytes / 1024)} KB
+                    </div>
+                  </div>
+                  <div className="bg-muted/30 p-3">
+                    <img
+                      src={upload.blobUrl}
+                      alt={upload.originalFilename ?? formatUploadPurpose(upload.purpose)}
+                      className="aspect-video w-full rounded-md object-contain ring-1 ring-foreground/10"
+                      loading="lazy"
+                    />
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tickets</CardTitle>
+          <CardDescription>
+            Tickets and menu selections captured at submission time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Role</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>WhatsApp</TableHead>
+                <TableHead>Member #</TableHead>
+                <TableHead>Menu</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {registration.tickets.map((ticket) => {
+                const menuText =
+                  ticket.menuSelections.length === 0
+                    ? "-"
+                    : ticket.menuSelections
+                        .map((s) => s.menuItem.name)
+                        .join(", ");
+
+                return (
+                  <TableRow key={ticket.id}>
+                    <TableCell>
+                      <TicketRoleBadge role={ticket.role} />
+                    </TableCell>
+                    <TableCell className="font-medium">{ticket.fullName}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {ticket.whatsapp ?? "-"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {ticket.memberNumber ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {menuText}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <div className="mt-4 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+            Actions (approve / reject / payment issue) will be added in Task 10.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
