@@ -6,6 +6,7 @@ import type {
 } from "@prisma/client";
 
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
+import { RegistrationActions } from "@/components/admin/registration-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -87,7 +88,7 @@ function TicketRoleBadge({ role }: { role: TicketRole }) {
   );
 }
 
-export function RegistrationDetail({ registration, eventTitle }: Props) {
+export function RegistrationDetail({ eventId, registration, eventTitle }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -220,9 +221,10 @@ export function RegistrationDetail({ registration, eventTitle }: Props) {
               })}
             </TableBody>
           </Table>
-          <div className="mt-4 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-            Actions (approve / reject / payment issue) will be added in Task 10.
-          </div>
+          <RegistrationActions
+            eventId={eventId}
+            registrationId={registration.id}
+          />
         </CardContent>
       </Card>
     </div>
