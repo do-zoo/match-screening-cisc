@@ -1,6 +1,8 @@
 import { EventCard } from "@/components/public/event-card";
 import { prisma } from "@/lib/db/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicHomePage() {
   const events = await prisma.event.findMany({
     where: { status: "active" },
