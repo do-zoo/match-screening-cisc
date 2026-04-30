@@ -10,6 +10,8 @@
     "build": "node scripts/vercel-migrate.mjs && prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
+    "bootstrap:admin": "npx tsx scripts/bootstrap-admin.ts",
+    "auth:migrate": "npx @better-auth/cli@latest migrate",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"

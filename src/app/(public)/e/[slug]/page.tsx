@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { RegistrationForm } from "@/components/public/registration-form";
+import { RegistrationFormClientOnly } from "@/components/public/registration-form-client-only";
 import type { SerializedEventForRegistration } from "@/components/public/event-serialization";
 import { prisma } from "@/lib/db/prisma";
 
@@ -46,7 +46,7 @@ export default async function EventRegistrationPage({
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-12">
-      <RegistrationForm event={serialized} />
+      <RegistrationFormClientOnly event={serialized} />
     </main>
   );
 }
