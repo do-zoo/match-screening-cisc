@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { RegistrationStatus } from "@prisma/client";
+import { Prisma, RegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
@@ -15,29 +15,57 @@ async function guard(eventId: string) {
   if (!canVerifyEvent(ctx, eventId)) throw new Error("FORBIDDEN");
 }
 
+const ALLOWED_TRANSITION_STATUSES: RegistrationStatus[] = [
+  RegistrationStatus.submitted,
+  RegistrationStatus.pending_review,
+];
+
 export async function approveRegistration(
   eventId: string,
   registrationId: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
     await guard(eventId);
-  } catch {
-    return rootError("Tidak diizinkan.");
+  } catch (e) {
+    if (
+      e instanceof Error &&
+      (e.message === "NO_PROFILE" ||
+        e.message === "FORBIDDEN" ||
+        e.message === "UNAUTHENTICATED")
+    ) {
+      return rootError("Tidak diizinkan.");
+    }
+    throw e;
   }
 
-  const r = await prisma.registration.findFirst({
-    where: { id: registrationId, eventId },
-  });
-  if (!r) return rootError("Pendaftaran tidak ditemukan.");
-
-  await prisma.registration.update({
+  const existing = await prisma.registration.findUnique({
     where: { id: registrationId },
-    data: {
-      status: RegistrationStatus.approved,
-      rejectionReason: null,
-      paymentIssueReason: null,
-    },
+    select: { status: true, eventId: true },
   });
+  if (!existing || existing.eventId !== eventId)
+    return rootError("Pendaftaran tidak ditemukan.");
+  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+    return rootError("Status tidak valid untuk aksi ini.");
+  }
+
+  try {
+    await prisma.registration.update({
+      where: { id: registrationId, eventId },
+      data: {
+        status: RegistrationStatus.approved,
+        rejectionReason: null,
+        paymentIssueReason: null,
+      },
+    });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2025"
+    ) {
+      return rootError("Pendaftaran tidak ditemukan.");
+    }
+    throw e;
+  }
 
   revalidatePath(`/admin/events/${eventId}/inbox`);
   revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
@@ -51,12 +79,30 @@ export async function rejectRegistration(
 ): Promise<ActionResult<{ ok: true }>> {
   try {
     await guard(eventId);
-  } catch {
-    return rootError("Tidak diizinkan.");
+  } catch (e) {
+    if (
+      e instanceof Error &&
+      (e.message === "NO_PROFILE" ||
+        e.message === "FORBIDDEN" ||
+        e.message === "UNAUTHENTICATED")
+    ) {
+      return rootError("Tidak diizinkan.");
+    }
+    throw e;
   }
 
   const trimmed = reason.trim();
   if (!trimmed) return rootError("Alasan penolakan wajib diisi.");
+
+  const existing = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    select: { status: true, eventId: true },
+  });
+  if (!existing || existing.eventId !== eventId)
+    return rootError("Pendaftaran tidak ditemukan.");
+  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+    return rootError("Status tidak valid untuk aksi ini.");
+  }
 
   await prisma.registration.update({
     where: { id: registrationId, eventId },
@@ -79,12 +125,30 @@ export async function markPaymentIssue(
 ): Promise<ActionResult<{ ok: true }>> {
   try {
     await guard(eventId);
-  } catch {
-    return rootError("Tidak diizinkan.");
+  } catch (e) {
+    if (
+      e instanceof Error &&
+      (e.message === "NO_PROFILE" ||
+        e.message === "FORBIDDEN" ||
+        e.message === "UNAUTHENTICATED")
+    ) {
+      return rootError("Tidak diizinkan.");
+    }
+    throw e;
   }
 
   const trimmed = reason.trim();
   if (!trimmed) return rootError("Alasan masalah pembayaran wajib diisi.");
+
+  const existing = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    select: { status: true, eventId: true },
+  });
+  if (!existing || existing.eventId !== eventId)
+    return rootError("Pendaftaran tidak ditemukan.");
+  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+    return rootError("Status tidak valid untuk aksi ini.");
+  }
 
   await prisma.registration.update({
     where: { id: registrationId, eventId },
