@@ -1,0 +1,27 @@
+flowchart TD
+  A([Browse active events]) --> B{Select event}
+  B --> C[Open registration form]
+  C --> D[Fill contact + WhatsApp]
+  D --> E{Claim member?}
+  E -->|No| F[Skip member card photo]
+  E -->|Yes| G[Enter member number + upload member card photo]
+
+  G --> H{"Committee privilege?\n(primary isPengurus after validation/override)"}
+  H -->|No/Unknown| I[Partner qty = 0]
+  H -->|Yes| J[Partner qty = 0 or 1]
+  J -->|1| K["Enter partner name\n(optional WA, optional member number)"]
+  J -->|0| I
+
+  F --> L[Upload transfer proof]
+  I --> L
+  K --> L
+
+  L --> M{Menu mode}
+  M -->|PRESELECT| N["Select menu item(s)\nSINGLE/MULTI"]
+  M -->|VOUCHER| O["No menu selection now\nVoucher entitlement recorded"]
+
+  N --> P["Show total breakdown\n(lock snapshot)"]
+  O --> P
+  P --> Q[Submit registration]
+  Q --> R[Status: submitted -> pending_review]
+  R --> S["Show payment instructions\n(event bank account)"]

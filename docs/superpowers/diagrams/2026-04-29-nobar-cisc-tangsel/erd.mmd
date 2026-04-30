@@ -1,0 +1,86 @@
+erDiagram
+    EVENT ||--o{ REGISTRATION : has
+    REGISTRATION ||--|{ TICKET : contains
+    MASTER_MEMBER ||--o{ REGISTRATION : validates_for
+    MASTER_MEMBER ||--o{ PIC_BANK_ACCOUNT : owns
+    MASTER_MEMBER ||--o{ EVENT : pic_master_for
+    EVENT }o--o{ MASTER_MEMBER : pic_helpers
+    REGISTRATION ||--o{ INVOICE_ADJUSTMENT : may_have
+
+    EVENT {
+      string id PK
+      string slug
+      string title
+      datetime startAt
+      string venueName
+      string venueAddress
+      string status "draft|active|finished"
+      decimal ticketMemberPrice
+      decimal ticketNonMemberPrice
+      string pricingSource "global_default|overridden"
+      string menuMode "PRESELECT|VOUCHER"
+      string menuSelection "SINGLE|MULTI"
+      decimal voucherPrice "VOUCHER only"
+      string picMasterMemberId FK
+      string bankAccountId FK
+    }
+
+    MASTER_MEMBER {
+      string id PK
+      string memberNumber UK
+      string fullName
+      boolean isActive
+      boolean isPengurus
+      boolean canBePIC
+    }
+
+    PIC_BANK_ACCOUNT {
+      string id PK
+      string ownerMemberId FK
+      string bankName
+      string accountNumber
+      string accountName
+      boolean isActive
+    }
+
+    REGISTRATION {
+      string id PK
+      string eventId FK
+      datetime createdAt
+      string contactName
+      string contactWhatsapp
+      string claimedMemberNumber "optional"
+      string memberCardPhoto "required only if claiming member"
+      string memberValidation "unknown|valid|invalid|overridden"
+      string memberId "optional FK"
+      string transferProof "required"
+      decimal computedTotalAtSubmit
+      decimal ticketMemberPriceApplied
+      decimal ticketNonMemberPriceApplied
+      decimal voucherPriceApplied "voucher mode only"
+      string status "submitted|pending_review|payment_issue|approved|rejected|cancelled|refunded"
+      string attendanceStatus "unknown|attended|no_show"
+      string rejectionReason
+      string paymentIssueReason
+    }
+
+    TICKET {
+      string id PK
+      string registrationId FK
+      string role "primary|partner"
+      string fullName
+      string whatsapp "optional for partner"
+      string memberNumber "optional"
+      string ticketPriceType "member|non_member|privilege_partner_member_price"
+      string menuEntitlement "PRESELECT selectedMenuItemIds[] OR VOUCHER redemption"
+    }
+
+    INVOICE_ADJUSTMENT {
+      string id PK
+      string registrationId FK
+      string type "underpayment|other_adjustment"
+      decimal amount
+      string status "unpaid|paid"
+      string paymentProof
+      datetime paidAt
+    }

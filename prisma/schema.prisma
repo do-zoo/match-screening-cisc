@@ -1,0 +1,338 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum EventStatus {
+  draft
+  active
+  finished
+}
+
+enum PricingSource {
+  global_default
+  overridden
+}
+
+enum MenuMode {
+  PRESELECT
+  VOUCHER
+}
+
+enum MenuSelection {
+  SINGLE
+  MULTI
+}
+
+enum RegistrationStatus {
+  submitted
+  pending_review
+  payment_issue
+  approved
+  rejected
+  cancelled
+  refunded
+}
+
+enum AttendanceStatus {
+  unknown
+  attended
+  no_show
+}
+
+enum MemberValidation {
+  unknown
+  valid
+  invalid
+  overridden
+}
+
+enum TicketRole {
+  primary
+  partner
+}
+
+enum TicketPriceType {
+  member
+  non_member
+  privilege_partner_member_price
+}
+
+enum InvoiceAdjustmentType {
+  underpayment
+  other_adjustment
+}
+
+enum InvoiceAdjustmentStatus {
+  unpaid
+  paid
+}
+
+enum UploadPurpose {
+  transfer_proof
+  member_card_photo
+  invoice_adjustment_proof
+}
+
+enum AdminRole {
+  Owner
+  Verifier
+  Viewer
+}
+
+// ---------- Models ----------
+
+model MasterMember {
+  id           String  @id @default(cuid())
+  memberNumber String  @unique
+  fullName     String
+  isActive     Boolean @default(true)
+
+  isPengurus Boolean @default(false)
+  canBePIC    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bankAccounts PicBankAccount[]
+  eventsAsPicMaster Event[] @relation("EventPicMaster")
+  eventsAsHelper    EventPicHelper[]
+  registrations     Registration[]
+  adminProfiles     AdminProfile[]
+}
+
+model PicBankAccount {
+  id            String @id @default(cuid())
+  ownerMemberId String
+  ownerMember   MasterMember @relation(fields: [ownerMemberId], references: [id], onDelete: Restrict)
+
+  bankName      String
+  accountNumber String
+  accountName   String
+  isActive      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+
+  @@index([ownerMemberId])
+}
+
+model Event {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  startAt      DateTime
+  venueName    String
+  venueAddress String
+
+  status EventStatus @default(draft)
+
+  ticketMemberPrice    Int
+  ticketNonMemberPrice Int
+  pricingSource PricingSource @default(global_default)
+
+  menuMode      MenuMode
+  menuSelection MenuSelection
+  voucherPrice  Int?
+
+  picMasterMemberId String
+  picMasterMember   MasterMember @relation("EventPicMaster", fields: [picMasterMemberId], references: [id], onDelete: Restrict)
+
+  bankAccountId String
+  bankAccount   PicBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  helpers       EventPicHelper[]
+  registrations Registration[]
+  menuItems     EventMenuItem[]
+
+  @@index([status])
+  @@index([picMasterMemberId])
+  @@index([bankAccountId])
+}
+
+model EventPicHelper {
+  eventId  String
+  memberId String
+
+  event  Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member MasterMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([eventId, memberId])
+  @@index([memberId])
+}
+
+model Registration {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contactName     String
+  contactWhatsapp String
+
+  claimedMemberNumber String?
+  memberValidation    MemberValidation @default(unknown)
+  memberId            String?
+  member              MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  // Snapshot pricing (locked at submission)
+  ticketMemberPriceApplied    Int
+  ticketNonMemberPriceApplied Int
+  voucherPriceApplied         Int?
+  computedTotalAtSubmit       Int
+
+  status           RegistrationStatus @default(submitted)
+  attendanceStatus AttendanceStatus   @default(unknown)
+
+  rejectionReason    String?
+  paymentIssueReason String?
+
+  tickets     Ticket[]
+  uploads     Upload[]
+  adjustments InvoiceAdjustment[]
+
+  @@index([eventId, createdAt])
+  @@index([status])
+  @@index([attendanceStatus])
+}
+
+model Ticket {
+  id             String @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  role TicketRole
+
+  fullName     String
+  whatsapp     String?
+  memberNumber String?
+
+  ticketPriceType TicketPriceType
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Business rule: one ticket per member per event.
+  // Implemented as (eventId, memberNumber) unique via denormalized eventId.
+  eventId String
+  menuSelections TicketMenuSelection[]
+
+  @@index([registrationId])
+  @@index([eventId])
+  @@unique([eventId, memberNumber])
+  @@unique([registrationId, role])
+}
+
+model EventMenuItem {
+  id     String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name    String
+  /// IDR smallest unit (consistent with ticket prices).
+  price   Int
+  sortOrder Int @default(0)
+  voucherEligible Boolean @default(false)
+
+  selections TicketMenuSelection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+}
+
+model TicketMenuSelection {
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  menuItemId String
+  menuItem   EventMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@id([ticketId, menuItemId])
+  @@index([menuItemId])
+}
+
+model InvoiceAdjustment {
+  id             String @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  type   InvoiceAdjustmentType
+  amount Int
+  status InvoiceAdjustmentStatus @default(unpaid)
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploads Upload[]
+
+  @@index([registrationId])
+  @@index([status])
+}
+
+model Upload {
+  id String @id @default(cuid())
+
+  purpose UploadPurpose
+
+  blobUrl     String
+  blobPath    String
+  contentType String
+  bytes       Int
+  sha256      String
+
+  width  Int?
+  height Int?
+
+  originalFilename String?
+
+  createdAt DateTime @default(now())
+
+  registrationId String?
+  registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  invoiceAdjustmentId String?
+  invoiceAdjustment   InvoiceAdjustment? @relation(fields: [invoiceAdjustmentId], references: [id], onDelete: Cascade)
+
+  @@index([purpose, createdAt])
+  @@index([registrationId])
+  @@index([invoiceAdjustmentId])
+}
+
+model AdminProfile {
+  id String @id @default(cuid())
+
+  // Better Auth user id (string). We keep Better Auth tables outside Prisma by using pg.Pool adapter.
+  authUserId String @unique
+
+  role AdminRole @default(Viewer)
+
+  // Optional: link to a MasterMember so PIC helper checks are possible.
+  memberId String?
+  member   MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([memberId])
+}

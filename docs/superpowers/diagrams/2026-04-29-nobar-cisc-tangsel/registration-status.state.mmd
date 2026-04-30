@@ -1,0 +1,21 @@
+stateDiagram-v2
+  [*] --> submitted
+  submitted --> pending_review: system\n(post-submit)
+
+  pending_review --> approved: admin approve
+  pending_review --> payment_issue: admin flags issue
+  pending_review --> rejected: admin reject (reason)
+  pending_review --> cancelled: admin cancel
+
+  payment_issue --> pending_review: resolves\n(new proof / adjustment)
+  payment_issue --> rejected: admin reject
+  payment_issue --> cancelled: admin cancel
+
+  approved --> cancelled: admin cancel
+  approved --> refunded: refund processed
+
+  state "attendanceStatus" as AS {
+    [*] --> unknown
+    unknown --> attended: set after event day
+    unknown --> no_show: set after event day
+  }

@@ -1,0 +1,14 @@
+flowchart LR
+    A[Admin user] --> B{"Global role?"}
+
+    B -->|Owner| O["Full access\n(all events + master data)"]
+    B -->|Verifier| V["Verifier access\n(all events operations)"]
+    B -->|Viewer| W["Read-only\n(all events)"]
+
+    W --> C{"Assigned as\nPIC Helper for Event X?"}
+    C -->|No| W1["Viewer (Event X)\nno verification actions"]
+    C -->|Yes| Vx["Verifier-like for Event X\nonly"]
+
+    O --> E1["Can manage admins,\nmaster members,\nPIC bank accounts,\nWA templates,\npricing defaults"]
+    V --> E2["Can verify registrations,\ncreate adjustments,\nattendance,\ncancel/refund"]
+    Vx --> E3["Same as Verifier\nbut scoped to Event X"]
