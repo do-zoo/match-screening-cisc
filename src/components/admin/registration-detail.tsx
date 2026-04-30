@@ -23,6 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { waMeLink } from "@/lib/wa-templates/encode";
+import {
+  templateReceipt,
+  templateApproved,
+  templateRejected,
+  templatePaymentIssue,
+} from "@/lib/wa-templates/messages";
 
 export function formatCurrencyIdr(n: number): string {
   const formatted = new Intl.NumberFormat("id-ID", {
@@ -47,6 +54,13 @@ type DetailRegistration = {
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
   status: RegistrationStatus;
+  rejectionReason: string | null;
+  paymentIssueReason: string | null;
+  event: {
+    title: string;
+    venueName: string;
+    startAt: Date;
+  };
   tickets: Array<{
     id: string;
     role: TicketRole;
@@ -71,7 +85,6 @@ type DetailRegistration = {
 
 type Props = {
   eventId: string;
-  eventTitle?: string;
   registration: DetailRegistration;
 };
 
@@ -88,7 +101,54 @@ function TicketRoleBadge({ role }: { role: TicketRole }) {
   );
 }
 
-export function RegistrationDetail({ eventId, registration, eventTitle }: Props) {
+export function RegistrationDetail({ eventId, registration }: Props) {
+  const waPhone = registration.contactWhatsapp;
+  const waLinks = [
+    {
+      label: "WhatsApp · penerimaan pendaftaran",
+      href: waMeLink(
+        waPhone,
+        templateReceipt({
+          contactName: registration.contactName,
+          eventTitle: registration.event.title,
+          registrationId: registration.id,
+          computedTotalIdr: registration.computedTotalAtSubmit,
+        }),
+      ),
+      show: true,
+    },
+    {
+      label: "WhatsApp · disetujui",
+      href: waMeLink(
+        waPhone,
+        templateApproved(
+          registration.event.title,
+          registration.event.venueName,
+          registration.event.startAt.toISOString(),
+        ),
+      ),
+      show: registration.status === "approved",
+    },
+    {
+      label: "WhatsApp · ditolak",
+      href: registration.rejectionReason
+        ? waMeLink(waPhone, templateRejected(registration.rejectionReason))
+        : "#",
+      show:
+        registration.status === "rejected" &&
+        Boolean(registration.rejectionReason),
+    },
+    {
+      label: "WhatsApp · masalah pembayaran",
+      href: registration.paymentIssueReason
+        ? waMeLink(waPhone, templatePaymentIssue(registration.paymentIssueReason))
+        : "#",
+      show:
+        registration.status === "payment_issue" &&
+        Boolean(registration.paymentIssueReason),
+    },
+  ].filter((l) => l.show);
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -99,7 +159,7 @@ export function RegistrationDetail({ eventId, registration, eventTitle }: Props)
           </CardTitle>
           <CardDescription>
             Submitted {dateFormatter.format(registration.createdAt)}
-            {eventTitle ? ` • ${eventTitle}` : ""}
+            {` • ${registration.event.title}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -127,6 +187,30 @@ export function RegistrationDetail({ eventId, registration, eventTitle }: Props)
           </div>
           <div className="rounded-lg border bg-muted/30 p-3 font-mono text-xs text-muted-foreground">
             {registration.id}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp</CardTitle>
+          <CardDescription>
+            Klik untuk membuka pesan WhatsApp pre-filled di tab baru.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {waLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent/60 transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
         </CardContent>
       </Card>
