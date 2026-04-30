@@ -34,8 +34,17 @@ export default async function AdminEventInboxDetailPage({
 
   const registration = await prisma.registration.findFirst({
     where: { id: registrationId, eventId },
-    include: {
-      event: { select: { title: true } },
+    select: {
+      id: true,
+      createdAt: true,
+      contactName: true,
+      contactWhatsapp: true,
+      claimedMemberNumber: true,
+      computedTotalAtSubmit: true,
+      status: true,
+      rejectionReason: true,
+      paymentIssueReason: true,
+      event: { select: { title: true, venueName: true, startAt: true } },
       tickets: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -71,7 +80,6 @@ export default async function AdminEventInboxDetailPage({
 
       <RegistrationDetail
         eventId={eventId}
-        eventTitle={registration.event.title}
         registration={registration}
       />
     </main>
