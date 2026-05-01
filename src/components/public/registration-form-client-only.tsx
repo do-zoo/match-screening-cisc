@@ -5,10 +5,7 @@ import dynamic from "next/dynamic";
 import type { SerializedEventForRegistration } from "@/components/public/event-serialization";
 
 const RegistrationForm = dynamic(
-  () =>
-    import("@/components/public/registration-form").then(
-      (mod) => mod.RegistrationForm,
-    ),
+  () => import("@/components/public/registration-form/registration-form"),
   {
     ssr: false,
     loading: () => (

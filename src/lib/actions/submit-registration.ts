@@ -1,12 +1,7 @@
 "use server";
 
 import { del } from "@vercel/blob";
-import {
-  MenuMode,
-  MenuSelection,
-  Prisma,
-  RegistrationStatus,
-} from "@prisma/client";
+import { MenuMode, Prisma, RegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   fieldError,
@@ -14,8 +9,9 @@ import {
   rootError,
   type ActionResult,
 } from "@/lib/forms/action-result";
-import { submitRegistrationFormSchema } from "@/lib/forms/submit-registration-schema";
+import { createSubmitRegistrationFormSchema } from "@/lib/forms/submit-registration-schema";
 import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
+import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master-member";
 import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
 import { UploadError } from "@/lib/uploads/errors";
 import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
@@ -36,6 +32,17 @@ function uploadErrorMessage(err: UploadError): string {
     return "Ukuran file terlalu besar. Maksimal 8 MB.";
   }
   return "Gagal mengunggah gambar. Coba unggah ulang.";
+}
+
+/** FormData / Object.fromEntries can yield string | Blob; keep scalars predictable for Zod. */
+function coerceForSchema(value: unknown): unknown {
+  if (typeof value === "object" && value instanceof File) return value;
+  if (typeof value === "number") return String(value);
+  return value;
+}
+
+function optionalFile(entry: FormDataEntryValue | null): File | undefined {
+  return entry instanceof File ? entry : undefined;
 }
 
 function isTicketMemberUniqueConstraintError(err: unknown): boolean {
@@ -60,8 +67,26 @@ function isTicketMemberUniqueConstraintError(err: unknown): boolean {
 
 export async function submitRegistration(
   _prev: unknown,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionResult<{ registrationId: string }>> {
+  const slug = formData.get("slug");
+  if (typeof slug !== "string" || slug.trim().length === 0) {
+    return fieldError({
+      slug: "Slug acara hilang atau tidak valid. Muat ulang halaman ini.",
+    });
+  }
+
+  // 1. Ambil Event Terlebih Dahulu
+  const event = await prisma.event.findFirst({
+    where: { slug, status: "active" },
+    include: { menuItems: { orderBy: { sortOrder: "asc" } } },
+  });
+
+  if (!event) {
+    return rootError("Event tidak tersedia atau belum aktif.");
+  }
+
+  // 2. Siapkan Payload & Parse dengan Factory Zod
   const raw = Object.fromEntries(formData.entries());
   const qtyPartnerNorm: 0 | 1 =
     String(raw.qtyPartner ?? "0").trim() === "1" ? 1 : 0;
@@ -70,11 +95,22 @@ export async function submitRegistration(
     .map(String)
     .filter(Boolean);
 
-  const parsed = submitRegistrationFormSchema.safeParse({
-    ...raw,
+  const payload = {
+    slug: coerceForSchema(raw.slug),
+    contactName: coerceForSchema(raw.contactName),
+    contactWhatsapp: coerceForSchema(raw.contactWhatsapp),
+    claimedMemberNumber: coerceForSchema(raw.claimedMemberNumber),
     qtyPartner: qtyPartnerNorm,
+    partnerName: coerceForSchema(raw.partnerName),
+    partnerWhatsapp: coerceForSchema(raw.partnerWhatsapp),
+    partnerMemberNumber: coerceForSchema(raw.partnerMemberNumber),
     selectedMenuItemIds,
-  });
+    transferProof: optionalFile(formData.get("transferProof")),
+    memberCardPhoto: optionalFile(formData.get("memberCardPhoto")),
+  };
+
+  const schema = createSubmitRegistrationFormSchema(event);
+  const parsed = schema.safeParse(payload);
 
   if (!parsed.success) {
     const fe: Record<string, string> = {};
@@ -87,29 +123,9 @@ export async function submitRegistration(
 
   const data = parsed.data;
 
-  const event = await prisma.event.findFirst({
-    where: { slug: data.slug, status: "active" },
-    include: { menuItems: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!event) {
-    return rootError("Event tidak tersedia atau belum aktif.");
-  }
-
-  const transferProof = formData.get("transferProof");
-  const memberCard = formData.get("memberCardPhoto");
-
-  if (!(transferProof instanceof File) || transferProof.size === 0) {
-    return fieldError({ transferProof: "Unggah bukti transfer wajib." });
-  }
-
-  const claimingMember = Boolean(data.claimedMemberNumber?.trim());
-  if (claimingMember) {
-    if (!(memberCard instanceof File) || memberCard.size === 0) {
-      return fieldError({
-        memberCardPhoto: "Foto kartu member wajib jika nomor member diisi.",
-      });
-    }
-  }
+  // 3. Persiapan Data Lanjutan
+  const transferProof = data.transferProof;
+  const memberCard = data.memberCardPhoto;
 
   const includePartner = data.qtyPartner === 1;
   const primaryMemberNumber = data.claimedMemberNumber?.trim() || undefined;
@@ -117,74 +133,58 @@ export async function submitRegistration(
     ? data.partnerMemberNumber?.trim() || undefined
     : undefined;
 
-  if (
-    includePartner &&
-    primaryMemberNumber &&
-    partnerMemberNumber &&
-    primaryMemberNumber === partnerMemberNumber
-  ) {
-    return rootError(
-      "Nomor member utama dan partner tidak boleh sama dalam satu pendaftaran.",
-    );
-  }
-
   const candidates = [primaryMemberNumber, partnerMemberNumber].filter(
-    Boolean,
+    Boolean
   ) as string[];
 
+  // Validasi DB: Duplikat member & hak akses Pengurus
   const dup = await findDuplicateMemberNumbers(event.id, candidates);
   if (dup.length > 0) {
     return rootError(duplicateMemberMessage(dup));
   }
 
-  let picMaster = null as { isPengurus: boolean } | null;
-  if (primaryMemberNumber) {
-    picMaster = await prisma.masterMember.findFirst({
-      where: { memberNumber: primaryMemberNumber, isActive: true },
-      select: { isPengurus: true },
+  const picMaster = primaryMemberNumber
+    ? await getActiveMasterMemberByMemberNumber(primaryMemberNumber)
+    : null;
+
+  if (primaryMemberNumber && !picMaster) {
+    return fieldError({
+      claimedMemberNumber:
+        "Nomor member tidak dikenali atau tidak aktif di direktori kami.",
     });
   }
 
   if (includePartner) {
-    if (!data.partnerName?.trim()) {
-      return fieldError({
-        partnerName: "Nama partner wajib jika membawa partner.",
-      });
-    }
     if (!picMaster?.isPengurus) {
       return rootError(
-        "Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama.",
+        "Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama."
       );
     }
   }
 
   const primaryIsMemberPrice = Boolean(primaryMemberNumber);
 
+  // Konstruksi menu berdasarkan skema yang sudah valid (aman dari manipulasi)
   const menuParts: Parameters<typeof computeSubmitTotal>[0]["perTicketMenu"] =
     [];
 
   if (event.menuMode === MenuMode.VOUCHER) {
     if (event.voucherPrice == null) {
       return rootError(
-        "Konfigurasi voucher acara belum lengkap. Hubungi panitia.",
+        "Konfigurasi voucher acara belum lengkap. Hubungi panitia."
       );
     }
     menuParts.push({ mode: "VOUCHER" });
     if (includePartner) menuParts.push({ mode: "VOUCHER" });
   } else {
     const ids = data.selectedMenuItemIds ?? [];
-    if (event.menuSelection === MenuSelection.SINGLE && ids.length !== 1) {
-      return fieldError({
-        selectedMenuItemIds: "Pilih tepat satu menu.",
-      });
-    }
-    if (event.menuSelection === MenuSelection.MULTI && ids.length < 1) {
-      return fieldError({ selectedMenuItemIds: "Pilih minimal satu menu." });
-    }
     const items = event.menuItems.filter((m) => ids.includes(m.id));
     if (items.length !== ids.length) {
-      return rootError("Menu tidak valid untuk acara ini.");
+      return rootError(
+        "Konfigurasi menu acara tidak konsisten atau berubah. Muat ulang halaman ini."
+      );
     }
+
     menuParts.push({
       mode: "PRESELECT",
       selectedMenuItems: items.map((i) => ({ price: i.price })),
@@ -287,7 +287,7 @@ export async function submitRegistration(
     });
     activeUploadField = null;
 
-    if (claimingMember && memberCard instanceof File) {
+    if (memberCard instanceof File) {
       activeUploadField = "memberCardPhoto";
       await uploadImageForRegistration({
         purpose: "member_card_photo",
@@ -326,7 +326,7 @@ export async function submitRegistration(
       if (cleanupFailed) {
         console.error(e);
         return rootError(
-          `Gagal menyimpan pendaftaran dan membersihkan unggahan. Laporkan ID pendaftaran ${registrationId} ke panitia.`,
+          `Gagal menyimpan pendaftaran dan membersihkan unggahan. Laporkan ID pendaftaran ${registrationId} ke panitia.`
         );
       }
       await prisma.registration
