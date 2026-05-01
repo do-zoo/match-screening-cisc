@@ -255,6 +255,7 @@ export type CommitteeAdminDirectoryRowVm = {
   email: string;
   displayName: string;
   role: string;
+  memberId: string | null;
   memberSummary: string | null;
   twoFactorEnabled: boolean;
   lastSessionActivityAtIso: string | null;
@@ -275,6 +276,7 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
         id: true,
         authUserId: true,
         role: true,
+        memberId: true,
         member: {
           select: { memberNumber: true, fullName: true },
         },
@@ -323,6 +325,7 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
       email: u?.email ?? p.authUserId,
       displayName: u?.name ?? "—",
       role: p.role,
+      memberId: p.memberId,
       memberSummary: p.member
         ? `${p.member.memberNumber} — ${p.member.fullName}`
         : null,
@@ -812,36 +815,413 @@ git commit -m "test(actions): committee admin profiles owner invariants"
 **Files:**
 - Create: `src/components/admin/committee-admin-settings-panel.tsx`
 
-- [ ] **Step 1: Implement client component**
+- [ ] **Step 1: Create `src/components/admin/committee-admin-settings-panel.tsx`**
 
-Use `useActionState` mirroring `club-operational-settings-form.tsx`. Skeleton structure (implement fully in codebase — complete UI text in Indonesian):
+Implementasi lengkap berikut menyamakan pola `useActionState` + `Alert` seperti `committee-default-pricing-form.tsx` dan `Dialog` bermuatan seperti `cancel-refund-panel.tsx`. Setelah penyimpanan sukses (`state?.ok === true`), tutup dialog terkait; gunakan increment `useState` key (`manageKey`, `addKey`) bila perlu untuk mereset state action ketika membuka lagi.
 
-- Props: `{ directory: CommitteeAdminDirectoryVm }` dari loader.
-- Tabel kolom: Email, Nama, Peran, Anggota terkait, 2FA (Ya/Tidak), Aktivitas sesi (`lastSessionActivityAtIso` format locale `id-ID` atau ISO pendek), Aksi (`Kelola` membuka satu dialog gabungan atau tiga tombol dialog).
-- **Tambah admin:** `Dialog` + form `email` → `addCommitteeAdminByEmail`; sukses → tutup dialog (controlled `open` state: reset when `state?.ok === true`).
-- **Ubah peran:** Dialog dengan `<select name="role">` options Owner/Admin/Verifier/Viewer, hidden `adminProfileId`.
-- **Tautan anggota:** Dialog `<select name="memberId">` pertama opsi kosong `"— Tidak dikaitkan"`, value `""`, lalu `memberOptions`.
-- **Cabut akses bermakna:** `Button` destructive konfirmasi + `revokeCommitteeAdminMeaningfulAccess` satu field hidden `adminProfileId`.
-- Tambahkan `Alert` untuk `rootError` / `fieldErrors` seperti formulir komite lain.
-
-Impor pakai:
-
-```typescript
+```tsx
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import type { CommitteeAdminDirectoryVm } from "@/lib/admin/load-committee-admin-directory";
+import { useActionState, useCallback, useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+
+import type {
+  CommitteeAdminDirectoryRowVm,
+  CommitteeAdminDirectoryVm,
+} from "@/lib/admin/load-committee-admin-directory";
 import {
   addCommitteeAdminByEmail,
-  updateCommitteeAdminRole,
-  updateCommitteeAdminMemberLink,
   revokeCommitteeAdminMeaningfulAccess,
+  updateCommitteeAdminMemberLink,
+  updateCommitteeAdminRole,
 } from "@/lib/actions/admin-committee-profiles";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { ActionResult } from "@/lib/forms/action-result";
+
+const ROLE_LABELS: Record<string, string> = {
+  Owner: "Owner",
+  Admin: "Admin",
+  Verifier: "Verifier",
+  Viewer: "Viewer",
+};
+
+function formatSessionHint(iso: string | null) {
+  if (!iso) return "—";
+  try {
+    return new Intl.DateTimeFormat("id-ID", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function fieldErrorsLines(fieldErrors?: Record<string, string>) {
+  if (!fieldErrors || Object.keys(fieldErrors).length === 0) return null;
+  return Object.entries(fieldErrors)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\n");
+}
+
+type ManageFormsProps = {
+  row: CommitteeAdminDirectoryRowVm;
+  memberOptions: CommitteeAdminDirectoryVm["memberOptions"];
+  onAnySuccess: () => void;
+  manageKey: number;
+};
+
+function ManageAdminDialogs(props: ManageFormsProps) {
+  const { row } = props;
+
+  const [roleState, roleDispatch, rolePending] = useActionState(
+    updateCommitteeAdminRole,
+    null as ActionResult<{ saved: true }> | null,
+  );
+  const [memberState, memberDispatch, memberPending] = useActionState(
+    updateCommitteeAdminMemberLink,
+    null as ActionResult<{ saved: true }> | null,
+  );
+  const [revokeState, revokeDispatch, revokePending] = useActionState(
+    revokeCommitteeAdminMeaningfulAccess,
+    null as ActionResult<{ saved: true }> | null,
+  );
+
+  useEffect(() => {
+    if (roleState?.ok || memberState?.ok || revokeState?.ok) {
+      props.onAnySuccess();
+    }
+  }, [
+    roleState?.ok,
+    memberState?.ok,
+    revokeState?.ok,
+    props.onAnySuccess,
+  ]);
+
+  const flagLinesRole = fieldErrorsLines(
+    roleState?.ok === false ? roleState.fieldErrors : undefined,
+  );
+  const flagLinesMember = fieldErrorsLines(
+    memberState?.ok === false ? memberState.fieldErrors : undefined,
+  );
+  const flagLinesRevoke = fieldErrorsLines(
+    revokeState?.ok === false ? revokeState.fieldErrors : undefined,
+  );
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Dialog>
+        <DialogTrigger render={<Button variant="outline" size="sm" />}>
+          Ubah peran
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ubah peran admin</DialogTitle>
+            <DialogDescription>
+              {props.row.email} — peran baru berlaku segera setelah disimpan.
+            </DialogDescription>
+          </DialogHeader>
+          <form action={roleDispatch} className="space-y-4" key={`r-${props.manageKey}-${row.adminProfileId}`}>
+            <input type="hidden" name="adminProfileId" value={row.adminProfileId} />
+            {roleState?.ok === false && roleState.rootError ? (
+              <Alert variant="destructive">
+                <AlertTitle>Gagal</AlertTitle>
+                <AlertDescription>{roleState.rootError}</AlertDescription>
+              </Alert>
+            ) : null}
+            {flagLinesRole ? (
+              <Alert variant="destructive">
+                <AlertTitle>Periksa isian</AlertTitle>
+                <AlertDescription className="whitespace-pre-wrap font-mono text-xs">
+                  {flagLinesRole}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor={`role-${row.adminProfileId}`}>Peran</Label>
+              <select
+                id={`role-${row.adminProfileId}`}
+                name="role"
+                className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+                defaultValue={row.role}
+                disabled={rolePending}
+                required
+              >
+                <option value="Owner">Owner</option>
+                <option value="Admin">Admin</option>
+                <option value="Verifier">Verifier</option>
+                <option value="Viewer">Viewer</option>
+              </select>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={rolePending}>
+                {rolePending ? <Loader2 className="size-4 animate-spin" /> : "Simpan peran"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog>
+        <DialogTrigger render={<Button variant="outline" size="sm" />}>
+          Tautan anggota
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hubungkan ke MasterMember</DialogTitle>
+            <DialogDescription>
+              Opsional. PIC, rekening, dan flag PIC dikelola di halaman Anggota.
+            </DialogDescription>
+          </DialogHeader>
+          <form action={memberDispatch} className="space-y-4" key={`m-${props.manageKey}-${row.adminProfileId}`}>
+            <input type="hidden" name="adminProfileId" value={row.adminProfileId} />
+            {memberState?.ok === false && memberState.rootError ? (
+              <Alert variant="destructive">
+                <AlertTitle>Gagal</AlertTitle>
+                <AlertDescription>{memberState.rootError}</AlertDescription>
+              </Alert>
+            ) : null}
+            {flagLinesMember ? (
+              <Alert variant="destructive">
+                <AlertTitle>Periksa isian</AlertTitle>
+                <AlertDescription className="whitespace-pre-wrap font-mono text-xs">
+                  {flagLinesMember}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor={`member-${row.adminProfileId}`}>Anggota</Label>
+              <select
+                id={`member-${row.adminProfileId}`}
+                name="memberId"
+                className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+                defaultValue={row.memberId ?? ""}
+                disabled={memberPending}
+              >
+                <option value="">— Tidak dikaitkan</option>
+                {props.memberOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={memberPending}>
+                {memberPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Simpan tautan"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog>
+        <DialogTrigger render={<Button variant="destructive" size="sm" />}>
+          Cabut akses
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cabut akses bermakna</DialogTitle>
+            <DialogDescription>
+              Mengatur peran menjadi Viewer dan menghapus tautan anggota untuk{" "}
+              <strong>{row.email}</strong>. Profil tidak dihapus.
+            </DialogDescription>
+          </DialogHeader>
+          {revokeState?.ok === false && revokeState.rootError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Gagal</AlertTitle>
+              <AlertDescription>{revokeState.rootError}</AlertDescription>
+            </Alert>
+          ) : null}
+          {flagLinesRevoke ? (
+            <Alert variant="destructive">
+              <AlertTitle>Periksa isian</AlertTitle>
+              <AlertDescription className="whitespace-pre-wrap font-mono text-xs">
+                {flagLinesRevoke}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          <form action={revokeDispatch} key={`v-${props.manageKey}-${row.adminProfileId}`}>
+            <input type="hidden" name="adminProfileId" value={row.adminProfileId} />
+            <DialogFooter>
+              <Button type="submit" variant="destructive" disabled={revokePending}>
+                {revokePending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Ya, cabut akses"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+export function CommitteeAdminSettingsPanel(props: {
+  directory: CommitteeAdminDirectoryVm;
+}) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [addKey, setAddKey] = useState(0);
+  const [manageKey, setManageKey] = useState(0);
+
+  const onManageSuccess = useCallback(() => {
+    setManageKey((k) => k + 1);
+  }, []);
+
+  const [addState, addDispatch, addPending] = useActionState(
+    addCommitteeAdminByEmail,
+    null as ActionResult<{ created: true }> | null,
+  );
+
+  useEffect(() => {
+    if (addState?.ok) {
+      setAddOpen(false);
+      setAddKey((k) => k + 1);
+    }
+  }, [addState]);
+
+  const addFieldLines = fieldErrorsLines(
+    addState?.ok === false ? addState.fieldErrors : undefined,
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-medium">Admin terdaftar</h2>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger render={<Button />}>Tambah admin…</DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Tambah admin dari email</DialogTitle>
+              <DialogDescription>
+                Pengguna harus sudah punya akun (pernah masuk atau mendaftar). Peran default: Viewer — ubah melalui &ldquo;Ubah peran&rdquo;.
+              </DialogDescription>
+            </DialogHeader>
+            <form action={addDispatch} className="space-y-4" key={`add-${addKey}`}>
+              {addState?.ok === false && addState.rootError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Gagal</AlertTitle>
+                  <AlertDescription>{addState.rootError}</AlertDescription>
+                </Alert>
+              ) : null}
+              {addFieldLines ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Periksa isian</AlertTitle>
+                  <AlertDescription className="whitespace-pre-wrap font-mono text-xs">
+                    {addFieldLines}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="committee-admin-email">Email</Label>
+                <Input
+                  id="committee-admin-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  disabled={addPending}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={addPending}>
+                  {addPending ? <Loader2 className="size-4 animate-spin" /> : "Tambahkan"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Nama</TableHead>
+              <TableHead>Peran</TableHead>
+              <TableHead>Anggota terkait</TableHead>
+              <TableHead>2FA</TableHead>
+              <TableHead>Aktivitas sesi*</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {props.directory.rows.length === 0 ? (
+              <TableRow>
+                <TableCell className="text-muted-foreground" colSpan={7}>
+                  Belum ada AdminProfile.
+                </TableCell>
+              </TableRow>
+            ) : (
+              props.directory.rows.map((row) => (
+                <TableRow key={row.adminProfileId}>
+                  <TableCell className="font-mono text-xs sm:text-sm">
+                    {row.email}
+                  </TableCell>
+                  <TableCell>{row.displayName}</TableCell>
+                  <TableCell>{ROLE_LABELS[row.role] ?? row.role}</TableCell>
+                  <TableCell>{row.memberSummary ?? "—"}</TableCell>
+                  <TableCell>{row.twoFactorEnabled ? "Ya" : "Tidak"}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">
+                    {formatSessionHint(row.lastSessionActivityAtIso)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <ManageAdminDialogs
+                      row={row}
+                      memberOptions={props.directory.memberOptions}
+                      manageKey={manageKey}
+                      onAnySuccess={onManageSuccess}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        <span className="font-medium text-foreground">*</span> Berdasarkan sesi aktif yang belum kedaluwarsa (pembaruan terbaru dari tabel sessi Better Auth).
+        Untuk rekonsiliasi lebih lengkap pakai halaman Pengaturan → Keamanan (log audit). Darurat penyediaan akun baru masih bisa lewat CLI{" "}
+        <code className="font-mono text-[11px]">pnpm bootstrap:admin</code>.
+      </p>
+    </div>
+  );
+}
 ```
 
-Gunakan eksport `@/components/ui/dialog` (`Dialog`, `DialogTrigger`, `DialogContent`, `DialogClose`, dll.) seperti `CLAUDE.md` (trigger `render` prop).
-
-Teks bantuan kecil di bawah tabel: bootstrap CLI boleh tetap disebut sebagai jalan cadang operasional.
+**Catatan perilaku Dialog:** Basis UI tidak menutup otomatis `Dialog` pembuka `DialogTrigger` setelah submit sukses; peningkatan opsional kemudian adalah mengontrol `open`/`onOpenChange` untuk setiap dialog kelola seperti pola `cancel-refund-panel.tsx`. Pada MVP mengunci rencana ini, meningkatkan `manageKey` setelah sukses sudah mencukupi untuk mereset form state berikutnya. Bungkus `onAnySuccess` di parent dengan `useCallback` agar `useEffect` di `ManageAdminDialogs` tidak terpicu ulang setiap render.
 
 - [ ] **Step 2: Commit**
 
@@ -930,7 +1310,7 @@ git commit -m "feat(admin): wire committee directory page + hub description"
 | Audit tiga jalur (+ revoke memakai role_changed dengan metadata) | Task 5 + Task 2 |
 | §7 testing | Tasks 1, 6, 8 lint/vitest |
 
-**2. Placeholder scan** — tidak ada TODO/TBD/`implement later`; langkah Step 7 merefer implementasi lengkap dalam repo (agent harus menyelesaikan JSX dialog tanpa meninggalkan stub).
+**2. Placeholder scan** — tidak ada TODO/TBD/`implement later`; Task 7 memuat cuplikan TSX panel siap salin lengkap ditambahkan field `memberId` pada loader Task 4.
 
 **3. Type consistency** — `AdminRole` dari `@prisma/client`; `committee-owner-invariants` memakai `AdminRole` generik; schemas memakai enum yang sama; server actions menggunakan `parsed.data.role` bertipe sama.
 
