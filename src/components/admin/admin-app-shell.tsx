@@ -124,13 +124,13 @@ export function AdminAppShell({
   return (
     <div
       data-admin-shell
-      className="flex min-h-[100dvh] w-full flex-col bg-muted/40 lg:flex-row"
+      className="flex min-h-[100dvh] w-full flex-col bg-muted/40 lg:flex-row lg:items-start"
     >
       <aside
         aria-label="Menu admin utama"
-        className="sticky top-0 z-40 hidden min-h-[100dvh] w-[min(260px,100%)] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex"
+        className="sticky top-0 z-40 hidden w-[min(260px,100%)] shrink-0 flex-col justify-start border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:min-h-[100dvh] lg:max-h-[100dvh] lg:overflow-y-auto lg:overscroll-contain lg:self-start"
       >
-        <div className="flex flex-1 flex-col gap-6 p-4">
+        <div className="flex min-h-0 w-full flex-1 flex-col gap-6 p-4">
           <div className="space-y-3">
             <AdminBrandMark />
             {userEmail ? (
