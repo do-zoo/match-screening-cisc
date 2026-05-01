@@ -231,8 +231,13 @@ model Ticket {
   eventId String
   menuSelections TicketMenuSelection[]
 
+  voucherRedeemedMenuItemId String?
+  voucherRedeemedAt         DateTime?
+  voucherRedeemedItem       EventMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
+
   @@index([registrationId])
   @@index([eventId])
+  @@index([voucherRedeemedMenuItemId])
   @@unique([eventId, memberNumber])
   @@unique([registrationId, role])
 }
@@ -248,7 +253,8 @@ model EventMenuItem {
   sortOrder Int @default(0)
   voucherEligible Boolean @default(false)
 
-  selections TicketMenuSelection[]
+  selections         TicketMenuSelection[]
+  voucherRedemptions Ticket[] @relation("VoucherRedemption")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
