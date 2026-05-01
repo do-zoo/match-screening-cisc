@@ -41,21 +41,45 @@ export default async function AdminEventInboxDetailPage({
       contactWhatsapp: true,
       claimedMemberNumber: true,
       computedTotalAtSubmit: true,
+      ticketMemberPriceApplied: true,
+      ticketNonMemberPriceApplied: true,
       status: true,
+      attendanceStatus: true,
+      memberValidation: true,
       rejectionReason: true,
       paymentIssueReason: true,
-      event: { select: { title: true, venueName: true, startAt: true } },
-      tickets: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          menuSelections: {
-            include: {
-              menuItem: { select: { name: true, price: true } },
-            },
+      event: {
+        select: {
+          title: true,
+          venueName: true,
+          startAt: true,
+          menuMode: true,
+          menuItems: {
+            orderBy: { sortOrder: "asc" as const },
+            select: { id: true, name: true, price: true, voucherEligible: true },
+          },
+          bankAccount: {
+            select: { bankName: true, accountNumber: true, accountName: true },
           },
         },
       },
-      uploads: { orderBy: { createdAt: "asc" } },
+      tickets: {
+        orderBy: { createdAt: "asc" as const },
+        include: {
+          menuSelections: {
+            include: { menuItem: { select: { name: true, price: true } } },
+          },
+        },
+      },
+      uploads: { orderBy: { createdAt: "asc" as const } },
+      adjustments: {
+        orderBy: { createdAt: "asc" as const },
+        include: {
+          uploads: {
+            select: { id: true, blobUrl: true, bytes: true, createdAt: true },
+          },
+        },
+      },
     },
   });
 
