@@ -89,11 +89,15 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/auth/auth.ts` — Better Auth config (magic-link + email/password, `nextCookies` plugin)
 - `lib/auth/session.ts` — `getAdminSession()` / `requireAdminSession()` — reads session from Next.js request headers
 - `lib/db/prisma.ts` — singleton `PrismaClient` with `PrismaNeon` adapter (pooled `DATABASE_URL`, Neon-recommended; HMR-safe via `globalThis`)
-- `lib/actions/submit-registration.ts` — the main Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
+- `lib/actions/guard.ts` — **all admin server actions must start here**: `guardEvent(eventId)`, `guardOwner()`, `guardOwnerOrAdmin()`, `isAuthError(e)`. Throws `"NO_PROFILE"` / `"FORBIDDEN"` / `"UNAUTHENTICATED"` strings; catch with `isAuthError` to surface as "Tidak diizinkan."
+- `lib/forms/action-result.ts` — `ActionResult<T>` discriminated union (`{ ok: true; data }` / `{ ok: false; fieldErrors?, rootError? }`); helpers `ok()`, `rootError()`, `fieldError()`. All admin server actions return this type.
+- `lib/actions/submit-registration.ts` — the main public Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
-- `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access for admin actions
-- `lib/wa-templates/messages.ts` — WhatsApp message templates (Indonesian); used by admin to send status updates
+- `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
+- `lib/reports/queries.ts` — `getEventReport(eventId)` — 10 parallel queries for attendance, finance, menu/voucher aggregations
+- `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — 14-column RFC 4180 CSV
+- `lib/wa-templates/messages.ts` — WhatsApp message templates (Indonesian); covers approval, rejection, payment issue, cancellation, refund, underpayment invoice
 
 ### UI components
 
