@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -76,6 +77,7 @@ enum InvoiceAdjustmentStatus {
 enum UploadPurpose {
   transfer_proof
   member_card_photo
+  partner_member_card_photo
   invoice_adjustment_proof
 }
 
@@ -95,20 +97,20 @@ model MasterMember {
   isActive     Boolean @default(true)
 
   isPengurus Boolean @default(false)
-  canBePIC    Boolean @default(false)
+  canBePIC   Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bankAccounts PicBankAccount[]
-  eventsAsPicMaster Event[] @relation("EventPicMaster")
+  bankAccounts      PicBankAccount[]
+  eventsAsPicMaster Event[]          @relation("EventPicMaster")
   eventsAsHelper    EventPicHelper[]
   registrations     Registration[]
   adminProfiles     AdminProfile[]
 }
 
 model PicBankAccount {
-  id            String @id @default(cuid())
+  id            String       @id @default(cuid())
   ownerMemberId String
   ownerMember   MasterMember @relation(fields: [ownerMemberId], references: [id], onDelete: Restrict)
 
@@ -126,14 +128,14 @@ model PicBankAccount {
 }
 
 model Event {
-  id           String   @id @default(cuid())
-  slug         String   @unique
-  title        String
-  summary      String
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  summary     String
   /// Konten WYSIWYG (HTML). Sanitasi di server saat admin menyimpan; publik memakai helper `sanitizePublicEventDescriptionHtml`.
-  description  String @db.Text
-  startAt      DateTime
-  endAt        DateTime
+  description String   @db.Text
+  startAt     DateTime
+  endAt       DateTime
 
   venueName    String
   venueAddress String
@@ -148,7 +150,7 @@ model Event {
 
   ticketMemberPrice    Int
   ticketNonMemberPrice Int
-  pricingSource PricingSource @default(global_default)
+  pricingSource        PricingSource @default(global_default)
 
   menuMode      MenuMode
   menuSelection MenuSelection
@@ -188,7 +190,7 @@ model EventPicHelper {
 model Registration {
   id      String @id @default(cuid())
   eventId String
-  event   Event @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,7 +201,7 @@ model Registration {
   claimedMemberNumber String?
   memberValidation    MemberValidation @default(unknown)
   memberId            String?
-  member              MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member              MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   // Snapshot pricing (locked at submission)
   ticketMemberPriceApplied    Int
@@ -223,7 +225,7 @@ model Registration {
 }
 
 model Ticket {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   registrationId String
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
@@ -240,7 +242,7 @@ model Ticket {
 
   // Business rule: one ticket per member per event.
   // Implemented as (eventId, memberNumber) unique via denormalized eventId.
-  eventId String
+  eventId        String
   menuSelections TicketMenuSelection[]
 
   voucherRedeemedMenuItemId String?
@@ -255,18 +257,18 @@ model Ticket {
 }
 
 model EventMenuItem {
-  id     String @id @default(cuid())
+  id      String @id @default(cuid())
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  name    String
+  name            String
   /// IDR smallest unit (consistent with ticket prices).
-  price   Int
-  sortOrder Int @default(0)
+  price           Int
+  sortOrder       Int     @default(0)
   voucherEligible Boolean @default(false)
 
   selections         TicketMenuSelection[]
-  voucherRedemptions Ticket[] @relation("VoucherRedemption")
+  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -288,7 +290,7 @@ model TicketMenuSelection {
 }
 
 model InvoiceAdjustment {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   registrationId String
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
@@ -339,7 +341,7 @@ model Upload {
 model AdminProfile {
   id String @id @default(cuid())
 
-  // Better Auth user id (string). We keep Better Auth tables outside Prisma by using pg.Pool adapter.
+  // Better Auth user id (alias of `User.id` from model `User` in this schema).
   authUserId String @unique
 
   role AdminRole @default(Viewer)
@@ -353,4 +355,67 @@ model AdminProfile {
 
   @@index([role])
   @@index([memberId])
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }

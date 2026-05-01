@@ -15,6 +15,8 @@ export type SubmitPricingInput = {
     voucherPrice: number | null;
   };
   primaryPriceType: Extract<TicketPriceType, "member" | "non_member">;
+  /** Harga tiket partner; tidak dipakai jika tidak ada tiket partner. Default `member`. */
+  partnerPriceType?: Extract<TicketPriceType, "member" | "non_member">;
   includePartner: boolean;
   perTicketMenu: Array<
     | {
@@ -49,7 +51,7 @@ function ticketLineRupiah(
 function ticketLabel(priceType: TicketPriceType): string {
   if (priceType === "non_member") return "Tiket Non-member";
   if (priceType === "member") return "Tiket Member";
-  return "Tiket Pasangan (Pengurus)";
+  return "Tiket Member";
 }
 
 function appendMenuLines(
@@ -116,14 +118,19 @@ export function computeSubmitTotal(
   appendMenuLines(lines, "primary", input.event, input.perTicketMenu[0]);
 
   if (input.includePartner) {
+    const partnerTicketPriceType: Extract<
+      TicketPriceType,
+      "member" | "non_member"
+    > =
+      input.partnerPriceType === "non_member" ? "non_member" : "member";
     const partnerTicketAmount = ticketLineRupiah(input, {
       role: "partner",
-      priceType: "privilege_partner_member_price",
+      priceType: partnerTicketPriceType,
     });
     lines.push({
       kind: "ticket",
       role: "partner",
-      label: ticketLabel("privilege_partner_member_price"),
+      label: ticketLabel(partnerTicketPriceType),
       amount: partnerTicketAmount,
     });
     appendMenuLines(lines, "partner", input.event, input.perTicketMenu[1]);

@@ -20,3 +20,19 @@ export type PartnerGateState =
       isPengurus: boolean;
       seatForEvent: "available" | "taken";
     };
+
+/** Validasi async nomor member opsional pada tiket partner (selaras pola `usePartnerGate`). */
+export type PartnerMemberNumberGateState =
+  | { status: "empty" }
+  | { status: "checking"; forTrim: string }
+  | {
+      status: "ready";
+      forTrim: string;
+      found: false;
+    }
+  | {
+      status: "ready";
+      forTrim: string;
+      found: true;
+      seatForEvent: "available" | "taken";
+    };

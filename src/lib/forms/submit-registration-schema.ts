@@ -21,6 +21,13 @@ export const MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE =
 export const MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE =
   "Member dengan nomor ini sudah terdaftar untuk acara ini (satu tiket per nomor)." as const;
 
+/** Pembeli utama & opsional tiket partner: nomor tidak cocok dengan baris direktori aktif. */
+export const MEMBER_NOT_IN_DIRECTORY_MESSAGE =
+  "Nomor member tidak dikenali atau tidak aktif di direktori kami." as const;
+
+export const MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE =
+  "Nomor member partner wajib diisi untuk tiket member CISC." as const;
+
 const isNonemptyFile = (val: unknown): val is File => {
   return typeof File !== "undefined" && val instanceof File && val.size > 0;
 };
@@ -45,6 +52,31 @@ export function isMemberNumberMissingWhenMember(values: {
   );
 }
 
+export function isPartnerMemberNumberMissingWhenPartnerMember(values: {
+  qtyPartner?: 0 | 1;
+  partnerIsMember?: boolean;
+  partnerMemberNumber?: string | undefined;
+}): boolean {
+  return (
+    values.qtyPartner === 1 &&
+    Boolean(values.partnerIsMember) &&
+    !String(values.partnerMemberNumber ?? "").trim()
+  );
+}
+
+export function isPartnerMemberCardPhotoMissingWhenRequired(values: {
+  qtyPartner?: 0 | 1;
+  partnerIsMember?: boolean;
+  partnerMemberNumber?: string | undefined;
+  partnerMemberCardPhoto?: unknown;
+}): boolean {
+  const claiming =
+    values.qtyPartner === 1 &&
+    Boolean(values.partnerIsMember) &&
+    Boolean(String(values.partnerMemberNumber ?? "").trim());
+  return claiming && !isNonemptyFile(values.partnerMemberCardPhoto);
+}
+
 /** Non-empty uploaded file only (FormData omitted key → omit from payload on client). */
 const uploadFileRequired = z.custom<File>((val): val is File => isNonemptyFile(val), {
   message: "Unggah bukti transfer wajib.",
@@ -62,9 +94,11 @@ export function createSubmitRegistrationFormSchema(
       contactWhatsapp: phone,
       claimedMemberNumber: z.string().trim().optional(),
       qtyPartner: z.union([z.literal(0), z.literal(1)]),
+      partnerIsMember: z.boolean(),
       partnerName: z.string().trim().optional(),
       partnerWhatsapp: z.string().trim().optional(),
       partnerMemberNumber: z.string().trim().optional(),
+      partnerMemberCardPhoto: z.instanceof(File).optional(),
       selectedMenuItemIds: z.array(z.string()).optional(),
       transferProof: uploadFileRequired,
       memberCardPhoto: z.instanceof(File).optional(),
@@ -148,6 +182,45 @@ export function createSubmitRegistrationFormSchema(
             path: ["partnerName"],
           });
         }
+
+        if (data.partnerIsMember) {
+          if (!data.partnerMemberNumber?.trim()) {
+            ctxZod.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
+              path: ["partnerMemberNumber"],
+            });
+          }
+        } else if (data.partnerMemberNumber?.trim()) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "Hapus nomor member partner atau ubah status menjadi member CISC.",
+            path: ["partnerMemberNumber"],
+          });
+        }
+
+        const partnerClaimingMember =
+          data.partnerIsMember &&
+          Boolean(data.partnerMemberNumber?.trim());
+        if (partnerClaimingMember) {
+          if (!isNonemptyFile(data.partnerMemberCardPhoto)) {
+            ctxZod.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
+              path: ["partnerMemberCardPhoto"],
+            });
+          }
+        }
+
+        if (!data.partnerIsMember && isNonemptyFile(data.partnerMemberCardPhoto)) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "Unggah foto kartu partner hanya untuk tiket partner member dengan nomor terisi.",
+            path: ["partnerMemberCardPhoto"],
+          });
+        }
       }
 
       if (data.purchaserIsMember) {
@@ -187,7 +260,10 @@ export function createSubmitRegistrationFormSchema(
       }
 
       const primaryMem = data.claimedMemberNumber?.trim();
-      const partnerMem = data.partnerMemberNumber?.trim();
+      const partnerMem =
+        data.qtyPartner === 1 && data.partnerIsMember
+          ? data.partnerMemberNumber?.trim()
+          : "";
       if (
         data.qtyPartner === 1 &&
         primaryMem &&

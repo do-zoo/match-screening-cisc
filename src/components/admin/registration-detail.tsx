@@ -56,6 +56,8 @@ export function formatCurrencyIdr(n: number): string {
 export function formatUploadPurpose(purpose: UploadPurpose): string {
   if (purpose === "transfer_proof") return "Bukti transfer";
   if (purpose === "member_card_photo") return "Foto kartu member";
+  if (purpose === "partner_member_card_photo")
+    return "Foto kartu member (partner)";
   return "Bukti penyesuaian invoice";
 }
 

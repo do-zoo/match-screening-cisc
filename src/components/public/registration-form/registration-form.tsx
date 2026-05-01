@@ -6,19 +6,20 @@ import { useCallback, useMemo, useState } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
 import { submitRegistration } from "@/lib/actions/submit-registration";
 import type { ActionResult } from "@/lib/forms/action-result";
 import {
   createSubmitRegistrationFormSchema,
   isMemberCardPhotoMissingWhenRequired,
   isMemberNumberMissingWhenMember,
+  isPartnerMemberCardPhotoMissingWhenRequired,
+  isPartnerMemberNumberMissingWhenPartnerMember,
   MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
   MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
   MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
+  MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
 
@@ -26,7 +27,7 @@ import { MenuSelectionSection } from "./menu-selection-section";
 import { PartnerTicketSection } from "./partner-ticket-section";
 import { PaymentSection } from "./payment-section";
 import { PurchaserInfoSection } from "./purchaser-info-section";
-import type { RegistrationFormProps } from "./types";
+import { RegistrationProgressStepper } from "./registration-progress-stepper";
 import {
   buildRegistrationSteps,
   getTriggerFieldsForStep,
@@ -34,8 +35,9 @@ import {
   registrationStepTitle,
   resolveActiveStepAfterStepsChange,
 } from "./registration-steps";
-import { RegistrationProgressStepper } from "./registration-progress-stepper";
+import type { RegistrationFormProps } from "./types";
 import { usePartnerGate } from "./use-partner-gate";
+import { usePartnerMemberNumberValidation } from "./use-partner-member-number-validation";
 import { usePricingPreview } from "./use-pricing-preview";
 
 function serverFieldErrorsToStepHint(
@@ -43,7 +45,13 @@ function serverFieldErrorsToStepHint(
 ): RegistrationStepId {
   if (fe.transferProof) return "payment";
   if (fe.selectedMenuItemIds) return "menu";
-  if (fe.partnerName || fe.partnerWhatsapp || fe.partnerMemberNumber) {
+  if (
+    fe.partnerMemberCardPhoto ||
+    fe.partnerMemberNumber ||
+    fe.partnerWhatsapp ||
+    fe.partnerName ||
+    fe.partnerIsMember
+  ) {
     return "partner";
   }
   if (fe.memberCardPhoto || fe.claimedMemberNumber || fe.purchaserIsMember) {
@@ -70,9 +78,11 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       contactWhatsapp: "",
       claimedMemberNumber: undefined,
       qtyPartner: 0,
+      partnerIsMember: false,
       partnerName: "",
       partnerWhatsapp: "",
       partnerMemberNumber: "",
+      partnerMemberCardPhoto: undefined,
       selectedMenuItemIds:
         event.menuSelection === "SINGLE"
           ? event.menuItems[0]
@@ -98,6 +108,12 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     claimedMemberTrim
   );
 
+  const { effectivePartnerMemberGate } = usePartnerMemberNumberValidation(
+    form,
+    event.slug,
+    showPartnerSection,
+  );
+
   const steps = useMemo(
     () => buildRegistrationSteps(event.menuMode, showPartnerSection),
     [event.menuMode, showPartnerSection]
@@ -113,6 +129,25 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   const isLastStep = activeIndex === steps.length - 1;
   const qtyPartner = watched.qtyPartner ?? 0;
   const purchaserIsMember = Boolean(watched.purchaserIsMember);
+  const partnerMemberTrim = String(watched.partnerMemberNumber ?? "").trim();
+  const partnerIsMemberWatch = Boolean(watched.partnerIsMember);
+
+  const partnerDirectoryVerified = useMemo(
+    () =>
+      qtyPartner === 1 &&
+      partnerIsMemberWatch &&
+      partnerMemberTrim.length > 0 &&
+      effectivePartnerMemberGate.status === "ready" &&
+      effectivePartnerMemberGate.found &&
+      effectivePartnerMemberGate.seatForEvent === "available" &&
+      effectivePartnerMemberGate.forTrim === partnerMemberTrim,
+    [
+      effectivePartnerMemberGate,
+      partnerMemberTrim,
+      partnerIsMemberWatch,
+      qtyPartner,
+    ],
+  );
 
   const directoryVerified = useMemo(
     () =>
@@ -129,7 +164,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     event,
     selectedMenuIds,
     watched.claimedMemberNumber,
-    watched.qtyPartner
+    watched.qtyPartner,
+    watched.partnerIsMember,
   );
 
   const goNext = useCallback(async () => {
@@ -138,6 +174,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     const fields = getTriggerFieldsForStep(stepId, qtyPartner, {
       purchaserIsMember,
       directoryVerified,
+      partnerIsMember: partnerIsMemberWatch,
+      partnerDirectoryVerified,
     });
     const ok =
       fields.length === 0 ||
@@ -189,6 +227,50 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       void form.setFocus("memberCardPhoto");
       return;
     }
+    if (
+      stepId === "partner" &&
+      isPartnerMemberNumberMissingWhenPartnerMember(form.getValues())
+    ) {
+      form.setError("partnerMemberNumber", {
+        type: "custom",
+        message: MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
+      });
+      void form.setFocus("partnerMemberNumber");
+      return;
+    }
+    if (
+      stepId === "partner" &&
+      qtyPartner === 1 &&
+      partnerIsMemberWatch &&
+      partnerMemberTrim.length > 0 &&
+      !partnerDirectoryVerified
+    ) {
+      if (effectivePartnerMemberGate.status === "checking") return;
+      if (
+        form.getFieldState("partnerMemberNumber", form.formState).error
+      ) {
+        void form.setFocus("partnerMemberNumber");
+        return;
+      }
+      form.setError("partnerMemberNumber", {
+        type: "custom",
+        message:
+          "Tunggu hingga nomor dikenali atau perbaiki nomor member partner sebelum melanjutkan.",
+      });
+      void form.setFocus("partnerMemberNumber");
+      return;
+    }
+    if (
+      stepId === "partner" &&
+      isPartnerMemberCardPhotoMissingWhenRequired(form.getValues())
+    ) {
+      form.setError("partnerMemberCardPhoto", {
+        type: "custom",
+        message: MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
+      });
+      void form.setFocus("partnerMemberCardPhoto");
+      return;
+    }
     const next = steps[activeIndex + 1];
     if (next) setUserStepId(next);
   }, [
@@ -200,6 +282,10 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     directoryVerified,
     effectivePartnerGate.status,
     claimedMemberTrim,
+    partnerMemberTrim,
+    partnerDirectoryVerified,
+    partnerIsMemberWatch,
+    effectivePartnerMemberGate,
   ]);
 
   const goBack = useCallback(() => {
@@ -245,6 +331,39 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       return;
     }
 
+    const partnerTrimSubmit = String(values.partnerMemberNumber ?? "").trim();
+    if (
+      values.qtyPartner === 1 &&
+      values.partnerIsMember &&
+      partnerTrimSubmit.length > 0 &&
+      effectivePartnerMemberGate.status === "checking"
+    ) {
+      form.setError("partnerMemberNumber", {
+        type: "custom",
+        message:
+          "Tunggu hingga validasi nomor member partner selesai, lalu coba lagi.",
+      });
+      void form.setFocus("partnerMemberNumber");
+      setUserStepId(resolveActiveStepAfterStepsChange("partner", steps));
+      return;
+    }
+    if (
+      values.qtyPartner === 1 &&
+      values.partnerIsMember &&
+      partnerTrimSubmit.length > 0 &&
+      effectivePartnerMemberGate.status === "ready" &&
+      effectivePartnerMemberGate.found &&
+      effectivePartnerMemberGate.seatForEvent === "taken" &&
+      effectivePartnerMemberGate.forTrim === partnerTrimSubmit
+    ) {
+      form.setError("partnerMemberNumber", {
+        message: MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
+      });
+      void form.setFocus("partnerMemberNumber");
+      setUserStepId(resolveActiveStepAfterStepsChange("partner", steps));
+      return;
+    }
+
     const fd = new FormData();
     fd.set("slug", values.slug);
     fd.set("purchaserIsMember", values.purchaserIsMember ? "1" : "0");
@@ -254,6 +373,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     fd.set("claimedMemberNumber", values.claimedMemberNumber?.trim() ?? "");
     fd.set("qtyPartner", String(values.qtyPartner));
 
+    fd.set("partnerIsMember", values.partnerIsMember ? "1" : "0");
     fd.set("partnerName", values.partnerName?.trim() ?? "");
     fd.set("partnerWhatsapp", values.partnerWhatsapp?.trim() ?? "");
     fd.set("partnerMemberNumber", values.partnerMemberNumber?.trim() ?? "");
@@ -265,6 +385,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     fd.set("transferProof", values.transferProof);
     if (values.memberCardPhoto) {
       fd.set("memberCardPhoto", values.memberCardPhoto);
+    }
+    if (values.partnerMemberCardPhoto) {
+      fd.set("partnerMemberCardPhoto", values.partnerMemberCardPhoto);
     }
 
     const result: ActionResult<{ registrationId: string }> =
@@ -284,9 +407,11 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       "claimedMemberNumber",
       "transferProof",
       "memberCardPhoto",
+      "partnerIsMember",
       "partnerName",
       "partnerWhatsapp",
       "partnerMemberNumber",
+      "partnerMemberCardPhoto",
       "selectedMenuItemIds",
     ]);
 
@@ -382,8 +507,13 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
                 {stepId === "partner" ? (
                   <PartnerTicketSection
                     control={form.control}
+                    setValue={form.setValue}
+                    clearErrors={form.clearErrors}
                     showPartnerSection={showPartnerSection}
                     qtyPartner={watched.qtyPartner}
+                    partnerIsMember={partnerIsMemberWatch}
+                    partnerDirectoryVerified={partnerDirectoryVerified}
+                    effectivePartnerMemberGate={effectivePartnerMemberGate}
                   />
                 ) : null}
                 {stepId === "menu" ? (

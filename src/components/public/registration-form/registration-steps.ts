@@ -63,13 +63,20 @@ export function getTriggerFieldsForStep(
   stepId: RegistrationStepId,
   qtyPartner: SubmitRegistrationInput["qtyPartner"],
   opts?: {
-    purchaserIsMember: boolean;
+    /** Langkah purchaser wajib mengisi ini; boleh dihilangkan untuk tes / langkah partner saja. */
+    purchaserIsMember?: boolean;
     /** Penuntasan nomor di direktori sebelum blok kontak + foto kartu membuka (wajib eksplisit untuk path member). */
     directoryVerified?: boolean;
+    partnerIsMember?: boolean;
+    /** Direktori + kursi event untuk nomor partner (path member tiket partner). */
+    partnerDirectoryVerified?: boolean;
   },
 ): (keyof SubmitRegistrationInput)[] {
   switch (stepId) {
     case "purchaser":
+      if (opts?.purchaserIsMember === undefined) {
+        return ["purchaserIsMember"];
+      }
       if (opts?.purchaserIsMember === false) {
         return ["purchaserIsMember", "contactName", "contactWhatsapp"];
       }
@@ -86,11 +93,28 @@ export function getTriggerFieldsForStep(
       ];
     case "partner":
       if (qtyPartner === 1) {
+        if (opts?.partnerIsMember === undefined) {
+          return ["qtyPartner", "partnerIsMember"];
+        }
+        if (opts?.partnerIsMember === false) {
+          return [
+            "qtyPartner",
+            "partnerIsMember",
+            "partnerName",
+            "partnerWhatsapp",
+          ];
+        }
+        const pDirOk = opts?.partnerDirectoryVerified === true;
+        if (opts?.partnerIsMember === true && !pDirOk) {
+          return ["qtyPartner", "partnerIsMember", "partnerMemberNumber"];
+        }
         return [
           "qtyPartner",
+          "partnerIsMember",
+          "partnerMemberNumber",
+          "partnerMemberCardPhoto",
           "partnerName",
           "partnerWhatsapp",
-          "partnerMemberNumber",
         ];
       }
       return ["qtyPartner"];

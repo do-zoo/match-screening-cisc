@@ -10,10 +10,13 @@ export function usePricingPreview(
   selectedMenuIds: string[],
   claimedMemberNumber: string | undefined,
   qtyPartner: unknown,
+  partnerIsMember?: boolean,
 ) {
   return useMemo(() => {
     const qtyPartnerNorm: 0 | 1 = Number(qtyPartner ?? 0) === 1 ? 1 : 0;
     const includePartner = qtyPartnerNorm === 1;
+    const partnerPriceType: "member" | "non_member" =
+      partnerIsMember === true ? "member" : "non_member";
 
     try {
       if (event.menuMode === "VOUCHER") {
@@ -35,6 +38,7 @@ export function usePricingPreview(
           primaryPriceType: claimedMemberNumber?.trim()
             ? "member"
             : "non_member",
+          ...(includePartner ? { partnerPriceType } : {}),
           includePartner,
           perTicketMenu: menuParts,
         });
@@ -76,6 +80,7 @@ export function usePricingPreview(
         primaryPriceType: claimedMemberNumber?.trim()
           ? "member"
           : "non_member",
+        ...(includePartner ? { partnerPriceType } : {}),
         includePartner,
         perTicketMenu: menuParts,
       });
@@ -85,6 +90,7 @@ export function usePricingPreview(
   }, [
     claimedMemberNumber,
     event,
+    partnerIsMember,
     qtyPartner,
     selectedMenuIds,
   ]);

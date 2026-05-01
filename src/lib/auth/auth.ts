@@ -1,15 +1,13 @@
 import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+import { prisma } from "../db/prisma";
 
 export const auth = betterAuth({
   appName: "match-screening",
-  database: pool,
+  database: prismaAdapter(prisma, { provider: "postgresql" }),
   plugins: [
     nextCookies(),
     magicLink({

@@ -74,7 +74,7 @@ describe("computeSubmitTotal", () => {
       {
         kind: "ticket",
         role: "partner",
-        label: "Tiket Pasangan (Pengurus)",
+        label: "Tiket Member",
         amount: 100_000,
       },
       {
@@ -96,6 +96,34 @@ describe("computeSubmitTotal", () => {
 
     expect(() => computeSubmitTotal(input)).toThrow(
       "voucherPrice required for VOUCHER menu mode",
+    );
+  });
+
+  it("partner non-member ticket uses non-member price", () => {
+    const input: SubmitPricingInput = {
+      event: { ...baseEvent, menuMode: "PRESELECT", voucherPrice: null },
+      primaryPriceType: "member",
+      includePartner: true,
+      partnerPriceType: "non_member",
+      perTicketMenu: [
+        {
+          mode: "PRESELECT",
+          selectedMenuItems: [{ name: "A", price: 40_000 }],
+        },
+        {
+          mode: "PRESELECT",
+          selectedMenuItems: [{ name: "A", price: 40_000 }],
+        },
+      ],
+    };
+    const result = computeSubmitTotal(input);
+    const partnerTicket = result.lines.find(
+      (l) => l.kind === "ticket" && l.role === "partner",
+    );
+    expect(partnerTicket?.amount).toBe(150_000);
+    expect(partnerTicket?.label).toBe("Tiket Non-member");
+    expect(result.computedTotalAtSubmit).toBe(
+      100_000 + 150_000 + 40_000 + 40_000,
     );
   });
 

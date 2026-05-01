@@ -9,7 +9,10 @@ import {
   rootError,
   type ActionResult,
 } from "@/lib/forms/action-result";
-import { createSubmitRegistrationFormSchema } from "@/lib/forms/submit-registration-schema";
+import {
+  createSubmitRegistrationFormSchema,
+  MEMBER_NOT_IN_DIRECTORY_MESSAGE,
+} from "@/lib/forms/submit-registration-schema";
 import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
 import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master-member";
 import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
@@ -120,6 +123,12 @@ export async function submitRegistration(
       .trim()
       .toLowerCase() === "1";
 
+  const partnerIsMember =
+    qtyPartnerNorm === 1 &&
+    String(raw.partnerIsMember ?? "")
+      .trim()
+      .toLowerCase() === "1";
+
   const payload = {
     slug: coerceForSchema(raw.slug),
     purchaserIsMember,
@@ -127,12 +136,16 @@ export async function submitRegistration(
     contactWhatsapp: coerceForSchema(raw.contactWhatsapp),
     claimedMemberNumber: coerceForSchema(raw.claimedMemberNumber),
     qtyPartner: qtyPartnerNorm,
+    partnerIsMember,
     partnerName: coerceForSchema(raw.partnerName),
     partnerWhatsapp: coerceForSchema(raw.partnerWhatsapp),
     partnerMemberNumber: coerceForSchema(raw.partnerMemberNumber),
     selectedMenuItemIds,
     transferProof: optionalFile(formData.get("transferProof")),
     memberCardPhoto: optionalFile(formData.get("memberCardPhoto")),
+    partnerMemberCardPhoto: optionalFile(
+      formData.get("partnerMemberCardPhoto"),
+    ),
   };
 
   const schema = createSubmitRegistrationFormSchema(event);
@@ -152,13 +165,15 @@ export async function submitRegistration(
   // 3. Persiapan Data Lanjutan
   const transferProof = data.transferProof;
   const memberCard = data.memberCardPhoto;
+  const partnerMemberCard = data.partnerMemberCardPhoto;
 
   const includePartner = data.qtyPartner === 1;
   const primaryMemberNumberInput =
     data.claimedMemberNumber?.trim() || undefined;
-  const partnerMemberNumber = includePartner
-    ? data.partnerMemberNumber?.trim() || undefined
-    : undefined;
+  const partnerMemberNumberRaw =
+    includePartner && data.partnerIsMember
+      ? data.partnerMemberNumber?.trim() || undefined
+      : undefined;
 
   const picMaster = primaryMemberNumberInput
     ? await getActiveMasterMemberByMemberNumber(primaryMemberNumberInput)
@@ -166,8 +181,7 @@ export async function submitRegistration(
 
   if (primaryMemberNumberInput && !picMaster) {
     return fieldError({
-      claimedMemberNumber:
-        "Nomor member tidak dikenali atau tidak aktif di direktori kami.",
+      claimedMemberNumber: MEMBER_NOT_IN_DIRECTORY_MESSAGE,
     });
   }
 
@@ -176,8 +190,20 @@ export async function submitRegistration(
     ? picMaster.memberNumber
     : primaryMemberNumberInput;
 
-  const candidates = [primaryMemberNumber, partnerMemberNumber].filter(
-    Boolean
+  let canonicalPartnerMemberNumber: string | undefined;
+  if (partnerMemberNumberRaw) {
+    const partnerRow =
+      await getActiveMasterMemberByMemberNumber(partnerMemberNumberRaw);
+    if (!partnerRow) {
+      return fieldError({
+        partnerMemberNumber: MEMBER_NOT_IN_DIRECTORY_MESSAGE,
+      });
+    }
+    canonicalPartnerMemberNumber = partnerRow.memberNumber;
+  }
+
+  const candidates = [primaryMemberNumber, canonicalPartnerMemberNumber].filter(
+    Boolean,
   ) as string[];
 
   // Validasi DB: Duplikat member & hak akses Pengurus
@@ -195,6 +221,7 @@ export async function submitRegistration(
   }
 
   const primaryIsMemberPrice = Boolean(primaryMemberNumber);
+  const partnerTicketPriceType = data.partnerIsMember ? "member" : "non_member";
 
   // Konstruksi menu berdasarkan skema yang sudah valid (aman dari manipulasi)
   const menuParts: Parameters<typeof computeSubmitTotal>[0]["perTicketMenu"] =
@@ -239,6 +266,9 @@ export async function submitRegistration(
         voucherPrice: event.voucherPrice,
       },
       primaryPriceType: primaryIsMemberPrice ? "member" : "non_member",
+      ...(includePartner
+        ? { partnerPriceType: partnerTicketPriceType }
+        : {}),
       includePartner,
       perTicketMenu: menuParts,
     });
@@ -248,7 +278,11 @@ export async function submitRegistration(
   }
 
   let registrationId = "";
-  let activeUploadField: "transferProof" | "memberCardPhoto" | null = null;
+  let activeUploadField:
+    | "transferProof"
+    | "memberCardPhoto"
+    | "partnerMemberCardPhoto"
+    | null = null;
 
   try {
     const reg = await prisma.$transaction(async (tx) => {
@@ -290,8 +324,8 @@ export async function submitRegistration(
             role: "partner",
             fullName: data.partnerName.trim(),
             whatsapp: data.partnerWhatsapp?.trim() || null,
-            memberNumber: partnerMemberNumber ?? null,
-            ticketPriceType: "privilege_partner_member_price",
+            memberNumber: canonicalPartnerMemberNumber ?? null,
+            ticketPriceType: partnerTicketPriceType,
           },
         });
       }
@@ -327,6 +361,16 @@ export async function submitRegistration(
         purpose: "member_card_photo",
         registrationId: reg.id,
         file: memberCard,
+      });
+      activeUploadField = null;
+    }
+
+    if (includePartner && partnerMemberCard instanceof File) {
+      activeUploadField = "partnerMemberCardPhoto";
+      await uploadImageForRegistration({
+        purpose: "partner_member_card_photo",
+        registrationId: reg.id,
+        file: partnerMemberCard,
       });
       activeUploadField = null;
     }

@@ -29,6 +29,7 @@ function minimalVoucherPayload(
     contactName: "Tester",
     contactWhatsapp: "08123456789",
     qtyPartner: 0,
+    partnerIsMember: false,
     partnerName: "",
     partnerWhatsapp: "",
     partnerMemberNumber: "",
