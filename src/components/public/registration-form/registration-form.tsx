@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { submitRegistration } from "@/lib/actions/submit-registration";
@@ -14,7 +19,6 @@ import {
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
 
-import { EventSummary } from "./event-summary";
 import { MenuSelectionSection } from "./menu-selection-section";
 import { PartnerTicketSection } from "./partner-ticket-section";
 import { PaymentSection } from "./payment-section";
@@ -74,6 +78,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   );
 
   async function submitForm(values: SubmitRegistrationInput) {
+    if (!event.registrationOpen) return;
+
     const fd = new FormData();
     fd.set("slug", values.slug);
     fd.set("contactName", values.contactName);
@@ -138,35 +144,52 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
         <FieldError errors={[form.formState.errors.slug]} />
       ) : null}
 
-      <EventSummary event={event} />
-
-      <PurchaserInfoSection
-        control={form.control}
-        claimedMemberTrim={claimedMemberTrim}
-        effectivePartnerGate={effectivePartnerGate}
-      />
-
-      <PaymentSection
-        control={form.control}
-        event={event}
-        pricingPreview={pricingPreview}
-      />
-
-      <MenuSelectionSection control={form.control} event={event} />
-
-      <PartnerTicketSection
-        control={form.control}
-        showPartnerSection={showPartnerSection}
-        qtyPartner={watched.qtyPartner}
-      />
-
-      {form.formState.errors.root?.server ? (
-        <FieldError errors={[form.formState.errors.root.server]} />
+      {event.registrationClosedMessage ? (
+        <Alert>
+          <AlertTitle>Pendaftaran ditutup</AlertTitle>
+          <AlertDescription>{event.registrationClosedMessage}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <Button type="submit" size="lg" className="w-full">
-        Kirim pendaftaran
-      </Button>
+      <fieldset
+        disabled={!event.registrationOpen}
+        className="min-w-0 space-y-6 border-0 p-0"
+      >
+        <legend className="sr-only">Formulir pendaftaran</legend>
+
+        <PurchaserInfoSection
+          control={form.control}
+          claimedMemberTrim={claimedMemberTrim}
+          effectivePartnerGate={effectivePartnerGate}
+        />
+
+        <PaymentSection
+          control={form.control}
+          event={event}
+          pricingPreview={pricingPreview}
+        />
+
+        <MenuSelectionSection control={form.control} event={event} />
+
+        <PartnerTicketSection
+          control={form.control}
+          showPartnerSection={showPartnerSection}
+          qtyPartner={watched.qtyPartner}
+        />
+
+        {form.formState.errors.root?.server ? (
+          <FieldError errors={[form.formState.errors.root.server]} />
+        ) : null}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={!event.registrationOpen}
+        >
+          Kirim pendaftaran
+        </Button>
+      </fieldset>
     </form>
   );
 }

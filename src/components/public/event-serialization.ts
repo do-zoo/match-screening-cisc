@@ -16,8 +16,14 @@ export type SerializedBankAccount = {
 export type SerializedEventForRegistration = {
   slug: string;
   title: string;
+  summary: string;
+  descriptionHtml: string;
+  coverBlobUrl: string;
   venueName: string;
   startAtIso: string;
+  endAtIso: string;
+  registrationOpen: boolean;
+  registrationClosedMessage: string | null;
   menuMode: MenuMode;
   menuSelection: MenuSelection;
   voucherPrice: number | null;

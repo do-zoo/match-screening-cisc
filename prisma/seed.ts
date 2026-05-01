@@ -2,24 +2,94 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { PrismaClient, EventStatus, MenuMode, MenuSelection, PricingSource } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+const prisma = new PrismaClient({
+  adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
+});
+
+/** Semua kombinasi isActive × isPengurus × canBePIC (8 tipe). Suffix nomor = biner ABP (Active·Pengurus·PIC). */
+const MASTER_MEMBER_SEEDS = [
+  {
+    memberNumber: "CISC-DEMO-PIC-1",
+    fullName: "Demo PIC Pengurus",
+    isActive: true,
+    isPengurus: true,
+    canBePIC: true,
+  },
+  {
+    memberNumber: "CISC-SEED-110",
+    fullName: "Seed · aktif · pengurus · bukan PIC",
+    isActive: true,
+    isPengurus: true,
+    canBePIC: false,
+  },
+  {
+    memberNumber: "CISC-SEED-101",
+    fullName: "Seed · aktif · anggota · eligible PIC",
+    isActive: true,
+    isPengurus: false,
+    canBePIC: true,
+  },
+  {
+    memberNumber: "CISC-SEED-100",
+    fullName: "Seed · aktif · anggota biasa",
+    isActive: true,
+    isPengurus: false,
+    canBePIC: false,
+  },
+  {
+    memberNumber: "CISC-SEED-011",
+    fullName: "Seed · nonaktif · pengurus · PIC",
+    isActive: false,
+    isPengurus: true,
+    canBePIC: true,
+  },
+  {
+    memberNumber: "CISC-SEED-010",
+    fullName: "Seed · nonaktif · pengurus · bukan PIC",
+    isActive: false,
+    isPengurus: true,
+    canBePIC: false,
+  },
+  {
+    memberNumber: "CISC-SEED-001",
+    fullName: "Seed · nonaktif · anggota · eligible PIC",
+    isActive: false,
+    isPengurus: false,
+    canBePIC: true,
+  },
+  {
+    memberNumber: "CISC-SEED-000",
+    fullName: "Seed · nonaktif · anggota biasa",
+    isActive: false,
+    isPengurus: false,
+    canBePIC: false,
+  },
+] as const;
 
 async function main() {
-  // Upsert demo PIC member
-  const pic = await prisma.masterMember.upsert({
+  for (const row of MASTER_MEMBER_SEEDS) {
+    await prisma.masterMember.upsert({
+      where: { memberNumber: row.memberNumber },
+      update: {
+        fullName: row.fullName,
+        isActive: row.isActive,
+        isPengurus: row.isPengurus,
+        canBePIC: row.canBePIC,
+      },
+      create: {
+        memberNumber: row.memberNumber,
+        fullName: row.fullName,
+        isActive: row.isActive,
+        isPengurus: row.isPengurus,
+        canBePIC: row.canBePIC,
+      },
+    });
+  }
+
+  const pic = await prisma.masterMember.findUniqueOrThrow({
     where: { memberNumber: "CISC-DEMO-PIC-1" },
-    update: {},
-    create: {
-      memberNumber: "CISC-DEMO-PIC-1",
-      fullName: "Demo PIC Pengurus",
-      isActive: true,
-      isPengurus: true,
-      canBePIC: true,
-    },
   });
 
   // Find or create bank account — update in place to avoid FK conflicts on re-runs
@@ -48,11 +118,29 @@ async function main() {
     update: {
       bankAccountId: bank.id,
       picMasterMemberId: pic.id,
+      summary:
+        "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.",
+      description:
+        "<p>Acara demo untuk alur pendaftaran. <strong>Perbarui deskripsi ini</strong> lewat admin ketika editor WYSIWYG tersedia.</p><p>Pastikan pembayaran menggunakan rekening yang tertera di formulir.</p>",
+      endAt: new Date("2026-05-20T23:00:00+07:00"),
+      coverBlobUrl:
+        "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
+      coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
     },
     create: {
       slug: "demo-final-ucl-2026",
       title: "Demo — Final Watch Party",
+      summary:
+        "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.",
+      description:
+        "<p>Acara demo untuk alur pendaftaran. <strong>Perbarui deskripsi ini</strong> lewat admin ketika editor WYSIWYG tersedia.</p><p>Pastikan pembayaran menggunakan rekening yang tertera di formulir.</p>",
       startAt: new Date("2026-05-20T18:30:00+07:00"),
+      endAt: new Date("2026-05-20T23:00:00+07:00"),
+      coverBlobUrl:
+        "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
+      coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
+      registrationManualClosed: false,
+      registrationCapacity: null,
       venueName: "Venue Demo",
       venueAddress: "Jl. Demo No. 1, Tangerang Selatan",
       status: EventStatus.active,
@@ -76,17 +164,15 @@ async function main() {
     ],
   });
 
-  console.log("Seed OK:", event.slug);
+  console.log("Seed OK:", event.slug, `(${MASTER_MEMBER_SEEDS.length} MasterMember variants)`);
 }
 
 main()
   .then(async () => {
     await prisma.$disconnect();
-    await pool.end();
   })
   .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();
-    await pool.end();
     process.exit(1);
   });

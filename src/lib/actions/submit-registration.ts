@@ -15,6 +15,12 @@ import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master
 import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
 import { UploadError } from "@/lib/uploads/errors";
 import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
+import {
+  assertRegistrationAcceptableOrThrowForTx,
+  countRegistrationsTowardQuota,
+  registrationBlockMessageForPublic,
+  RegistrationNotAcceptableError,
+} from "@/lib/events/registration-window";
 
 export type { SubmitRegistrationInput } from "@/lib/forms/submit-registration-schema";
 
@@ -84,6 +90,20 @@ export async function submitRegistration(
 
   if (!event) {
     return rootError("Event tidak tersedia atau belum aktif.");
+  }
+
+  const registrationsTowardQuotaPreview = await countRegistrationsTowardQuota(
+    prisma,
+    event.id
+  );
+  const registrationBlockedPreview = registrationBlockMessageForPublic({
+    eventStatus: event.status,
+    registrationManualClosed: event.registrationManualClosed,
+    registrationCapacity: event.registrationCapacity,
+    registrationsTowardQuota: registrationsTowardQuotaPreview,
+  });
+  if (registrationBlockedPreview) {
+    return rootError(registrationBlockedPreview);
   }
 
   // 2. Siapkan Payload & Parse dengan Factory Zod
@@ -220,6 +240,8 @@ export async function submitRegistration(
 
   try {
     const reg = await prisma.$transaction(async (tx) => {
+      await assertRegistrationAcceptableOrThrowForTx(tx, event);
+
       const registration = await tx.registration.create({
         data: {
           eventId: event.id,
@@ -304,6 +326,9 @@ export async function submitRegistration(
 
     return ok({ registrationId: reg.id });
   } catch (e) {
+    if (e instanceof RegistrationNotAcceptableError) {
+      return rootError(e.message);
+    }
     if (isTicketMemberUniqueConstraintError(e)) {
       const memberNumbers =
         candidates.length > 0 ? candidates : ["nomor member"];

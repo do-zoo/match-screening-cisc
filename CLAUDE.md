@@ -17,7 +17,7 @@ pnpm test:watch   # Vitest watch mode
 # Run a single test file
 pnpm vitest run src/lib/pricing/compute-submit-total.test.ts
 
-# Database migrations (requires prisma.config.ts to pick up DATABASE_URL)
+# Database migrations (prisma.config.ts uses DIRECT_URL when set — see Environment variables)
 pnpm prisma migrate dev    # apply + generate after schema changes
 pnpm prisma migrate deploy # apply in CI/prod
 pnpm prisma studio         # GUI browser
@@ -31,10 +31,13 @@ Copy `.env.example` to `.env.local` and fill in:
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out. |
+| `DIRECT_URL` | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
 | `BETTER_AUTH_SECRET` | Min 32-char secret for Better Auth |
 | `BETTER_AUTH_URL` | App origin (e.g. `http://localhost:3000`) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for file uploads |
+
+On **Vercel**, add **`DIRECT_URL`** (Neon non-pooler connection string) for Production and Preview so `scripts/vercel-migrate.mjs` runs `prisma migrate deploy` against a direct endpoint.
 
 ## Architecture
 
@@ -71,7 +74,7 @@ Better Auth manages its own tables (users, sessions) directly via `pg.Pool` — 
 
 - `lib/auth/auth.ts` — Better Auth config (magic-link + email/password, `nextCookies` plugin)
 - `lib/auth/session.ts` — `getAdminSession()` / `requireAdminSession()` — reads session from Next.js request headers
-- `lib/db/prisma.ts` — singleton `PrismaClient` using `PrismaPg` adapter (pg pool, dev HMR-safe via `globalThis`)
+- `lib/db/prisma.ts` — singleton `PrismaClient` with `PrismaNeon` adapter (pooled `DATABASE_URL`, Neon-recommended; HMR-safe via `globalThis`)
 - `lib/actions/submit-registration.ts` — the main Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB

@@ -1,26 +1,18 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __prisma__: PrismaClient | undefined;
-  // eslint-disable-next-line no-var
-  var __prisma_pg_pool__: Pool | undefined;
 }
 
-const pool =
-  globalThis.__prisma_pg_pool__ ??
-  new Pool({
-    connectionString: process.env.DATABASE_URL,
-  });
-
-if (process.env.NODE_ENV !== "production") globalThis.__prisma_pg_pool__ = pool;
+const adapter = new PrismaNeon({
+  connectionString: process.env.DATABASE_URL,
+});
 
 export const prisma: PrismaClient =
   globalThis.__prisma__ ??
   new PrismaClient({
-    adapter: new PrismaPg(pool),
+    adapter,
     log: ["error", "warn"],
   });
 

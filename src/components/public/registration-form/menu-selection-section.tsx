@@ -18,7 +18,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { SubmitRegistrationInput } from "@/lib/forms/submit-registration-schema";
 
-import { formatIdr } from "./format-idr";
+import { formatIdr } from "@/lib/utils/format-idr";
 
 type Props = {
   control: Control<SubmitRegistrationInput>;
@@ -65,9 +65,7 @@ export function MenuSelectionSection({ control, event }: Props) {
                           <FieldTitle>{item.name}</FieldTitle>
                           <FieldDescription>
                             {formatIdr(item.price)}
-                            {item.voucherEligible
-                              ? " · boleh voucher"
-                              : null}
+                            {item.voucherEligible ? " · boleh voucher" : null}
                           </FieldDescription>
                         </FieldContent>
                         <RadioGroupItem
@@ -99,12 +97,10 @@ export function MenuSelectionSection({ control, event }: Props) {
                         checked={current.includes(item.id)}
                         onCheckedChange={(checked) => {
                           if (checked === true) {
-                            field.onChange([
-                              ...new Set([...current, item.id]),
-                            ]);
+                            field.onChange([...new Set([...current, item.id])]);
                           } else {
                             field.onChange(
-                              current.filter((id) => id !== item.id),
+                              current.filter((id) => id !== item.id)
                             );
                           }
                         }}
@@ -114,9 +110,7 @@ export function MenuSelectionSection({ control, event }: Props) {
                           <FieldTitle>{item.name}</FieldTitle>
                           <FieldDescription>
                             {formatIdr(item.price)}
-                            {item.voucherEligible
-                              ? " · boleh voucher"
-                              : null}
+                            {item.voucherEligible ? " · boleh voucher" : null}
                           </FieldDescription>
                         </FieldContent>
                       </FieldLabel>

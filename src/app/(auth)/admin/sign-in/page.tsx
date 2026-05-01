@@ -4,19 +4,12 @@ import { Suspense, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createAuthClient } from "better-auth/react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 const authClient = createAuthClient();
 
@@ -27,9 +20,14 @@ const AdminSignInSchema = z.object({
 
 type AdminSignInInput = z.infer<typeof AdminSignInSchema>;
 
-type AdminSignInUiErrors = AdminSignInInput;
+/** RHF paths including `root.server` for Better Auth errors (not in Zod schema). */
+type AdminSignInFormValues = AdminSignInInput & {
+  root?: { server?: { message?: string } };
+};
 
-const adminSignInResolver = zodResolver(AdminSignInSchema as never) as Resolver<AdminSignInUiErrors>;
+const adminSignInResolver = zodResolver(
+  AdminSignInSchema as never,
+) as Resolver<AdminSignInFormValues>;
 
 function AdminSignInForm() {
   const router = useRouter();
@@ -38,7 +36,7 @@ function AdminSignInForm() {
 
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<AdminSignInUiErrors>({
+  const form = useForm<AdminSignInFormValues>({
     resolver: adminSignInResolver,
     defaultValues: {
       email: "",
@@ -54,75 +52,71 @@ function AdminSignInForm() {
         Use email + password. Magic link will be enabled later.
       </p>
 
-      <Form {...form}>
-        <form
-          className="mt-8 space-y-4"
-          onSubmit={form.handleSubmit((values) => {
-            form.clearErrors("root");
-            startTransition(async () => {
-              const res = await authClient.signIn.email({
-                email: values.email,
-                password: values.password,
-              });
-              if (res.error) {
-                form.setError("root", {
-                  message: res.error.message ?? "Sign in failed.",
-                });
-                return;
-              }
-              router.push(next);
+      <form
+        className="mt-8 space-y-4"
+        onSubmit={form.handleSubmit((values) => {
+          form.clearErrors("root.server");
+          startTransition(async () => {
+            const res = await authClient.signIn.email({
+              email: values.email,
+              password: values.password,
             });
-          })}
-        >
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            if (res.error) {
+              form.setError("root.server", {
+                message: res.error.message ?? "Sign in failed.",
+              });
+              return;
+            }
+            router.push(next);
+          });
+        })}
+      >
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="ms-admin-signin-email">Email</FieldLabel>
+              <Input
+                {...field}
+                id="ms-admin-signin-email"
+                type="email"
+                aria-invalid={fieldState.invalid}
+                autoComplete="email"
+                placeholder="you@example.com"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <Controller
+          control={form.control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="ms-admin-signin-password">Password</FieldLabel>
+              <Input
+                {...field}
+                id="ms-admin-signin-password"
+                type="password"
+                aria-invalid={fieldState.invalid}
+                autoComplete="current-password"
+                placeholder="••••••••"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
-          {form.formState.errors.root?.message ? (
-            <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {form.formState.errors.root.message}
-            </p>
-          ) : null}
+        {form.formState.errors.root?.server ? (
+          <FieldError errors={[form.formState.errors.root.server]} />
+        ) : null}
 
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-      </Form>
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
     </main>
   );
 }
