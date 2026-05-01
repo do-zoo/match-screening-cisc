@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 
+import { AdminAccountTwoFactorSection } from "@/components/admin/admin-account-two-factor-section";
 import { ThemePreferenceField } from "@/components/admin/theme-preference-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +18,11 @@ type FormValues = { name: string };
 export function AdminAccountPageClient({
   initialName,
   email,
+  initialTwoFactorEnabled,
 }: {
   initialName: string;
   email: string;
+  initialTwoFactorEnabled: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -100,6 +103,8 @@ export function AdminAccountPageClient({
           </Link>
         </p>
       </section>
+
+      <AdminAccountTwoFactorSection initialTwoFactorEnabled={initialTwoFactorEnabled} />
 
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-6">
         <ThemePreferenceField />
