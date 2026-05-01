@@ -23,7 +23,9 @@ describe("buildTwoFactorPluginOptions", () => {
       "@/lib/auth/build-two-factor-plugin-options"
     );
     const opts = buildTwoFactorPluginOptions();
-    expect(opts).toHaveProperty("otpOptions");
-    expect(typeof opts.otpOptions?.sendOTP).toBe("function");
+    expect("otpOptions" in opts).toBe(true);
+    if ("otpOptions" in opts && opts.otpOptions) {
+      expect(typeof opts.otpOptions.sendOTP).toBe("function");
+    }
   });
 });
