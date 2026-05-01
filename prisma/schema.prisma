@@ -98,6 +98,12 @@ enum WaTemplateKey {
   underpayment_invoice
 }
 
+enum NotificationOutboundMode {
+  off
+  log_only
+  live
+}
+
 // ---------- Models ----------
 
 model MasterMember {
@@ -383,6 +389,31 @@ model ClubOperationalSettings {
   updatedAt                       DateTime @updatedAt
 }
 
+/// Preferensi saluran keluar — mode terpisah dari pemasangan provider (lihat `log-outbound-stub`).
+model ClubNotificationPreferences {
+  singletonKey  String                   @id @default("default")
+  outboundMode  NotificationOutboundMode @default(log_only)
+  outboundLabel String?                  @db.VarChar(120)
+  updatedAt     DateTime                 @updatedAt
+}
+
+/// Log audit append-only untuk mutasi konfigurasi sensitif (Owner).
+model ClubAuditLog {
+  id                  String   @id @default(cuid())
+  actorAdminProfileId String?
+  actorAuthUserId     String
+  action              String   @db.VarChar(96)
+  targetType          String?  @db.VarChar(64)
+  targetId            String?  @db.VarChar(128)
+  metadata            Json?
+  createdAt           DateTime @default(now())
+
+  actorProfile AdminProfile? @relation(fields: [actorAdminProfileId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+}
+
 model AdminProfile {
   id String @id @default(cuid())
 
@@ -395,6 +426,8 @@ model AdminProfile {
   memberId String?
   member   MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
+  auditEntries ClubAuditLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -403,18 +436,33 @@ model AdminProfile {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id               String       @id
+  name             String
+  email            String
+  emailVerified    Boolean      @default(false)
+  image            String?
+  twoFactorEnabled Boolean?     @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  twofactors       TwoFactor[]
 
   @@unique([email])
   @@map("user")
+}
+
+model TwoFactor {
+  id          String   @id
+  secret      String
+  backupCodes String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified    Boolean? @default(true)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
 }
 
 model Session {
