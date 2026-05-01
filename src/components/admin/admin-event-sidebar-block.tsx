@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { InboxIcon, Table2Icon } from "lucide-react";
 
-import { adminShellNavLinkClass } from "@/components/admin/admin-shell-nav-styles";
+import {
+  adminShellNavIconClass,
+  adminShellNavLinkClass,
+} from "@/components/admin/admin-shell-nav-styles";
 
 const EVENT_BRANCH_RE =
   /^\/admin\/events\/([^/]+)\/(?:inbox|report)(?:\/|$)/;
@@ -47,32 +51,46 @@ function AdminEventSidebarBlockLoaded({
   }, [eventId]);
 
   return (
-    <div className="space-y-2 border-t border-sidebar-border pt-4">
-      <p className="px-3 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
-        Acara
-      </p>
-      {title ? (
-        <p
-          className="line-clamp-2 px-3 text-xs font-medium text-sidebar-foreground"
-          title={title}
-        >
-          {title}
+    <div className="border-t border-sidebar-border/70 pt-5">
+      <div className="rounded-xl bg-sidebar-accent/35 p-3.5 shadow-sm ring-1 ring-sidebar-border/45">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/50">
+          Acara
         </p>
-      ) : null}
-      <nav aria-label="Inbox dan laporan" className="flex flex-col gap-1">
-        <Link
-          href={`/admin/events/${eventId}/inbox`}
-          className={adminShellNavLinkClass(isInboxBranch && !isReportBranch)}
-        >
-          Inbox
-        </Link>
-        <Link
-          href={`/admin/events/${eventId}/report`}
-          className={adminShellNavLinkClass(isReportBranch)}
-        >
-          Laporan
-        </Link>
-      </nav>
+        {title ? (
+          <p
+            className="mt-2 line-clamp-2 text-[13px] font-semibold leading-snug text-sidebar-foreground"
+            title={title}
+          >
+            {title}
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-sidebar-foreground/45">Memuat judul…</p>
+        )}
+        <nav aria-label="Inbox dan laporan" className="mt-3 flex flex-col gap-0.5">
+          <Link
+            href={`/admin/events/${eventId}/inbox`}
+            className={adminShellNavLinkClass(isInboxBranch && !isReportBranch)}
+          >
+            <InboxIcon
+              className={adminShellNavIconClass(
+                isInboxBranch && !isReportBranch,
+              )}
+              aria-hidden
+            />
+            Inbox
+          </Link>
+          <Link
+            href={`/admin/events/${eventId}/report`}
+            className={adminShellNavLinkClass(isReportBranch)}
+          >
+            <Table2Icon
+              className={adminShellNavIconClass(isReportBranch)}
+              aria-hidden
+            />
+            Laporan
+          </Link>
+        </nav>
+      </div>
     </div>
   );
 }

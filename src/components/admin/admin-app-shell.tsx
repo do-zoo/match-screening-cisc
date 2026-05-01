@@ -14,7 +14,10 @@ import {
 import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
 import { AdminBrandMark } from "@/components/admin/admin-brand-mark";
 import { AdminEventSidebarBlock } from "@/components/admin/admin-event-sidebar-block";
-import { adminShellNavLinkClass } from "@/components/admin/admin-shell-nav-styles";
+import {
+  adminShellNavIconClass,
+  adminShellNavLinkClass,
+} from "@/components/admin/admin-shell-nav-styles";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -46,7 +49,7 @@ function AdminNavLinks({
   return (
     <nav
       aria-label="Navigasi admin"
-      className={cn("flex flex-col gap-1", className)}
+      className={cn("flex flex-col gap-1.5", className)}
     >
       <Link
         href="/admin?tab=active"
@@ -54,7 +57,7 @@ function AdminNavLinks({
         onClick={onNavigate}
         className={adminShellNavLinkClass(pathname === "/admin")}
       >
-        <Home className="size-4 shrink-0 opacity-80" aria-hidden />
+        <Home className={adminShellNavIconClass(pathname === "/admin")} aria-hidden />
         Beranda
       </Link>
       {navFlags.acara ? (
@@ -63,7 +66,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(acaraExact)}
         >
-          <CalendarDays className="size-4 shrink-0 opacity-80" aria-hidden />
+          <CalendarDays
+            className={adminShellNavIconClass(acaraExact)}
+            aria-hidden
+          />
           Acara
         </Link>
       ) : null}
@@ -73,7 +79,7 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(membersActive)}
         >
-          <Users className="size-4 shrink-0 opacity-80" aria-hidden />
+          <Users className={adminShellNavIconClass(membersActive)} aria-hidden />
           Anggota
         </Link>
       ) : null}
@@ -83,7 +89,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(settingsActive)}
         >
-          <Settings className="size-4 shrink-0 opacity-80" aria-hidden />
+          <Settings
+            className={adminShellNavIconClass(settingsActive)}
+            aria-hidden
+          />
           Pengaturan
         </Link>
       ) : null}
@@ -111,14 +120,18 @@ export function AdminAppShell({
     >
       <aside
         aria-label="Menu admin utama"
-        className="sticky top-0 z-40 hidden w-[min(260px,100%)] shrink-0 flex-col justify-start border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:min-h-[100dvh] lg:max-h-[100dvh] lg:overflow-y-auto lg:overscroll-contain lg:self-start"
+        className="sticky top-0 z-40 hidden w-[min(238px,100%)] shrink-0 flex-col justify-start border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground shadow-[inset_-1px_0_0_0_var(--sidebar-border)] lg:flex lg:min-h-[100dvh] lg:max-h-[100dvh] lg:overflow-y-auto lg:overscroll-contain lg:self-start"
       >
-        <div className="flex min-h-0 w-full flex-1 flex-col gap-6 p-4">
-          <div className="space-y-3">
+        <div className="flex min-h-0 w-full flex-1 flex-col gap-7 px-3 py-5">
+          <div className="space-y-4">
             <AdminBrandMark />
-            <AdminAccountMenu userEmail={userEmail} displayName={displayName} />
+            <AdminAccountMenu
+              userEmail={userEmail}
+              displayName={displayName}
+              variant="sidebar"
+            />
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
             <AdminNavLinks navFlags={navFlags} className="shrink-0" />
             <AdminEventSidebarBlock />
           </div>
