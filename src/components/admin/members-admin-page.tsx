@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DownloadIcon, PencilIcon, PlusIcon } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,15 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { MemberCsvImportPanel } from "@/components/admin/member-csv-import-panel";
 import { MemberFormDialog } from "@/components/admin/member-form-dialog";
 import type { AdminMasterMemberRowVm } from "@/lib/members/query-admin-master-members";
@@ -44,6 +39,28 @@ const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "short",
   timeStyle: "short",
 });
+
+function BooleanBadge({
+  value,
+  trueLabel,
+  falseLabel,
+}: {
+  value: boolean;
+  trueLabel: string;
+  falseLabel: string;
+}) {
+  return (
+    <Badge variant={value ? "secondary" : "outline"}>
+      {value ? trueLabel : falseLabel}
+    </Badge>
+  );
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return dateFormatter.format(date);
+}
 
 export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
   const router = useRouter();
@@ -83,6 +100,103 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
     const qs = params.toString();
     return `/admin/anggota/export${qs ? `?${qs}` : ""}`;
   }, [activityFilter, q]);
+
+  const columns = useMemo<ColumnDef<AdminMasterMemberRowVm>[]>(
+    () => [
+      {
+        accessorKey: "memberNumber",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Nomor member" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.memberNumber}</span>
+        ),
+      },
+      {
+        accessorKey: "fullName",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Nama" />
+        ),
+      },
+      {
+        accessorKey: "whatsapp",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="WhatsApp" />
+        ),
+        cell: ({ row }) => <span>{row.original.whatsapp ?? "-"}</span>,
+        sortingFn: (a, b) =>
+          (a.original.whatsapp ?? "").localeCompare(
+            b.original.whatsapp ?? "",
+            "id",
+          ),
+      },
+      {
+        accessorKey: "isActive",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Aktif" />
+        ),
+        cell: ({ row }) => (
+          <BooleanBadge
+            value={row.original.isActive}
+            trueLabel="Aktif"
+            falseLabel="Nonaktif"
+          />
+        ),
+      },
+      {
+        accessorKey: "isPengurus",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Pengurus" />
+        ),
+        cell: ({ row }) => (
+          <BooleanBadge
+            value={row.original.isPengurus}
+            trueLabel="Ya"
+            falseLabel="Tidak"
+          />
+        ),
+      },
+      {
+        accessorKey: "canBePIC",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="PIC siap" />
+        ),
+        cell: ({ row }) => (
+          <BooleanBadge
+            value={row.original.canBePIC}
+            trueLabel="Siap"
+            falseLabel="Tidak"
+          />
+        ),
+      },
+      {
+        accessorKey: "updatedAt",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Terakhir diubah" />
+        ),
+        cell: ({ row }) => <span>{formatDate(row.original.updatedAt)}</span>,
+        sortingFn: (a, b) =>
+          a.original.updatedAt.localeCompare(b.original.updatedAt),
+      },
+      {
+        id: "actions",
+        enableSorting: false,
+        header: () => <span className="sr-only">Aksi</span>,
+        cell: ({ row }) => (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setEditingMember(row.original)}
+            aria-label={`Edit ${row.original.fullName}`}
+          >
+            <PencilIcon />
+          </Button>
+        ),
+      },
+    ],
+    [],
+  );
 
   function refreshRows() {
     router.refresh();
@@ -150,76 +264,11 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
           </div>
 
           <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nomor member</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead>Aktif</TableHead>
-                  <TableHead>Pengurus</TableHead>
-                  <TableHead>PIC siap</TableHead>
-                  <TableHead>Terakhir diubah</TableHead>
-                  <TableHead className="w-12">
-                    <span className="sr-only">Aksi</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">
-                      {row.memberNumber}
-                    </TableCell>
-                    <TableCell>{row.fullName}</TableCell>
-                    <TableCell>{row.whatsapp ?? "-"}</TableCell>
-                    <TableCell>
-                      <BooleanBadge
-                        value={row.isActive}
-                        trueLabel="Aktif"
-                        falseLabel="Nonaktif"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <BooleanBadge
-                        value={row.isPengurus}
-                        trueLabel="Ya"
-                        falseLabel="Tidak"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <BooleanBadge
-                        value={row.canBePIC}
-                        trueLabel="Siap"
-                        falseLabel="Tidak"
-                      />
-                    </TableCell>
-                    <TableCell>{formatDate(row.updatedAt)}</TableCell>
-                    <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setEditingMember(row)}
-                        aria-label={`Edit ${row.fullName}`}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Tidak ada anggota yang cocok dengan filter.
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={filteredRows}
+              emptyMessage="Tidak ada anggota yang cocok dengan filter."
+            />
           </div>
         </CardContent>
       </Card>
@@ -241,26 +290,4 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
       />
     </main>
   );
-}
-
-function BooleanBadge({
-  value,
-  trueLabel,
-  falseLabel,
-}: {
-  value: boolean;
-  trueLabel: string;
-  falseLabel: string;
-}) {
-  return (
-    <Badge variant={value ? "secondary" : "outline"}>
-      {value ? trueLabel : falseLabel}
-    </Badge>
-  );
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return dateFormatter.format(date);
 }
