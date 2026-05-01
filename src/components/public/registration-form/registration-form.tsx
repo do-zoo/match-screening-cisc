@@ -16,6 +16,7 @@ import {
   createSubmitRegistrationFormSchema,
   isMemberCardPhotoMissingWhenRequired,
   isMemberNumberMissingWhenMember,
+  MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
   MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
   MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
   type SubmitRegistrationInput,
@@ -93,6 +94,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   const { effectivePartnerGate, showPartnerSection } = usePartnerGate(
     form,
+    event.slug,
     claimedMemberTrim
   );
 
@@ -118,6 +120,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       claimedMemberTrim.length > 0 &&
       effectivePartnerGate.status === "ready" &&
       effectivePartnerGate.found &&
+      effectivePartnerGate.seatForEvent === "available" &&
       effectivePartnerGate.forTrim === claimedMemberTrim,
     [purchaserIsMember, claimedMemberTrim, effectivePartnerGate]
   );
@@ -224,6 +227,23 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   async function submitForm(values: SubmitRegistrationInput) {
     if (!event.registrationOpen) return;
+
+    const claimedTrim = String(values.claimedMemberNumber ?? "").trim();
+    if (
+      values.purchaserIsMember &&
+      claimedTrim.length > 0 &&
+      effectivePartnerGate.status === "ready" &&
+      effectivePartnerGate.found &&
+      effectivePartnerGate.seatForEvent === "taken" &&
+      effectivePartnerGate.forTrim === claimedTrim
+    ) {
+      form.setError("claimedMemberNumber", {
+        message: MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
+      });
+      void form.setFocus("claimedMemberNumber");
+      setUserStepId(resolveActiveStepAfterStepsChange("purchaser", steps));
+      return;
+    }
 
     const fd = new FormData();
     fd.set("slug", values.slug);

@@ -10,6 +10,13 @@ export type PartnerGateState =
   | {
       status: "ready";
       forTrim: string;
-      found: boolean;
+      found: false;
+      isPengurus: false;
+    }
+  | {
+      status: "ready";
+      forTrim: string;
+      found: true;
       isPengurus: boolean;
+      seatForEvent: "available" | "taken";
     };

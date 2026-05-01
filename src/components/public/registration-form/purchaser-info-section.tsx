@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
   MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
@@ -158,6 +159,7 @@ export function PurchaserInfoSection({
       claimedMemberTrim.length > 0 &&
       effectivePartnerGate.status === "ready" &&
       effectivePartnerGate.found &&
+      effectivePartnerGate.seatForEvent === "available" &&
       effectivePartnerGate.forTrim === claimedMemberTrim
     );
   }, [purchaserIsMember, claimedMemberTrim, effectivePartnerGate]);
@@ -300,9 +302,15 @@ export function PurchaserInfoSection({
                     Memeriksa data member di direktori…
                   </FieldDescription>
                 ) : null}
-                {fieldState.invalid && (
+                {effectivePartnerGate.status === "ready" &&
+                effectivePartnerGate.found &&
+                effectivePartnerGate.seatForEvent === "taken" ? (
+                  <Alert variant="destructive" className="mt-2">
+                    <span>{MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE}</span>
+                  </Alert>
+                ) : fieldState.invalid ? (
                   <FieldError errors={[fieldState.error]} />
-                )}
+                ) : null}
               </Field>
             )}
           />
