@@ -26,12 +26,12 @@ export default async function SecuritySettingsPage() {
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-lg font-semibold tracking-tight">Autentikasi & 2FA</h2>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Plugin <strong>twoFactor</strong> Better Auth telah diaktifkan di server —
-          enrol TOTP/OTP dan halaman verifikasi penuh masih dapat ditambahkan. Mulai dari{" "}
+          Aktivasi dan pengelolaan 2FA (TOTP, kode cadangan) dilakukan dari halaman{" "}
           <Link href="/admin/account" className="underline underline-offset-4">
             Akun
-          </Link>{" "}
-          untuk nama tampilan. Dokumentasi resmi:{" "}
+          </Link>
+          . Verifikasi tambahan dengan kode email pada saat masuk hanya aktif jika pengiriman
+          email transaksional telah dikonfigurasi di lingkungan server. Dokumentasi Better Auth:{" "}
           <a
             href="https://www.better-auth.com/docs/plugins/two-factor"
             className="underline underline-offset-4"
