@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PencilIcon, PlusIcon } from "lucide-react";
+import { DownloadIcon, PencilIcon, PlusIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -74,6 +75,15 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
     });
   }, [activityFilter, initialRows, q]);
 
+  const exportHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (activityFilter !== "all") params.set("filter", activityFilter);
+    const term = q.trim();
+    if (term) params.set("q", term);
+    const qs = params.toString();
+    return `/admin/anggota/export${qs ? `?${qs}` : ""}`;
+  }, [activityFilter, q]);
+
   function refreshRows() {
     router.refresh();
   }
@@ -87,10 +97,19 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
             Kelola master anggota, status aktif, pengurus, dan kesiapan PIC.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <PlusIcon data-icon="inline-start" />
-          Tambah anggota
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={exportHref}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            <DownloadIcon data-icon="inline-start" />
+            Ekspor CSV
+          </Link>
+          <Button onClick={() => setCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            Tambah anggota
+          </Button>
+        </div>
       </header>
 
       <MemberCsvImportPanel

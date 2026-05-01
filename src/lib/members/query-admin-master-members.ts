@@ -26,6 +26,7 @@ export async function listMasterMembersForAdmin(opts: {
               OR: [
                 { memberNumber: { contains: search, mode: "insensitive" } },
                 { fullName: { contains: search, mode: "insensitive" } },
+                { whatsapp: { contains: search, mode: "insensitive" } },
               ],
             }
           : {},
