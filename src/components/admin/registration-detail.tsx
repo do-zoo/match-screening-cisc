@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { InvoiceAdjustmentStatus } from "@prisma/client";
 import type {
@@ -311,12 +312,13 @@ export function RegistrationDetail({
                       {Math.round(upload.bytes / 1024)} KB
                     </div>
                   </div>
-                  <div className="bg-muted/30 p-3">
-                    <img
+                  <div className="relative aspect-video w-full bg-muted/30 p-3">
+                    <Image
                       src={upload.blobUrl}
                       alt={upload.originalFilename ?? formatUploadPurpose(upload.purpose)}
-                      className="aspect-video w-full rounded-md object-contain ring-1 ring-foreground/10"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 768px) 100vw, min(672px, 50vw)"
+                      className="rounded-md object-contain ring-1 ring-foreground/10"
                     />
                   </div>
                 </a>
