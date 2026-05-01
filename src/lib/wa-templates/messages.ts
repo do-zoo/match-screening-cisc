@@ -1,3 +1,5 @@
+import { formatWaIdr } from "@/lib/wa-templates/format-wa-idr";
+
 export type RegistrationMessageCtx = {
   contactName: string;
   eventTitle: string;
@@ -5,20 +7,13 @@ export type RegistrationMessageCtx = {
   computedTotalIdr: number;
 };
 
-const idr = (n: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(n);
-
 export function templateReceipt(c: RegistrationMessageCtx): string {
   return [
     `Halo ${c.contactName},`,
     ``,
     `Terima kasih — pendaftaran untuk *${c.eventTitle}* sudah kami terima.`,
     `ID: \`${c.registrationId}\``,
-    `Total (snapshot): *${idr(c.computedTotalIdr)}*`,
+    `Total (snapshot): *${formatWaIdr(c.computedTotalIdr)}*`,
     `Status: *menunggu verifikasi admin*.`,
   ].join("\n");
 }
@@ -91,7 +86,7 @@ export type UnderpaymentInvoiceCtx = {
 };
 
 export function templateUnderpaymentInvoice(c: UnderpaymentInvoiceCtx): string {
-  const amount = idr(c.adjustmentAmountIdr);
+  const amount = formatWaIdr(c.adjustmentAmountIdr);
 
   return [
     `Halo ${c.contactName},`,

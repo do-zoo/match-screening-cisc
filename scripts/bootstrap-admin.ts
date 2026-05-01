@@ -4,7 +4,7 @@ type Args = {
   email: string;
   password: string;
   name: string;
-  role: "Owner" | "Verifier" | "Viewer";
+  role: "Owner" | "Admin" | "Verifier" | "Viewer";
 };
 
 function readArg(flag: string) {
@@ -18,7 +18,7 @@ function readArg(flag: string) {
 function usage() {
   return [
     "Usage:",
-    "  pnpm bootstrap:admin -- --email you@example.com --password 'password1234' --name 'Admin' [--role Owner]",
+    "  pnpm bootstrap:admin -- --email you@example.com --password 'password1234' --name 'PIC' [--role Owner|Admin|Verifier|Viewer]",
     "",
     "Or via env:",
     "  BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD, BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_ROLE",
@@ -101,6 +101,20 @@ async function main() {
     where: { authUserId: userId },
     update: { role },
     create: { authUserId: userId, role },
+  });
+
+  const { appendClubAuditLog } = await import(
+    "@/lib/audit/append-club-audit-log"
+  );
+  const { CLUB_AUDIT_ACTION } = await import("@/lib/audit/club-audit-actions");
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: admin.id,
+    actorAuthUserId: userId,
+    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_BOOTSTRAP_UPSERT,
+    targetType: "admin_profile",
+    targetId: admin.id,
+    metadata: { email, role },
   });
 
   console.log("Bootstrap OK:", {

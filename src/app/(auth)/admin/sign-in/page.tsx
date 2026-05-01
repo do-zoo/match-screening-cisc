@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createAuthClient } from "better-auth/react";
+import { adminAuthClient } from "@/lib/auth/admin-auth-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
@@ -10,8 +10,6 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-const authClient = createAuthClient();
 
 const AdminSignInSchema = z.object({
   email: z.string().email("Email tidak valid."),
@@ -57,7 +55,7 @@ function AdminSignInForm() {
         onSubmit={form.handleSubmit((values) => {
           form.clearErrors("root.server");
           startTransition(async () => {
-            const res = await authClient.signIn.email({
+            const res = await adminAuthClient.signIn.email({
               email: values.email,
               password: values.password,
             });
@@ -65,6 +63,10 @@ function AdminSignInForm() {
               form.setError("root.server", {
                 message: res.error.message ?? "Sign in failed.",
               });
+              return;
+            }
+            const data = res.data as { twoFactorRedirect?: boolean } | undefined;
+            if (data?.twoFactorRedirect) {
               return;
             }
             router.push(next);

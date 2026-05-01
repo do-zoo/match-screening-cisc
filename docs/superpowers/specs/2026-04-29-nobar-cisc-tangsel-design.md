@@ -162,6 +162,7 @@ For each registration, the total is computed and **locked** at submission:
 
 ### 4.2 Roles (Global)
 - `Owner`: manage admins, master members, global defaults (pricing), PIC & bank accounts, WA templates, and all data.
+- `Admin`: operational parity with `Owner` on dashboard, events, inbox/reports, and master members; **cannot** access committee **advanced settings** (manage PIC admins, PIC bank accounts, global default pricing, WA template configuration) — those remain `Owner`-only.
 - `Verifier`: event operations (inbox), registration verification, underpayment adjustments, attendance, cancel/refund.
 - `Viewer`: view dashboard/reports/exports without verification actions.
 

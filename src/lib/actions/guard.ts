@@ -1,6 +1,12 @@
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
-import { canVerifyEvent, type AdminContext } from "@/lib/permissions/guards";
+import {
+  canVerifyEvent,
+  type AdminContext,
+} from "@/lib/permissions/guards";
+
+/** Konteks Owner setelah `guardOwner` — termasuk id profil dan Better Auth user id untuk audit. */
+export type OwnerGuardContext = AdminContext & { authUserId: string };
 
 export async function guardEvent(eventId: string): Promise<AdminContext> {
   const session = await requireAdminSession();
@@ -10,11 +16,21 @@ export async function guardEvent(eventId: string): Promise<AdminContext> {
   return ctx;
 }
 
-export async function guardOwner(): Promise<AdminContext> {
+/** Committee / advanced configuration only (`/admin/settings`, admin users, PIC banks, defaults, WA templates). */
+export async function guardOwner(): Promise<OwnerGuardContext> {
   const session = await requireAdminSession();
   const ctx = await getAdminContext(session.user.id);
   if (!ctx) throw new Error("NO_PROFILE");
   if (ctx.role !== "Owner") throw new Error("FORBIDDEN");
+  return { ...ctx, authUserId: session.user.id };
+}
+
+/** Operational management routes shared by Owner and Admin (everything except committee advanced settings). */
+export async function guardOwnerOrAdmin(): Promise<AdminContext> {
+  const session = await requireAdminSession();
+  const ctx = await getAdminContext(session.user.id);
+  if (!ctx) throw new Error("NO_PROFILE");
+  if (ctx.role !== "Owner" && ctx.role !== "Admin") throw new Error("FORBIDDEN");
   return ctx;
 }
 

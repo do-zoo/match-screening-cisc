@@ -6,6 +6,9 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
+import { loadTicketContextVm } from "@/lib/registrations/load-admin-ticket-context";
+import { loadClubWaTemplateBodies } from "@/lib/wa-templates/load-club-wa-templates";
 
 export default async function AdminEventInboxDetailPage({
   params,
@@ -19,9 +22,9 @@ export default async function AdminEventInboxDetailPage({
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Registration detail
+          Detail pendaftar
         </h1>
         <div className="rounded-lg border border-dashed bg-card p-6 text-sm">
           Missing AdminProfile
@@ -85,12 +88,37 @@ export default async function AdminEventInboxDetailPage({
 
   if (!registration) notFound();
 
+  let ticketContext: TicketContextVm;
+  try {
+    ticketContext = await loadTicketContextVm({
+      eventId,
+      registration: {
+        id: registration.id,
+        claimedMemberNumber: registration.claimedMemberNumber,
+        tickets: registration.tickets.map((t) => ({
+          role: t.role,
+          fullName: t.fullName,
+          whatsapp: t.whatsapp,
+          memberNumber: t.memberNumber,
+          ticketPriceType: t.ticketPriceType,
+        })),
+      },
+    });
+  } catch {
+    ticketContext = {
+      kind: "error",
+      message: "Tidak dapat memuat konteks kursi.",
+    };
+  }
+
+  const waBodies = await loadClubWaTemplateBodies();
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Registration detail
+            Detail pendaftar
           </h1>
           <p className="text-sm text-muted-foreground">{registration.event.title}</p>
         </div>
@@ -98,13 +126,15 @@ export default async function AdminEventInboxDetailPage({
           href={`/admin/events/${eventId}/inbox`}
           className="text-sm font-medium underline-offset-4 hover:underline"
         >
-          Back to inbox
+          Kembali ke inbox
         </Link>
       </header>
 
       <RegistrationDetail
         eventId={eventId}
         registration={registration}
+        ticketContext={ticketContext}
+        waBodies={waBodies}
       />
     </main>
   );

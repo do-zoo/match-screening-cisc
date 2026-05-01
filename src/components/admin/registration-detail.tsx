@@ -1,4 +1,9 @@
-import { InvoiceAdjustmentStatus } from "@prisma/client";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  InvoiceAdjustmentStatus,
+  WaTemplateKey,
+} from "@prisma/client";
 import type {
   AttendanceStatus,
   InvoiceAdjustmentType,
@@ -17,7 +22,10 @@ import { CancelRefundPanel } from "@/components/admin/cancel-refund-panel";
 import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
 import { InvoiceAdjustmentPanel } from "@/components/admin/invoice-adjustment-panel";
 import { VoucherRedemptionPanel } from "@/components/admin/voucher-redemption-panel";
-import { Badge } from "@/components/ui/badge";
+import {
+  RegistrationTicketsTable,
+  type RegistrationTicketRow,
+} from "@/components/admin/registration-tickets-table";
 import {
   Card,
   CardContent,
@@ -25,24 +33,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
 import { waMeLink } from "@/lib/wa-templates/encode";
+import type { ClubWaBodies } from "@/lib/wa-templates/render-wa-from-db";
 import {
-  templateReceipt,
-  templateApproved,
-  templateRejected,
-  templatePaymentIssue,
-  templateCancelled,
-  templateRefunded,
-  templateUnderpaymentInvoice,
-} from "@/lib/wa-templates/messages";
+  renderApprovedMessage,
+  renderCancelledMessage,
+  renderPaymentIssueMessage,
+  renderReceiptMessage,
+  renderRefundedMessage,
+  renderRejectedMessage,
+  renderUnderpaymentInvoiceMessage,
+} from "@/lib/wa-templates/render-wa-from-db";
 
 export function formatCurrencyIdr(n: number): string {
   const formatted = new Intl.NumberFormat("id-ID", {
@@ -119,6 +121,8 @@ type DetailRegistration = {
 type Props = {
   eventId: string;
   registration: DetailRegistration;
+  ticketContext: TicketContextVm;
+  waBodies: ClubWaBodies;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -126,22 +130,20 @@ const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   timeStyle: "short",
 });
 
-function TicketRoleBadge({ role }: { role: TicketRole }) {
-  return (
-    <Badge variant="secondary" className="capitalize">
-      {role}
-    </Badge>
-  );
-}
-
-export function RegistrationDetail({ eventId, registration }: Props) {
+export function RegistrationDetail({
+  eventId,
+  registration,
+  ticketContext,
+  waBodies,
+}: Props) {
+  const wb = waBodies;
   const waPhone = registration.contactWhatsapp;
   const waLinks = [
     {
       label: "WhatsApp · penerimaan pendaftaran",
       href: waMeLink(
         waPhone,
-        templateReceipt({
+        renderReceiptMessage(wb[WaTemplateKey.receipt] ?? null, {
           contactName: registration.contactName,
           eventTitle: registration.event.title,
           registrationId: registration.id,
@@ -154,7 +156,8 @@ export function RegistrationDetail({ eventId, registration }: Props) {
       label: "WhatsApp · disetujui",
       href: waMeLink(
         waPhone,
-        templateApproved(
+        renderApprovedMessage(
+          wb[WaTemplateKey.approved] ?? null,
           registration.event.title,
           registration.event.venueName,
           registration.event.startAt.toISOString(),
@@ -165,7 +168,13 @@ export function RegistrationDetail({ eventId, registration }: Props) {
     {
       label: "WhatsApp · ditolak",
       href: registration.rejectionReason
-        ? waMeLink(waPhone, templateRejected(registration.rejectionReason))
+        ? waMeLink(
+            waPhone,
+            renderRejectedMessage(
+              wb[WaTemplateKey.rejected] ?? null,
+              registration.rejectionReason,
+            ),
+          )
         : "#",
       show:
         registration.status === "rejected" &&
@@ -174,7 +183,13 @@ export function RegistrationDetail({ eventId, registration }: Props) {
     {
       label: "WhatsApp · masalah pembayaran",
       href: registration.paymentIssueReason
-        ? waMeLink(waPhone, templatePaymentIssue(registration.paymentIssueReason))
+        ? waMeLink(
+            waPhone,
+            renderPaymentIssueMessage(
+              wb[WaTemplateKey.payment_issue] ?? null,
+              registration.paymentIssueReason,
+            ),
+          )
         : "#",
       show:
         registration.status === "payment_issue" &&
@@ -182,15 +197,43 @@ export function RegistrationDetail({ eventId, registration }: Props) {
     },
     {
       label: "WhatsApp · dibatalkan",
-      href: waMeLink(waPhone, templateCancelled(registration.contactName, registration.event.title)),
+      href: waMeLink(
+        waPhone,
+        renderCancelledMessage(
+          wb[WaTemplateKey.cancelled] ?? null,
+          registration.contactName,
+          registration.event.title,
+        ),
+      ),
       show: registration.status === "cancelled",
     },
     {
       label: "WhatsApp · refunded",
-      href: waMeLink(waPhone, templateRefunded(registration.contactName, registration.event.title)),
+      href: waMeLink(
+        waPhone,
+        renderRefundedMessage(
+          wb[WaTemplateKey.refunded] ?? null,
+          registration.contactName,
+          registration.event.title,
+        ),
+      ),
       show: registration.status === "refunded",
     },
   ].filter((l) => l.show);
+
+  const ticketRows: RegistrationTicketRow[] = registration.tickets.map(
+    (ticket) => ({
+      id: ticket.id,
+      role: ticket.role,
+      fullName: ticket.fullName,
+      whatsapp: ticket.whatsapp,
+      memberNumber: ticket.memberNumber,
+      menuSummary:
+        ticket.menuSelections.length === 0
+          ? "-"
+          : ticket.menuSelections.map((s) => s.menuItem.name).join(", "),
+    }),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -254,24 +297,34 @@ export function RegistrationDetail({ eventId, registration }: Props) {
                 {link.label}
               </a>
             ))}
-            {registration.adjustments.filter(a => a.status === InvoiceAdjustmentStatus.unpaid).map(adj => (
-              <a
-                key={adj.id}
-                href={waMeLink(waPhone, templateUnderpaymentInvoice({
-                  contactName: registration.contactName,
-                  eventTitle: registration.event.title,
-                  adjustmentAmountIdr: adj.amount,
-                  bankName: registration.event.bankAccount?.bankName ?? "",
-                  accountNumber: registration.event.bankAccount?.accountNumber ?? "",
-                  accountName: registration.event.bankAccount?.accountName ?? "",
-                }))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent/60 transition-colors"
-              >
-                WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
-              </a>
-            ))}
+            {registration.adjustments
+              .filter((a) => a.status === InvoiceAdjustmentStatus.unpaid)
+              .map((adj) => (
+                <a
+                  key={adj.id}
+                  href={waMeLink(
+                    waPhone,
+                    renderUnderpaymentInvoiceMessage(
+                      wb[WaTemplateKey.underpayment_invoice] ?? null,
+                      {
+                        contactName: registration.contactName,
+                        eventTitle: registration.event.title,
+                        adjustmentAmountIdr: adj.amount,
+                        bankName: registration.event.bankAccount?.bankName ?? "",
+                        accountNumber:
+                          registration.event.bankAccount?.accountNumber ?? "",
+                        accountName:
+                          registration.event.bankAccount?.accountName ?? "",
+                      },
+                    ),
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/60"
+                >
+                  WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
+                </a>
+              ))}
           </div>
         </CardContent>
       </Card>
@@ -304,17 +357,115 @@ export function RegistrationDetail({ eventId, registration }: Props) {
                       {Math.round(upload.bytes / 1024)} KB
                     </div>
                   </div>
-                  <div className="bg-muted/30 p-3">
-                    <img
+                  <div className="relative aspect-video w-full bg-muted/30 p-3">
+                    <Image
                       src={upload.blobUrl}
                       alt={upload.originalFilename ?? formatUploadPurpose(upload.purpose)}
-                      className="aspect-video w-full rounded-md object-contain ring-1 ring-foreground/10"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 768px) 100vw, min(672px, 50vw)"
+                      className="rounded-md object-contain ring-1 ring-foreground/10"
                     />
                   </div>
                 </a>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Konteks tiket & kursi</CardTitle>
+          <CardDescription>
+            Informasi baca-saja untuk verifikasi (hak tiket partner, pengurus,
+            bentrok nomor).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 text-sm">
+          {ticketContext.kind === "error" ? (
+            <p className="text-muted-foreground">{ticketContext.message}</p>
+          ) : (
+            <>
+              <div className="grid gap-1">
+                <div className="font-medium">
+                  Pengurus (dari direktori, nomor utama)
+                </div>
+                {ticketContext.pengurus.state === "no_primary_number" && (
+                  <p className="text-muted-foreground">
+                    Tidak ada nomor member pada tiket utama / klaim — lookup tidak
+                    dijalankan.
+                  </p>
+                )}
+                {ticketContext.pengurus.state === "not_in_directory" && (
+                  <p className="text-amber-700 dark:text-amber-400">
+                    Nomor utama tidak ditemukan di direktori member aktif.
+                  </p>
+                )}
+                {ticketContext.pengurus.state === "found" && (
+                  <p>
+                    Status komite/pengurus:{" "}
+                    <span className="font-medium">
+                      {ticketContext.pengurus.isPengurus ? "Ya" : "Tidak"}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <div className="font-medium">Tiket partner</div>
+                {!ticketContext.partner ? (
+                  <p className="text-muted-foreground">
+                    Tidak ada tiket partner.
+                  </p>
+                ) : (
+                  <ul className="list-inside list-disc text-muted-foreground">
+                    <li>Nama: {ticketContext.partner.fullName}</li>
+                    <li>
+                      WhatsApp:{" "}
+                      {ticketContext.partner.whatsapp ?? (
+                        <span className="italic">-</span>
+                      )}
+                    </li>
+                    <li>
+                      Nomor member:{" "}
+                      {ticketContext.partner.memberNumber ?? (
+                        <span className="italic">-</span>
+                      )}
+                    </li>
+                    <li>
+                      Tipe harga: {ticketContext.partner.ticketPriceTypeLabel}
+                    </li>
+                  </ul>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <div className="font-medium">Bentrok nomor (event ini)</div>
+                {ticketContext.conflicts.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    Tidak ada registrasi lain dengan nomor member yang sama pada
+                    tiket.
+                  </p>
+                ) : (
+                  <ul className="list-inside list-disc space-y-2">
+                    {ticketContext.conflicts.map((c) => (
+                      <li key={c.registrationId}>
+                        <span className="text-muted-foreground">
+                          {c.contactName} — nomor: {c.memberNumbers.join(", ")}{" "}
+                          —{" "}
+                        </span>
+                        <Link
+                          href={`/admin/events/${eventId}/inbox/${c.registrationId}`}
+                          className="font-medium underline-offset-4 hover:underline"
+                        >
+                          buka detail
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -327,45 +478,7 @@ export function RegistrationDetail({ eventId, registration }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>WhatsApp</TableHead>
-                <TableHead>Member #</TableHead>
-                <TableHead>Menu</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {registration.tickets.map((ticket) => {
-                const menuText =
-                  ticket.menuSelections.length === 0
-                    ? "-"
-                    : ticket.menuSelections
-                        .map((s) => s.menuItem.name)
-                        .join(", ");
-
-                return (
-                  <TableRow key={ticket.id}>
-                    <TableCell>
-                      <TicketRoleBadge role={ticket.role} />
-                    </TableCell>
-                    <TableCell className="font-medium">{ticket.fullName}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {ticket.whatsapp ?? "-"}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {ticket.memberNumber ?? "-"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {menuText}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <RegistrationTicketsTable tickets={ticketRows} />
           <RegistrationActions
             eventId={eventId}
             registrationId={registration.id}

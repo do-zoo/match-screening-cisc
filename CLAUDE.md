@@ -65,6 +65,8 @@ An event registration system for a members-only social club (CISC). Members and 
 - `admin/` — authenticated admin dashboard
   - `admin/events/[eventId]/inbox` — registrations list
   - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + actions
+  - `admin/events/[eventId]/report` — per-event aggregated report + CSV export
+  - `admin/events/[eventId]/edit` — event editor
 - `api/auth/[...all]` — Better Auth catch-all handler
 
 ### Data model (`prisma/schema.prisma`)
@@ -76,26 +78,49 @@ Key entities:
 - **`Registration`** — one per submission; prices are snapshotted at submit time (`*Applied` fields); status flows: `submitted → pending_review → approved / rejected / payment_issue`
 - **`Ticket`** — one `primary` + optional `partner` per registration; unique constraint on `(eventId, memberNumber)` prevents double-booking
 - **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage
-- **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Verifier` | `Viewer`) and optionally to a `MasterMember`
+- **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 
 Better Auth manages its own tables (users, sessions) directly via `pg.Pool` — they are **not** in `prisma/schema.prisma`.
+
+Registration status flows: `submitted → pending_review → approved / rejected / payment_issue`. Once approved, further state is tracked via `AttendanceStatus` (separate from `RegistrationStatus`) and `InvoiceAdjustment` rows (for underpayments). Cancel and refund are terminal states set directly on `Registration.status`.
 
 ### Key library modules (`src/lib/`)
 
 - `lib/auth/auth.ts` — Better Auth config (magic-link + email/password, `nextCookies` plugin)
 - `lib/auth/session.ts` — `getAdminSession()` / `requireAdminSession()` — reads session from Next.js request headers
 - `lib/db/prisma.ts` — singleton `PrismaClient` with `PrismaNeon` adapter (pooled `DATABASE_URL`, Neon-recommended; HMR-safe via `globalThis`)
-- `lib/actions/submit-registration.ts` — the main Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
+- `lib/actions/guard.ts` — **all admin server actions must start here**: `guardEvent(eventId)`, `guardOwner()`, `guardOwnerOrAdmin()`, `isAuthError(e)`. Throws `"NO_PROFILE"` / `"FORBIDDEN"` / `"UNAUTHENTICATED"` strings; catch with `isAuthError` to surface as "Tidak diizinkan."
+- `lib/forms/action-result.ts` — `ActionResult<T>` discriminated union (`{ ok: true; data }` / `{ ok: false; fieldErrors?, rootError? }`); helpers `ok()`, `rootError()`, `fieldError()`. All admin server actions return this type.
+- `lib/actions/submit-registration.ts` — the main public Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
-- `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access for admin actions
-- `lib/wa-templates/messages.ts` — WhatsApp message templates (Indonesian); used by admin to send status updates
+- `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
+- `lib/reports/queries.ts` — `getEventReport(eventId)` — 10 parallel queries for attendance, finance, menu/voucher aggregations
+- `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — 14-column RFC 4180 CSV
+- `lib/wa-templates/messages.ts` — WhatsApp message templates (Indonesian); covers approval, rejection, payment issue, cancellation, refund, underpayment invoice
 
 ### UI components
 
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing: `InboxTable`, `RegistrationDetail`, `RegistrationStatusBadge`
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` composes the action panels: `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `VoucherRedemptionPanel`
+
+**`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
+```tsx
+<DialogTrigger disabled={isPending} render={<Button variant="outline" />}>
+  Open
+</DialogTrigger>
+```
+
+### Server action conventions
+
+Every admin server action must:
+
+1. Start with `"use server"`
+2. Call `guardEvent(eventId)` or `guardOwner()` / `guardOwnerOrAdmin()` from `lib/actions/guard.ts` — never roll your own auth check
+3. Return `ActionResult<T>` from `lib/forms/action-result.ts`
+4. Use Prisma enum values (e.g. `RegistrationStatus.approved`), not raw strings
+5. Write error messages in Indonesian (consistent with the rest of the codebase)
 
 ### Forms pattern
 
@@ -107,7 +132,7 @@ All monetary values are stored as integers in IDR smallest unit (i.e., whole rup
 
 ### Uploads
 
-Images are converted to WebP (max 1600px, quality 80) via Sharp before being put to Vercel Blob. The blob path is `registrations/{registrationId}/{purpose}.webp`. DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup.
+Images are converted to WebP (max 1600px, quality 80) via Sharp before being put to Vercel Blob with **`access: "public"`** so the CDN can serve them directly (`next/image` and browser fetches bill mostly to Blob storage, not through app functions). Anyone with the full blob URL can download the object—treat URLs as confidential. Paths are deterministic (e.g. `registrations/{registrationId}/{purpose}.webp`; event cover under `events/{eventId}/cover.webp`). DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup. Objects uploaded earlier as **private** stay private until re-upload or a deliberate migration replaces them.
 
 ### Testing
 

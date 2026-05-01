@@ -21,6 +21,7 @@ export async function getAdminContext(
     profile.member?.eventsAsHelper.map((event) => event.eventId) ?? [];
 
   return {
+    profileId: profile.id,
     role: profile.role as AdminRole,
     helperEventIds,
   };
