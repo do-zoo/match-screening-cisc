@@ -17,6 +17,10 @@ export const MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE =
 export const MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE =
   "Nomor member wajib diisi untuk pendaftar member CISC." as const;
 
+/** Sama makna dengan validasi tiket tunggal per member per event (lihat juga server action submit). */
+export const MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE =
+  "Member dengan nomor ini sudah terdaftar untuk acara ini (satu tiket per nomor)." as const;
+
 const isNonemptyFile = (val: unknown): val is File => {
   return typeof File !== "undefined" && val instanceof File && val.size > 0;
 };
