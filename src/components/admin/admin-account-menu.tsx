@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
-import { createAuthClient } from "better-auth/react";
-
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -13,9 +11,8 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { adminAuthClient } from "@/lib/auth/admin-auth-client";
 import { cn } from "@/lib/utils";
-
-const authClient = createAuthClient();
 
 type AdminAccountMenuProps = {
   userEmail: string | null;
@@ -110,7 +107,7 @@ export function AdminAccountMenu({
             type="button"
             onClick={async () => {
               setOpen(false);
-              await authClient.signOut();
+              await adminAuthClient.signOut();
               window.location.href = "/admin/sign-in";
             }}
           >
