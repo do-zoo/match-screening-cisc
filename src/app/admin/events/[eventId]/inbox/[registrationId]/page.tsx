@@ -6,6 +6,8 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
+import { loadTicketContextVm } from "@/lib/registrations/load-admin-ticket-context";
 
 export default async function AdminEventInboxDetailPage({
   params,
@@ -85,6 +87,29 @@ export default async function AdminEventInboxDetailPage({
 
   if (!registration) notFound();
 
+  let ticketContext: TicketContextVm;
+  try {
+    ticketContext = await loadTicketContextVm({
+      eventId,
+      registration: {
+        id: registration.id,
+        claimedMemberNumber: registration.claimedMemberNumber,
+        tickets: registration.tickets.map((t) => ({
+          role: t.role,
+          fullName: t.fullName,
+          whatsapp: t.whatsapp,
+          memberNumber: t.memberNumber,
+          ticketPriceType: t.ticketPriceType,
+        })),
+      },
+    });
+  } catch {
+    ticketContext = {
+      kind: "error",
+      message: "Tidak dapat memuat konteks kursi.",
+    };
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -105,6 +130,7 @@ export default async function AdminEventInboxDetailPage({
       <RegistrationDetail
         eventId={eventId}
         registration={registration}
+        ticketContext={ticketContext}
       />
     </main>
   );

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { InvoiceAdjustmentStatus } from "@prisma/client";
 import type {
   AttendanceStatus,
@@ -33,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
 import { waMeLink } from "@/lib/wa-templates/encode";
 import {
   templateReceipt,
@@ -119,6 +121,7 @@ type DetailRegistration = {
 type Props = {
   eventId: string;
   registration: DetailRegistration;
+  ticketContext: TicketContextVm;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -134,7 +137,11 @@ function TicketRoleBadge({ role }: { role: TicketRole }) {
   );
 }
 
-export function RegistrationDetail({ eventId, registration }: Props) {
+export function RegistrationDetail({
+  eventId,
+  registration,
+  ticketContext,
+}: Props) {
   const waPhone = registration.contactWhatsapp;
   const waLinks = [
     {
@@ -315,6 +322,103 @@ export function RegistrationDetail({ eventId, registration }: Props) {
                 </a>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Konteks tiket & kursi</CardTitle>
+          <CardDescription>
+            Informasi baca-saja untuk verifikasi (hak tiket partner, pengurus,
+            bentrok nomor).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 text-sm">
+          {ticketContext.kind === "error" ? (
+            <p className="text-muted-foreground">{ticketContext.message}</p>
+          ) : (
+            <>
+              <div className="grid gap-1">
+                <div className="font-medium">
+                  Pengurus (dari direktori, nomor utama)
+                </div>
+                {ticketContext.pengurus.state === "no_primary_number" && (
+                  <p className="text-muted-foreground">
+                    Tidak ada nomor member pada tiket utama / klaim — lookup tidak
+                    dijalankan.
+                  </p>
+                )}
+                {ticketContext.pengurus.state === "not_in_directory" && (
+                  <p className="text-amber-700 dark:text-amber-400">
+                    Nomor utama tidak ditemukan di direktori member aktif.
+                  </p>
+                )}
+                {ticketContext.pengurus.state === "found" && (
+                  <p>
+                    Status komite/pengurus:{" "}
+                    <span className="font-medium">
+                      {ticketContext.pengurus.isPengurus ? "Ya" : "Tidak"}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <div className="font-medium">Tiket partner</div>
+                {!ticketContext.partner ? (
+                  <p className="text-muted-foreground">
+                    Tidak ada tiket partner.
+                  </p>
+                ) : (
+                  <ul className="list-inside list-disc text-muted-foreground">
+                    <li>Nama: {ticketContext.partner.fullName}</li>
+                    <li>
+                      WhatsApp:{" "}
+                      {ticketContext.partner.whatsapp ?? (
+                        <span className="italic">-</span>
+                      )}
+                    </li>
+                    <li>
+                      Nomor member:{" "}
+                      {ticketContext.partner.memberNumber ?? (
+                        <span className="italic">-</span>
+                      )}
+                    </li>
+                    <li>
+                      Tipe harga: {ticketContext.partner.ticketPriceTypeLabel}
+                    </li>
+                  </ul>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <div className="font-medium">Bentrok nomor (event ini)</div>
+                {ticketContext.conflicts.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    Tidak ada registrasi lain dengan nomor member yang sama pada
+                    tiket.
+                  </p>
+                ) : (
+                  <ul className="list-inside list-disc space-y-2">
+                    {ticketContext.conflicts.map((c) => (
+                      <li key={c.registrationId}>
+                        <span className="text-muted-foreground">
+                          {c.contactName} — nomor: {c.memberNumbers.join(", ")}{" "}
+                          —{" "}
+                        </span>
+                        <Link
+                          href={`/admin/events/${eventId}/inbox/${c.registrationId}`}
+                          className="font-medium underline-offset-4 hover:underline"
+                        >
+                          buka detail
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
