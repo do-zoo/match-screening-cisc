@@ -54,6 +54,7 @@
     "react-day-picker": "^9.14.0",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.74.0",
+    "resend": "^6.12.2",
     "sanitize-html": "^2.17.0",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.5.0",
