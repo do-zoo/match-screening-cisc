@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { RegistrationStatus, TicketRole } from "@prisma/client";
 
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
@@ -9,18 +13,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 
-type InboxRegistration = {
+type InboxRegistrationRow = {
   id: string;
-  createdAt: Date;
+  createdAt: string;
   contactName: string;
   contactWhatsapp: string;
   claimedMemberNumber: string | null;
@@ -36,7 +34,7 @@ type InboxRegistration = {
 
 type InboxTableProps = {
   eventId: string;
-  registrations: InboxRegistration[];
+  registrations: InboxRegistrationRow[];
 };
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -51,6 +49,88 @@ const idrFormatter = new Intl.NumberFormat("id-ID", {
 });
 
 export function InboxTable({ eventId, registrations }: InboxTableProps) {
+  const columns = useMemo<ColumnDef<InboxRegistrationRow>[]>(
+    () => [
+      {
+        accessorKey: "createdAt",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Submitted" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {dateFormatter.format(new Date(row.original.createdAt))}
+          </span>
+        ),
+      },
+      {
+        id: "contact",
+        accessorFn: (row) => row.contactName,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Contact" />
+        ),
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div>
+              <Link
+                href={`/admin/events/${eventId}/inbox/${r.id}`}
+                className="font-medium underline-offset-4 hover:underline"
+              >
+                {r.contactName}
+              </Link>
+              <div className="font-mono text-xs text-muted-foreground">
+                {r.contactWhatsapp}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: "primaryTicket",
+        header: "Primary ticket",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const primaryTicket = row.original.tickets.find(
+            (t) => t.role === "primary",
+          );
+          return (
+            <div>
+              <div>{primaryTicket?.fullName ?? "-"}</div>
+              <div className="font-mono text-xs text-muted-foreground">
+                {primaryTicket?.memberNumber ??
+                  row.original.claimedMemberNumber ??
+                  "non-member"}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Status" />
+        ),
+        cell: ({ row }) => (
+          <RegistrationStatusBadge status={row.original.status} />
+        ),
+      },
+      {
+        accessorKey: "computedTotalAtSubmit",
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader column={column} title="Total" />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-mono">
+            {idrFormatter.format(row.original.computedTotalAtSubmit)}
+          </div>
+        ),
+      },
+    ],
+    [eventId],
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -66,57 +146,7 @@ export function InboxTable({ eventId, registrations }: InboxTableProps) {
             No registrations have been submitted for this event yet.
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Primary ticket</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {registrations.map((registration) => {
-                const primaryTicket = registration.tickets.find(
-                  (ticket) => ticket.role === "primary",
-                );
-
-                return (
-                  <TableRow key={registration.id}>
-                    <TableCell className="text-muted-foreground">
-                      {dateFormatter.format(registration.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/admin/events/${eventId}/inbox/${registration.id}`}
-                        className="font-medium underline-offset-4 hover:underline"
-                      >
-                        {registration.contactName}
-                      </Link>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {registration.contactWhatsapp}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>{primaryTicket?.fullName ?? "-"}</div>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {primaryTicket?.memberNumber ??
-                          registration.claimedMemberNumber ??
-                          "non-member"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <RegistrationStatusBadge status={registration.status} />
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {idrFormatter.format(registration.computedTotalAtSubmit)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <DataTable columns={columns} data={registrations} />
         )}
       </CardContent>
     </Card>

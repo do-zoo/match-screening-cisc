@@ -53,6 +53,11 @@ export default async function AdminEventInboxPage({
 
   if (!event) notFound();
 
+  const registrationRows = registrations.map((r) => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+  }));
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -68,7 +73,7 @@ export default async function AdminEventInboxPage({
         </Link>
       </header>
 
-      <InboxTable eventId={eventId} registrations={registrations} />
+      <InboxTable eventId={eventId} registrations={registrationRows} />
     </main>
   );
 }
