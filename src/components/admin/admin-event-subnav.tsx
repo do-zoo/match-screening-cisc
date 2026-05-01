@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Props = { eventId: string };
 
@@ -18,6 +18,11 @@ export function AdminEventSubnav({ eventId }: Props) {
     pathname === `/admin/events/${eventId}/inbox` ||
     pathname?.startsWith(`/admin/events/${eventId}/inbox/`);
 
+  const basePill =
+    "rounded-full border border-border bg-background px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  const activePill =
+    "border-transparent bg-sidebar-accent text-sidebar-accent-foreground";
+
   return (
     <nav
       aria-label="Inbox dan laporan"
@@ -27,22 +32,22 @@ export function AdminEventSubnav({ eventId }: Props) {
       <Link
         href={`/admin/events/${eventId}/inbox`}
         aria-current={isInbox && !isReport ? "page" : undefined}
-        className={buttonVariants({
-          variant: isInbox && !isReport ? "secondary" : "outline",
-          size: "sm",
-          className: "rounded-full",
-        })}
+        className={cn(
+          basePill,
+          isInbox && !isReport
+            ? activePill
+            : "text-muted-foreground hover:bg-muted",
+        )}
       >
         Inbox
       </Link>
       <Link
         href={`/admin/events/${eventId}/report`}
         aria-current={isReport ? "page" : undefined}
-        className={buttonVariants({
-          variant: isReport ? "secondary" : "outline",
-          size: "sm",
-          className: "rounded-full",
-        })}
+        className={cn(
+          basePill,
+          isReport ? activePill : "text-muted-foreground hover:bg-muted",
+        )}
       >
         Laporan
       </Link>

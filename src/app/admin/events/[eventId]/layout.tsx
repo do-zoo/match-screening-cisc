@@ -27,14 +27,14 @@ export default async function AdminEventBranchLayout({
   }
 
   return (
-    <>
+    <div data-admin-event-chrome className="flex min-h-0 flex-1 flex-col">
       {breadcrumbTitle ? (
-        <div className="mx-auto w-full max-w-6xl shrink-0 px-6 pb-3 pt-6 lg:pt-10">
+        <div className="mx-auto w-full max-w-6xl shrink-0 border-b border-border/60 bg-muted/20 px-6 pb-3 pt-6 lg:pt-10">
           <AdminEventBreadcrumbs eventId={eventId} title={breadcrumbTitle} />
           <AdminEventSubnav eventId={eventId} />
         </div>
       ) : null}
       {children}
-    </>
+    </div>
   );
 }

@@ -57,11 +57,11 @@ export function AdminEventBreadcrumbs({
 
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+      <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground/90">
         {crumbs.map((c, i) => (
           <li key={`${c.label}-${i}`} className="flex items-center gap-1">
             {i > 0 ? (
-              <span className="inline-block px-1 text-muted-foreground/70" aria-hidden>
+              <span className="inline-block px-1 text-muted-foreground/50" aria-hidden>
                 ›
               </span>
             ) : null}
@@ -69,7 +69,7 @@ export function AdminEventBreadcrumbs({
               <Link
                 href={c.href}
                 className={cn(
-                  "max-w-[12rem] truncate font-medium underline-offset-4 hover:underline hover:text-foreground md:max-w-md",
+                  "max-w-[12rem] truncate font-medium text-muted-foreground underline-offset-4 hover:text-primary hover:underline md:max-w-md",
                 )}
               >
                 {c.label}
@@ -77,7 +77,7 @@ export function AdminEventBreadcrumbs({
             ) : (
               <span
                 className={cn(
-                  "max-w-[14rem] truncate font-medium md:max-w-lg",
+                  "max-w-[14rem] truncate font-semibold text-foreground md:max-w-lg",
                   c.current && "text-foreground",
                 )}
                 {...(c.current ? { "aria-current": "page" as const } : {})}
