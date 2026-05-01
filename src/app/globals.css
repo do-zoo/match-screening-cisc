@@ -49,16 +49,14 @@
 }
 
 :root {
-  /* Brand pink #FF66CC → OKLCH (sRGB-linear via OKLab, CSS Color 4) */
-  /* oklch(0.7337 0.2145 342.88) ≈ oklch(73.37% 0.2145 342.88) */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.7337 0.2145 342.88);
-  --primary-foreground: oklch(0.15 0.09 342.5);
+  --primary: oklch(30.25% 0.185 264.17);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -68,7 +66,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.58 0.17 342.88);
+  --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -77,12 +75,12 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.7337 0.2145 342.88);
-  --sidebar-primary-foreground: oklch(0.15 0.09 342.5);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.58 0.17 342.88);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
@@ -92,7 +90,10 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  /* Same brand pink (#FF66CC); reads clearly on dark surfaces */
+  /*
+   * Brand pink #FF66CC → OKLCH (dark mode only; light stays blue `:root`).
+   * oklch(0.7337 0.2145 342.88) ≈ oklch(73.37% 0.2145 342.88)
+   */
   --primary: oklch(0.7337 0.2145 342.88);
   --primary-foreground: oklch(0.15 0.09 342.5);
   --secondary: oklch(0.269 0 0);
