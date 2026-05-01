@@ -3,7 +3,13 @@
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 
-import { guardOwner, isAuthError } from "@/lib/actions/guard";
+import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
+import {
+  guardOwner,
+  isAuthError,
+  type OwnerGuardContext,
+} from "@/lib/actions/guard";
 import { prisma } from "@/lib/db/prisma";
 import { clubBrandingTextsSchema } from "@/lib/forms/club-branding-schema";
 import {
@@ -21,8 +27,9 @@ export async function saveClubBranding(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
+  let owner: OwnerGuardContext;
   try {
-    await guardOwner();
+    owner = await guardOwner();
   } catch (e) {
     if (isAuthError(e)) return rootError("Tidak diizinkan.");
     throw e;
@@ -96,6 +103,28 @@ export async function saveClubBranding(
     }
     return rootError("Tidak dapat menyimpan branding.");
   }
+
+  const changedFields: string[] = [];
+  if (!existing || existing.clubNameNav !== parsedTexts.data.clubNameNav) {
+    changedFields.push("clubNameNav");
+  }
+  if (
+    (existing?.footerPlainText ?? null) !== footer
+  ) {
+    changedFields.push("footerPlainText");
+  }
+  if (logo instanceof File && logo.size > 0) {
+    changedFields.push("logo");
+  }
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: owner.profileId,
+    actorAuthUserId: owner.authUserId,
+    action: CLUB_AUDIT_ACTION.CLUB_BRANDING_SAVED,
+    targetType: "club_branding",
+    targetId: CLUB_BRANDING_SINGLETON_KEY,
+    metadata: { changed: changedFields.join(",") },
+  });
 
   revalidatePath("/admin/settings/branding");
   revalidatePath("/");

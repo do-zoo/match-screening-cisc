@@ -6,6 +6,7 @@ import {
 } from "@/lib/permissions/roles";
 
 const base: AdminContext = {
+  profileId: "prof_test",
   role: "Viewer",
   helperEventIds: [],
 };

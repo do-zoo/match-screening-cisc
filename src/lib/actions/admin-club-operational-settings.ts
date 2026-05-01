@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { guardOwner, isAuthError } from "@/lib/actions/guard";
+import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
+import {
+  guardOwner,
+  isAuthError,
+  type OwnerGuardContext,
+} from "@/lib/actions/guard";
 import { prisma } from "@/lib/db/prisma";
 import {
   clubOperationalSettingsSaveSchema,
@@ -20,8 +26,9 @@ export async function saveClubOperationalSettings(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
+  let owner: OwnerGuardContext;
   try {
-    await guardOwner();
+    owner = await guardOwner();
   } catch (e) {
     if (isAuthError(e)) return rootError("Tidak diizinkan.");
     throw e;
@@ -67,6 +74,17 @@ export async function saveClubOperationalSettings(
   } catch {
     return rootError("Gagal menyimpan pengaturan.");
   }
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: owner.profileId,
+    actorAuthUserId: owner.authUserId,
+    action: CLUB_AUDIT_ACTION.CLUB_OPERATIONAL_SAVED,
+    targetType: "club_operational_settings",
+    targetId: CLUB_OPERATIONAL_SINGLETON_KEY,
+    metadata: {
+      registrationGloballyDisabled: parsed.data.registrationGloballyDisabled,
+    },
+  });
 
   revalidatePath("/admin/settings/operations");
   revalidatePath("/");

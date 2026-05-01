@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { guardOwner, isAuthError } from "@/lib/actions/guard";
+import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
+import {
+  guardOwner,
+  isAuthError,
+  type OwnerGuardContext,
+} from "@/lib/actions/guard";
 import { prisma } from "@/lib/db/prisma";
 import { COMMITTEE_TICKET_DEFAULTS_KEY } from "@/lib/events/event-admin-defaults";
 import { committeeDefaultPricingFormSchema } from "@/lib/forms/committee-default-pricing-schema";
@@ -18,8 +24,9 @@ export async function saveCommitteeDefaultTicketPrices(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
+  let owner: OwnerGuardContext;
   try {
-    await guardOwner();
+    owner = await guardOwner();
   } catch (e) {
     if (isAuthError(e)) return rootError("Tidak diizinkan.");
     throw e;
@@ -50,6 +57,15 @@ export async function saveCommitteeDefaultTicketPrices(
   } catch {
     return rootError("Tidak dapat menyimpan pengaturan. Coba lagi.");
   }
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: owner.profileId,
+    actorAuthUserId: owner.authUserId,
+    action: CLUB_AUDIT_ACTION.COMMITTEE_PRICING_SAVED,
+    targetType: "committee_ticket_defaults",
+    targetId: COMMITTEE_TICKET_DEFAULTS_KEY,
+    metadata: { ticketMemberPrice, ticketNonMemberPrice },
+  });
 
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/pricing");

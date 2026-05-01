@@ -4,7 +4,7 @@ import type { AdminContext } from "@/lib/permissions/guards";
 import { deriveGlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 
 function ctx(role: AdminContext["role"]): AdminContext {
-  return { role, helperEventIds: [] };
+  return { profileId: "prof_test", role, helperEventIds: [] };
 }
 
 describe("deriveGlobalSidebarNav", () => {

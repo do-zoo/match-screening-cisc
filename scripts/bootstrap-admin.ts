@@ -103,6 +103,20 @@ async function main() {
     create: { authUserId: userId, role },
   });
 
+  const { appendClubAuditLog } = await import(
+    "@/lib/audit/append-club-audit-log"
+  );
+  const { CLUB_AUDIT_ACTION } = await import("@/lib/audit/club-audit-actions");
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: admin.id,
+    actorAuthUserId: userId,
+    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_BOOTSTRAP_UPSERT,
+    targetType: "admin_profile",
+    targetId: admin.id,
+    metadata: { email, role },
+  });
+
   console.log("Bootstrap OK:", {
     email,
     userId,

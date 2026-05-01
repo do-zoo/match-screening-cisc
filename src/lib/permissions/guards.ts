@@ -4,6 +4,7 @@ import {
 } from "@/lib/permissions/roles";
 
 export type AdminContext = {
+  profileId: string;
   role: AdminRole;
   helperEventIds: string[];
 };

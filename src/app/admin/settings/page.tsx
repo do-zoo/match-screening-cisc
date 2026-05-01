@@ -42,7 +42,7 @@ export default function AdminSettingsHubPage() {
         <SettingsCard
           href="/admin/settings/notifications"
           title="Notifikasi"
-          description="Menyusul — saluran dan preferensi Phase D."
+          description="Mode saluran keluar (stub vs live) dan label internal; terpisah dari pemasangan SMTP/Resend."
         />
         <SettingsCard
           href="/admin/settings/operations"
@@ -52,7 +52,7 @@ export default function AdminSettingsHubPage() {
         <SettingsCard
           href="/admin/settings/security"
           title="Keamanan"
-          description="Menyusul — kebijakan auth dan audit Phase D."
+          description="Log audit konfigurasi komite dan informasi 2FA (Better Auth)."
         />
       </div>
     </div>

@@ -7,7 +7,11 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 vi.mock("@/lib/actions/guard", () => ({
-  guardEvent: vi.fn().mockResolvedValue({ role: "Verifier", helperEventIds: [] }),
+  guardEvent: vi.fn().mockResolvedValue({
+    profileId: "prof_test",
+    role: "Verifier",
+    helperEventIds: [],
+  }),
   isAuthError: vi.fn().mockReturnValue(false),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
