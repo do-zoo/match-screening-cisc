@@ -1,6 +1,6 @@
+import { InvoiceAdjustmentStatus } from "@prisma/client";
 import type {
   AttendanceStatus,
-  InvoiceAdjustmentStatus,
   InvoiceAdjustmentType,
   MenuMode,
   MemberValidation,
@@ -252,7 +252,7 @@ export function RegistrationDetail({ eventId, registration }: Props) {
                 {link.label}
               </a>
             ))}
-            {registration.adjustments.filter(a => a.status === "unpaid").map(adj => (
+            {registration.adjustments.filter(a => a.status === InvoiceAdjustmentStatus.unpaid).map(adj => (
               <a
                 key={adj.id}
                 href={waMeLink(waPhone, templateUnderpaymentInvoice({
