@@ -17,20 +17,30 @@ pnpm test:watch   # Vitest watch mode
 # Run a single test file
 pnpm vitest run src/lib/pricing/compute-submit-total.test.ts
 
-# Database migrations (prisma.config.ts uses DIRECT_URL when set — see Environment variables)
-pnpm prisma migrate dev    # apply + generate after schema changes
-pnpm prisma migrate deploy # apply in CI/prod
-pnpm prisma studio         # GUI browser
+# Database migrations (Prisma reads `.env` + overlay by MATCH_DB_PROFILE; default dev = `.env.local`, prod = `.env.prod`)
+pnpm db:migrate:dev              # prisma migrate dev (development profile)
+pnpm db:migrate:deploy:prod       # prisma migrate deploy against URLs in .env.prod (local operator)
+pnpm db:studio:dev               # prisma studio (dev)
+pnpm auth:migrate                 # Better Auth CLI migrate (.env.local overlay)
+pnpm auth:migrate:prod            # Same, production profile (.env.prod)
+pnpm bootstrap:admin ...        # default development profile / .env.local
+pnpm bootstrap:admin:prod ...    # production profile / .env.prod
+
+# Equivalent without helpers (MATCH_DB_PROFILE optional; omit = development):
+# MATCH_DB_PROFILE=development pnpm prisma migrate dev
+
+# Deploy on Vercel still uses Dashboard env vars; `scripts/vercel-migrate.mjs` runs migrate deploy there (not `.env.prod` files).
 ```
 
 All commands need Node 24 active. See AGENTS.md for the `nvm use` bootstrap pattern.
 
 ## Environment variables
 
-Copy `.env.example` to `.env.local` and fill in:
+Copy `.env.example` to `.env.local` and fill in for local development. Optionally keep `.env.prod` on your machine **only** for operator commands targeting production Postgres (never commit; `.env*` is gitignored):
 
 | Variable                | Purpose                                                                                                                                                                                                               |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MATCH_DB_PROFILE`      | Optional for **local CLI only**: unset / `development` / `dev` → load `.env` then `.env.local`; `production` / `prod` → `.env` then `.env.prod`. Ignored on Vercel.                                                                                                                |
 | `DATABASE_URL`          | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
 | `DIRECT_URL`            | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
 | `BETTER_AUTH_SECRET`    | Min 32-char secret for Better Auth                                                                                                                                                                                    |
