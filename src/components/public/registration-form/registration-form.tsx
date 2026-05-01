@@ -101,7 +101,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       await submitRegistration(null, fd);
 
     if (result.ok) {
-      router.push(`/events/${event.slug}/r/${result.data.registrationId}`);
+      router.push(
+        `/events/${event.slug}/register/${result.data.registrationId}`
+      );
       return;
     }
 

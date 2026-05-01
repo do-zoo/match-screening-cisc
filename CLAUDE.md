@@ -50,7 +50,7 @@ An event registration system for a members-only social club (CISC). Members and 
 - `(public)/` — unauthenticated public routes
   - `/` — homepage listing active events
   - `/events/[slug]` — event registration page (public form)
-  - `/events/[slug]/r/[registrationId]` — post-submission confirmation
+  - `/events/[slug]/register/[registrationId]` — post-submission confirmation
 - `(auth)/admin/sign-in` — magic-link + email/password sign-in
 - `admin/` — authenticated admin dashboard
   - `admin/events/[eventId]/inbox` — registrations list

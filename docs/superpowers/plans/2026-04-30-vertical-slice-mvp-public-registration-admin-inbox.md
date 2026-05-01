@@ -32,7 +32,7 @@
 | `src/app/(public)/page.tsx`                                                                                                                      | Move/replace root: list `Event` where `status === active`                            |
 | `src/app/(public)/layout.tsx`                                                                                                                    | Optional: public chrome (can be minimal)                                             |
 | `src/app/(public)/events/[slug]/page.tsx`                                                                                                        | Registration form (client section for uploads)                                       |
-| `src/app/(public)/events/[slug]/r/[registrationId]/page.tsx`                                                                                     | Receipt + bank instructions + status badge                                           |
+| `src/app/(public)/events/[slug]/register/[registrationId]/page.tsx`                                                                              | Receipt + bank instructions + status badge                                           |
 | `src/components/public/event-card.tsx`                                                                                                           | Link to `/events/[slug]`                                                             |
 | `src/components/public/registration-form.tsx`                                                                                                    | RHF + Zod + file inputs + submit                                                     |
 | `src/components/public/price-breakdown.tsx`                                                                                                      | Display computed IDR lines                                                           |
@@ -932,7 +932,7 @@ git commit -m "feat(actions): submit registration with uploads and pending_revie
 - Create: `src/app/(public)/page.tsx`
 - Delete: `src/app/page.tsx` (the default starter) OR replace content — **must leave a single `/` route**
 - Create: `src/app/(public)/events/[slug]/page.tsx`
-- Create: `src/app/(public)/events/[slug]/r/[registrationId]/page.tsx`
+- Create: `src/app/(public)/events/[slug]/register/[registrationId]/page.tsx`
 - Create: `src/components/public/registration-form.tsx`
 - Create: `src/components/public/event-card.tsx`
 - Modify: `src/app/layout.tsx` — set `metadata.title` to product name (optional)
