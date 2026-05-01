@@ -19,7 +19,10 @@ import { CancelRefundPanel } from "@/components/admin/cancel-refund-panel";
 import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
 import { InvoiceAdjustmentPanel } from "@/components/admin/invoice-adjustment-panel";
 import { VoucherRedemptionPanel } from "@/components/admin/voucher-redemption-panel";
-import { Badge } from "@/components/ui/badge";
+import {
+  RegistrationTicketsTable,
+  type RegistrationTicketRow,
+} from "@/components/admin/registration-tickets-table";
 import {
   Card,
   CardContent,
@@ -27,14 +30,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
 import { waMeLink } from "@/lib/wa-templates/encode";
 import {
@@ -130,14 +125,6 @@ const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   timeStyle: "short",
 });
 
-function TicketRoleBadge({ role }: { role: TicketRole }) {
-  return (
-    <Badge variant="secondary" className="capitalize">
-      {role}
-    </Badge>
-  );
-}
-
 export function RegistrationDetail({
   eventId,
   registration,
@@ -199,6 +186,20 @@ export function RegistrationDetail({
       show: registration.status === "refunded",
     },
   ].filter((l) => l.show);
+
+  const ticketRows: RegistrationTicketRow[] = registration.tickets.map(
+    (ticket) => ({
+      id: ticket.id,
+      role: ticket.role,
+      fullName: ticket.fullName,
+      whatsapp: ticket.whatsapp,
+      memberNumber: ticket.memberNumber,
+      menuSummary:
+        ticket.menuSelections.length === 0
+          ? "-"
+          : ticket.menuSelections.map((s) => s.menuItem.name).join(", "),
+    }),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -433,45 +434,7 @@ export function RegistrationDetail({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>WhatsApp</TableHead>
-                <TableHead>Member #</TableHead>
-                <TableHead>Menu</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {registration.tickets.map((ticket) => {
-                const menuText =
-                  ticket.menuSelections.length === 0
-                    ? "-"
-                    : ticket.menuSelections
-                        .map((s) => s.menuItem.name)
-                        .join(", ");
-
-                return (
-                  <TableRow key={ticket.id}>
-                    <TableCell>
-                      <TicketRoleBadge role={ticket.role} />
-                    </TableCell>
-                    <TableCell className="font-medium">{ticket.fullName}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {ticket.whatsapp ?? "-"}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {ticket.memberNumber ?? "-"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {menuText}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <RegistrationTicketsTable tickets={ticketRows} />
           <RegistrationActions
             eventId={eventId}
             registrationId={registration.id}
