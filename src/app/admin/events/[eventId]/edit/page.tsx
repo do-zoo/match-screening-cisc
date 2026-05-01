@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { getCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
+import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
@@ -133,7 +133,7 @@ export default async function AdminEditEventPage({
     bankAccountId: event.bankAccountId,
   };
 
-  const committeeDefaults = getCommitteeTicketDefaults();
+  const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pb-16 pt-8 lg:pt-6">

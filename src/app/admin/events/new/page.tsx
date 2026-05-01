@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { getCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
+import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ export default async function AdminNewEventPage() {
     notFound();
   }
 
-  const committeeDefaults = getCommitteeTicketDefaults();
+  const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
   const [pics, banks] = await Promise.all([
     prisma.masterMember.findMany({
       where: { canBePIC: true, isActive: true },

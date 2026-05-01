@@ -9,7 +9,7 @@ import { Prisma } from "@prisma/client";
 import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
 import { prisma } from "@/lib/db/prisma";
 import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
-import { getCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
+import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import {
   findLockedViolations,
   needsSensitiveAcknowledgement,
@@ -43,13 +43,13 @@ function parsePayloadField(formData: FormData): unknown {
   }
 }
 
-function ticketPricesForWrite(opts: {
+async function ticketPricesForWrite(opts: {
   pricingSource: AdminEventUpsertInput["pricingSource"];
   parsedMember: number;
   parsedNonMember: number;
-}): { ticketMemberPrice: number; ticketNonMemberPrice: number } {
+}): Promise<{ ticketMemberPrice: number; ticketNonMemberPrice: number }> {
   if (opts.pricingSource === "global_default") {
-    const d = getCommitteeTicketDefaults();
+    const d = await resolveCommitteeTicketDefaults(prisma);
     return {
       ticketMemberPrice: d.ticketMemberPrice,
       ticketNonMemberPrice: d.ticketNonMemberPrice,
@@ -143,7 +143,7 @@ export async function createAdminEvent(
   });
   if (!vPic.ok) return vPic;
 
-  const { ticketMemberPrice, ticketNonMemberPrice } = ticketPricesForWrite({
+  const { ticketMemberPrice, ticketNonMemberPrice } = await ticketPricesForWrite({
     pricingSource: data.pricingSource,
     parsedMember: data.ticketMemberPrice,
     parsedNonMember: data.ticketNonMemberPrice,
@@ -297,7 +297,7 @@ export async function updateAdminEvent(
     );
   }
 
-  const { ticketMemberPrice, ticketNonMemberPrice } = ticketPricesForWrite({
+  const { ticketMemberPrice, ticketNonMemberPrice } = await ticketPricesForWrite({
     pricingSource: data.pricingSource,
     parsedMember: data.ticketMemberPrice,
     parsedNonMember: data.ticketNonMemberPrice,
