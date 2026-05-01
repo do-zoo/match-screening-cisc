@@ -50,6 +50,7 @@ export function usePartnerGate(
     let discarded = false;
     const trimmed = claimedMemberTrim;
     const timeoutId = window.setTimeout(() => {
+      form.clearErrors("claimedMemberNumber");
       setPartnerGate({ status: "checking", forTrim: trimmed });
       void lookupMemberPartnerEligibility(trimmed).then((r) => {
         if (discarded) return;
@@ -58,23 +59,47 @@ export function usePartnerGate(
           resetPartnerFields();
           return;
         }
-        if (r.found) {
-          form.clearErrors("claimedMemberNumber");
-        } else {
+        if (!r.found) {
           form.setError("claimedMemberNumber", {
             message: CLAIMED_MEMBER_NOT_IN_DIRECTORY,
           });
+          form.setValue("memberCardPhoto", undefined, {
+            shouldValidate: false,
+          });
+          form.clearErrors("memberCardPhoto");
+          setPartnerGate({
+            status: "ready",
+            forTrim: trimmed,
+            found: false,
+            isPengurus: false,
+          });
+          resetPartnerFields();
+          return;
         }
-        const eligible = r.found && r.isPengurus;
+
+        const canon = r.canonicalMemberNumber;
+        form.clearErrors("claimedMemberNumber");
+        form.setValue("claimedMemberNumber", canon, {
+          shouldValidate: true,
+        });
+        if (form.getValues("purchaserIsMember")) {
+          form.setValue("contactName", r.fullName.trim(), {
+            shouldValidate: true,
+          });
+          const w = r.whatsapp?.trim();
+          if (w) {
+            form.setValue("contactWhatsapp", w, { shouldValidate: true });
+          }
+        }
+
+        const eligible = r.isPengurus;
         setPartnerGate({
           status: "ready",
-          forTrim: trimmed,
-          found: r.found,
+          forTrim: canon,
+          found: true,
           isPengurus: r.isPengurus,
         });
-        if (!eligible) {
-          resetPartnerFields();
-        }
+        if (!eligible) resetPartnerFields();
       });
     }, 300);
 

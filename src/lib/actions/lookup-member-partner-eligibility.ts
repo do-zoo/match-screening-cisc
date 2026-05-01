@@ -4,11 +4,19 @@ import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master
 
 export type MemberPartnerLookupResult =
   | { kind: "empty" }
-  | { kind: "ok"; found: boolean; isPengurus: boolean };
+  | { kind: "ok"; found: false; isPengurus: false }
+  | {
+      kind: "ok";
+      found: true;
+      isPengurus: boolean;
+      /** Sesuai kolom `MasterMember.memberNumber` (penulisan kanonis). */
+      canonicalMemberNumber: string;
+      fullName: string;
+      whatsapp: string | null;
+    };
 
 /**
- * Public lookup: whether the given member number resolves to an active pengurus
- * (committee) who may add a partner ticket on the registration form.
+ * Public lookup: directory row for pricing/autofill plus whether pengurus may add partner ticket.
  */
 export async function lookupMemberPartnerEligibility(
   memberNumberRaw: string,
@@ -22,5 +30,12 @@ export async function lookupMemberPartnerEligibility(
   if (!row) {
     return { kind: "ok", found: false, isPengurus: false };
   }
-  return { kind: "ok", found: true, isPengurus: row.isPengurus };
+  return {
+    kind: "ok",
+    found: true,
+    isPengurus: row.isPengurus,
+    canonicalMemberNumber: row.memberNumber,
+    fullName: row.fullName,
+    whatsapp: row.whatsapp,
+  };
 }

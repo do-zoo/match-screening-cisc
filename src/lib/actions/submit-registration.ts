@@ -115,8 +115,14 @@ export async function submitRegistration(
     .map(String)
     .filter(Boolean);
 
+  const purchaserIsMember =
+    String(raw.purchaserIsMember ?? "")
+      .trim()
+      .toLowerCase() === "1";
+
   const payload = {
     slug: coerceForSchema(raw.slug),
+    purchaserIsMember,
     contactName: coerceForSchema(raw.contactName),
     contactWhatsapp: coerceForSchema(raw.contactWhatsapp),
     claimedMemberNumber: coerceForSchema(raw.claimedMemberNumber),
@@ -148,10 +154,27 @@ export async function submitRegistration(
   const memberCard = data.memberCardPhoto;
 
   const includePartner = data.qtyPartner === 1;
-  const primaryMemberNumber = data.claimedMemberNumber?.trim() || undefined;
+  const primaryMemberNumberInput =
+    data.claimedMemberNumber?.trim() || undefined;
   const partnerMemberNumber = includePartner
     ? data.partnerMemberNumber?.trim() || undefined
     : undefined;
+
+  const picMaster = primaryMemberNumberInput
+    ? await getActiveMasterMemberByMemberNumber(primaryMemberNumberInput)
+    : null;
+
+  if (primaryMemberNumberInput && !picMaster) {
+    return fieldError({
+      claimedMemberNumber:
+        "Nomor member tidak dikenali atau tidak aktif di direktori kami.",
+    });
+  }
+
+  /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs unique tiket. */
+  const primaryMemberNumber = picMaster
+    ? picMaster.memberNumber
+    : primaryMemberNumberInput;
 
   const candidates = [primaryMemberNumber, partnerMemberNumber].filter(
     Boolean
@@ -161,17 +184,6 @@ export async function submitRegistration(
   const dup = await findDuplicateMemberNumbers(event.id, candidates);
   if (dup.length > 0) {
     return rootError(duplicateMemberMessage(dup));
-  }
-
-  const picMaster = primaryMemberNumber
-    ? await getActiveMasterMemberByMemberNumber(primaryMemberNumber)
-    : null;
-
-  if (primaryMemberNumber && !picMaster) {
-    return fieldError({
-      claimedMemberNumber:
-        "Nomor member tidak dikenali atau tidak aktif di direktori kami.",
-    });
   }
 
   if (includePartner) {
@@ -207,12 +219,12 @@ export async function submitRegistration(
 
     menuParts.push({
       mode: "PRESELECT",
-      selectedMenuItems: items.map((i) => ({ price: i.price })),
+      selectedMenuItems: items.map((i) => ({ name: i.name, price: i.price })),
     });
     if (includePartner) {
       menuParts.push({
         mode: "PRESELECT",
-        selectedMenuItems: items.map((i) => ({ price: i.price })),
+        selectedMenuItems: items.map((i) => ({ name: i.name, price: i.price })),
       });
     }
   }

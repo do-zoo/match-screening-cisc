@@ -16,18 +16,10 @@ type Props = {
   pricingPreview: Pricing;
 };
 
-export function PaymentSection({
-  control,
-  event,
-  pricingPreview,
-}: Props) {
+export function PaymentSection({ control, event, pricingPreview }: Props) {
   return (
-    <section className="grid gap-4 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="font-medium">Pembayaran</div>
-      </div>
-
-      <div className="text-sm leading-6 text-[hsl(var(--muted-foreground))]">
+    <section aria-label="Pembayaran" className="grid gap-5 rounded-xl">
+      <div className="text-sm leading-relaxed text-foreground/85">
         Transfer ke:{" "}
         <span className="font-medium text-foreground">
           {event.bankAccount.bankName}
@@ -61,7 +53,7 @@ export function PaymentSection({
         )}
       />
 
-      <PriceBreakdown event={event} pricing={pricingPreview} />
+      <PriceBreakdown pricing={pricingPreview} />
     </section>
   );
 }

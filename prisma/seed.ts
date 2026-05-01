@@ -9,13 +9,23 @@ const prisma = new PrismaClient({
 });
 
 /** Semua kombinasi isActive × isPengurus × canBePIC (8 tipe). Suffix nomor = biner ABP (Active·Pengurus·PIC). */
-const MASTER_MEMBER_SEEDS = [
+type MasterMemberSeed = {
+  memberNumber: string;
+  fullName: string;
+  isActive: boolean;
+  isPengurus: boolean;
+  canBePIC: boolean;
+  whatsapp?: string | null;
+};
+
+const MASTER_MEMBER_SEEDS: MasterMemberSeed[] = [
   {
     memberNumber: "CISC-DEMO-PIC-1",
     fullName: "Demo PIC Pengurus",
     isActive: true,
     isPengurus: true,
     canBePIC: true,
+    whatsapp: "+6281380013800",
   },
   {
     memberNumber: "CISC-SEED-110",
@@ -66,10 +76,12 @@ const MASTER_MEMBER_SEEDS = [
     isPengurus: false,
     canBePIC: false,
   },
-] as const;
+];
 
 async function main() {
   for (const row of MASTER_MEMBER_SEEDS) {
+    const whatsapp =
+      row.whatsapp === undefined ? undefined : row.whatsapp ?? null;
     await prisma.masterMember.upsert({
       where: { memberNumber: row.memberNumber },
       update: {
@@ -77,6 +89,7 @@ async function main() {
         isActive: row.isActive,
         isPengurus: row.isPengurus,
         canBePIC: row.canBePIC,
+        ...(whatsapp !== undefined ? { whatsapp } : {}),
       },
       create: {
         memberNumber: row.memberNumber,
@@ -84,6 +97,7 @@ async function main() {
         isActive: row.isActive,
         isPengurus: row.isPengurus,
         canBePIC: row.canBePIC,
+        ...(whatsapp !== undefined ? { whatsapp } : {}),
       },
     });
   }

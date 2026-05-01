@@ -10,9 +10,36 @@ export type EventValidationContext = {
 
 const phone = z.string().trim().min(8, "WhatsApp wajib diisi");
 
+/** Message + guard shared with multi-step UI (subset `trigger` may not surface every superRefine path). */
+export const MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE =
+  "Foto kartu member wajib jika nomor member diisi." as const;
+
+export const MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE =
+  "Nomor member wajib diisi untuk pendaftar member CISC." as const;
+
 const isNonemptyFile = (val: unknown): val is File => {
   return typeof File !== "undefined" && val instanceof File && val.size > 0;
 };
+
+/** Same rule as `.superRefine` on memberCardPhoto (client step navigation). */
+export function isMemberCardPhotoMissingWhenRequired(values: {
+  claimedMemberNumber?: string | undefined;
+  memberCardPhoto?: unknown;
+}): boolean {
+  const claiming = Boolean(String(values.claimedMemberNumber ?? "").trim());
+  return claiming && !isNonemptyFile(values.memberCardPhoto);
+}
+
+/** Same rule as `.superRefine` on claimedMemberNumber when purchaserIsMember (client step navigation). */
+export function isMemberNumberMissingWhenMember(values: {
+  purchaserIsMember?: boolean;
+  claimedMemberNumber?: string | undefined;
+}): boolean {
+  return (
+    Boolean(values.purchaserIsMember) &&
+    !String(values.claimedMemberNumber ?? "").trim()
+  );
+}
 
 /** Non-empty uploaded file only (FormData omitted key → omit from payload on client). */
 const uploadFileRequired = z.custom<File>((val): val is File => isNonemptyFile(val), {
@@ -25,6 +52,8 @@ export function createSubmitRegistrationFormSchema(
   return z
     .object({
       slug: z.string().trim().min(1),
+      /** Disinkronkan dengan UI; server memaksa konsistensi dengan claimedMemberNumber. */
+      purchaserIsMember: z.boolean(),
       contactName: z.string().trim().min(2, "Nama wajib diisi"),
       contactWhatsapp: phone,
       claimedMemberNumber: z.string().trim().optional(),
@@ -117,15 +146,40 @@ export function createSubmitRegistrationFormSchema(
         }
       }
 
+      if (data.purchaserIsMember) {
+        if (!data.claimedMemberNumber?.trim()) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
+            path: ["claimedMemberNumber"],
+          });
+        }
+      } else if (data.claimedMemberNumber?.trim()) {
+        ctxZod.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Hapus nomor member atau ubah status menjadi member CISC.",
+          path: ["claimedMemberNumber"],
+        });
+      }
+
       const isClaimingMember = Boolean(data.claimedMemberNumber?.trim());
       if (isClaimingMember) {
         if (!isNonemptyFile(data.memberCardPhoto)) {
           ctxZod.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Foto kartu member wajib jika nomor member diisi.",
+            message: MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
             path: ["memberCardPhoto"],
           });
         }
+      }
+
+      if (!data.purchaserIsMember && isNonemptyFile(data.memberCardPhoto)) {
+        ctxZod.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Unggah foto kartu hanya untuk pendaftar member dengan nomor terisi.",
+          path: ["memberCardPhoto"],
+        });
       }
 
       const primaryMem = data.claimedMemberNumber?.trim();

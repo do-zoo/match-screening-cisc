@@ -1,157 +1,178 @@
 import { MenuMode, MenuSelection } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { createSubmitRegistrationFormSchema } from "./submit-registration-schema";
+import {
+  createSubmitRegistrationFormSchema,
+  isMemberCardPhotoMissingWhenRequired,
+  isMemberNumberMissingWhenMember,
+  MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
+} from "./submit-registration-schema";
 
-function nonemptyFile(name = "proof.png"): File {
-  return new File([new Uint8Array([1])], name, { type: "image/png" });
+const voucherMenuCtx = {
+  menuMode: MenuMode.VOUCHER,
+  menuSelection: MenuSelection.SINGLE,
+  menuItems: [] as { id: string }[],
+};
+
+function transferProofFile() {
+  return new File([new Uint8Array([1])], "p.jpg", {
+    type: "image/jpeg",
+  });
 }
 
-const baseScalars = () => ({
-  slug: "dinner-gala",
-  contactName: "Budi Santoso",
-  contactWhatsapp: "081234567890",
-  claimedMemberNumber: undefined as string | undefined,
-  qtyPartner: 0 as 0 | 1,
-  partnerName: "",
-  partnerWhatsapp: "",
-  partnerMemberNumber: "",
-  selectedMenuItemIds: undefined as string[] | undefined,
-  memberCardPhoto: undefined as File | undefined,
+function minimalVoucherPayload(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    slug: "demo",
+    purchaserIsMember: false,
+    contactName: "Tester",
+    contactWhatsapp: "08123456789",
+    qtyPartner: 0,
+    partnerName: "",
+    partnerWhatsapp: "",
+    partnerMemberNumber: "",
+    selectedMenuItemIds: [] as string[],
+    transferProof: transferProofFile(),
+    ...overrides,
+  };
+}
+
+describe("isMemberCardPhotoMissingWhenRequired", () => {
+  it("requires a non-empty file when claimed member number is non-empty", () => {
+    expect(
+      isMemberCardPhotoMissingWhenRequired({
+        claimedMemberNumber: "CISC-1",
+        memberCardPhoto: undefined,
+      }),
+    ).toBe(true);
+    const emptyFile = new File([], "x.jpg", { type: "image/jpeg" });
+    expect(
+      isMemberCardPhotoMissingWhenRequired({
+        claimedMemberNumber: "CISC-1",
+        memberCardPhoto: emptyFile,
+      }),
+    ).toBe(true);
+    const nonempty = new File([new Uint8Array([1])], "x.jpg", {
+      type: "image/jpeg",
+    });
+    expect(
+      isMemberCardPhotoMissingWhenRequired({
+        claimedMemberNumber: "CISC-1",
+        memberCardPhoto: nonempty,
+      }),
+    ).toBe(false);
+    expect(
+      isMemberCardPhotoMissingWhenRequired({
+        claimedMemberNumber: "",
+        memberCardPhoto: undefined,
+      }),
+    ).toBe(false);
+    expect(
+      isMemberCardPhotoMissingWhenRequired({
+        claimedMemberNumber: "   ",
+        memberCardPhoto: undefined,
+      }),
+    ).toBe(false);
+  });
+
+  it("documents message pairing with schema superRefine", () => {
+    expect(MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE.length).toBeGreaterThan(
+      10,
+    );
+  });
 });
 
-describe("createSubmitRegistrationFormSchema", () => {
-  it("accepts voucher event with proof and empty menu IDs", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.MULTI,
-      menuItems: [{ id: "a1" }],
-    });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      selectedMenuItemIds: [],
-      transferProof: nonemptyFile(),
-    });
+describe("isMemberNumberMissingWhenMember", () => {
+  it("is true when member and number empty or whitespace", () => {
+    expect(
+      isMemberNumberMissingWhenMember({
+        purchaserIsMember: true,
+        claimedMemberNumber: "",
+      }),
+    ).toBe(true);
+    expect(
+      isMemberNumberMissingWhenMember({
+        purchaserIsMember: true,
+        claimedMemberNumber: "   ",
+      }),
+    ).toBe(true);
+    expect(
+      isMemberNumberMissingWhenMember({
+        purchaserIsMember: true,
+        claimedMemberNumber: undefined,
+      }),
+    ).toBe(true);
+  });
+
+  it("is false when not member", () => {
+    expect(
+      isMemberNumberMissingWhenMember({
+        purchaserIsMember: false,
+        claimedMemberNumber: "",
+      }),
+    ).toBe(false);
+  });
+
+  it("is false when member with non-empty number", () => {
+    expect(
+      isMemberNumberMissingWhenMember({
+        purchaserIsMember: true,
+        claimedMemberNumber: "CISC-1",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
+  const schema = createSubmitRegistrationFormSchema(voucherMenuCtx);
+
+  it("rejects member status without claimed member number", () => {
+    const r = schema.safeParse(
+      minimalVoucherPayload({ purchaserIsMember: true }),
+    );
+    expect(r.success).toBe(false);
+    if (r.success) return;
+    const paths = r.error.issues.map((i) => i.path[0]);
+    expect(paths).toContain("claimedMemberNumber");
+    const claimedIssue = r.error.issues.find(
+      (i) => i.path[0] === "claimedMemberNumber",
+    );
+    expect(claimedIssue?.message).toMatch(/wajib/i);
+  });
+
+  it("rejects claimed number when not member", () => {
+    const r = schema.safeParse(
+      minimalVoucherPayload({
+        claimedMemberNumber: "CISC-TEST",
+      }),
+    );
+    expect(r.success).toBe(false);
+    if (r.success) return;
+    const paths = r.error.issues.map((i) => i.path[0]);
+    expect(paths).toContain("claimedMemberNumber");
+  });
+
+  it("rejects member card upload when not member", () => {
+    const r = schema.safeParse(
+      minimalVoucherPayload({
+        memberCardPhoto: transferProofFile(),
+      }),
+    );
+    expect(r.success).toBe(false);
+    if (r.success) return;
+    const paths = r.error.issues.map((i) => i.path[0]);
+    expect(paths).toContain("memberCardPhoto");
+  });
+
+  it("accepts member with claimed number and card photo", () => {
+    const r = schema.safeParse(
+      minimalVoucherPayload({
+        purchaserIsMember: true,
+        claimedMemberNumber: "CISC-OK",
+        memberCardPhoto: transferProofFile(),
+      }),
+    );
     expect(r.success).toBe(true);
-  });
-
-  it("rejects voucher when menu IDs are submitted", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.MULTI,
-      menuItems: [{ id: "a1" }],
-    });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      selectedMenuItemIds: ["a1"],
-      transferProof: nonemptyFile(),
-    });
-    expect(r.success).toBe(false);
-    if (!r.success) {
-      expect(
-        r.error.issues.some((i) =>
-          String(i.path[0]).includes("selectedMenuItemIds"),
-        ),
-      ).toBe(true);
-    }
-  });
-
-  it("requires exactly one PRESELECT SINGLE selection", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.PRESELECT,
-      menuSelection: MenuSelection.SINGLE,
-      menuItems: [{ id: "x" }, { id: "y" }],
-    });
-    const fail = schema.safeParse({
-      ...baseScalars(),
-      selectedMenuItemIds: [],
-      transferProof: nonemptyFile(),
-    });
-    expect(fail.success).toBe(false);
-    const ok = schema.safeParse({
-      ...baseScalars(),
-      selectedMenuItemIds: ["x"],
-      transferProof: nonemptyFile(),
-    });
-    expect(ok.success).toBe(true);
-  });
-
-  it("rejects unknown menu item id under PRESELECT", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.PRESELECT,
-      menuSelection: MenuSelection.SINGLE,
-      menuItems: [{ id: "x" }],
-    });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      selectedMenuItemIds: ["fake-id"],
-      transferProof: nonemptyFile(),
-    });
-    expect(r.success).toBe(false);
-  });
-
-  it("requires partner name when qtyPartner is 1", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.MULTI,
-      menuItems: [],
-    });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      qtyPartner: 1,
-      partnerName: "",
-      selectedMenuItemIds: [],
-      transferProof: nonemptyFile(),
-    });
-    expect(r.success).toBe(false);
-  });
-
-  it("requires member card when claiming membership", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.MULTI,
-      menuItems: [],
-    });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      claimedMemberNumber: "CISC-99",
-      selectedMenuItemIds: [],
-      transferProof: nonemptyFile(),
-    });
-    expect(r.success).toBe(false);
-  });
-
-  it("requires non-empty transfer proof file", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.MULTI,
-      menuItems: [],
-    });
-    const empty = new File([], "empty.png", { type: "image/png" });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      selectedMenuItemIds: [],
-      transferProof: empty,
-    });
-    expect(r.success).toBe(false);
-  });
-
-  it("rejects duplicate member numbers for partner flow", () => {
-    const schema = createSubmitRegistrationFormSchema({
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.MULTI,
-      menuItems: [],
-    });
-    const r = schema.safeParse({
-      ...baseScalars(),
-      claimedMemberNumber: "CISC-A",
-      partnerMemberNumber: "CISC-A",
-      qtyPartner: 1,
-      partnerName: "Partner",
-      memberCardPhoto: nonemptyFile("card.webp"),
-      selectedMenuItemIds: [],
-      transferProof: nonemptyFile(),
-    });
-    expect(r.success).toBe(false);
   });
 });

@@ -29,7 +29,7 @@ export function MenuSelectionSection({ control, event }: Props) {
   if (event.menuMode !== "PRESELECT") return null;
 
   return (
-    <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+    <section aria-label="Pilihan menu" className="rounded-xl">
       <Controller
         control={control}
         name="selectedMenuItemIds"

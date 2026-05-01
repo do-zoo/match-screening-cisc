@@ -91,6 +91,7 @@ model MasterMember {
   id           String  @id @default(cuid())
   memberNumber String  @unique
   fullName     String
+  whatsapp     String?
   isActive     Boolean @default(true)
 
   isPengurus Boolean @default(false)

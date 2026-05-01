@@ -49,14 +49,20 @@ export function usePricingPreview(
       >[0]["perTicketMenu"] = [
         {
           mode: "PRESELECT",
-          selectedMenuItems: items.map((m) => ({ price: m.price })),
+          selectedMenuItems: items.map((m) => ({
+            name: m.name,
+            price: m.price,
+          })),
         },
       ];
 
       if (includePartner) {
         menuParts.push({
           mode: "PRESELECT",
-          selectedMenuItems: items.map((m) => ({ price: m.price })),
+          selectedMenuItems: items.map((m) => ({
+            name: m.name,
+            price: m.price,
+          })),
         });
       }
 

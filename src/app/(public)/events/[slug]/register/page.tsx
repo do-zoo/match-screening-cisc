@@ -48,9 +48,9 @@ export default async function EventRegistrationPage({
           <h1 className="font-semibold text-xl tracking-tight md:text-2xl">
             Pendaftaran: {event.title}
           </h1>
-          <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Lengkapi formulir di bawah. Pastikan bukti transfer sudah siap
-            sebelum mengirim.
+          <p className="text-sm leading-relaxed text-foreground/80">
+            Beberapa langkah singkat — ringkasan harga akan muncul sebelum pembayaran.
+            Siapkan bukti transfer untuk langkah terakhir.
           </p>
         </header>
         <RegistrationFormClientOnly event={event} />
