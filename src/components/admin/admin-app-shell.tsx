@@ -120,20 +120,24 @@ export function AdminAppShell({
     >
       <aside
         aria-label="Menu admin utama"
-        className="sticky top-0 z-40 hidden w-[min(238px,100%)] shrink-0 flex-col justify-start border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground shadow-[inset_-1px_0_0_0_var(--sidebar-border)] lg:flex lg:min-h-[100dvh] lg:max-h-[100dvh] lg:overflow-y-auto lg:overscroll-contain lg:self-start"
+        className="sticky top-0 z-40 hidden w-[min(238px,100%)] shrink-0 border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground shadow-[inset_-1px_0_0_0_var(--sidebar-border)] lg:flex lg:max-h-[100dvh] lg:min-h-[100dvh] lg:flex-col lg:overflow-hidden lg:self-start"
       >
-        <div className="flex min-h-0 w-full flex-1 flex-col gap-7 px-3 py-5">
-          <div className="space-y-4">
+        <div className="flex min-h-0 w-full flex-1 flex-col px-3 pt-5 pb-4">
+          <div className="shrink-0">
             <AdminBrandMark />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-6">
+            <div className="flex flex-col gap-2">
+              <AdminNavLinks navFlags={navFlags} className="shrink-0" />
+              <AdminEventSidebarBlock />
+            </div>
+          </div>
+          <div className="shrink-0 border-t border-sidebar-border/60 pt-4">
             <AdminAccountMenu
               userEmail={userEmail}
               displayName={displayName}
               variant="sidebar"
             />
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <AdminNavLinks navFlags={navFlags} className="shrink-0" />
-            <AdminEventSidebarBlock />
           </div>
         </div>
       </aside>

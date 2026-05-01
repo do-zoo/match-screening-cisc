@@ -21,7 +21,7 @@ type AdminAccountMenuProps = {
   userEmail: string | null;
   displayName?: string | null;
   triggerClassName?: string;
-  /** Dense header (mobile) vs padded card (desktop sidebar). */
+  /** Dense header (mobile) vs pill at bottom (desktop sidebar). */
   variant?: "default" | "sidebar";
 };
 
@@ -49,9 +49,9 @@ export function AdminAccountMenu({
             variant="outline"
             size="sm"
             className={cn(
-              "min-h-0 w-full shrink justify-between gap-2 shadow-none",
+              "min-h-0 w-full shrink justify-between gap-3 shadow-none",
               variant === "sidebar"
-                ? "rounded-xl border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-2.5 hover:bg-sidebar-accent/70"
+                ? "!h-auto !min-h-12 !whitespace-normal rounded-full border-sidebar-border/80 bg-sidebar-accent/35 px-3.5 py-2 text-left hover:bg-sidebar-accent/55"
                 : "border-transparent bg-transparent px-1 hover:bg-transparent",
             )}
           />
@@ -84,7 +84,12 @@ export function AdminAccountMenu({
           aria-hidden
         />
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-3" align="start" side="bottom">
+      <PopoverContent
+        className="w-72 p-3"
+        align="start"
+        side={variant === "sidebar" ? "top" : "bottom"}
+        sideOffset={variant === "sidebar" ? 8 : 4}
+      >
         <PopoverHeader className="px-1">
           <PopoverTitle className="truncate text-base">{primary}</PopoverTitle>
           {email ? (
