@@ -76,7 +76,7 @@ Key entities:
 - **`Registration`** — one per submission; prices are snapshotted at submit time (`*Applied` fields); status flows: `submitted → pending_review → approved / rejected / payment_issue`
 - **`Ticket`** — one `primary` + optional `partner` per registration; unique constraint on `(eventId, memberNumber)` prevents double-booking
 - **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage
-- **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Verifier` | `Viewer`) and optionally to a `MasterMember`
+- **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`
 
 Better Auth manages its own tables (users, sessions) directly via `pg.Pool` — they are **not** in `prisma/schema.prisma`.
 

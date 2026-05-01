@@ -15,6 +15,10 @@ describe("permissions: canVerifyEvent", () => {
     expect(canVerifyEvent({ ...base, role: "Verifier" }, "e1")).toBe(true);
   });
 
+  test("Admin can verify any event", () => {
+    expect(canVerifyEvent({ ...base, role: "Admin" }, "e1")).toBe(true);
+  });
+
   test("Viewer cannot verify without PIC helper grant", () => {
     expect(canVerifyEvent({ ...base, role: "Viewer" }, "e1")).toBe(false);
   });

@@ -1,4 +1,7 @@
-import type { AdminRole } from "@/lib/permissions/roles";
+import {
+  type AdminRole,
+  hasGlobalVerifierAccess,
+} from "@/lib/permissions/roles";
 
 export type AdminContext = {
   role: AdminRole;
@@ -6,7 +9,6 @@ export type AdminContext = {
 };
 
 export function canVerifyEvent(ctx: AdminContext, eventId: string): boolean {
-  if (ctx.role === "Owner") return true;
-  if (ctx.role === "Verifier") return true;
+  if (hasGlobalVerifierAccess(ctx.role)) return true;
   return ctx.helperEventIds.includes(eventId);
 }

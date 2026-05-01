@@ -21,7 +21,7 @@ Spek cetak biru **[Nobar 2026-04-29](2026-04-29-nobar-cisc-tangsel-design.md)** 
 - Label dan rute menu global v1 serta breadcrumb pola umum.
 - Keputusan “**tanpa item Laporan di sidebar global**” untuk v1; laporan tetap per `eventId` lewat kartu Beranda atau sub-nav acara.
 - Sub-nav konteks **Inbox | Laporan**: **desktop** blok di sidebar, **mobile** kontrol horizontal di bawah breadcrumb (satu kesatuan pola di semua jalur dalam acara yang relevan).
-- Dokumentasi **`AdminRole`** (enum basis data): **Owner**, **Verifier**, **Viewer**, plus **elevator PIC Helper** bagi Viewer per event.
+- Dokumentasi **`AdminRole`** (enum basis data): **Owner**, **Admin**, **Verifier**, **Viewer**, plus **elevator PIC Helper** bagi Viewer per event.
 
 ### 2.2 Out of scope
 
@@ -44,6 +44,7 @@ Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma)
 | Nilai enum | Nama UI (opsional, konsisten Indo) | Inti akses navigasi / operasi |
 |------------|-------------------------------------|--------------------------------|
 | **Owner** | Owner | Konfigurasi komite (**Pengaturan**), master **Anggota**, serta semua operasional acara bagi event yang boleh diakses. |
+| **Admin** | Admin | Sama hak **verifikasi event global** dengan **Verifier** (lihat **`hasGlobalVerifierAccess`**): inbox/laporan/aksi mutasi registrasi untuk semua event yang boleh diakses PIC staf—**tanpa** **Pengaturan** atau **Anggota** mengikuti matriks v1 di bawah. |
 | **Verifier** | Verifier | Beranda, kelola jalur **Acara**/inbox/laporan per event untuk event yang boleh diakses; **tidak** menu **Pengaturan**. |
 | **Viewer** | Viewer | Lihat dashboard dan laporan/ekspor sesuai izin tanpa tombol verifikasi kecuali **elevator** PIC Helper untuk event tertentu. |
 
@@ -53,12 +54,12 @@ Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma)
 
 ### 4.1 Matriks visibilitas item sidebar global v1
 
-| Item menu | Rute | Owner | Verifier | Viewer\* |
-|-----------|------|:-----:|:--------:|:--------:|
-| **Beranda** | `/admin` | ✓ | ✓ | ✓ |
-| **Acara** | `/admin/events` (indeks kelola)\*\* | ✓ | ✓ | ✓ |
-| **Anggota** | `/admin/anggota` | ✓ | — | — |
-| **Pengaturan** | `/admin/pengaturan` | ✓ | — | — |
+| Item menu | Rute | Owner | Admin | Verifier | Viewer\* |
+|-----------|------|:-----:|:-----:|:--------:|:--------:|
+| **Beranda** | `/admin` | ✓ | ✓ | ✓ | ✓ |
+| **Acara** | `/admin/events` (indeks kelola)\*\* | ✓ | ✓ | ✓ | ✓ |
+| **Anggota** | `/admin/anggota` | ✓ | — | — | — |
+| **Pengaturan** | `/admin/pengaturan` | ✓ | — | — | — |
 
 \* **Viewer**: hanya melihat data acara yang lolos **`canVerifyEvent`** (biasanya sebagai helper tugas tertentu; tanpa pohon kosong mengherankan ketika tidak ada tugas helper).
 
@@ -72,9 +73,9 @@ Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma)
 - **Jalur global** (mis. **Acara**): `Beranda › Acara` (dan turunan jelas bila subtree edit).
 - **Jalur dalam acara**: `Beranda › {judul singkat event} › Inbox | Laporan` (judul tidak perlu nama file panjang slug).
 
-### 4.3 Menambah nilai **`AdminRole`** baru di masa depan
+### 4.3 Menambah nilai **`AdminRole`** baru di masa depan (selain **Admin**)
 
-Menambahkan role **`AdminRole` ke‑4 atau lebih memerlukan: migrasi Prisma, pembaruan tipe gabungan **`src/lib/permissions/roles.ts`**, audit **`guards`** / **`guardOwner`** / loaders admin, **`bootstrap-admin`**, uji hak, serta keputusan matriks menu untuk nilai baru. **Tidak** dilakukan dalam spek IA v1 ini.
+Nilai **Admin** sudah termasuk di enum; role **berikutnya** (kelima, dst.) tetap memerlukan: migrasi Prisma, pembaruan **`src/lib/permissions/roles.ts`** (mis. **`hasGlobalVerifierAccess`** bila perlu), audit **`guards`** / **`guardOwner`** / loaders admin, **`bootstrap-admin`**, uji hak, serta pembaruan matriks menu.
 
 ## 5) Relation to shell dashboard
 
@@ -82,12 +83,12 @@ Halaman **`/admin`** (Beranda kartu event, tab status, aggregat **menunggu tinja
 
 ## 6) Success criteria
 
-- Satu peta mental jelas: **Beranda** = operasi; **Acara** = kelola direktori acara jangka panjang; **Anggota** / **Pengaturan** = Owner.
+- Satu peta mental jelas: **Beranda** = operasi; **Acara** = kelola direktori acara jangka panjang; **Anggota** / **Pengaturan** = Owner saja (**Admin**/Verifier seperti matriks).
 - Tidak ada entri sidebar **Laporan** global di v1; PIC tetap bisa deep link **`/admin/events/[eventId]/report`** dari kartu atau sub-nav.
 - Sub-nav konteks desktop vs mobile konsisten antara **Inbox** dan **Laporan** tanpa duplikasi membingungkan (satu blok sidebar **atau** satu bar horizontal per breakpoint).
 
 ## 7) References
 
-- `prisma/schema.prisma` — `enum AdminRole { Owner Verifier Viewer }`.
+- `prisma/schema.prisma` — `enum AdminRole { Owner Admin Verifier Viewer }`.
 - **`src/lib/permissions/guards.ts`** — **`canVerifyEvent`**.
-- **`src/lib/permissions/roles.ts`** — tipe TypeScript **`AdminRole`**.
+- **`src/lib/permissions/roles.ts`** — tipe **`AdminRole`**, **`hasGlobalVerifierAccess`** (Owner \| Admin \| Verifier untuk verifikasi lintas semua event).
