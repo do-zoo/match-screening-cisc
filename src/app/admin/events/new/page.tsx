@@ -109,7 +109,7 @@ export default async function AdminNewEventPage() {
     ],
   };
 
-  if (!firstPicId) {
+  if (!firstPicId || !firstBankId) {
     return (
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
         <header className="flex flex-col gap-2">
@@ -122,10 +122,11 @@ export default async function AdminNewEventPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
         </header>
         <Alert>
-          <AlertTitle>Belum ada PIC yang memenuhi syarat</AlertTitle>
+          <AlertTitle>Belum siap membuat acara</AlertTitle>
           <AlertDescription>
-            Tambahkan anggota dengan flag <code>canBePIC</code> aktif di data master sebelum membuat
-            acara.
+            Perlu minimal satu anggota dengan <code>canBePIC</code> aktif <strong>dan</strong> setidaknya
+            satu rekening PIC aktif untuk mereka. Lengkapi data di seed / master anggota atau pengaturan
+            komite terlebih dahulu.
           </AlertDescription>
         </Alert>
       </main>
