@@ -14,11 +14,13 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/heif",
 ]);
 
-/** Upload or replace hero cover image for Event; deletes previous Blob URL best-effort. */
+/** Upload or replace hero cover image for Event; deletes previous Blob URL best-effort (unless opted out). */
 export async function uploadEventHeroCover(opts: {
   eventId: string;
   file: File;
   previousBlobUrl?: string | null;
+  /** When `false`, skip deleting `previousBlobUrl` so the caller can delete after DB commit. Default `true`. */
+  deletePreviousBlob?: boolean;
 }): Promise<{ url: string; pathname: string }> {
   const { file } = opts;
   if (!ALLOWED_IMAGE_MIME_TYPES.has(file.type)) {
@@ -43,7 +45,10 @@ export async function uploadEventHeroCover(opts: {
     { maxAttempts: 3, delayMs: 250 },
   );
 
-  if (opts.previousBlobUrl?.startsWith("http")) {
+  if (
+    opts.deletePreviousBlob !== false &&
+    opts.previousBlobUrl?.startsWith("http")
+  ) {
     try {
       await del(opts.previousBlobUrl);
     } catch {

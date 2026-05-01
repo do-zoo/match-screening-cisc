@@ -35,19 +35,19 @@ describe("deriveGlobalSidebarNav", () => {
     });
   });
 
-  it("Verifier: inbox ops but no anggota/pengaturan", () => {
+  it("Verifier: beranda only for global CRUD sidebar (inbox via dashboard cards)", () => {
     expect(deriveGlobalSidebarNav(ctx("Verifier"))).toEqual({
       beranda: true,
-      acara: true,
+      acara: false,
       anggota: false,
       pengaturan: false,
     });
   });
 
-  it("Viewer: beranda + acara only by matrix", () => {
+  it("Viewer: same global CRUD parity as Verifier — no operational Acara list link", () => {
     expect(deriveGlobalSidebarNav(ctx("Viewer"))).toEqual({
       beranda: true,
-      acara: true,
+      acara: false,
       anggota: false,
       pengaturan: false,
     });
