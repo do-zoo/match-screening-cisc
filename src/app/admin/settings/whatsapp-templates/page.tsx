@@ -1,11 +1,39 @@
-import { CommitteeSettingsPlaceholder } from "@/components/admin/committee-settings-placeholder";
+import Link from "next/link";
 
-export default function WhatsappTemplatesSettingsPage() {
+import { ClubWaTemplatesPanel } from "@/components/admin/club-wa-templates-panel";
+import { prisma } from "@/lib/db/prisma";
+import type { WaTemplateKey } from "@prisma/client";
+
+export default async function WhatsappTemplatesSettingsPage() {
+  const rows = await prisma.clubWaTemplate.findMany({
+    select: { key: true, body: true },
+  });
+
+  const initialFromDb: Partial<Record<WaTemplateKey, string>> = {};
+  for (const row of rows) {
+    initialFromDb[row.key as WaTemplateKey] = row.body;
+  }
+
   return (
-    <CommitteeSettingsPlaceholder
-      title="Template WhatsApp"
-      description="Menyunting template pesan persetujuan, penolakan, masalah pembayaran, dan alur registrasi."
-      phaseNote="Rencana implementasi Phase B (lihat dokumen spek Pengaturan komite §7)."
-    />
+    <div className="space-y-6">
+      <div>
+        <p className="text-muted-foreground text-sm">
+          <Link href="/admin/settings" className="underline underline-offset-4">
+            Pengaturan
+          </Link>
+          {" / "}
+          <span>Template WhatsApp</span>
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Template pesan WhatsApp
+        </h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">
+          Mengatur teks pesan pra‑isi untuk tautan dari halaman detail pendaftaran admin.
+          Bila Anda belum menyimpan suatu templat atau terjadi kesalahan, aplikasi akan
+          memakai perilaku bawaan yang sebelumnya dihardcode dalam kode.
+        </p>
+      </div>
+      <ClubWaTemplatesPanel initialFromDb={initialFromDb} />
+    </div>
   );
 }

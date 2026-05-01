@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
 import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
 import { loadTicketContextVm } from "@/lib/registrations/load-admin-ticket-context";
+import { loadClubWaTemplateBodies } from "@/lib/wa-templates/load-club-wa-templates";
 
 export default async function AdminEventInboxDetailPage({
   params,
@@ -110,6 +111,8 @@ export default async function AdminEventInboxDetailPage({
     };
   }
 
+  const waBodies = await loadClubWaTemplateBodies();
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -131,6 +134,7 @@ export default async function AdminEventInboxDetailPage({
         eventId={eventId}
         registration={registration}
         ticketContext={ticketContext}
+        waBodies={waBodies}
       />
     </main>
   );

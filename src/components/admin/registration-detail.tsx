@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { InvoiceAdjustmentStatus } from "@prisma/client";
+import {
+  InvoiceAdjustmentStatus,
+  WaTemplateKey,
+} from "@prisma/client";
 import type {
   AttendanceStatus,
   InvoiceAdjustmentType,
@@ -32,15 +35,16 @@ import {
 } from "@/components/ui/card";
 import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
 import { waMeLink } from "@/lib/wa-templates/encode";
+import type { ClubWaBodies } from "@/lib/wa-templates/render-wa-from-db";
 import {
-  templateReceipt,
-  templateApproved,
-  templateRejected,
-  templatePaymentIssue,
-  templateCancelled,
-  templateRefunded,
-  templateUnderpaymentInvoice,
-} from "@/lib/wa-templates/messages";
+  renderApprovedMessage,
+  renderCancelledMessage,
+  renderPaymentIssueMessage,
+  renderReceiptMessage,
+  renderRefundedMessage,
+  renderRejectedMessage,
+  renderUnderpaymentInvoiceMessage,
+} from "@/lib/wa-templates/render-wa-from-db";
 
 export function formatCurrencyIdr(n: number): string {
   const formatted = new Intl.NumberFormat("id-ID", {
@@ -118,6 +122,7 @@ type Props = {
   eventId: string;
   registration: DetailRegistration;
   ticketContext: TicketContextVm;
+  waBodies: ClubWaBodies;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -129,14 +134,16 @@ export function RegistrationDetail({
   eventId,
   registration,
   ticketContext,
+  waBodies,
 }: Props) {
+  const wb = waBodies;
   const waPhone = registration.contactWhatsapp;
   const waLinks = [
     {
       label: "WhatsApp · penerimaan pendaftaran",
       href: waMeLink(
         waPhone,
-        templateReceipt({
+        renderReceiptMessage(wb[WaTemplateKey.receipt] ?? null, {
           contactName: registration.contactName,
           eventTitle: registration.event.title,
           registrationId: registration.id,
@@ -149,7 +156,8 @@ export function RegistrationDetail({
       label: "WhatsApp · disetujui",
       href: waMeLink(
         waPhone,
-        templateApproved(
+        renderApprovedMessage(
+          wb[WaTemplateKey.approved] ?? null,
           registration.event.title,
           registration.event.venueName,
           registration.event.startAt.toISOString(),
@@ -160,7 +168,13 @@ export function RegistrationDetail({
     {
       label: "WhatsApp · ditolak",
       href: registration.rejectionReason
-        ? waMeLink(waPhone, templateRejected(registration.rejectionReason))
+        ? waMeLink(
+            waPhone,
+            renderRejectedMessage(
+              wb[WaTemplateKey.rejected] ?? null,
+              registration.rejectionReason,
+            ),
+          )
         : "#",
       show:
         registration.status === "rejected" &&
@@ -169,7 +183,13 @@ export function RegistrationDetail({
     {
       label: "WhatsApp · masalah pembayaran",
       href: registration.paymentIssueReason
-        ? waMeLink(waPhone, templatePaymentIssue(registration.paymentIssueReason))
+        ? waMeLink(
+            waPhone,
+            renderPaymentIssueMessage(
+              wb[WaTemplateKey.payment_issue] ?? null,
+              registration.paymentIssueReason,
+            ),
+          )
         : "#",
       show:
         registration.status === "payment_issue" &&
@@ -177,12 +197,26 @@ export function RegistrationDetail({
     },
     {
       label: "WhatsApp · dibatalkan",
-      href: waMeLink(waPhone, templateCancelled(registration.contactName, registration.event.title)),
+      href: waMeLink(
+        waPhone,
+        renderCancelledMessage(
+          wb[WaTemplateKey.cancelled] ?? null,
+          registration.contactName,
+          registration.event.title,
+        ),
+      ),
       show: registration.status === "cancelled",
     },
     {
       label: "WhatsApp · refunded",
-      href: waMeLink(waPhone, templateRefunded(registration.contactName, registration.event.title)),
+      href: waMeLink(
+        waPhone,
+        renderRefundedMessage(
+          wb[WaTemplateKey.refunded] ?? null,
+          registration.contactName,
+          registration.event.title,
+        ),
+      ),
       show: registration.status === "refunded",
     },
   ].filter((l) => l.show);
@@ -263,24 +297,34 @@ export function RegistrationDetail({
                 {link.label}
               </a>
             ))}
-            {registration.adjustments.filter(a => a.status === InvoiceAdjustmentStatus.unpaid).map(adj => (
-              <a
-                key={adj.id}
-                href={waMeLink(waPhone, templateUnderpaymentInvoice({
-                  contactName: registration.contactName,
-                  eventTitle: registration.event.title,
-                  adjustmentAmountIdr: adj.amount,
-                  bankName: registration.event.bankAccount?.bankName ?? "",
-                  accountNumber: registration.event.bankAccount?.accountNumber ?? "",
-                  accountName: registration.event.bankAccount?.accountName ?? "",
-                }))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent/60 transition-colors"
-              >
-                WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
-              </a>
-            ))}
+            {registration.adjustments
+              .filter((a) => a.status === InvoiceAdjustmentStatus.unpaid)
+              .map((adj) => (
+                <a
+                  key={adj.id}
+                  href={waMeLink(
+                    waPhone,
+                    renderUnderpaymentInvoiceMessage(
+                      wb[WaTemplateKey.underpayment_invoice] ?? null,
+                      {
+                        contactName: registration.contactName,
+                        eventTitle: registration.event.title,
+                        adjustmentAmountIdr: adj.amount,
+                        bankName: registration.event.bankAccount?.bankName ?? "",
+                        accountNumber:
+                          registration.event.bankAccount?.accountNumber ?? "",
+                        accountName:
+                          registration.event.bankAccount?.accountName ?? "",
+                      },
+                    ),
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/60"
+                >
+                  WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
+                </a>
+              ))}
           </div>
         </CardContent>
       </Card>

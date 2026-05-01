@@ -32,12 +32,12 @@ export default function AdminSettingsHubPage() {
         <SettingsCard
           href="/admin/settings/whatsapp-templates"
           title="Template WhatsApp"
-          description="Menyusul — placeholder roadmap Phase B."
+          description="Isi pesan untuk tautan wa.me di admin; placeholder {snake_case}; fallback ke bawaan kode."
         />
         <SettingsCard
           href="/admin/settings/branding"
           title="Branding"
-          description="Menyusul — logo dan teks publik Phase B."
+          description="Judul navigasi, logo situs (WebP), dan teks footer untuk halaman publik."
         />
         <SettingsCard
           href="/admin/settings/notifications"
