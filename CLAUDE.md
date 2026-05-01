@@ -103,7 +103,24 @@ Registration status flows: `submitted → pending_review → approved / rejected
 
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing: `InboxTable`, `RegistrationDetail`, `RegistrationStatusBadge`
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` composes the action panels: `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `VoucherRedemptionPanel`
+
+**`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
+```tsx
+<DialogTrigger disabled={isPending} render={<Button variant="outline" />}>
+  Open
+</DialogTrigger>
+```
+
+### Server action conventions
+
+Every admin server action must:
+
+1. Start with `"use server"`
+2. Call `guardEvent(eventId)` or `guardOwner()` / `guardOwnerOrAdmin()` from `lib/actions/guard.ts` — never roll your own auth check
+3. Return `ActionResult<T>` from `lib/forms/action-result.ts`
+4. Use Prisma enum values (e.g. `RegistrationStatus.approved`), not raw strings
+5. Write error messages in Indonesian (consistent with the rest of the codebase)
 
 ### Forms pattern
 
