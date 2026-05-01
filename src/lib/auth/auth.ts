@@ -2,8 +2,8 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
-import { twoFactor } from "better-auth/plugins";
 
+import { buildTwoFactorPlugin } from "@/lib/auth/build-two-factor-plugin-options";
 import { prisma } from "../db/prisma";
 
 export const auth = betterAuth({
@@ -11,9 +11,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   plugins: [
     nextCookies(),
-    twoFactor({
-      issuer: "match-screening",
-    }),
+    buildTwoFactorPlugin(),
     magicLink({
       // For foundations: keep email sending as a no-op.
       // In later plans, replace with Resend and real templates.
