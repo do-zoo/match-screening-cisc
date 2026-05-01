@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { AdminAppShell } from "@/components/admin/admin-app-shell";
+import { getAdminContext } from "@/lib/auth/admin-context";
+import { deriveGlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 import { getAdminSession } from "@/lib/auth/session";
 
 export default async function AdminLayout({
@@ -11,8 +13,11 @@ export default async function AdminLayout({
     redirect("/admin/sign-in");
   }
 
+  const adminCtx = await getAdminContext(session.user.id);
+  const navFlags = deriveGlobalSidebarNav(adminCtx);
+
   return (
-    <AdminAppShell userEmail={session.user.email ?? null}>
+    <AdminAppShell navFlags={navFlags} userEmail={session.user.email ?? null}>
       {children}
     </AdminAppShell>
   );

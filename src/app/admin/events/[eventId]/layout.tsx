@@ -1,4 +1,5 @@
 import { AdminEventBreadcrumbs } from "@/components/admin/admin-event-breadcrumbs";
+import { AdminEventSubnav } from "@/components/admin/admin-event-subnav";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
@@ -30,6 +31,7 @@ export default async function AdminEventBranchLayout({
       {breadcrumbTitle ? (
         <div className="mx-auto w-full max-w-6xl shrink-0 px-6 pb-3 pt-6 lg:pt-10">
           <AdminEventBreadcrumbs eventId={eventId} title={breadcrumbTitle} />
+          <AdminEventSubnav eventId={eventId} />
         </div>
       ) : null}
       {children}

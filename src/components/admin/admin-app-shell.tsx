@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { createAuthClient } from "better-auth/react";
 import { MenuIcon } from "lucide-react";
 
+import { AdminEventSidebarBlock } from "@/components/admin/admin-event-sidebar-block";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,18 +15,34 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import type { GlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 import { cn } from "@/lib/utils";
 
 const authClient = createAuthClient();
 
+function navLinkClass(active: boolean) {
+  return cn(
+    "rounded-md px-3 py-2 text-sm font-medium hover:bg-muted",
+    active && "bg-muted text-foreground",
+  );
+}
+
 function AdminNavLinks({
+  navFlags,
   className,
   onNavigate,
 }: {
+  navFlags: GlobalSidebarNav;
   className?: string;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const acaraExact = pathname === "/admin/events";
+  const anggotaActive =
+    pathname === "/admin/anggota" || pathname.startsWith("/admin/anggota/");
+  const pengaturanActive =
+    pathname === "/admin/pengaturan" ||
+    pathname.startsWith("/admin/pengaturan/");
 
   return (
     <nav
@@ -36,13 +53,37 @@ function AdminNavLinks({
         href="/admin?tab=active"
         data-active={pathname === "/admin" ? "" : undefined}
         onClick={onNavigate}
-        className={cn(
-          "rounded-md px-3 py-2 text-sm font-medium hover:bg-muted",
-          pathname === "/admin" && "bg-muted text-foreground",
-        )}
+        className={navLinkClass(pathname === "/admin")}
       >
         Beranda
       </Link>
+      {navFlags.acara ? (
+        <Link
+          href="/admin/events"
+          onClick={onNavigate}
+          className={navLinkClass(acaraExact)}
+        >
+          Acara
+        </Link>
+      ) : null}
+      {navFlags.anggota ? (
+        <Link
+          href="/admin/anggota"
+          onClick={onNavigate}
+          className={navLinkClass(anggotaActive)}
+        >
+          Anggota
+        </Link>
+      ) : null}
+      {navFlags.pengaturan ? (
+        <Link
+          href="/admin/pengaturan"
+          onClick={onNavigate}
+          className={navLinkClass(pengaturanActive)}
+        >
+          Pengaturan
+        </Link>
+      ) : null}
     </nav>
   );
 }
@@ -65,9 +106,11 @@ function AdminSignOutForm({ onDone }: { onDone?: () => void }) {
 }
 
 export function AdminAppShell({
+  navFlags,
   userEmail,
   children,
 }: {
+  navFlags: GlobalSidebarNav;
   userEmail: string | null;
   children: React.ReactNode;
 }) {
@@ -90,7 +133,10 @@ export function AdminAppShell({
               </p>
             ) : null}
           </div>
-          <AdminNavLinks className="flex-1" />
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
+            <AdminNavLinks navFlags={navFlags} className="shrink-0" />
+            <AdminEventSidebarBlock />
+          </div>
           <AdminSignOutForm />
         </div>
       </aside>
@@ -119,6 +165,7 @@ export function AdminAppShell({
               </SheetHeader>
               <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
                 <AdminNavLinks
+                  navFlags={navFlags}
                   onNavigate={() => {
                     setMobileOpen(false);
                   }}
