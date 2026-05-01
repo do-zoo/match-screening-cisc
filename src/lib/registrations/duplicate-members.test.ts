@@ -17,7 +17,7 @@ describe("findDuplicateMemberNumbers", () => {
   it.each([
     { name: "empty array", candidates: [] },
     { name: "blank member number", candidates: [""] },
-    { name: "undefined member number", candidates: [undefined as any] },
+    { name: "undefined member number", candidates: [undefined] as string[] },
   ])("returns no duplicates for $name without querying", async ({ candidates }) => {
     const d = await findDuplicateMemberNumbers("evt", candidates);
 
