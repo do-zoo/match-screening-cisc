@@ -65,6 +65,8 @@ An event registration system for a members-only social club (CISC). Members and 
 - `admin/` — authenticated admin dashboard
   - `admin/events/[eventId]/inbox` — registrations list
   - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + actions
+  - `admin/events/[eventId]/report` — per-event aggregated report + CSV export
+  - `admin/events/[eventId]/edit` — event editor
 - `api/auth/[...all]` — Better Auth catch-all handler
 
 ### Data model (`prisma/schema.prisma`)
@@ -79,6 +81,8 @@ Key entities:
 - **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 
 Better Auth manages its own tables (users, sessions) directly via `pg.Pool` — they are **not** in `prisma/schema.prisma`.
+
+Registration status flows: `submitted → pending_review → approved / rejected / payment_issue`. Once approved, further state is tracked via `AttendanceStatus` (separate from `RegistrationStatus`) and `InvoiceAdjustment` rows (for underpayments). Cancel and refund are terminal states set directly on `Registration.status`.
 
 ### Key library modules (`src/lib/`)
 

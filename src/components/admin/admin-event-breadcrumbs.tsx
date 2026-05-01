@@ -32,23 +32,36 @@ export function AdminEventBreadcrumbs({
     eventId,
   );
 
-  const crumbs: { label: string; href?: string; current?: boolean }[] = [
-    { label: "Beranda", href: "/admin?tab=active" },
-    {
-      label: title,
-      href: `/admin/events/${eventId}/inbox`,
-    },
-  ];
+  const isEdit = pathname === `/admin/events/${eventId}/edit`;
 
-  if (isReport) {
-    crumbs.push({ label: "Laporan", current: true });
-  } else if (isRegistrationDetail) {
+  const crumbs: { label: string; href?: string; current?: boolean }[] = [];
+
+  if (isEdit) {
     crumbs.push(
-      { label: "Inbox", href: `/admin/events/${eventId}/inbox` },
-      { label: "Detail", current: true },
+      { label: "Beranda", href: "/admin?tab=active" },
+      { label: "Acara", href: "/admin/events" },
+      { label: title, href: `/admin/events/${eventId}/inbox` },
+      { label: "Pengaturan", current: true },
     );
-  } else if (isInboxExact) {
-    crumbs.push({ label: "Inbox", current: true });
+  } else {
+    crumbs.push(
+      { label: "Beranda", href: "/admin?tab=active" },
+      {
+        label: title,
+        href: `/admin/events/${eventId}/inbox`,
+      },
+    );
+
+    if (isReport) {
+      crumbs.push({ label: "Laporan", current: true });
+    } else if (isRegistrationDetail) {
+      crumbs.push(
+        { label: "Inbox", href: `/admin/events/${eventId}/inbox` },
+        { label: "Detail", current: true },
+      );
+    } else if (isInboxExact) {
+      crumbs.push({ label: "Inbox", current: true });
+    }
   }
 
   return (
