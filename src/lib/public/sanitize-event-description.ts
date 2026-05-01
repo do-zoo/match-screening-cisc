@@ -1,8 +1,8 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 export function sanitizePublicEventDescriptionHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
+  return sanitizeHtml(html, {
+    allowedTags: [
       "p",
       "br",
       "strong",
@@ -22,6 +22,10 @@ export function sanitizePublicEventDescriptionHtml(html: string): string {
       "div",
       "span",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel"],
+    allowedAttributes: {
+      a: ["href", "target", "rel"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    disallowedTagsMode: "discard",
   });
 }
