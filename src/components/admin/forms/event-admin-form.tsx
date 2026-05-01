@@ -397,8 +397,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
             </Field>
           </div>
           <p className="text-muted-foreground text-xs">
-            Jika memilih default komite, nilai akan disimpan dari{" "}
-            <code>MATCH_DEFAULT_TICKET_*_IDR</code> di server pada saat simpan.
+            Jika memilih default komite, nilai disimpan dari{" "}
+            <strong>Pengaturan → Harga default</strong> (basis data bila sudah pernah disimpan), lalu
+            env <code>MATCH_DEFAULT_TICKET_*_IDR</code>, lalu fallback bawaan aplikasi.
           </p>
         </section>
 
