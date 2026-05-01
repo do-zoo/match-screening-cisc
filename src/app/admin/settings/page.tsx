@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import {
   Card,
@@ -6,67 +6,72 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
 
-function PlaceholderPanel({
-  title,
-  description,
-}: {
+export default function AdminSettingsHubPage() {
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Pengaturan komite</h1>
+        <p className="text-muted-foreground text-sm">
+          Konfigurasi lanjutan klub — hanya Owner. Pilih modul di atas (seluler: geser), sidebar di
+          layar besar, atau kartu di bawah.
+        </p>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsCard
+          href="/admin/settings/committee"
+          title="Komite & admin"
+          description="PIC, peran admin aplikasi; data PIC dan rekening dikelola lewat Anggota."
+        />
+        <SettingsCard
+          href="/admin/settings/pricing"
+          title="Harga default"
+          description="Nilai awal tiket saat acara memakai default komite."
+        />
+        <SettingsCard
+          href="/admin/settings/whatsapp-templates"
+          title="Template WhatsApp"
+          description="Menyusul — placeholder roadmap Phase B."
+        />
+        <SettingsCard
+          href="/admin/settings/branding"
+          title="Branding"
+          description="Menyusul — logo dan teks publik Phase B."
+        />
+        <SettingsCard
+          href="/admin/settings/notifications"
+          title="Notifikasi"
+          description="Menyusul — saluran dan preferensi Phase D."
+        />
+        <SettingsCard
+          href="/admin/settings/operations"
+          title="Operasional"
+          description="Menyusul — feature flags Phase C."
+        />
+        <SettingsCard
+          href="/admin/settings/security"
+          title="Keamanan"
+          description="Menyusul — kebijakan auth dan audit Phase D."
+        />
+      </div>
+    </div>
+  );
+}
+
+function SettingsCard(props: {
+  href: string;
   title: string;
   description: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <div className="border-t px-6 py-8">
-        <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-          Modul ini menyusul — belum ada penyimpanan data.
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-export default async function AdminCommitteeSettingsPage() {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
-
-  if (!ctx || !canManageCommitteeAdvancedSettings(ctx.role)) {
-    notFound();
-  }
-
-  return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8 lg:py-10">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Pengaturan komite</h1>
-        <p className="text-sm text-muted-foreground">
-          Konfigurasi lanjutan klub — PIC, rekening bank, default harga, dan template WhatsApp.
-        </p>
-      </header>
-
-      <div className="flex flex-col gap-6">
-        <PlaceholderPanel
-          title="PIC & admin aplikasi"
-          description="Mengatur siapa menjadi PIC utama, pembantu, serta hak akses admin terkait acara dan verifikasi."
-        />
-        <PlaceholderPanel
-          title="Rekening bank & PIC"
-          description="Rekening transfer yang digunakan per PIC untuk bukti pembayaran dan penugasan kartu pembayaran."
-        />
-        <PlaceholderPanel
-          title="Harga default global"
-          description="Tarif acara baru yang diusulkan sebagai nilai awal sebelum dikustom per acara."
-        />
-        <PlaceholderPanel
-          title="Template WhatsApp"
-          description="Template pesan sistem untuk menyetujui, menolak, masalah pembayaran, dan notifikasi terkait."
-        />
-      </div>
-    </main>
+    <Link href={props.href} className="block">
+      <Card className="h-full transition-colors hover:bg-muted/40">
+        <CardHeader>
+          <CardTitle className="text-base">{props.title}</CardTitle>
+          <CardDescription>{props.description}</CardDescription>
+        </CardHeader>
+      </Card>
+    </Link>
   );
 }
