@@ -90,8 +90,13 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(30.25% 0.185 264.17);
-  --primary-foreground: oklch(0.985 0 0);
+  /*
+   * Light theme keeps a deep blue primary (good on white).
+   * Dark UI needs a *lighter* primary so `bg-primary` / `text-primary` read as accent
+   * on charcoal surfaces (buttons, links, radio focus ring) instead of muddy low-L blue.
+   */
+  --primary: oklch(0.71 0.09 265);
+  --primary-foreground: oklch(0.145 0.05 268);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -101,7 +106,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.62 0.08 265);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -109,12 +114,12 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.71 0.09 265);
+  --sidebar-primary-foreground: oklch(0.145 0.05 268);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.62 0.08 265);
 }
 
 @layer base {
