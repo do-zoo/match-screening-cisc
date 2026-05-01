@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createAuthClient } from "better-auth/react";
 import {
   CalendarDays,
   Home,
@@ -12,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
 import { AdminBrandMark } from "@/components/admin/admin-brand-mark";
 import { AdminEventSidebarBlock } from "@/components/admin/admin-event-sidebar-block";
 import { adminShellNavLinkClass } from "@/components/admin/admin-shell-nav-styles";
@@ -26,8 +26,6 @@ import {
 import type { GlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 import { cn } from "@/lib/utils";
 
-const authClient = createAuthClient();
-
 function AdminNavLinks({
   navFlags,
   className,
@@ -39,11 +37,11 @@ function AdminNavLinks({
 }) {
   const pathname = usePathname();
   const acaraExact = pathname === "/admin/events";
-  const anggotaActive =
-    pathname === "/admin/anggota" || pathname.startsWith("/admin/anggota/");
-  const pengaturanActive =
-    pathname === "/admin/pengaturan" ||
-    pathname.startsWith("/admin/pengaturan/");
+  const membersActive =
+    pathname === "/admin/members" || pathname.startsWith("/admin/members/");
+  const settingsActive =
+    pathname === "/admin/settings" ||
+    pathname.startsWith("/admin/settings/");
 
   return (
     <nav
@@ -69,21 +67,21 @@ function AdminNavLinks({
           Acara
         </Link>
       ) : null}
-      {navFlags.anggota ? (
+      {navFlags.members ? (
         <Link
-          href="/admin/anggota"
+          href="/admin/members"
           onClick={onNavigate}
-          className={adminShellNavLinkClass(anggotaActive)}
+          className={adminShellNavLinkClass(membersActive)}
         >
           <Users className="size-4 shrink-0 opacity-80" aria-hidden />
           Anggota
         </Link>
       ) : null}
-      {navFlags.pengaturan ? (
+      {navFlags.settings ? (
         <Link
-          href="/admin/pengaturan"
+          href="/admin/settings"
           onClick={onNavigate}
-          className={adminShellNavLinkClass(pengaturanActive)}
+          className={adminShellNavLinkClass(settingsActive)}
         >
           <Settings className="size-4 shrink-0 opacity-80" aria-hidden />
           Pengaturan
@@ -93,30 +91,15 @@ function AdminNavLinks({
   );
 }
 
-function AdminSignOutForm({ onDone }: { onDone?: () => void }) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className="mt-auto w-full justify-center border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-      onClick={async () => {
-        await authClient.signOut();
-        onDone?.();
-        window.location.href = "/admin/sign-in";
-      }}
-    >
-      Keluar
-    </Button>
-  );
-}
-
 export function AdminAppShell({
   navFlags,
   userEmail,
+  displayName,
   children,
 }: {
   navFlags: GlobalSidebarNav;
   userEmail: string | null;
+  displayName: string | null;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -133,20 +116,12 @@ export function AdminAppShell({
         <div className="flex min-h-0 w-full flex-1 flex-col gap-6 p-4">
           <div className="space-y-3">
             <AdminBrandMark />
-            {userEmail ? (
-              <p
-                className="truncate px-0.5 text-xs text-sidebar-foreground/70"
-                title={userEmail}
-              >
-                {userEmail}
-              </p>
-            ) : null}
+            <AdminAccountMenu userEmail={userEmail} displayName={displayName} />
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-4">
             <AdminNavLinks navFlags={navFlags} className="shrink-0" />
             <AdminEventSidebarBlock />
           </div>
-          <AdminSignOutForm />
         </div>
       </aside>
 
@@ -177,14 +152,7 @@ export function AdminAppShell({
               <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4">
                 <div className="space-y-1">
                   <AdminBrandMark />
-                  {userEmail ? (
-                    <p
-                      className="truncate text-xs text-sidebar-foreground/70"
-                      title={userEmail}
-                    >
-                      {userEmail}
-                    </p>
-                  ) : null}
+                  <AdminAccountMenu userEmail={userEmail} displayName={displayName} />
                 </div>
                 <AdminNavLinks
                   navFlags={navFlags}
@@ -192,23 +160,12 @@ export function AdminAppShell({
                     setMobileOpen(false);
                   }}
                 />
-                <div className="mt-auto border-t border-sidebar-border pt-4">
-                  <AdminSignOutForm
-                    onDone={() => {
-                      setMobileOpen(false);
-                    }}
-                  />
-                </div>
               </div>
             </SheetContent>
           </Sheet>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 space-y-0.5">
             <p className="truncate text-xs text-sidebar-foreground/70">PIC</p>
-            {userEmail ? (
-              <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {userEmail}
-              </p>
-            ) : null}
+            <AdminAccountMenu userEmail={userEmail} displayName={displayName} />
           </div>
         </header>
 

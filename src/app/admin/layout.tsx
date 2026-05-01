@@ -17,7 +17,11 @@ export default async function AdminLayout({
   const navFlags = deriveGlobalSidebarNav(adminCtx);
 
   return (
-    <AdminAppShell navFlags={navFlags} userEmail={session.user.email ?? null}>
+    <AdminAppShell
+      navFlags={navFlags}
+      userEmail={session.user.email ?? null}
+      displayName={session.user.name ?? null}
+    >
       {children}
     </AdminAppShell>
   );
