@@ -2,7 +2,13 @@
 
 import * as React from "react";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,10 +20,7 @@ import {
   type Resolver,
 } from "react-hook-form";
 
-import {
-  createAdminEvent,
-  updateAdminEvent,
-} from "@/lib/actions/admin-events";
+import { createAdminEvent, updateAdminEvent } from "@/lib/actions/admin-events";
 import {
   adminEventUpsertSchema,
   type AdminEventUpsertInput,
@@ -38,6 +41,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const SENSITIVE_ACK_MESSAGE =
   "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.";
@@ -47,7 +52,10 @@ export type EventAdminPicOption = { id: string; label: string };
 export type EventAdminFormProps = {
   mode: "create" | "edit";
   eventId?: string;
-  committeeDefaults?: { ticketMemberPrice: number; ticketNonMemberPrice: number };
+  committeeDefaults?: {
+    ticketMemberPrice: number;
+    ticketNonMemberPrice: number;
+  };
   defaults: AdminEventUpsertInput;
   registrationCount?: number;
   persistedIntegrity?: EventIntegritySnapshot | null;
@@ -78,7 +86,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
     } satisfies EventIntegritySnapshot);
 
   const form = useForm<AdminEventUpsertInput>({
-    resolver: zodResolver(adminEventUpsertSchema as never) as Resolver<AdminEventUpsertInput>,
+    resolver: zodResolver(
+      adminEventUpsertSchema as never,
+    ) as Resolver<AdminEventUpsertInput>,
     defaultValues: props.defaults,
   });
 
@@ -88,15 +98,25 @@ export function EventAdminForm(props: EventAdminFormProps) {
   });
 
   const menuMode = useWatch({ control: form.control, name: "menuMode" });
-  const menuSelection = useWatch({ control: form.control, name: "menuSelection" });
-  const pricingSource = useWatch({ control: form.control, name: "pricingSource" });
-  const picId = useWatch({ control: form.control, name: "picMasterMemberId" });
-  const bankAccountId = useWatch({ control: form.control, name: "bankAccountId" });
-  const committee = props.committeeDefaults;
-  const helpersSelected = useWatch({
+  const menuSelection = useWatch({
     control: form.control,
-    name: "helperMasterMemberIds",
-  }) ?? [];
+    name: "menuSelection",
+  });
+  const pricingSource = useWatch({
+    control: form.control,
+    name: "pricingSource",
+  });
+  const picId = useWatch({ control: form.control, name: "picMasterMemberId" });
+  const bankAccountId = useWatch({
+    control: form.control,
+    name: "bankAccountId",
+  });
+  const committee = props.committeeDefaults;
+  const helpersSelected =
+    useWatch({
+      control: form.control,
+      name: "helperMasterMemberIds",
+    }) ?? [];
 
   const bankChoices = useMemo(() => {
     return props.banksByPic[picId] ?? [];
@@ -124,7 +144,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
   }, [committee, form]);
 
   useEffect(() => {
-    if (props.mode === "create" && committee && form.getValues("pricingSource") === "global_default") {
+    if (
+      props.mode === "create" &&
+      committee &&
+      form.getValues("pricingSource") === "global_default"
+    ) {
       pickCommitteePrices();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed committee prices once on mount for new events
@@ -197,21 +221,26 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
         <section className="space-y-4">
           <h2 className="text-lg font-medium">Dasar acara</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Judul">
-              <Input {...form.register("title")} disabled={pending} />
-            </Field>
-            <Field label="Ringkasan">
-              <Input {...form.register("summary")} disabled={pending} />
-            </Field>
-          </div>
-          <Field label="Deskripsi (HTML)">
-            <textarea
-              {...form.register("descriptionHtml")}
-              rows={8}
+          <Field label="Judul">
+            <Input {...form.register("title")} disabled={pending} />
+          </Field>
+          <Field label="Ringkasan">
+            <Textarea
+              {...form.register("summary")}
               disabled={pending}
-              className={cn(
-                "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]",
+              className="resize-y"
+            />
+          </Field>
+          <Field label="Deskripsi">
+            <Controller
+              control={form.control}
+              name="descriptionHtml"
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                />
               )}
             />
           </Field>
@@ -257,7 +286,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
                     min={0}
                     disabled={pending}
                     placeholder="Opsional"
-                    value={field.value === null || field.value === undefined ? "" : field.value}
+                    value={
+                      field.value === null || field.value === undefined
+                        ? ""
+                        : field.value
+                    }
                     onChange={(e) => {
                       const raw = e.target.value;
                       if (raw === "") field.onChange(null);
@@ -269,7 +302,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
             </Field>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...form.register("registrationManualClosed")} disabled={pending} />
+            <input
+              type="checkbox"
+              {...form.register("registrationManualClosed")}
+              disabled={pending}
+            />
             Tutup registrasi secara manual (formulir diblokir)
           </label>
         </section>
@@ -282,7 +319,8 @@ export function EventAdminForm(props: EventAdminFormProps) {
               disabled={pending}
               className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
               onChange={(e) => {
-                const next = e.target.value as AdminEventUpsertInput["pricingSource"];
+                const next = e.target
+                  .value as AdminEventUpsertInput["pricingSource"];
                 form.setValue("pricingSource", next, { shouldDirty: true });
                 if (next === "global_default") pickCommitteePrices();
               }}
@@ -305,7 +343,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 type="number"
                 min={0}
                 disabled={pending || pricingSource === "global_default"}
-                {...form.register("ticketNonMemberPrice", { valueAsNumber: true })}
+                {...form.register("ticketNonMemberPrice", {
+                  valueAsNumber: true,
+                })}
               />
             </Field>
           </div>
@@ -324,9 +364,13 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 disabled={pending || lockedMenuKeys.includes("menuMode")}
                 className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
                 onChange={(e) =>
-                  form.setValue("menuMode", e.target.value as AdminEventUpsertInput["menuMode"], {
-                    shouldDirty: true,
-                  })
+                  form.setValue(
+                    "menuMode",
+                    e.target.value as AdminEventUpsertInput["menuMode"],
+                    {
+                      shouldDirty: true,
+                    },
+                  )
                 }
               >
                 <option value="PRESELECT">Pilih menu di form</option>
@@ -363,7 +407,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
               type="number"
               min={0}
               disabled={pending || menuMode !== "VOUCHER"}
-              placeholder={menuMode === "VOUCHER" ? "Wajib" : "Hanya mode Voucher"}
+              placeholder={
+                menuMode === "VOUCHER" ? "Wajib" : "Hanya mode Voucher"
+              }
               {...form.register("voucherPriceIdr", {
                 setValueAs: (v) =>
                   v === "" || v === undefined || Number.isNaN(Number(v))
@@ -401,14 +447,19 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 className="bg-card flex flex-wrap items-end gap-3 rounded-lg border p-3"
               >
                 <Field label="Nama" className="min-w-[10rem] flex-1">
-                  <Input {...form.register(`menuItems.${index}.name`)} disabled={pending} />
+                  <Input
+                    {...form.register(`menuItems.${index}.name`)}
+                    disabled={pending}
+                  />
                 </Field>
                 <Field label="Harga (IDR)" className="w-32">
                   <Input
                     type="number"
                     min={0}
                     disabled={pending}
-                    {...form.register(`menuItems.${index}.priceIdr`, { valueAsNumber: true })}
+                    {...form.register(`menuItems.${index}.priceIdr`, {
+                      valueAsNumber: true,
+                    })}
                   />
                 </Field>
                 <Field label="Urutan" className="w-24">
@@ -416,7 +467,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
                     type="number"
                     min={0}
                     disabled={pending}
-                    {...form.register(`menuItems.${index}.sortOrder`, { valueAsNumber: true })}
+                    {...form.register(`menuItems.${index}.sortOrder`, {
+                      valueAsNumber: true,
+                    })}
                   />
                 </Field>
                 <label className="flex items-center gap-2 pb-2 text-xs">
@@ -468,7 +521,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
               disabled={pending || bankChoices.length === 0}
               className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
               onChange={(e) =>
-                form.setValue("bankAccountId", e.target.value, { shouldDirty: true })
+                form.setValue("bankAccountId", e.target.value, {
+                  shouldDirty: true,
+                })
               }
             >
               {bankChoices.map((b) => (
@@ -478,7 +533,10 @@ export function EventAdminForm(props: EventAdminFormProps) {
               ))}
             </select>
             {bankChoices.length === 0 ? (
-              <Muted>Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan komite.</Muted>
+              <Muted>
+                Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan
+                komite.
+              </Muted>
             ) : null}
           </Field>
 
@@ -495,17 +553,25 @@ export function EventAdminForm(props: EventAdminFormProps) {
                       checked={checked}
                       onChange={() => {
                         const cur =
-                          form.getValues("helperMasterMemberIds") ?? ([] as string[]);
+                          form.getValues("helperMasterMemberIds") ??
+                          ([] as string[]);
                         if (checked)
                           form.setValue(
                             "helperMasterMemberIds",
                             cur.filter((x) => x !== p.id),
                             { shouldDirty: true },
                           );
-                        else form.setValue("helperMasterMemberIds", [...cur, p.id], { shouldDirty: true });
+                        else
+                          form.setValue(
+                            "helperMasterMemberIds",
+                            [...cur, p.id],
+                            { shouldDirty: true },
+                          );
                       }}
                     />
-                    <span className={cn(isPicMaster && "text-muted-foreground")}>
+                    <span
+                      className={cn(isPicMaster && "text-muted-foreground")}
+                    >
                       {p.label}
                       {isPicMaster ? " (PIC utama)" : ""}
                     </span>
@@ -536,7 +602,10 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <Button type="submit" disabled={pending}>
             {pending ? "Menyimpan…" : "Simpan"}
           </Button>
-          <Link href="/admin/events" className={buttonVariants({ variant: "outline" })}>
+          <Link
+            href="/admin/events"
+            className={buttonVariants({ variant: "outline" })}
+          >
             Batal
           </Link>
         </div>
@@ -547,12 +616,16 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <DialogHeader>
             <DialogTitle>Konfirmasi perubahan sensitif</DialogTitle>
             <DialogDescription>
-              Anda mengubah harga tiket/voucher, sumber harga, PIC utama, atau rekening. Pastikan
-              ini disengaja sebelum melanjutkan.
+              Anda mengubah harga tiket/voucher, sumber harga, PIC utama, atau
+              rekening. Pastikan ini disengaja sebelum melanjutkan.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setPendingAcknowledge(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingAcknowledge(false)}
+            >
               Batal
             </Button>
             <Button
