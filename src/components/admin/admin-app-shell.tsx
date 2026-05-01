@@ -152,7 +152,6 @@ export function AdminAppShell({
               <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4">
                 <div className="space-y-1">
                   <AdminBrandMark />
-                  <AdminAccountMenu userEmail={userEmail} displayName={displayName} />
                 </div>
                 <AdminNavLinks
                   navFlags={navFlags}
