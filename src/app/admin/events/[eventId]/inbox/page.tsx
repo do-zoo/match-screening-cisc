@@ -6,11 +6,24 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+import {
+  ADMIN_TABLE_PAGE_SIZE,
+  parseAdminTablePage,
+  resolveClampedPage,
+} from "@/lib/table/admin-pagination";
+
+function firstString(param: string | string[] | undefined): string | undefined {
+  if (param === undefined) return undefined;
+  if (Array.isArray(param)) return param[0];
+  return param;
+}
 
 export default async function AdminEventInboxPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { eventId } = await params;
 
@@ -30,6 +43,19 @@ export default async function AdminEventInboxPage({
 
   if (!canVerifyEvent(ctx, eventId)) notFound();
 
+  const sp = (await searchParams) ?? {};
+  const requestedPage = parseAdminTablePage(firstString(sp.page));
+
+  const totalItems = await prisma.registration.count({
+    where: { eventId },
+  });
+  const page = resolveClampedPage(
+    requestedPage,
+    totalItems,
+    ADMIN_TABLE_PAGE_SIZE,
+  );
+  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
+
   const [event, registrations] = await Promise.all([
     prisma.event.findUnique({
       where: { id: eventId },
@@ -38,6 +64,8 @@ export default async function AdminEventInboxPage({
     prisma.registration.findMany({
       where: { eventId },
       orderBy: { createdAt: "desc" },
+      skip,
+      take: ADMIN_TABLE_PAGE_SIZE,
       include: {
         tickets: {
           select: {
@@ -58,6 +86,8 @@ export default async function AdminEventInboxPage({
     createdAt: r.createdAt.toISOString(),
   }));
 
+  const inboxPath = `/admin/events/${eventId}/inbox`;
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -73,8 +103,16 @@ export default async function AdminEventInboxPage({
         </Link>
       </header>
 
-      <InboxTable eventId={eventId} registrations={registrationRows} />
+      <InboxTable
+        eventId={eventId}
+        inboxPath={inboxPath}
+        registrations={registrationRows}
+        pagination={{
+          page,
+          pageSize: ADMIN_TABLE_PAGE_SIZE,
+          totalItems,
+        }}
+      />
     </main>
   );
 }
-

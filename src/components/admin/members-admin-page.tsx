@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DownloadIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { DownloadIcon, PencilIcon, PlusIcon, SearchIcon } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,16 +18,25 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import { Input } from "@/components/ui/input";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { MemberCsvImportPanel } from "@/components/admin/member-csv-import-panel";
 import { MemberFormDialog } from "@/components/admin/member-form-dialog";
 import type { AdminMasterMemberRowVm } from "@/lib/members/query-admin-master-members";
 
-type Props = {
-  initialRows: AdminMasterMemberRowVm[];
-  csvTemplateText: string;
-};
-
 type ActivityFilter = "all" | "active" | "inactive";
+
+type Props = {
+  rows: AdminMasterMemberRowVm[];
+  csvTemplateText: string;
+  filter: ActivityFilter;
+  searchQuery: string;
+  tabCounts: { all: number; active: number; inactive: number };
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+  };
+};
 
 const activityFilters: Array<{ value: ActivityFilter; label: string }> = [
   { value: "all", label: "Semua" },
@@ -62,44 +71,38 @@ function formatDate(value: string) {
   return dateFormatter.format(date);
 }
 
-export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
+function buildAnggotaHref(opts: { filter: ActivityFilter; q: string }): string {
+  const qs = new URLSearchParams();
+  const qTrim = opts.q.trim();
+  if (qTrim) qs.set("q", qTrim.slice(0, 200));
+  if (opts.filter !== "all") qs.set("filter", opts.filter);
+  const s = qs.toString();
+  return s ? `/admin/anggota?${s}` : "/admin/anggota";
+}
+
+export function MembersAdminPage({
+  rows,
+  csvTemplateText,
+  filter,
+  searchQuery,
+  tabCounts,
+  pagination,
+}: Props) {
   const router = useRouter();
-  const [q, setQ] = useState("");
-  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingMember, setEditingMember] =
     useState<AdminMasterMemberRowVm | null>(null);
 
-  const counts = useMemo(
-    () => ({
-      all: initialRows.length,
-      active: initialRows.filter((row) => row.isActive).length,
-      inactive: initialRows.filter((row) => !row.isActive).length,
-    }),
-    [initialRows],
-  );
-
-  const filteredRows = useMemo(() => {
-    const search = q.trim().toLowerCase();
-    return initialRows.filter((row) => {
-      if (activityFilter === "active" && !row.isActive) return false;
-      if (activityFilter === "inactive" && row.isActive) return false;
-      if (!search) return true;
-
-      return [row.memberNumber, row.fullName, row.whatsapp ?? ""].some((value) =>
-        value.toLowerCase().includes(search),
-      );
-    });
-  }, [activityFilter, initialRows, q]);
+  const counts = tabCounts;
 
   const exportHref = useMemo(() => {
     const params = new URLSearchParams();
-    if (activityFilter !== "all") params.set("filter", activityFilter);
-    const term = q.trim();
+    if (filter !== "all") params.set("filter", filter);
+    const term = searchQuery.trim();
     if (term) params.set("q", term);
     const qs = params.toString();
     return `/admin/anggota/export${qs ? `?${qs}` : ""}`;
-  }, [activityFilter, q]);
+  }, [filter, searchQuery]);
 
   const columns = useMemo<ColumnDef<AdminMasterMemberRowVm>[]>(
     () => [
@@ -202,6 +205,14 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
     router.refresh();
   }
 
+  const paginationPreserved =
+    filter === "all" && searchQuery.trim() === ""
+      ? {}
+      : {
+          ...(filter !== "all" ? { filter } : {}),
+          ...(searchQuery.trim() ? { q: searchQuery.trim() } : {}),
+        };
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -235,39 +246,62 @@ export function MembersAdminPage({ initialRows, csvTemplateText }: Props) {
         <CardHeader>
           <CardTitle>Daftar anggota</CardTitle>
           <CardDescription>
-            Menampilkan {filteredRows.length} dari {initialRows.length} anggota
-            terbaru.
+            Basis data dipaginasikan dari server ({pagination.totalItems} hasil untuk
+            filter ini).
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <Input
-              value={q}
-              onChange={(event) => setQ(event.target.value)}
-              placeholder="Cari nomor, nama, atau WhatsApp"
-              className="lg:max-w-sm"
-            />
+          <form
+            method="get"
+            action="/admin/anggota"
+            className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
+          >
+            <input type="hidden" name="filter" value={filter} />
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:max-w-lg">
+              <Input
+                name="q"
+                defaultValue={searchQuery}
+                placeholder="Cari nomor, nama, atau WhatsApp"
+                className="sm:min-w-0 sm:flex-1"
+                aria-label="Cari anggota"
+              />
+              <Button type="submit" variant="secondary" className="shrink-0">
+                <SearchIcon data-icon="inline-start" />
+                Cari
+              </Button>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {activityFilters.map((filter) => (
-                <Button
-                  key={filter.value}
-                  type="button"
-                  variant={
-                    activityFilter === filter.value ? "default" : "outline"
-                  }
-                  onClick={() => setActivityFilter(filter.value)}
+              {activityFilters.map((f) => (
+                <Link
+                  key={f.value}
+                  href={buildAnggotaHref({
+                    filter: f.value,
+                    q: searchQuery,
+                  })}
+                  prefetch={false}
+                  className={buttonVariants({
+                    variant: filter === f.value ? "default" : "outline",
+                  })}
                 >
-                  {filter.label} ({counts[filter.value]})
-                </Button>
+                  {f.label} ({counts[f.value]})
+                </Link>
               ))}
             </div>
-          </div>
+          </form>
 
-          <div className="rounded-lg border">
+          <div className="overflow-hidden rounded-lg border">
             <DataTable
               columns={columns}
-              data={filteredRows}
+              data={rows}
+              enableSorting={false}
               emptyMessage="Tidak ada anggota yang cocok dengan filter."
+            />
+            <TablePagination
+              pathname="/admin/anggota"
+              preservedQuery={paginationPreserved}
+              currentPage={pagination.page}
+              pageSize={pagination.pageSize}
+              totalItems={pagination.totalItems}
             />
           </div>
         </CardContent>

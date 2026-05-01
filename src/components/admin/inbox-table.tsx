@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 type InboxRegistrationRow = {
   id: string;
@@ -34,7 +35,14 @@ type InboxRegistrationRow = {
 
 type InboxTableProps = {
   eventId: string;
+  /** Path without query, e.g. `/admin/events/{id}/inbox`. */
+  inboxPath: string;
   registrations: InboxRegistrationRow[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+  };
 };
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -48,7 +56,12 @@ const idrFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
-export function InboxTable({ eventId, registrations }: InboxTableProps) {
+export function InboxTable({
+  eventId,
+  inboxPath,
+  registrations,
+  pagination,
+}: InboxTableProps) {
   const columns = useMemo<ColumnDef<InboxRegistrationRow>[]>(
     () => [
       {
@@ -136,17 +149,28 @@ export function InboxTable({ eventId, registrations }: InboxTableProps) {
       <CardHeader>
         <CardTitle>Registrations</CardTitle>
         <CardDescription>
-          Newest submissions appear first. Open a row to review uploads and
-          ticket details.
+          Newest submissions first. Data is loaded per page from the database.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {registrations.length === 0 ? (
+        {pagination.totalItems === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
             No registrations have been submitted for this event yet.
           </div>
         ) : (
-          <DataTable columns={columns} data={registrations} />
+          <div className="overflow-hidden rounded-lg border">
+            <DataTable
+              columns={columns}
+              data={registrations}
+              enableSorting={false}
+            />
+            <TablePagination
+              pathname={inboxPath}
+              currentPage={pagination.page}
+              pageSize={pagination.pageSize}
+              totalItems={pagination.totalItems}
+            />
+          </div>
         )}
       </CardContent>
     </Card>

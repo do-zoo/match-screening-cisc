@@ -23,24 +23,33 @@ type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   emptyMessage?: string;
+  /**
+   * When false, sorting is disabled (use for server-paginated tables where sorting
+   * would only reorder the current page).
+   */
+  enableSorting?: boolean;
 };
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   emptyMessage = "No results.",
+  enableSorting = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const table = useReactTable({
     data,
     columns,
-    onSortingChange: setSorting,
+    enableSorting,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting,
-    },
+    ...(enableSorting
+      ? {
+          getSortedRowModel: getSortedRowModel(),
+          onSortingChange: setSorting,
+          state: { sorting },
+        }
+      : { manualSorting: true }),
   });
 
   return (

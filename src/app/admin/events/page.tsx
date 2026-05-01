@@ -8,8 +8,23 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
+import {
+  ADMIN_TABLE_PAGE_SIZE,
+  parseAdminTablePage,
+  resolveClampedPage,
+} from "@/lib/table/admin-pagination";
 
-export default async function AdminEventsIndexPage() {
+function firstString(param: string | string[] | undefined): string | undefined {
+  if (param === undefined) return undefined;
+  if (Array.isArray(param)) return param[0];
+  return param;
+}
+
+export default async function AdminEventsIndexPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await requireAdminSession();
   const ctx = await getAdminContext(session.user.id);
 
@@ -31,8 +46,21 @@ export default async function AdminEventsIndexPage() {
     notFound();
   }
 
+  const sp = (await searchParams) ?? {};
+  const requestedPage = parseAdminTablePage(firstString(sp.page));
+
+  const totalItems = await prisma.event.count();
+  const page = resolveClampedPage(
+    requestedPage,
+    totalItems,
+    ADMIN_TABLE_PAGE_SIZE,
+  );
+  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
+
   const events = await prisma.event.findMany({
     orderBy: [{ startAt: "desc" }],
+    skip,
+    take: ADMIN_TABLE_PAGE_SIZE,
     select: {
       id: true,
       slug: true,
@@ -77,13 +105,21 @@ export default async function AdminEventsIndexPage() {
         </Link>
       </header>
 
-      {events.length === 0 ? (
+      {totalItems === 0 ? (
         <p className="text-sm text-muted-foreground">
           Belum ada acara. Mulai dengan membuat acara baru untuk membuka pendaftaran dan inbox
           verifikasi.
         </p>
       ) : (
-        <AdminEventsTable events={eventRows} />
+        <AdminEventsTable
+          pathname="/admin/events"
+          events={eventRows}
+          pagination={{
+            page,
+            pageSize: ADMIN_TABLE_PAGE_SIZE,
+            totalItems,
+          }}
+        />
       )}
     </main>
   );

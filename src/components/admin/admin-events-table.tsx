@@ -10,6 +10,7 @@ import { Badge, badgeVariants } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
@@ -34,6 +35,12 @@ export type AdminEventRow = {
 
 type Props = {
   events: AdminEventRow[];
+  pathname: string;
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+  };
 };
 
 const fmtDay = new Intl.DateTimeFormat("id-ID", {
@@ -43,7 +50,7 @@ const fmtDay = new Intl.DateTimeFormat("id-ID", {
 
 const fmtNum = new Intl.NumberFormat("id-ID");
 
-export function AdminEventsTable({ events }: Props) {
+export function AdminEventsTable({ events, pathname, pagination }: Props) {
   const columns = useMemo<ColumnDef<AdminEventRow>[]>(
     () => [
       {
@@ -146,5 +153,15 @@ export function AdminEventsTable({ events }: Props) {
     [],
   );
 
-  return <DataTable columns={columns} data={events} />;
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <DataTable columns={columns} data={events} enableSorting={false} />
+      <TablePagination
+        pathname={pathname}
+        currentPage={pagination.page}
+        pageSize={pagination.pageSize}
+        totalItems={pagination.totalItems}
+      />
+    </div>
+  );
 }
