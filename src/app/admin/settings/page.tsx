@@ -47,7 +47,7 @@ export default function AdminSettingsHubPage() {
         <SettingsCard
           href="/admin/settings/operations"
           title="Operasional"
-          description="Menyusul — feature flags Phase C."
+          description="Tutup pendaftaran situs secara global dan banner pemeliharaan untuk pengunjung."
         />
         <SettingsCard
           href="/admin/settings/security"

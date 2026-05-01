@@ -2,6 +2,8 @@ import { cache } from "react";
 
 import type { SerializedEventForRegistration } from "@/components/public/event-serialization";
 import { prisma } from "@/lib/db/prisma";
+import { mergeGlobalRegistrationClosure } from "@/lib/public/club-operational-policy";
+import { loadClubOperationalSettings } from "@/lib/public/load-club-operational-settings";
 import { sanitizePublicEventDescriptionHtml } from "@/lib/public/sanitize-event-description";
 
 import {
@@ -30,11 +32,11 @@ export const getSerializedEventForPublicRegistration = cache(
       prisma,
       event.id,
     );
-    const registrationOpen = isRegistrationOpenForEvent({
+    let registrationOpen = isRegistrationOpenForEvent({
       event,
       registrationsTowardQuota,
     });
-    const registrationClosedMessage = registrationOpen
+    let registrationClosedMessage = registrationOpen
       ? null
       : registrationBlockMessageForPublic({
           eventStatus: event.status,
@@ -42,6 +44,16 @@ export const getSerializedEventForPublicRegistration = cache(
           registrationCapacity: event.registrationCapacity,
           registrationsTowardQuota,
         });
+
+    const ops = await loadClubOperationalSettings();
+    const merged = mergeGlobalRegistrationClosure({
+      registrationOpen,
+      registrationClosedMessage,
+      registrationGloballyDisabled: ops.registrationGloballyDisabled,
+      globalRegistrationClosedMessage: ops.globalRegistrationClosedMessage,
+    });
+    registrationOpen = merged.registrationOpen;
+    registrationClosedMessage = merged.registrationClosedMessage;
 
     return {
       slug: event.slug,

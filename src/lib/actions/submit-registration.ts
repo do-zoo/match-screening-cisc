@@ -21,9 +21,15 @@ import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
 import {
   assertRegistrationAcceptableOrThrowForTx,
   countRegistrationsTowardQuota,
+  isRegistrationOpenForEvent,
   registrationBlockMessageForPublic,
   RegistrationNotAcceptableError,
 } from "@/lib/events/registration-window";
+import {
+  DEFAULT_GLOBAL_REGISTRATION_CLOSED,
+  mergeGlobalRegistrationClosure,
+} from "@/lib/public/club-operational-policy";
+import { loadClubOperationalSettings } from "@/lib/public/load-club-operational-settings";
 
 export type { SubmitRegistrationInput } from "@/lib/forms/submit-registration-schema";
 
@@ -97,16 +103,30 @@ export async function submitRegistration(
 
   const registrationsTowardQuotaPreview = await countRegistrationsTowardQuota(
     prisma,
-    event.id
+    event.id,
   );
-  const registrationBlockedPreview = registrationBlockMessageForPublic({
-    eventStatus: event.status,
-    registrationManualClosed: event.registrationManualClosed,
-    registrationCapacity: event.registrationCapacity,
+  const locallyOpen = isRegistrationOpenForEvent({
+    event,
     registrationsTowardQuota: registrationsTowardQuotaPreview,
   });
-  if (registrationBlockedPreview) {
-    return rootError(registrationBlockedPreview);
+  const opsGate = await loadClubOperationalSettings();
+  const mergedGate = mergeGlobalRegistrationClosure({
+    registrationOpen: locallyOpen,
+    registrationClosedMessage: locallyOpen
+      ? null
+      : registrationBlockMessageForPublic({
+          eventStatus: event.status,
+          registrationManualClosed: event.registrationManualClosed,
+          registrationCapacity: event.registrationCapacity,
+          registrationsTowardQuota: registrationsTowardQuotaPreview,
+        }),
+    registrationGloballyDisabled: opsGate.registrationGloballyDisabled,
+    globalRegistrationClosedMessage: opsGate.globalRegistrationClosedMessage,
+  });
+  if (!mergedGate.registrationOpen) {
+    return rootError(
+      mergedGate.registrationClosedMessage ?? DEFAULT_GLOBAL_REGISTRATION_CLOSED,
+    );
   }
 
   // 2. Siapkan Payload & Parse dengan Factory Zod
