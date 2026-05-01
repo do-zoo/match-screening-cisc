@@ -4,17 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { cn } from "@/lib/utils";
+import { adminShellNavLinkClass } from "@/components/admin/admin-shell-nav-styles";
 
 const EVENT_BRANCH_RE =
   /^\/admin\/events\/([^/]+)\/(?:inbox|report)(?:\/|$)/;
-
-function navChipClass(active: boolean) {
-  return cn(
-    "rounded-md px-3 py-2 text-sm font-medium hover:bg-muted",
-    active && "bg-muted text-foreground",
-  );
-}
 
 function AdminEventSidebarBlockLoaded({
   eventId,
@@ -54,25 +47,28 @@ function AdminEventSidebarBlockLoaded({
   }, [eventId]);
 
   return (
-    <div className="space-y-2 border-t border-border pt-4">
-      <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-2 border-t border-sidebar-border pt-4">
+      <p className="px-3 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
         Acara
       </p>
       {title ? (
-        <p className="line-clamp-2 px-3 text-xs font-medium text-foreground" title={title}>
+        <p
+          className="line-clamp-2 px-3 text-xs font-medium text-sidebar-foreground"
+          title={title}
+        >
           {title}
         </p>
       ) : null}
       <nav aria-label="Inbox dan laporan" className="flex flex-col gap-1">
         <Link
           href={`/admin/events/${eventId}/inbox`}
-          className={navChipClass(isInboxBranch && !isReportBranch)}
+          className={adminShellNavLinkClass(isInboxBranch && !isReportBranch)}
         >
           Inbox
         </Link>
         <Link
           href={`/admin/events/${eventId}/report`}
-          className={navChipClass(isReportBranch)}
+          className={adminShellNavLinkClass(isReportBranch)}
         >
           Laporan
         </Link>
