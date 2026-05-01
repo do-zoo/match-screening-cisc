@@ -339,6 +339,15 @@ model Upload {
   @@index([invoiceAdjustmentId])
 }
 
+/// Singleton committee default ticket prices (`singletonKey` = `default`). App read order: row → env → built-in fallbacks.
+model CommitteeTicketDefaults {
+  singletonKey         String   @id @default("default")
+  ticketMemberPrice      Int
+  ticketNonMemberPrice   Int
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
 model AdminProfile {
   id String @id @default(cuid())
 
