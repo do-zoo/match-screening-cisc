@@ -1,20 +1,49 @@
 "use client";
 
-import { Suspense, useMemo, useState, useTransition } from "react";
+import { Suspense, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createAuthClient } from "better-auth/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm, type Resolver } from "react-hook-form";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/button";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 const authClient = createAuthClient();
+
+const AdminSignInSchema = z.object({
+  email: z.string().email("Email tidak valid."),
+  password: z.string().min(1, "Password wajib diisi."),
+});
+
+type AdminSignInInput = z.infer<typeof AdminSignInSchema>;
+
+/** RHF paths including `root.server` for Better Auth errors (not in Zod schema). */
+type AdminSignInFormValues = AdminSignInInput & {
+  root?: { server?: { message?: string } };
+};
+
+const adminSignInResolver = zodResolver(
+  AdminSignInSchema as never,
+) as Resolver<AdminSignInFormValues>;
 
 function AdminSignInForm() {
   const router = useRouter();
   const search = useSearchParams();
   const next = useMemo(() => search.get("next") ?? "/admin", [search]);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const form = useForm<AdminSignInFormValues>({
+    resolver: adminSignInResolver,
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    shouldFocusError: true,
+  });
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
@@ -25,59 +54,68 @@ function AdminSignInForm() {
 
       <form
         className="mt-8 space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setError(null);
+        onSubmit={form.handleSubmit((values) => {
+          form.clearErrors("root.server");
           startTransition(async () => {
             const res = await authClient.signIn.email({
-              email,
-              password,
+              email: values.email,
+              password: values.password,
             });
             if (res.error) {
-              setError(res.error.message ?? "Sign in failed.");
+              form.setError("root.server", {
+                message: res.error.message ?? "Sign in failed.",
+              });
               return;
             }
             router.push(next);
           });
-        }}
+        })}
       >
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Email</span>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            autoComplete="email"
-            className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-400"
-            required
-          />
-        </label>
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="ms-admin-signin-email">Email</FieldLabel>
+              <Input
+                {...field}
+                id="ms-admin-signin-email"
+                type="email"
+                aria-invalid={fieldState.invalid}
+                autoComplete="email"
+                placeholder="you@example.com"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Password</span>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-400"
-            required
-          />
-        </label>
+        <Controller
+          control={form.control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="ms-admin-signin-password">Password</FieldLabel>
+              <Input
+                {...field}
+                id="ms-admin-signin-password"
+                type="password"
+                aria-invalid={fieldState.invalid}
+                autoComplete="current-password"
+                placeholder="••••••••"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
-        {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </p>
+        {form.formState.errors.root?.server ? (
+          <FieldError errors={[form.formState.errors.root.server]} />
         ) : null}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex h-10 w-full items-center justify-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white disabled:opacity-60"
-        >
+        <Button type="submit" className="w-full" disabled={isPending}>
           {isPending ? "Signing in…" : "Sign in"}
-        </button>
+        </Button>
       </form>
     </main>
   );

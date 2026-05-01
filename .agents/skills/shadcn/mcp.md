@@ -13,13 +13,13 @@ shadcn mcp init   # write config for your editor
 
 Editor config files:
 
-| Editor | Config file |
-|--------|------------|
-| Claude Code | `.mcp.json` |
-| Cursor | `.cursor/mcp.json` |
-| VS Code | `.vscode/mcp.json` |
-| OpenCode | `opencode.json` |
-| Codex | `~/.codex/config.toml` (manual) |
+| Editor      | Config file                     |
+| ----------- | ------------------------------- |
+| Claude Code | `.mcp.json`                     |
+| Cursor      | `.cursor/mcp.json`              |
+| VS Code     | `.vscode/mcp.json`              |
+| OpenCode    | `opencode.json`                 |
+| Codex       | `~/.codex/config.toml` (manual) |
 
 ---
 
@@ -78,9 +78,9 @@ Registries are set in `components.json`. The `@shadcn` registry is always built-
 ```json
 {
   "registries": {
-    "@acme": "https://acme.com/r/{name}.json",
+    "@acme": "https://acme.com/register/{name}.json",
     "@private": {
-      "url": "https://private.com/r/{name}.json",
+      "url": "https://private.com/register/{name}.json",
       "headers": { "Authorization": "Bearer ${MY_TOKEN}" }
     }
   }
@@ -91,4 +91,4 @@ Registries are set in `components.json`. The `@shadcn` registry is always built-
 - URLs must contain `{name}`.
 - `${VAR}` references are resolved from environment variables.
 
-Community registry index: `https://ui.shadcn.com/r/registries.json`
+Community registry index: `https://ui.shadcn.com/register/registries.json`

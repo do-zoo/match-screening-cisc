@@ -1,5 +1,12 @@
 import type { MenuMode, TicketPriceType } from "@prisma/client";
 
+export type PricingLineRole = "primary" | "partner";
+
+export type PricingLine =
+  | { kind: "ticket"; role: PricingLineRole; label: string; amount: number }
+  | { kind: "menu_item"; role: PricingLineRole; label: string; amount: number }
+  | { kind: "voucher"; role: PricingLineRole; label: string; amount: number };
+
 export type SubmitPricingInput = {
   event: {
     ticketMemberPrice: number;
@@ -10,7 +17,10 @@ export type SubmitPricingInput = {
   primaryPriceType: Extract<TicketPriceType, "member" | "non_member">;
   includePartner: boolean;
   perTicketMenu: Array<
-    | { mode: "PRESELECT"; selectedMenuItems: { price: number }[] }
+    | {
+        mode: "PRESELECT";
+        selectedMenuItems: { name: string; price: number }[];
+      }
     | { mode: "VOUCHER" }
   >;
 };
@@ -20,6 +30,7 @@ export type SubmitPricingResult = {
   ticketNonMemberPriceApplied: number;
   voucherPriceApplied: number | null;
   computedTotalAtSubmit: number;
+  lines: PricingLine[];
 };
 
 function ticketLineRupiah(
@@ -35,20 +46,41 @@ function ticketLineRupiah(
   return event.ticketMemberPrice;
 }
 
-function menuLineRupiah(
+function ticketLabel(priceType: TicketPriceType): string {
+  if (priceType === "non_member") return "Tiket Non-member";
+  if (priceType === "member") return "Tiket Member";
+  return "Tiket Pasangan (Pengurus)";
+}
+
+function appendMenuLines(
+  out: PricingLine[],
+  role: PricingLineRole,
   event: SubmitPricingInput["event"],
   ent: SubmitPricingInput["perTicketMenu"][number],
-): number {
+): void {
   if (event.menuMode === "VOUCHER") {
     if (event.voucherPrice == null) {
       throw new Error("voucherPrice required for VOUCHER menu mode");
     }
-    return event.voucherPrice;
+    out.push({
+      kind: "voucher",
+      role,
+      label: "Voucher menu",
+      amount: event.voucherPrice,
+    });
+    return;
   }
   if (ent.mode !== "PRESELECT") {
     throw new Error("PRESELECT requires selected menus per ticket");
   }
-  return ent.selectedMenuItems.reduce((s, i) => s + i.price, 0);
+  for (const item of ent.selectedMenuItems) {
+    out.push({
+      kind: "menu_item",
+      role,
+      label: `Menu — ${item.name}`,
+      amount: item.price,
+    });
+  }
 }
 
 export function computeSubmitTotal(
@@ -69,29 +101,41 @@ export function computeSubmitTotal(
   const primaryType: TicketPriceType =
     input.primaryPriceType === "member" ? "member" : "non_member";
 
-  const lines: number[] = [];
+  const lines: PricingLine[] = [];
 
-  lines.push(
-    ticketLineRupiah(input, { role: "primary", priceType: primaryType }),
-  );
-  lines.push(menuLineRupiah(input.event, input.perTicketMenu[0]));
+  const primaryTicketAmount = ticketLineRupiah(input, {
+    role: "primary",
+    priceType: primaryType,
+  });
+  lines.push({
+    kind: "ticket",
+    role: "primary",
+    label: ticketLabel(primaryType),
+    amount: primaryTicketAmount,
+  });
+  appendMenuLines(lines, "primary", input.event, input.perTicketMenu[0]);
 
   if (input.includePartner) {
-    lines.push(
-      ticketLineRupiah(input, {
-        role: "partner",
-        priceType: "privilege_partner_member_price",
-      }),
-    );
-    lines.push(menuLineRupiah(input.event, input.perTicketMenu[1]));
+    const partnerTicketAmount = ticketLineRupiah(input, {
+      role: "partner",
+      priceType: "privilege_partner_member_price",
+    });
+    lines.push({
+      kind: "ticket",
+      role: "partner",
+      label: ticketLabel("privilege_partner_member_price"),
+      amount: partnerTicketAmount,
+    });
+    appendMenuLines(lines, "partner", input.event, input.perTicketMenu[1]);
   }
 
-  const computedTotalAtSubmit = lines.reduce((a, b) => a + b, 0);
+  const computedTotalAtSubmit = lines.reduce((a, l) => a + l.amount, 0);
 
   return {
     ticketMemberPriceApplied,
     ticketNonMemberPriceApplied,
     voucherPriceApplied,
     computedTotalAtSubmit,
+    lines,
   };
 }

@@ -60,3 +60,49 @@ export function templateRejected(reason: string): string {
     reason,
   ].join("\n");
 }
+
+export function templateCancelled(contactName: string, eventTitle: string): string {
+  return [
+    `Halo ${contactName},`,
+    ``,
+    `Kami informasikan bahwa pendaftaran Anda untuk *${eventTitle}* telah *dibatalkan*.`,
+    ``,
+    `Jika ada pertanyaan, silakan hubungi panitia.`,
+  ].join("\n");
+}
+
+export function templateRefunded(contactName: string, eventTitle: string): string {
+  return [
+    `Halo ${contactName},`,
+    ``,
+    `Pembayaran Anda untuk *${eventTitle}* telah *dikembalikan (refunded)*.`,
+    ``,
+    `Mohon konfirmasi penerimaan. Terima kasih.`,
+  ].join("\n");
+}
+
+export type UnderpaymentInvoiceCtx = {
+  contactName: string;
+  eventTitle: string;
+  adjustmentAmountIdr: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+};
+
+export function templateUnderpaymentInvoice(c: UnderpaymentInvoiceCtx): string {
+  const amount = idr(c.adjustmentAmountIdr);
+
+  return [
+    `Halo ${c.contactName},`,
+    ``,
+    `Terdapat kekurangan pembayaran untuk *${c.eventTitle}* sebesar *${amount}*.`,
+    ``,
+    `Mohon transfer ke:`,
+    `Bank: *${c.bankName}*`,
+    `No. Rekening: *${c.accountNumber}*`,
+    `Atas nama: *${c.accountName}*`,
+    ``,
+    `Setelah transfer, unggah bukti pembayaran melalui panitia atau balas pesan ini.`,
+  ].join("\n");
+}

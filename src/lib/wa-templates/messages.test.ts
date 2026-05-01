@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { templateReceipt } from "@/lib/wa-templates/messages";
+import {
+  templateCancelled,
+  templateReceipt,
+  templateRefunded,
+  templateUnderpaymentInvoice,
+} from "@/lib/wa-templates/messages";
 import { normalizeIdPhone, waMeLink } from "@/lib/wa-templates/encode";
 
 describe("wa templates", () => {
@@ -24,5 +29,35 @@ describe("wa templates", () => {
     });
     expect(body).toContain("reg_1");
     expect(body).toContain("menunggu verifikasi");
+  });
+});
+
+describe("additional wa templates", () => {
+  it("templateCancelled mentions event title and contact name", () => {
+    const body = templateCancelled("Budi", "Demo Final");
+    expect(body).toContain("Budi");
+    expect(body).toContain("Demo Final");
+    expect(body).toContain("dibatalkan");
+  });
+
+  it("templateRefunded mentions event title", () => {
+    const body = templateRefunded("Sari", "Demo Final");
+    expect(body).toContain("Sari");
+    expect(body).toContain("Demo Final");
+    expect(body).toContain("dikembalikan");
+  });
+
+  it("templateUnderpaymentInvoice includes amount and bank details", () => {
+    const body = templateUnderpaymentInvoice({
+      contactName: "Andi",
+      eventTitle: "Final UCL",
+      adjustmentAmountIdr: 50_000,
+      bankName: "BCA",
+      accountNumber: "1234567890",
+      accountName: "Demo CISC",
+    });
+    expect(body).toContain("50.000");
+    expect(body).toContain("BCA");
+    expect(body).toContain("1234567890");
   });
 });

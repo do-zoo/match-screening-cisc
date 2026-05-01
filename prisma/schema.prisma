@@ -91,6 +91,7 @@ model MasterMember {
   id           String  @id @default(cuid())
   memberNumber String  @unique
   fullName     String
+  whatsapp     String?
   isActive     Boolean @default(true)
 
   isPengurus Boolean @default(false)
@@ -128,9 +129,20 @@ model Event {
   id           String   @id @default(cuid())
   slug         String   @unique
   title        String
+  summary      String
+  /// Konten WYSIWYG (HTML). Sanitasi di server saat admin menyimpan; publik memakai helper `sanitizePublicEventDescriptionHtml`.
+  description  String @db.Text
   startAt      DateTime
+  endAt        DateTime
+
   venueName    String
   venueAddress String
+
+  coverBlobUrl  String
+  coverBlobPath String
+
+  registrationManualClosed Boolean @default(false)
+  registrationCapacity     Int?
 
   status EventStatus @default(draft)
 
@@ -155,7 +167,7 @@ model Event {
   registrations Registration[]
   menuItems     EventMenuItem[]
 
-  @@index([status])
+  @@index([status, startAt])
   @@index([picMasterMemberId])
   @@index([bankAccountId])
 }
@@ -231,8 +243,13 @@ model Ticket {
   eventId String
   menuSelections TicketMenuSelection[]
 
+  voucherRedeemedMenuItemId String?
+  voucherRedeemedAt         DateTime?
+  voucherRedeemedItem       EventMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
+
   @@index([registrationId])
   @@index([eventId])
+  @@index([voucherRedeemedMenuItemId])
   @@unique([eventId, memberNumber])
   @@unique([registrationId, role])
 }
@@ -248,7 +265,8 @@ model EventMenuItem {
   sortOrder Int @default(0)
   voucherEligible Boolean @default(false)
 
-  selections TicketMenuSelection[]
+  selections         TicketMenuSelection[]
+  voucherRedemptions Ticket[] @relation("VoucherRedemption")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

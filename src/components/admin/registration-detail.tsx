@@ -1,12 +1,22 @@
 import type {
-  UploadPurpose,
+  AttendanceStatus,
+  InvoiceAdjustmentStatus,
+  InvoiceAdjustmentType,
+  MenuMode,
+  MemberValidation,
   RegistrationStatus,
-  TicketRole,
   TicketPriceType,
+  TicketRole,
+  UploadPurpose,
 } from "@prisma/client";
 
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
 import { RegistrationActions } from "@/components/admin/registration-actions";
+import { AttendancePanel } from "@/components/admin/attendance-panel";
+import { CancelRefundPanel } from "@/components/admin/cancel-refund-panel";
+import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
+import { InvoiceAdjustmentPanel } from "@/components/admin/invoice-adjustment-panel";
+import { VoucherRedemptionPanel } from "@/components/admin/voucher-redemption-panel";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -29,6 +39,9 @@ import {
   templateApproved,
   templateRejected,
   templatePaymentIssue,
+  templateCancelled,
+  templateRefunded,
+  templateUnderpaymentInvoice,
 } from "@/lib/wa-templates/messages";
 
 export function formatCurrencyIdr(n: number): string {
@@ -53,13 +66,20 @@ type DetailRegistration = {
   contactWhatsapp: string;
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
+  ticketMemberPriceApplied: number;
+  ticketNonMemberPriceApplied: number;
   status: RegistrationStatus;
+  attendanceStatus: AttendanceStatus;
+  memberValidation: MemberValidation;
   rejectionReason: string | null;
   paymentIssueReason: string | null;
   event: {
     title: string;
     venueName: string;
     startAt: Date;
+    menuMode: MenuMode;
+    menuItems: Array<{ id: string; name: string; price: number; voucherEligible: boolean }>;
+    bankAccount: { bankName: string; accountNumber: string; accountName: string } | null;
   };
   tickets: Array<{
     id: string;
@@ -68,6 +88,8 @@ type DetailRegistration = {
     whatsapp: string | null;
     memberNumber: string | null;
     ticketPriceType: TicketPriceType;
+    voucherRedeemedMenuItemId: string | null;
+    voucherRedeemedAt: Date | null;
     menuSelections: Array<{ menuItem: { name: string; price: number } }>;
   }>;
   uploads: Array<{
@@ -80,6 +102,15 @@ type DetailRegistration = {
     height: number | null;
     originalFilename: string | null;
     createdAt: Date;
+  }>;
+  adjustments: Array<{
+    id: string;
+    type: InvoiceAdjustmentType;
+    amount: number;
+    status: InvoiceAdjustmentStatus;
+    paidAt: Date | null;
+    createdAt: Date;
+    uploads: Array<{ id: string; blobUrl: string; bytes: number; createdAt: Date }>;
   }>;
 };
 
@@ -147,6 +178,16 @@ export function RegistrationDetail({ eventId, registration }: Props) {
         registration.status === "payment_issue" &&
         Boolean(registration.paymentIssueReason),
     },
+    {
+      label: "WhatsApp · dibatalkan",
+      href: waMeLink(waPhone, templateCancelled(registration.contactName, registration.event.title)),
+      show: registration.status === "cancelled",
+    },
+    {
+      label: "WhatsApp · refunded",
+      href: waMeLink(waPhone, templateRefunded(registration.contactName, registration.event.title)),
+      show: registration.status === "refunded",
+    },
   ].filter((l) => l.show);
 
   return (
@@ -209,6 +250,24 @@ export function RegistrationDetail({ eventId, registration }: Props) {
                 className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent/60 transition-colors"
               >
                 {link.label}
+              </a>
+            ))}
+            {registration.adjustments.filter(a => a.status === "unpaid").map(adj => (
+              <a
+                key={adj.id}
+                href={waMeLink(waPhone, templateUnderpaymentInvoice({
+                  contactName: registration.contactName,
+                  eventTitle: registration.event.title,
+                  adjustmentAmountIdr: adj.amount,
+                  bankName: registration.event.bankAccount?.bankName ?? "",
+                  accountNumber: registration.event.bankAccount?.accountNumber ?? "",
+                  accountName: registration.event.bankAccount?.accountName ?? "",
+                }))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent/60 transition-colors"
+              >
+                WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
               </a>
             ))}
           </div>
@@ -311,6 +370,42 @@ export function RegistrationDetail({ eventId, registration }: Props) {
           />
         </CardContent>
       </Card>
+
+      <AttendancePanel
+        eventId={eventId}
+        registrationId={registration.id}
+        current={registration.attendanceStatus}
+        registrationStatus={registration.status}
+      />
+
+      <MemberValidationPanel
+        eventId={eventId}
+        registrationId={registration.id}
+        current={registration.memberValidation}
+        primaryTicket={registration.tickets.find(t => t.role === "primary") ?? null}
+        ticketMemberPriceApplied={registration.ticketMemberPriceApplied}
+        ticketNonMemberPriceApplied={registration.ticketNonMemberPriceApplied}
+      />
+
+      <InvoiceAdjustmentPanel
+        eventId={eventId}
+        registrationId={registration.id}
+        adjustments={registration.adjustments}
+      />
+
+      {registration.event.menuMode === "VOUCHER" && (
+        <VoucherRedemptionPanel
+          eventId={eventId}
+          tickets={registration.tickets}
+          menuItems={registration.event.menuItems.filter(m => m.voucherEligible)}
+        />
+      )}
+
+      <CancelRefundPanel
+        eventId={eventId}
+        registrationId={registration.id}
+        status={registration.status}
+      />
     </div>
   );
 }
