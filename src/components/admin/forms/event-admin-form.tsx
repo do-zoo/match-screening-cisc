@@ -43,6 +43,14 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 
 const SENSITIVE_ACK_MESSAGE =
   "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.";
@@ -248,11 +256,33 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
         <section className="grid gap-4 sm:grid-cols-2">
           <h2 className="text-lg font-medium sm:col-span-2">Jadwal & lokasi</h2>
-          <Field label="Mulai (ISO)">
-            <Input {...form.register("startAtIso")} disabled={pending} />
+          <Field label="Waktu mulai">
+            <Controller
+              control={form.control}
+              name="startAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
           </Field>
-          <Field label="Selesai (ISO)">
-            <Input {...form.register("endAtIso")} disabled={pending} />
+          <Field label="Waktu selesai">
+            <Controller
+              control={form.control}
+              name="endAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
           </Field>
           <Field label="Nama venue">
             <Input {...form.register("venueName")} disabled={pending} />
@@ -266,15 +296,28 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <h2 className="text-lg font-medium">Registrasi</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Status acara">
-              <select
-                {...form.register("status")}
-                disabled={pending}
-                className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-              >
-                <option value="draft">Draf</option>
-                <option value="active">Aktif</option>
-                <option value="finished">Selesai</option>
-              </select>
+              <Controller
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => {
+                      if (v != null) field.onChange(v);
+                    }}
+                    disabled={pending}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draf</SelectItem>
+                      <SelectItem value="active">Aktif</SelectItem>
+                      <SelectItem value="finished">Selesai</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Kapasitas (kosongkan = tak terbatas)">
               <Controller
@@ -314,20 +357,24 @@ export function EventAdminForm(props: EventAdminFormProps) {
         <section className="space-y-4">
           <h2 className="text-lg font-medium">Harga tiket</h2>
           <Field label="Sumber harga">
-            <select
+            <Select
               value={pricingSource}
-              disabled={pending}
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-              onChange={(e) => {
-                const next = e.target
-                  .value as AdminEventUpsertInput["pricingSource"];
+              onValueChange={(v) => {
+                if (v == null) return;
+                const next = v as AdminEventUpsertInput["pricingSource"];
                 form.setValue("pricingSource", next, { shouldDirty: true });
                 if (next === "global_default") pickCommitteePrices();
               }}
+              disabled={pending}
             >
-              <option value="global_default">Default komite</option>
-              <option value="overridden">Override per acara</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="global_default">Default komite</SelectItem>
+                <SelectItem value="overridden">Override per acara</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Tiket member (IDR)">
@@ -359,43 +406,49 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <h2 className="text-lg font-medium">Konfigurasi menu</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Mode menu">
-              <select
+              <Select
                 value={menuMode}
+                onValueChange={(v) => {
+                  if (v == null) return;
+                  form.setValue("menuMode", v as AdminEventUpsertInput["menuMode"], {
+                    shouldDirty: true,
+                  });
+                }}
                 disabled={pending || lockedMenuKeys.includes("menuMode")}
-                className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                onChange={(e) =>
-                  form.setValue(
-                    "menuMode",
-                    e.target.value as AdminEventUpsertInput["menuMode"],
-                    {
-                      shouldDirty: true,
-                    },
-                  )
-                }
               >
-                <option value="PRESELECT">Pilih menu di form</option>
-                <option value="VOUCHER">Voucher</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PRESELECT">Pilih menu di form</SelectItem>
+                  <SelectItem value="VOUCHER">Voucher</SelectItem>
+                </SelectContent>
+              </Select>
               {lockedMenuKeys.includes("menuMode") ? (
                 <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
               ) : null}
             </Field>
             <Field label="Pilihan menu">
-              <select
+              <Select
                 value={menuSelection}
-                disabled={pending || lockedMenuKeys.includes("menuSelection")}
-                className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                onChange={(e) =>
+                onValueChange={(v) => {
+                  if (v == null) return;
                   form.setValue(
                     "menuSelection",
-                    e.target.value as AdminEventUpsertInput["menuSelection"],
+                    v as AdminEventUpsertInput["menuSelection"],
                     { shouldDirty: true },
-                  )
-                }
+                  );
+                }}
+                disabled={pending || lockedMenuKeys.includes("menuSelection")}
               >
-                <option value="SINGLE">Satu opsi per tiket</option>
-                <option value="MULTI">Multi pilih per tiket</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SINGLE">Satu opsi per tiket</SelectItem>
+                  <SelectItem value="MULTI">Multi pilih per tiket</SelectItem>
+                </SelectContent>
+              </Select>
               {lockedMenuKeys.includes("menuSelection") ? (
                 <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
               ) : null}
@@ -497,41 +550,48 @@ export function EventAdminForm(props: EventAdminFormProps) {
         <section className="space-y-4">
           <h2 className="text-lg font-medium">PIC & rekening</h2>
           <Field label="PIC utama">
-            <select
+            <Select
               value={picId}
-              disabled={pending}
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-              onChange={(e) => {
-                const next = e.target.value;
+              onValueChange={(next) => {
+                if (next == null) return;
                 form.setValue("picMasterMemberId", next, { shouldDirty: true });
                 const first = props.banksByPic[next]?.[0]?.id ?? "";
                 form.setValue("bankAccountId", first, { shouldDirty: true });
               }}
+              disabled={pending}
             >
-              {props.picOptions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {props.picOptions.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Rekening pembayaran">
-            <select
+            <Select
               value={bankAccountId}
+              onValueChange={(v) => {
+                if (v == null) return;
+                form.setValue("bankAccountId", v, { shouldDirty: true });
+              }}
               disabled={pending || bankChoices.length === 0}
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-              onChange={(e) =>
-                form.setValue("bankAccountId", e.target.value, {
-                  shouldDirty: true,
-                })
-              }
             >
-              {bankChoices.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {bankChoices.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {bankChoices.length === 0 ? (
               <Muted>
                 Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan
