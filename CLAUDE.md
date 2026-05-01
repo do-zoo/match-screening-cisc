@@ -29,13 +29,13 @@ All commands need Node 24 active. See AGENTS.md for the `nvm use` bootstrap patt
 
 Copy `.env.example` to `.env.local` and fill in:
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out. |
-| `DIRECT_URL` | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
-| `BETTER_AUTH_SECRET` | Min 32-char secret for Better Auth |
-| `BETTER_AUTH_URL` | App origin (e.g. `http://localhost:3000`) |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for file uploads |
+| Variable                | Purpose                                                                                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`          | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
+| `DIRECT_URL`            | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
+| `BETTER_AUTH_SECRET`    | Min 32-char secret for Better Auth                                                                                                                                                                                    |
+| `BETTER_AUTH_URL`       | App origin (e.g. `http://localhost:3000`)                                                                                                                                                                             |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for file uploads                                                                                                                                                                                    |
 
 On **Vercel**, add **`DIRECT_URL`** (Neon non-pooler connection string) for Production and Preview so `scripts/vercel-migrate.mjs` runs `prisma migrate deploy` against a direct endpoint.
 
@@ -49,8 +49,8 @@ An event registration system for a members-only social club (CISC). Members and 
 
 - `(public)/` — unauthenticated public routes
   - `/` — homepage listing active events
-  - `/e/[slug]` — event registration page (public form)
-  - `/e/[slug]/r/[registrationId]` — post-submission confirmation
+  - `/events/[slug]` — event registration page (public form)
+  - `/events/[slug]/r/[registrationId]` — post-submission confirmation
 - `(auth)/admin/sign-in` — magic-link + email/password sign-in
 - `admin/` — authenticated admin dashboard
   - `admin/events/[eventId]/inbox` — registrations list
@@ -102,6 +102,7 @@ Images are converted to WebP (max 1600px, quality 80) via Sharp before being put
 ### Testing
 
 Tests live in two places:
+
 - Co-located `.test.ts` files next to the module (e.g., `compute-submit-total.test.ts`)
 - `src/tests/unit/` for cross-cutting unit tests
 

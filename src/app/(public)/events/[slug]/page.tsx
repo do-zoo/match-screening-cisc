@@ -1,8 +1,4 @@
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { EventSummary } from "@/components/public/event-summary";
 import {
@@ -61,10 +57,10 @@ export default async function EventDetailPage({
         <div className="flex flex-col gap-3 border-t border-[hsl(var(--border))] pt-6">
           {event.registrationOpen ? (
             <Link
-              href={`/e/${event.slug}/register`}
+              href={`/events/${event.slug}/register`}
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
-                "w-full sm:w-auto",
+                "w-full sm:w-auto"
               )}
             >
               Daftar untuk acara ini

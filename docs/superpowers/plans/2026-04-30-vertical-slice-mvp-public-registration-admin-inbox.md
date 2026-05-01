@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship the first end-to-end flow: public users browse active events, register on `/e/[slug]` with transfer proof (and member card when claiming membership), land on a receipt in `pending_review`; admins open per-event inbox, open a registration, run approve / reject (reason) / payment_issue (reason), and fire WhatsApp click-to-chat templates.
+**Goal:** Ship the first end-to-end flow: public users browse active events, register on `/events/[slug]` with transfer proof (and member card when claiming membership), land on a receipt in `pending_review`; admins open per-event inbox, open a registration, run approve / reject (reason) / payment_issue (reason), and fire WhatsApp click-to-chat templates.
 
 **Architecture:** Public routes under `src/app/(public)/` use RSC for reads and Server Actions for `submitRegistration` (Zod validation → Prisma transaction for `Registration` + `Ticket`(s) + menu rows → `uploadImageForRegistration` for Blob → set `pending_review`). Admin routes under `src/app/admin/events/[eventId]/inbox` use RSC lists + guarded Server Actions that call `canVerifyEvent` from `src/lib/permissions/guards.ts` after loading `AdminProfile` + PIC helper assignments. WhatsApp uses `lib/wa-templates/*` (pure string builders + `wa.me` URL encoding). Menu PRESELECT and VOUCHER are both supported at submit time using new `EventMenuItem` + `TicketMenuSelection` tables (current Prisma schema has events/tickets but no menu entities).
 
@@ -16,41 +16,41 @@
 
 **Create:**
 
-| File | Responsibility |
-|------|------------------|
-| `prisma/schema.prisma` | Add `EventMenuItem`, `TicketMenuSelection`; relation fields on `Event`, `Ticket` |
-| `prisma/migrations/<timestamp>_menu_items/migration.sql` | Generated after schema change (`prisma migrate dev`) |
-| `src/lib/pricing/compute-submit-total.ts` | Locked IDR totals for primary (+ optional partner) + menu voucher or PRESELECT lines |
-| `src/lib/pricing/compute-submit-total.test.ts` | Vitest coverage for voucher / preselect / partner privilege |
-| `src/lib/wa-templates/encode.ts` | `normalizeIdPhone`, `waMeLink` |
-| `src/lib/wa-templates/messages.ts` | Template bodies (receipt, payment issue, approve, reject) — parameterized |
-| `src/lib/wa-templates/messages.test.ts` | Stable encoding / line breaks |
-| `src/lib/auth/admin-context.ts` | `getAdminContext(authUserId)` → `{ role, helperEventIds, memberId }` |
-| `src/lib/registrations/duplicate-members.ts` | `assertNoDuplicateMemberNumbersForEvent` query helper |
-| `src/lib/actions/submit-registration.ts` | `submitRegistration` Server Action + Zod schema |
-| `src/lib/actions/verify-registration.ts` | `approveRegistration`, `rejectRegistration`, `markPaymentIssue` Server Actions |
-| `src/app/(public)/page.tsx` | Move/replace root: list `Event` where `status === active` |
-| `src/app/(public)/layout.tsx` | Optional: public chrome (can be minimal) |
-| `src/app/(public)/e/[slug]/page.tsx` | Registration form (client section for uploads) |
-| `src/app/(public)/e/[slug]/r/[registrationId]/page.tsx` | Receipt + bank instructions + status badge |
-| `src/components/public/event-card.tsx` | Link to `/e/[slug]` |
-| `src/components/public/registration-form.tsx` | RHF + Zod + file inputs + submit |
-| `src/components/public/price-breakdown.tsx` | Display computed IDR lines |
-| `src/components/admin/registration-status-badge.tsx` | Maps `RegistrationStatus` → design-system colors |
-| `src/components/admin/inbox-table.tsx` | Table + filters |
-| `src/components/admin/registration-detail.tsx` | Detail + action buttons + WA links |
-| `src/app/admin/events/[eventId]/inbox/page.tsx` | Inbox list |
-| `src/app/admin/events/[eventId]/inbox/[registrationId]/page.tsx` | Detail page |
-| `prisma/seed.ts` | Demo event + PIC + menu + helpers (optional admin id via env) |
-| `src/components/ui/badge.tsx`, `card.tsx`, `table.tsx`, `textarea.tsx`, `select.tsx`, `alert.tsx`, `separator.tsx`, `skeleton.tsx`, `dialog.tsx` | shadcn primitives as needed |
+| File                                                                                                                                             | Responsibility                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `prisma/schema.prisma`                                                                                                                           | Add `EventMenuItem`, `TicketMenuSelection`; relation fields on `Event`, `Ticket`     |
+| `prisma/migrations/<timestamp>_menu_items/migration.sql`                                                                                         | Generated after schema change (`prisma migrate dev`)                                 |
+| `src/lib/pricing/compute-submit-total.ts`                                                                                                        | Locked IDR totals for primary (+ optional partner) + menu voucher or PRESELECT lines |
+| `src/lib/pricing/compute-submit-total.test.ts`                                                                                                   | Vitest coverage for voucher / preselect / partner privilege                          |
+| `src/lib/wa-templates/encode.ts`                                                                                                                 | `normalizeIdPhone`, `waMeLink`                                                       |
+| `src/lib/wa-templates/messages.ts`                                                                                                               | Template bodies (receipt, payment issue, approve, reject) — parameterized            |
+| `src/lib/wa-templates/messages.test.ts`                                                                                                          | Stable encoding / line breaks                                                        |
+| `src/lib/auth/admin-context.ts`                                                                                                                  | `getAdminContext(authUserId)` → `{ role, helperEventIds, memberId }`                 |
+| `src/lib/registrations/duplicate-members.ts`                                                                                                     | `assertNoDuplicateMemberNumbersForEvent` query helper                                |
+| `src/lib/actions/submit-registration.ts`                                                                                                         | `submitRegistration` Server Action + Zod schema                                      |
+| `src/lib/actions/verify-registration.ts`                                                                                                         | `approveRegistration`, `rejectRegistration`, `markPaymentIssue` Server Actions       |
+| `src/app/(public)/page.tsx`                                                                                                                      | Move/replace root: list `Event` where `status === active`                            |
+| `src/app/(public)/layout.tsx`                                                                                                                    | Optional: public chrome (can be minimal)                                             |
+| `src/app/(public)/events/[slug]/page.tsx`                                                                                                        | Registration form (client section for uploads)                                       |
+| `src/app/(public)/events/[slug]/r/[registrationId]/page.tsx`                                                                                     | Receipt + bank instructions + status badge                                           |
+| `src/components/public/event-card.tsx`                                                                                                           | Link to `/events/[slug]`                                                             |
+| `src/components/public/registration-form.tsx`                                                                                                    | RHF + Zod + file inputs + submit                                                     |
+| `src/components/public/price-breakdown.tsx`                                                                                                      | Display computed IDR lines                                                           |
+| `src/components/admin/registration-status-badge.tsx`                                                                                             | Maps `RegistrationStatus` → design-system colors                                     |
+| `src/components/admin/inbox-table.tsx`                                                                                                           | Table + filters                                                                      |
+| `src/components/admin/registration-detail.tsx`                                                                                                   | Detail + action buttons + WA links                                                   |
+| `src/app/admin/events/[eventId]/inbox/page.tsx`                                                                                                  | Inbox list                                                                           |
+| `src/app/admin/events/[eventId]/inbox/[registrationId]/page.tsx`                                                                                 | Detail page                                                                          |
+| `prisma/seed.ts`                                                                                                                                 | Demo event + PIC + menu + helpers (optional admin id via env)                        |
+| `src/components/ui/badge.tsx`, `card.tsx`, `table.tsx`, `textarea.tsx`, `select.tsx`, `alert.tsx`, `separator.tsx`, `skeleton.tsx`, `dialog.tsx` | shadcn primitives as needed                                                          |
 
 **Modify:**
 
-| File | Change |
-|------|--------|
-| `src/app/page.tsx` | Remove or re-export redirect to `(public)` — **prefer** deleting root `page.tsx` and using `src/app/(public)/page.tsx` as `/` only (Next route groups do not affect URL). Ensure exactly one `page.tsx` serves `/`. |
-| `package.json` | Add `"prisma": { "seed": "tsx prisma/seed.ts" }"` and devDependency `tsx` if missing |
-| `src/lib/auth/session.ts` | Optionally export `requireAdminSession` throw mapping to `never` for actions (already throws) |
+| File                      | Change                                                                                                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/page.tsx`        | Remove or re-export redirect to `(public)` — **prefer** deleting root `page.tsx` and using `src/app/(public)/page.tsx` as `/` only (Next route groups do not affect URL). Ensure exactly one `page.tsx` serves `/`. |
+| `package.json`            | Add `"prisma": { "seed": "tsx prisma/seed.ts" }"` and devDependency `tsx` if missing                                                                                                                                |
+| `src/lib/auth/session.ts` | Optionally export `requireAdminSession` throw mapping to `never` for actions (already throws)                                                                                                                       |
 
 **Do not move** `src/proxy.ts` — it already gates `/admin/**` per Next 16 proxy convention.
 
@@ -76,6 +76,7 @@ If you need PIC-helper verification tests, set `memberId` to the seeded PIC `Mas
 ## Task 1: Prisma — menu entities + migration
 
 **Files:**
+
 - Modify: `prisma/schema.prisma`
 - Create: `prisma/migrations/*_menu_items_for_vertical_slice/migration.sql` (via CLI)
 - Test: `npx prisma validate`
@@ -163,6 +164,7 @@ git commit -m "feat(db): add EventMenuItem and TicketMenuSelection for menu slic
 ## Task 2: Pricing — compute locked total (unit-tested)
 
 **Files:**
+
 - Create: `src/lib/pricing/compute-submit-total.ts`
 - Create: `src/lib/pricing/compute-submit-total.test.ts`
 
@@ -207,12 +209,11 @@ describe("computeSubmitTotal", () => {
       event: { ...baseEvent, menuMode: "VOUCHER", voucherPrice: 75_000 },
       primaryPriceType: "member",
       includePartner: true,
-      perTicketMenu: [
-        { mode: "VOUCHER" },
-        { mode: "VOUCHER" },
-      ],
+      perTicketMenu: [{ mode: "VOUCHER" }, { mode: "VOUCHER" }],
     };
-    expect(computeSubmitTotal(input).computedTotalAtSubmit).toBe(100_000 + 75_000 + 100_000 + 75_000);
+    expect(computeSubmitTotal(input).computedTotalAtSubmit).toBe(
+      100_000 + 75_000 + 100_000 + 75_000
+    );
   });
 });
 ```
@@ -254,10 +255,13 @@ export type SubmitPricingResult = {
   computedTotalAtSubmit: number;
 };
 
-function ticketLineRupiah(input: SubmitPricingInput, ticket: {
-  role: "primary" | "partner";
-  priceType: TicketPriceType;
-}): number {
+function ticketLineRupiah(
+  input: SubmitPricingInput,
+  ticket: {
+    role: "primary" | "partner";
+    priceType: TicketPriceType;
+  }
+): number {
   const { event } = input;
   if (ticket.priceType === "non_member") return event.ticketNonMemberPrice;
   if (ticket.priceType === "member") return event.ticketMemberPrice;
@@ -266,7 +270,7 @@ function ticketLineRupiah(input: SubmitPricingInput, ticket: {
 
 function menuLineRupiah(
   event: SubmitPricingInput["event"],
-  ent: SubmitPricingInput["perTicketMenu"][number],
+  ent: SubmitPricingInput["perTicketMenu"][number]
 ): number {
   if (event.menuMode === "VOUCHER") {
     if (event.voucherPrice == null) {
@@ -280,7 +284,9 @@ function menuLineRupiah(
   return ent.selectedMenuItems.reduce((s, i) => s + i.price, 0);
 }
 
-export function computeSubmitTotal(input: SubmitPricingInput): SubmitPricingResult {
+export function computeSubmitTotal(
+  input: SubmitPricingInput
+): SubmitPricingResult {
   const ticketMemberPriceApplied = input.event.ticketMemberPrice;
   const ticketNonMemberPriceApplied = input.event.ticketNonMemberPrice;
   const voucherPriceApplied =
@@ -292,7 +298,7 @@ export function computeSubmitTotal(input: SubmitPricingInput): SubmitPricingResu
   const lines: number[] = [];
 
   lines.push(
-    ticketLineRupiah(input, { role: "primary", priceType: primaryType }),
+    ticketLineRupiah(input, { role: "primary", priceType: primaryType })
   );
   lines.push(menuLineRupiah(input.event, input.perTicketMenu[0]));
 
@@ -301,7 +307,7 @@ export function computeSubmitTotal(input: SubmitPricingInput): SubmitPricingResu
       ticketLineRupiah(input, {
         role: "partner",
         priceType: "privilege_partner_member_price",
-      }),
+      })
     );
     lines.push(menuLineRupiah(input.event, input.perTicketMenu[1]));
   }
@@ -337,6 +343,7 @@ git commit -m "feat(pricing): compute locked submit totals"
 ## Task 3: WhatsApp helpers + tests
 
 **Files:**
+
 - Create: `src/lib/wa-templates/encode.ts`
 - Create: `src/lib/wa-templates/messages.ts`
 - Create: `src/lib/wa-templates/messages.test.ts`
@@ -404,7 +411,11 @@ export function templatePaymentIssue(reason: string): string {
   ].join("\n");
 }
 
-export function templateApproved(eventTitle: string, venue: string, startAtIso: string): string {
+export function templateApproved(
+  eventTitle: string,
+  venue: string,
+  startAtIso: string
+): string {
   const when = new Date(startAtIso).toLocaleString("id-ID", {
     dateStyle: "long",
     timeStyle: "short",
@@ -476,6 +487,7 @@ git commit -m "feat(wa): add wa.me encoding and admin message templates"
 ## Task 4: Admin context loader (for guards)
 
 **Files:**
+
 - Create: `src/lib/auth/admin-context.ts`
 - Modify: `src/lib/permissions/guards.ts` (only if you need a typed import re-export; optional)
 
@@ -489,7 +501,7 @@ import type { AdminRole } from "@/lib/permissions/roles";
 import { prisma } from "@/lib/db/prisma";
 
 export async function getAdminContext(
-  authUserId: string,
+  authUserId: string
 ): Promise<AdminContext | null> {
   const profile = await prisma.adminProfile.findUnique({
     where: { authUserId },
@@ -536,6 +548,7 @@ git commit -m "feat(auth): load admin context with PIC helper event ids"
 ## Task 5: Duplicate member guard
 
 **Files:**
+
 - Create: `src/lib/registrations/duplicate-members.ts`
 - Create: `src/lib/registrations/duplicate-members.test.ts`
 
@@ -581,7 +594,7 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function findDuplicateMemberNumbers(
   eventId: string,
-  candidates: string[],
+  candidates: string[]
 ): Promise<string[]> {
   const nums = [...new Set(candidates.filter(Boolean))];
   if (nums.length === 0) return [];
@@ -592,7 +605,7 @@ export async function findDuplicateMemberNumbers(
   });
 
   const set = new Set(
-    existing.map((e) => e.memberNumber).filter(Boolean) as string[],
+    existing.map((e) => e.memberNumber).filter(Boolean) as string[]
   );
   return nums.filter((n) => set.has(n));
 }
@@ -612,6 +625,7 @@ git commit -m "feat(registrations): detect duplicate member numbers per event"
 ## Task 6: Server Action — submit registration
 
 **Files:**
+
 - Create: `src/lib/actions/submit-registration.ts`
 - Modify: `src/lib/uploads/upload-image.ts` (no change if signature already matches)
 - Depends on: Task 1–2, 5
@@ -631,7 +645,12 @@ import { prisma } from "@/lib/db/prisma";
 import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
 import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
 import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
-import { ok, fieldError, rootError, type ActionResult } from "@/lib/forms/action-result";
+import {
+  ok,
+  fieldError,
+  rootError,
+  type ActionResult,
+} from "@/lib/forms/action-result";
 import { del } from "@vercel/blob";
 
 const phone = z.string().trim().min(8, "WhatsApp wajib diisi");
@@ -652,7 +671,7 @@ export type SubmitRegistrationInput = z.infer<typeof baseSchema>;
 
 export async function submitRegistration(
   _prev: unknown,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionResult<{ registrationId: string }>> {
   const raw = Object.fromEntries(formData.entries());
   const qtyPartnerNorm: 0 | 1 =
@@ -707,13 +726,13 @@ export async function submitRegistration(
   const partnerMemberNumber = data.partnerMemberNumber?.trim() || undefined;
 
   const candidates = [primaryMemberNumber, partnerMemberNumber].filter(
-    Boolean,
+    Boolean
   ) as string[];
 
   const dup = await findDuplicateMemberNumbers(event.id, candidates);
   if (dup.length > 0) {
     return rootError(
-      `Nomor member berikut sudah terdaftar untuk acara ini: ${dup.join(", ")}`,
+      `Nomor member berikut sudah terdaftar untuk acara ini: ${dup.join(", ")}`
     );
   }
 
@@ -727,16 +746,21 @@ export async function submitRegistration(
 
   if (data.qtyPartner === 1) {
     if (!data.partnerName?.trim()) {
-      return fieldError({ partnerName: "Nama partner wajib jika membawa partner." });
+      return fieldError({
+        partnerName: "Nama partner wajib jika membawa partner.",
+      });
     }
     if (!picMaster?.isPengurus) {
-      return rootError("Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama.");
+      return rootError(
+        "Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama."
+      );
     }
   }
 
   const primaryIsMemberPrice = Boolean(primaryMemberNumber);
 
-  const menuParts: Parameters<typeof computeSubmitTotal>[0]["perTicketMenu"] = [];
+  const menuParts: Parameters<typeof computeSubmitTotal>[0]["perTicketMenu"] =
+    [];
 
   if (event.menuMode === MenuMode.VOUCHER) {
     menuParts.push({ mode: "VOUCHER" });
@@ -875,7 +899,9 @@ export async function submitRegistration(
           /* best-effort */
         }
       }
-      await prisma.registration.delete({ where: { id: registrationId } }).catch(() => {});
+      await prisma.registration
+        .delete({ where: { id: registrationId } })
+        .catch(() => {});
     }
     console.error(e);
     return rootError("Gagal menyimpan pendaftaran. Coba lagi.");
@@ -901,11 +927,12 @@ git commit -m "feat(actions): submit registration with uploads and pending_revie
 ## Task 7: Public pages — home + registration + receipt
 
 **Files:**
+
 - Create: `src/app/(public)/layout.tsx`
 - Create: `src/app/(public)/page.tsx`
 - Delete: `src/app/page.tsx` (the default starter) OR replace content — **must leave a single `/` route**
-- Create: `src/app/(public)/e/[slug]/page.tsx`
-- Create: `src/app/(public)/e/[slug]/r/[registrationId]/page.tsx`
+- Create: `src/app/(public)/events/[slug]/page.tsx`
+- Create: `src/app/(public)/events/[slug]/r/[registrationId]/page.tsx`
 - Create: `src/components/public/registration-form.tsx`
 - Create: `src/components/public/event-card.tsx`
 - Modify: `src/app/layout.tsx` — set `metadata.title` to product name (optional)
@@ -945,7 +972,7 @@ export default async function PublicHomePage() {
           <li key={e.slug}>
             <Link
               className="block rounded-lg border border-border bg-card p-4 hover:bg-accent/40"
-              href={`/e/${e.slug}`}
+              href={`/events/${e.slug}`}
             >
               <div className="font-medium">{e.title}</div>
               <div className="mt-1 text-muted-foreground text-sm">
@@ -986,7 +1013,7 @@ git add src/app/(public) src/components/public src/app/page.tsx
 git commit -m "feat(public): active events list, registration, receipt"
 ```
 
-*(Adjust `git add` paths if `page.tsx` was delete vs modify.)*
+_(Adjust `git add` paths if `page.tsx` was delete vs modify.)_
 
 ---
 
@@ -1015,6 +1042,7 @@ git commit -m "chore(ui): add shadcn components for inbox and forms"
 ## Task 9: Admin inbox list + detail UI
 
 **Files:**
+
 - Create: `src/app/admin/events/[eventId]/inbox/page.tsx`
 - Create: `src/app/admin/events/[eventId]/inbox/[registrationId]/page.tsx`
 - Create: `src/components/admin/registration-status-badge.tsx`
@@ -1048,6 +1076,7 @@ git commit -m "feat(admin): event registration inbox list and detail"
 ## Task 10: Admin verification Server Actions
 
 **Files:**
+
 - Create: `src/lib/actions/verify-registration.ts`
 
 - [ ] **Step 1: Implement guarded mutations**
@@ -1072,7 +1101,10 @@ async function guard(eventId: string) {
   if (!canVerifyEvent(ctx, eventId)) throw new Error("FORBIDDEN");
 }
 
-export async function approveRegistration(eventId: string, registrationId: string): Promise<ActionResult<{ ok: true }>> {
+export async function approveRegistration(
+  eventId: string,
+  registrationId: string
+): Promise<ActionResult<{ ok: true }>> {
   try {
     await guard(eventId);
   } catch {
@@ -1101,7 +1133,7 @@ export async function approveRegistration(eventId: string, registrationId: strin
 export async function rejectRegistration(
   eventId: string,
   registrationId: string,
-  reason: string,
+  reason: string
 ): Promise<ActionResult<{ ok: true }>> {
   try {
     await guard(eventId);
@@ -1129,7 +1161,7 @@ export async function rejectRegistration(
 export async function markPaymentIssue(
   eventId: string,
   registrationId: string,
-  reason: string,
+  reason: string
 ): Promise<ActionResult<{ ok: true }>> {
   try {
     await guard(eventId);
@@ -1199,6 +1231,7 @@ git commit -m "feat(admin): wa.me shortcuts for inbox templates"
 ## Task 12: Seed script (demo horizontal slice)
 
 **Files:**
+
 - Create: `prisma/seed.ts`
 - Modify: `package.json`
 
@@ -1214,7 +1247,13 @@ Use this complete script (updates emails if collision — engineer may tweak nam
 
 ```ts
 import "dotenv/config";
-import { PrismaClient, EventStatus, MenuMode, MenuSelection, PricingSource } from "@prisma/client";
+import {
+  PrismaClient,
+  EventStatus,
+  MenuMode,
+  MenuSelection,
+  PricingSource,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -1265,8 +1304,20 @@ async function main() {
   await prisma.eventMenuItem.deleteMany({ where: { eventId: event.id } });
   await prisma.eventMenuItem.createMany({
     data: [
-      { eventId: event.id, name: "Paket Burger", price: 55_000, sortOrder: 1, voucherEligible: true },
-      { eventId: event.id, name: "Paket Nasi", price: 50_000, sortOrder: 2, voucherEligible: true },
+      {
+        eventId: event.id,
+        name: "Paket Burger",
+        price: 55_000,
+        sortOrder: 1,
+        voucherEligible: true,
+      },
+      {
+        eventId: event.id,
+        name: "Paket Nasi",
+        price: 50_000,
+        sortOrder: 2,
+        voucherEligible: true,
+      },
     ],
   });
 
@@ -1313,15 +1364,15 @@ git commit -m "chore(prisma): add demo seed for active event"
 
 **Spec coverage**
 
-| Requirement | Tasks |
-|-------------|-------|
-| Public `/` active events | Task 7 |
-| Public `/e/[slug]` registration + uploads + PRESELECT/VOUCHER | Tasks 1, 2, 6, 7 |
-| Status `pending_review` after submit | Task 6 |
-| Admin inbox per event | Tasks 9–10 |
-| Approve / reject(reason) / payment_issue(reason) | Task 10 |
-| `wa.me` templates | Tasks 3, 11 |
-| Guarded Server Actions | Tasks 4, 10 |
+| Requirement                                                        | Tasks            |
+| ------------------------------------------------------------------ | ---------------- |
+| Public `/` active events                                           | Task 7           |
+| Public `/events/[slug]` registration + uploads + PRESELECT/VOUCHER | Tasks 1, 2, 6, 7 |
+| Status `pending_review` after submit                               | Task 6           |
+| Admin inbox per event                                              | Tasks 9–10       |
+| Approve / reject(reason) / payment_issue(reason)                   | Task 10          |
+| `wa.me` templates                                                  | Tasks 3, 11      |
+| Guarded Server Actions                                             | Tasks 4, 10      |
 
 **Explicitly out of scope for this slice (later plans)**
 

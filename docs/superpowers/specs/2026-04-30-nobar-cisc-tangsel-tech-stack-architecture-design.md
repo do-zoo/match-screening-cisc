@@ -7,10 +7,12 @@ Scope: MVP architecture & tech stack derived from `docs/superpowers/specs/2026-0
 ## 1) Decisions (Locked)
 
 ### 1.1 Product boundaries
+
 - **Participant flow**: **no participant accounts** (participants submit the form once per registration).
 - **Admin flow**: authenticated admin panel with roles + per-event PIC hybrid permissions.
 
 ### 1.2 Hosting & runtime
+
 - **Hosting**: Vercel
 - **App**: single full-stack **Next.js App Router** application
 - **Rendering**:
@@ -18,6 +20,7 @@ Scope: MVP architecture & tech stack derived from `docs/superpowers/specs/2026-0
   - Admin pages: RSC + Server Actions for all mutations
 
 ### 1.3 AuthN/AuthZ
+
 - **Auth provider**: **Better Auth** (admin only)
 - **Admin sign-in methods**:
   - Email + password
@@ -29,10 +32,12 @@ Scope: MVP architecture & tech stack derived from `docs/superpowers/specs/2026-0
     - Hybrid rule: `PIC Helper` gets verifier capabilities **only** for assigned event(s)
 
 ### 1.4 Database & ORM
+
 - **Database**: Postgres managed (**Neon**)
 - **ORM/migrations**: **Prisma**
 
 ### 1.5 File storage (uploads)
+
 - **Storage**: **Vercel Blob** (selected: **Option A**)
 - **Files**:
   - `transferProof` (required)
@@ -41,22 +46,26 @@ Scope: MVP architecture & tech stack derived from `docs/superpowers/specs/2026-0
 - **Size optimization**: uploaded images are converted to **WebP** (optionally AVIF if later needed) with resize + size limits.
 
 ### 1.6 Notifications
+
 - WhatsApp notifications are **no-budget** via **click-to-chat** (`wa.me`) with templates in admin UI.
 
 ## 2) High-level Architecture
 
 ### 2.1 Single-app component map
+
 **Next.js app** contains two surfaces:
+
 - **Public (participants)**:
   - `/` list active events
-  - `/e/[slug]` registration form (+ receipt page/section after submit)
+  - `/events/[slug]` registration form (+ receipt page/section after submit)
 - **Admin (authenticated)**:
   - `/admin` dashboard, events CRUD, registration inbox, reports, master data
 
 ### 2.2 Data flows (core)
 
 #### Registration submit (participant)
-1. Participant selects event (`/e/[slug]`) and fills form.
+
+1. Participant selects event (`/events/[slug]`) and fills form.
 2. Server Action validates:
    - event is `active`
    - duplicate `memberNumber` per event constraint (for any provided memberNumber on primary/partner)
@@ -69,6 +78,7 @@ Scope: MVP architecture & tech stack derived from `docs/superpowers/specs/2026-0
 6. Set status to `pending_review` (after internal `submitted`).
 
 #### Verification + status changes (admin)
+
 1. Admin opens `/admin/events/[id]/inbox`.
 2. Admin actions are Server Actions guarded by:
    - role checks (`Owner/Verifier`) OR PIC helper assignment for the event
@@ -80,13 +90,16 @@ Scope: MVP architecture & tech stack derived from `docs/superpowers/specs/2026-0
    - cancel/refund
 
 #### WhatsApp click-to-chat
+
 Admin UI renders `wa.me` buttons with:
+
 - templated message body (URL encoded)
 - destination = participant WhatsApp (partner fallback → primary contact)
 
 ## 3) Key Implementation Boundaries (to keep code maintainable)
 
 ### 3.1 Modules (suggested)
+
 - `app/(public)/...`: public routes
 - `app/admin/...`: admin routes
 - `lib/auth/*`: Better Auth config + session helpers
@@ -97,12 +110,14 @@ Admin UI renders `wa.me` buttons with:
 - `lib/wa-templates/*`: WhatsApp template rendering + encoding
 
 ### 3.2 Guarding pattern
+
 - Middleware handles **authentication presence** and redirects.
 - Server Actions enforce **authorization** (role + per-event assignment) and return typed errors suitable for admin UI.
 
 ## 4) Vercel Blob Cost Expectation (MVP)
 
 Based on the Hobby tier screenshot shared:
+
 - Includes **1 GB storage / month**; then **$0.025 per GB-month**
 - Includes **10 GB data transfer**; then **$0.053 per GB**
 - Ops limits are far above expected MVP usage.
@@ -110,8 +125,8 @@ Based on the Hobby tier screenshot shared:
 With **~30 registrations / event** and images converted to WebP/AVIF (typical 100–600KB per image), expected usage per event is usually **tens of MB**, which stays comfortably within the included free tier for storage and transfer.
 
 ## 5) Open Items (Defer to implementation plan)
+
 - Exact Prisma schema and indexes derived from the conceptual ERD.
 - Exact image conversion settings (max dimension, target quality, max bytes).
 - Rate limiting / abuse protections for public form submission.
 - Backups/retention policy for uploaded proofs (delete after N months vs keep).
-

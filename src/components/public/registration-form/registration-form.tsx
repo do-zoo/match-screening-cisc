@@ -5,11 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { submitRegistration } from "@/lib/actions/submit-registration";
@@ -105,7 +101,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       await submitRegistration(null, fd);
 
     if (result.ok) {
-      router.push(`/e/${event.slug}/r/${result.data.registrationId}`);
+      router.push(`/events/${event.slug}/r/${result.data.registrationId}`);
       return;
     }
 

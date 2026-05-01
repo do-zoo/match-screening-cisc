@@ -30,9 +30,7 @@ export function EventCard({
   });
 
   const radius =
-    variant === "grid"
-      ? "var(--radius-lg)"
-      : "calc(var(--radius-lg) - 2px)";
+    variant === "grid" ? "var(--radius-lg)" : "calc(var(--radius-lg) - 2px)";
 
   const inner =
     variant === "grid" ? (
@@ -90,7 +88,7 @@ export function EventCard({
         "flex overflow-hidden shadow-sm transition-shadow hover:shadow-md",
         variant === "grid"
           ? "flex-col items-stretch"
-          : "min-h-0 flex-row items-stretch",
+          : "min-h-0 flex-row items-stretch"
       )}
       style={{
         width: "100%",
@@ -98,12 +96,12 @@ export function EventCard({
       }}
     >
       <Link
-        href={`/e/${slug}`}
+        href={`/events/${slug}`}
         className={cn(
           "relative z-1 flex text-[hsl(var(--foreground))] no-underline outline-none ring-offset-[hsl(var(--background))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]",
           variant === "grid"
             ? "min-h-0 w-full flex-1 flex-col"
-            : "w-full gap-4 p-3",
+            : "w-full gap-4 p-3"
         )}
       >
         {inner}

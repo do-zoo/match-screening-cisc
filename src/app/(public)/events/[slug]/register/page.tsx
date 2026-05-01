@@ -38,7 +38,7 @@ export default async function EventRegistrationPage({
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <nav>
           <Link
-            href={`/e/${event.slug}`}
+            href={`/events/${event.slug}`}
             className="text-sm text-[hsl(var(--muted-foreground))] underline-offset-4 hover:text-[hsl(var(--foreground))] hover:underline"
           >
             ← Kembali ke detail acara
