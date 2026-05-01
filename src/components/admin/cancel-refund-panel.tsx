@@ -76,7 +76,7 @@ export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
         <div className="flex flex-wrap gap-2">
           {canCancel && (
             <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-              <DialogTrigger render={<Button variant="outline" disabled={isPending} />}>
+              <DialogTrigger disabled={isPending} render={<Button variant="outline" />}>
                 Batalkan pendaftaran
               </DialogTrigger>
               <DialogContent>
@@ -100,7 +100,7 @@ export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
 
           {canRefund && (
             <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
-              <DialogTrigger render={<Button variant="destructive" disabled={isPending} />}>
+              <DialogTrigger disabled={isPending} render={<Button variant="destructive" />}>
                 Proses refund
               </DialogTrigger>
               <DialogContent>

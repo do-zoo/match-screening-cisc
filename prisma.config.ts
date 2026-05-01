@@ -1,11 +1,8 @@
-import fs from "node:fs";
-import dotenv from "dotenv";
 import { defineConfig } from "prisma/config";
 
-dotenv.config({ path: ".env" });
-if (fs.existsSync(".env.local")) {
-  dotenv.config({ path: ".env.local", override: true });
-}
+import { applyEnvProfile } from "./scripts/load-env-profile";
+
+applyEnvProfile();
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

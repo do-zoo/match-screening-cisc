@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { InboxTable } from "@/components/admin/inbox-table";
 import { requireAdminSession } from "@/lib/auth/session";
@@ -54,9 +55,17 @@ export default async function AdminEventInboxPage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
-        <p className="text-sm text-muted-foreground">{event.title}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
+          <p className="text-sm text-muted-foreground">{event.title}</p>
+        </div>
+        <Link
+          href={`/admin/events/${eventId}/report`}
+          className="text-sm font-medium underline-offset-4 hover:underline self-center"
+        >
+          Lihat laporan
+        </Link>
       </header>
 
       <InboxTable eventId={eventId} registrations={registrations} />

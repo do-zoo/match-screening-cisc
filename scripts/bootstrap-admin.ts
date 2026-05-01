@@ -1,4 +1,4 @@
-import { config } from "dotenv";
+import { applyEnvProfile } from "./load-env-profile";
 
 type Args = {
   email: string;
@@ -26,8 +26,7 @@ function usage() {
 }
 
 async function main() {
-  // Make sure env is loaded for tsx execution contexts.
-  config({ path: ".env.local" });
+  applyEnvProfile();
 
   const [{ auth }, { prisma }] = await Promise.all([
     import("@/lib/auth/auth"),
@@ -66,7 +65,8 @@ async function main() {
             'Better Auth tables are missing (relation "user" does not exist).',
             "",
             "Run the Better Auth migration first:",
-            "  pnpm auth:migrate",
+            "  pnpm auth:migrate   # dev (.env.local) or:",
+            "  pnpm auth:migrate:prod   # MATCH_DB_PROFILE=production (.env.prod)",
             "",
             "Then re-run this bootstrap command.",
           ].join("\n"),
