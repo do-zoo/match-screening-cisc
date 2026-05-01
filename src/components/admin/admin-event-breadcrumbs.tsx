@@ -3,17 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { pathsMatchRegistrationDetail } from "@/lib/admin/event-inbox-detail-path";
 import { cn } from "@/lib/utils";
-
-function pathsMatchRegistrationDetail(
-  pathname: string | null,
-  eventId: string,
-): boolean {
-  if (!pathname) return false;
-  if (pathname === `/admin/events/${eventId}/inbox`) return false;
-  const prefix = `/admin/events/${eventId}/inbox/`;
-  return pathname.startsWith(prefix) && pathname.length > prefix.length;
-}
 
 export function AdminEventBreadcrumbs({
   eventId,
