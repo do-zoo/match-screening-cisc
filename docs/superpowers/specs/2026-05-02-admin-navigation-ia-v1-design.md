@@ -2,7 +2,7 @@
 title: Navigasi admin backoffice — IA global + konteks acara + peran PIC
 date: 2026-05-02
 project: match-screening
-status: draft
+status: ready-for-review
 related:
   - 2026-05-01-admin-dashboard-shell-design.md
   - 2026-04-29-nobar-cisc-tangsel-design.md
@@ -87,7 +87,26 @@ Halaman **`/admin`** (Beranda kartu event, tab status, aggregat **menunggu tinja
 - Tidak ada entri sidebar **Laporan** global di v1; PIC tetap bisa deep link **`/admin/events/[eventId]/report`** dari kartu atau sub-nav.
 - Sub-nav konteks desktop vs mobile konsisten antara **Inbox** dan **Laporan** tanpa duplikasi membingungkan (satu blok sidebar **atau** satu bar horizontal per breakpoint).
 
-## 7) References
+## 7) Milestone implementasi v1 (disetujui: wire navigasi dulu)
+
+**Prioritas iterasi pertama:** **A** — sambungkan **semua item menu global** ke rute kanonik dengan **isi minimal** (placeholder atau empty state) dan **perlakuan salah hak konsisten**. CRUD lengkap Nobar (**Acara** / **Anggota** / **Pengaturan**) boleh menyusul di rencana terpisah; milestone ini menjaga tidak ada tautan menggantung atau perilaku akses tidak jelas.
+
+| Rute | Terlihat di sidebar bagi | Sasaran perilaku Milestone v1 |
+|------|---------------------------|--------------------------------|
+| `/admin` | Matriks §4.1 | Sudah ada (Beranda/shell); tetap pusat KPI + kartu. |
+| `/admin/events` | Owner, Admin, Verifier, Viewer\* | Halaman ada: judul ringkas **Acara**, copy placeholder “belum ada implementasi daftar”—**bukan** 404 bagi yang berhak. Data real menyusul. |
+| `/admin/anggota` | Owner, Admin — saja | **Owner / Admin:** halaman placeholder + copy singkat. **Verifier / Viewer / tanpa sesi:** tidak melihat link; deep link → **`notFound()`** atau setara **FORBIDDEN** konsisten repo. |
+| `/admin/pengaturan` | Owner saja | **Owner:** placeholder “Pengaturan komite”. **Lainnya:** tidak melihat link; deep link → **`notFound()`** / **FORBIDDEN**. |
+
+**Shell UI:** sidebar (dan drawer mobile) menyajikan tautan untuk item yang boleh user itu lihat (**role** diketahui dari server / layout sama pola existing); aktiv state pakai **`pathname`**.
+
+**Bahasa fallback:** salinan Indonesia; tanpa blok kosong membisu bagi error gagal muat (**selaras §6 shell** bila pola error dipakai ulang).
+
+**Di luar Milestone ini (urutan kemudian):** isi Nyata `/admin/events` (CRUD), `/admin/anggota`, **`/admin/pengaturan`**; penyempurnaan sub-nav **Inbox \| Laporan** hibrida bila layout event belum sejajar spek §3 — dapat berjalan paralel tetapi **prioritas utama** dokumentasi sprint ini ialah **kelengkapan link + guard**.
+
+\* **Viewer:** lihat sidebar terpangkas per matriks; rute **`/admin/events`** hanya bermakna bagi mereka jika akses PIC mengizinkan — placeholder tetap aman bagi semua PIC yang bisa masuk (**canVerifyEvent** menyaring data nanti).
+
+## 8) References
 
 - `prisma/schema.prisma` — `enum AdminRole { Owner Admin Verifier Viewer }`.
 - **`src/lib/permissions/guards.ts`** — **`canVerifyEvent`**.

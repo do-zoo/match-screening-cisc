@@ -21,9 +21,9 @@ export default async function AdminEventInboxDetailPage({
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Registration detail
+          Detail pendaftar
         </h1>
         <div className="rounded-lg border border-dashed bg-card p-6 text-sm">
           Missing AdminProfile
@@ -111,11 +111,11 @@ export default async function AdminEventInboxDetailPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Registration detail
+            Detail pendaftar
           </h1>
           <p className="text-sm text-muted-foreground">{registration.event.title}</p>
         </div>
@@ -123,7 +123,7 @@ export default async function AdminEventInboxDetailPage({
           href={`/admin/events/${eventId}/inbox`}
           className="text-sm font-medium underline-offset-4 hover:underline"
         >
-          Back to inbox
+          Kembali ke inbox
         </Link>
       </header>
 
