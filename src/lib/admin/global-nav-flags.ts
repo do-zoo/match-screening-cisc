@@ -15,7 +15,7 @@ export type GlobalSidebarNav = {
 export function deriveGlobalSidebarNav(ctx: AdminContext | null): GlobalSidebarNav {
   return {
     beranda: true,
-    acara: ctx !== null,
+    acara: ctx !== null && hasOperationalOwnerParity(ctx.role),
     anggota: ctx !== null && hasOperationalOwnerParity(ctx.role),
     pengaturan: ctx !== null && canManageCommitteeAdvancedSettings(ctx.role),
   };
