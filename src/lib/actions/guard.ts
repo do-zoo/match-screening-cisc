@@ -10,7 +10,7 @@ export async function guardEvent(eventId: string): Promise<AdminContext> {
   return ctx;
 }
 
-/** Committee / advanced configuration only (`/admin/pengaturan`, admin users, PIC banks, defaults, WA templates). */
+/** Committee / advanced configuration only (`/admin/settings`, admin users, PIC banks, defaults, WA templates). */
 export async function guardOwner(): Promise<AdminContext> {
   const session = await requireAdminSession();
   const ctx = await getAdminContext(session.user.id);

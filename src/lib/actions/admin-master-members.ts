@@ -178,7 +178,7 @@ export async function importMasterMembersCsv(
           "utf8",
         ).toString("base64");
 
-  revalidatePath("/admin/anggota");
+  revalidatePath("/admin/members");
   return ok({ successCount, failureCount, errorCsvBase64 });
 }
 
@@ -222,7 +222,7 @@ export async function createMasterMember(
       },
       select: { id: true },
     });
-    revalidatePath("/admin/anggota");
+    revalidatePath("/admin/members");
     return ok({ id: row.id });
   } catch (e) {
     if (
@@ -276,6 +276,6 @@ export async function updateMasterMember(
     },
     select: { id: true },
   });
-  revalidatePath("/admin/anggota");
+  revalidatePath("/admin/members");
   return ok({ id: z.data.id });
 }

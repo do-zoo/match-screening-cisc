@@ -132,7 +132,7 @@ All monetary values are stored as integers in IDR smallest unit (i.e., whole rup
 
 ### Uploads
 
-Images are converted to WebP (max 1600px, quality 80) via Sharp before being put to Vercel Blob. The blob path is `registrations/{registrationId}/{purpose}.webp`. DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup.
+Images are converted to WebP (max 1600px, quality 80) via Sharp before being put to Vercel Blob with **`access: "public"`** so the CDN can serve them directly (`next/image` and browser fetches bill mostly to Blob storage, not through app functions). Anyone with the full blob URL can download the object—treat URLs as confidential. Paths are deterministic (e.g. `registrations/{registrationId}/{purpose}.webp`; event cover under `events/{eventId}/cover.webp`). DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup. Objects uploaded earlier as **private** stay private until re-upload or a deliberate migration replaces them.
 
 ### Testing
 

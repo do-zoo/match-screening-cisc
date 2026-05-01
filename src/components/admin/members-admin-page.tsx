@@ -77,7 +77,7 @@ function buildAnggotaHref(opts: { filter: ActivityFilter; q: string }): string {
   if (qTrim) qs.set("q", qTrim.slice(0, 200));
   if (opts.filter !== "all") qs.set("filter", opts.filter);
   const s = qs.toString();
-  return s ? `/admin/anggota?${s}` : "/admin/anggota";
+  return s ? `/admin/members?${s}` : "/admin/members";
 }
 
 export function MembersAdminPage({
@@ -101,7 +101,7 @@ export function MembersAdminPage({
     const term = searchQuery.trim();
     if (term) params.set("q", term);
     const qs = params.toString();
-    return `/admin/anggota/export${qs ? `?${qs}` : ""}`;
+    return `/admin/members/export${qs ? `?${qs}` : ""}`;
   }, [filter, searchQuery]);
 
   const columns = useMemo<ColumnDef<AdminMasterMemberRowVm>[]>(
@@ -253,7 +253,7 @@ export function MembersAdminPage({
         <CardContent className="flex flex-col gap-4">
           <form
             method="get"
-            action="/admin/anggota"
+            action="/admin/members"
             className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
           >
             <input type="hidden" name="filter" value={filter} />
@@ -297,7 +297,7 @@ export function MembersAdminPage({
               emptyMessage="Tidak ada anggota yang cocok dengan filter."
             />
             <TablePagination
-              pathname="/admin/anggota"
+              pathname="/admin/members"
               preservedQuery={paginationPreserved}
               currentPage={pagination.page}
               pageSize={pagination.pageSize}

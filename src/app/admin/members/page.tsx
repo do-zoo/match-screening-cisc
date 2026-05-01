@@ -27,7 +27,7 @@ function parseFilter(v: string | undefined): "all" | "active" | "inactive" {
   return "all";
 }
 
-export default async function AdminAnggotaPage({
+export default async function AdminMembersPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

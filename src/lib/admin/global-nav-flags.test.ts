@@ -12,26 +12,26 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(null)).toEqual({
       beranda: true,
       acara: false,
-      anggota: false,
-      pengaturan: false,
+      members: false,
+      settings: false,
     });
   });
 
-  it("Owner: beranda + acara + anggota + pengaturan", () => {
+  it("Owner: beranda + acara + members + settings", () => {
     expect(deriveGlobalSidebarNav(ctx("Owner"))).toEqual({
       beranda: true,
       acara: true,
-      anggota: true,
-      pengaturan: true,
+      members: true,
+      settings: true,
     });
   });
 
-  it("Admin: operational parity minus pengaturan", () => {
+  it("Admin: operational parity minus settings", () => {
     expect(deriveGlobalSidebarNav(ctx("Admin"))).toEqual({
       beranda: true,
       acara: true,
-      anggota: true,
-      pengaturan: false,
+      members: true,
+      settings: false,
     });
   });
 
@@ -39,8 +39,8 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(ctx("Verifier"))).toEqual({
       beranda: true,
       acara: false,
-      anggota: false,
-      pengaturan: false,
+      members: false,
+      settings: false,
     });
   });
 
@@ -48,8 +48,8 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(ctx("Viewer"))).toEqual({
       beranda: true,
       acara: false,
-      anggota: false,
-      pengaturan: false,
+      members: false,
+      settings: false,
     });
   });
 });

@@ -7,8 +7,8 @@ import {
 export type GlobalSidebarNav = {
   beranda: true;
   acara: boolean;
-  anggota: boolean;
-  pengaturan: boolean;
+  members: boolean;
+  settings: boolean;
 };
 
 /** Sidebar links for authenticated admin chrome; aligns with IA §4.1 matrix when `ctx` is non-null. */
@@ -16,7 +16,7 @@ export function deriveGlobalSidebarNav(ctx: AdminContext | null): GlobalSidebarN
   return {
     beranda: true,
     acara: ctx !== null && hasOperationalOwnerParity(ctx.role),
-    anggota: ctx !== null && hasOperationalOwnerParity(ctx.role),
-    pengaturan: ctx !== null && canManageCommitteeAdvancedSettings(ctx.role),
+    members: ctx !== null && hasOperationalOwnerParity(ctx.role),
+    settings: ctx !== null && canManageCommitteeAdvancedSettings(ctx.role),
   };
 }
