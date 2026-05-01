@@ -78,3 +78,52 @@ describe("getTriggerFieldsForStep purchaser gate", () => {
     ).toEqual(["purchaserIsMember", "contactName", "contactWhatsapp"]);
   });
 });
+
+describe("getTriggerFieldsForStep partner gate", () => {
+  const qty = 1 as const;
+
+  it("asks for partner member status before other partner fields when unknown", () => {
+    expect(getTriggerFieldsForStep("partner", qty, {})).toEqual([
+      "qtyPartner",
+      "partnerIsMember",
+    ]);
+  });
+
+  it("non-member partner path validates name/contact without nomor kartu partner", () => {
+    expect(
+      getTriggerFieldsForStep("partner", qty, {
+        partnerIsMember: false,
+      }),
+    ).toEqual([
+      "qtyPartner",
+      "partnerIsMember",
+      "partnerName",
+      "partnerWhatsapp",
+    ]);
+  });
+
+  it("member partner path before directory only validates nominal partner member", () => {
+    expect(
+      getTriggerFieldsForStep("partner", qty, {
+        partnerIsMember: true,
+        partnerDirectoryVerified: false,
+      }),
+    ).toEqual(["qtyPartner", "partnerIsMember", "partnerMemberNumber"]);
+  });
+
+  it("member partner after directory includes kartu + kontak untuk partner", () => {
+    expect(
+      getTriggerFieldsForStep("partner", qty, {
+        partnerIsMember: true,
+        partnerDirectoryVerified: true,
+      }),
+    ).toEqual([
+      "qtyPartner",
+      "partnerIsMember",
+      "partnerMemberNumber",
+      "partnerMemberCardPhoto",
+      "partnerName",
+      "partnerWhatsapp",
+    ]);
+  });
+});

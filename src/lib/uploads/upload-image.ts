@@ -16,7 +16,10 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
 ]);
 
 export async function uploadImageForRegistration(input: {
-  purpose: Extract<UploadPurpose, "transfer_proof" | "member_card_photo">;
+  purpose: Extract<
+    UploadPurpose,
+    "transfer_proof" | "member_card_photo" | "partner_member_card_photo"
+  >;
   registrationId: string;
   file: File;
 }): Promise<{ uploadId: string; url: string }> {

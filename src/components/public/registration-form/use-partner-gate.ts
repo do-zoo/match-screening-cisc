@@ -7,13 +7,11 @@ import { primaryMemberSeatTakenForActiveEventSlug } from "@/lib/actions/check-me
 import { lookupMemberPartnerEligibility } from "@/lib/actions/lookup-member-partner-eligibility";
 import {
   MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
+  MEMBER_NOT_IN_DIRECTORY_MESSAGE,
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
 
 import type { PartnerGateState } from "./types";
-
-const CLAIMED_MEMBER_NOT_IN_DIRECTORY =
-  "Nomor member tidak dikenali atau tidak aktif di direktori kami.";
 
 export function usePartnerGate(
   form: UseFormReturn<SubmitRegistrationInput>,
@@ -26,14 +24,20 @@ export function usePartnerGate(
 
   const resetPartnerFields = useCallback(() => {
     form.setValue("qtyPartner", 0, { shouldValidate: true });
+    form.setValue("partnerIsMember", false);
     form.setValue("partnerName", "");
     form.setValue("partnerWhatsapp", "");
     form.setValue("partnerMemberNumber", "");
+    form.setValue("partnerMemberCardPhoto", undefined, {
+      shouldValidate: false,
+    });
     form.clearErrors([
       "qtyPartner",
+      "partnerIsMember",
       "partnerName",
       "partnerWhatsapp",
       "partnerMemberNumber",
+      "partnerMemberCardPhoto",
     ]);
   }, [form]);
 
@@ -66,7 +70,7 @@ export function usePartnerGate(
         }
         if (!r.found) {
           form.setError("claimedMemberNumber", {
-            message: CLAIMED_MEMBER_NOT_IN_DIRECTORY,
+            message: MEMBER_NOT_IN_DIRECTORY_MESSAGE,
           });
           form.setValue("memberCardPhoto", undefined, {
             shouldValidate: false,
