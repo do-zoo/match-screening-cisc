@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { templateReceipt } from "@/lib/wa-templates/messages";
-import { normalizeIdPhone, waMeLink } from "@/lib/wa-templates/encode";
 import {
   templateCancelled,
+  templateReceipt,
   templateRefunded,
   templateUnderpaymentInvoice,
 } from "@/lib/wa-templates/messages";
+import { normalizeIdPhone, waMeLink } from "@/lib/wa-templates/encode";
 
 describe("wa templates", () => {
   it("normalizes ID domestic and trims stray leading 0 before 62", () => {
@@ -42,6 +42,7 @@ describe("additional wa templates", () => {
 
   it("templateRefunded mentions event title", () => {
     const body = templateRefunded("Sari", "Demo Final");
+    expect(body).toContain("Sari");
     expect(body).toContain("Demo Final");
     expect(body).toContain("dikembalikan");
   });
