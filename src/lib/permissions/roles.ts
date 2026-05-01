@@ -6,3 +6,13 @@ const GLOBAL_VERIFIER_ROLES = new Set<AdminRole>(["Owner", "Admin", "Verifier"])
 export function hasGlobalVerifierAccess(role: AdminRole): boolean {
   return GLOBAL_VERIFIER_ROLES.has(role);
 }
+
+/** Owner-only surfaces: manage admins, PIC bank accounts, global pricing defaults, WhatsApp templates (“Pengaturan lanjutan”). */
+export function canManageCommitteeAdvancedSettings(role: AdminRole): boolean {
+  return role === "Owner";
+}
+
+/** Owner or Admin: operational backoffice parity (e.g. master members, event management) — excludes {@link canManageCommitteeAdvancedSettings}. */
+export function hasOperationalOwnerParity(role: AdminRole): boolean {
+  return role === "Owner" || role === "Admin";
+}

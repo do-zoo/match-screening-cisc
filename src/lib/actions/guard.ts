@@ -10,11 +10,21 @@ export async function guardEvent(eventId: string): Promise<AdminContext> {
   return ctx;
 }
 
+/** Committee / advanced configuration only (`/admin/pengaturan`, admin users, PIC banks, defaults, WA templates). */
 export async function guardOwner(): Promise<AdminContext> {
   const session = await requireAdminSession();
   const ctx = await getAdminContext(session.user.id);
   if (!ctx) throw new Error("NO_PROFILE");
   if (ctx.role !== "Owner") throw new Error("FORBIDDEN");
+  return ctx;
+}
+
+/** Operational management routes shared by Owner and Admin (everything except committee advanced settings). */
+export async function guardOwnerOrAdmin(): Promise<AdminContext> {
+  const session = await requireAdminSession();
+  const ctx = await getAdminContext(session.user.id);
+  if (!ctx) throw new Error("NO_PROFILE");
+  if (ctx.role !== "Owner" && ctx.role !== "Admin") throw new Error("FORBIDDEN");
   return ctx;
 }
 

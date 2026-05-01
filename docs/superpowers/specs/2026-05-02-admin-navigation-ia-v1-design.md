@@ -44,7 +44,7 @@ Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma)
 | Nilai enum | Nama UI (opsional, konsisten Indo) | Inti akses navigasi / operasi |
 |------------|-------------------------------------|--------------------------------|
 | **Owner** | Owner | Konfigurasi komite (**Pengaturan**), master **Anggota**, serta semua operasional acara bagi event yang boleh diakses. |
-| **Admin** | Admin | Sama hak **verifikasi event global** dengan **Verifier** (lihat **`hasGlobalVerifierAccess`**): inbox/laporan/aksi mutasi registrasi untuk semua event yang boleh diakses PIC staf—**tanpa** **Pengaturan** atau **Anggota** mengikuti matriks v1 di bawah. |
+| **Admin** | Admin | **Paritas operasional dengan Owner** pada Beranda, Acara, Anggota, inbox/laporan (verifikasi global). **Tidak** boleh **`Pengaturan` / pengaturan lanjutan komite**: kelola admin PIC, rekening bank PIC, default harga global, template WA (**`canManageCommitteeAdvancedSettings`** hanya Owner). |
 | **Verifier** | Verifier | Beranda, kelola jalur **Acara**/inbox/laporan per event untuk event yang boleh diakses; **tidak** menu **Pengaturan**. |
 | **Viewer** | Viewer | Lihat dashboard dan laporan/ekspor sesuai izin tanpa tombol verifikasi kecuali **elevator** PIC Helper untuk event tertentu. |
 
@@ -58,14 +58,14 @@ Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma)
 |-----------|------|:-----:|:-----:|:--------:|:--------:|
 | **Beranda** | `/admin` | ✓ | ✓ | ✓ | ✓ |
 | **Acara** | `/admin/events` (indeks kelola)\*\* | ✓ | ✓ | ✓ | ✓ |
-| **Anggota** | `/admin/anggota` | ✓ | — | — | — |
+| **Anggota** | `/admin/anggota` | ✓ | ✓ | — | — |
 | **Pengaturan** | `/admin/pengaturan` | ✓ | — | — | — |
 
 \* **Viewer**: hanya melihat data acara yang lolos **`canVerifyEvent`** (biasanya sebagai helper tugas tertentu; tanpa pohon kosong mengherankan ketika tidak ada tugas helper).
 
 \*\* **Acara**: indeks manajemen (daftar/create/edit sesuai rencana implementasi). **Beranda** tetap jalur utama operasi harian (kartu + KPI **`pending_review`**); tidak mengganti prinsip “tanpa pohon sidebar” untuk daftar cepat multitasking — itu tugas kartu dan deep link.
 
-**Perlindungan server:** penyusutan menu tidak cukup; setiap loader dan mutasi tetap menyaring berdasarkan role + **`canVerifyEvent`**. Kunjungan URL langsung **tanpa** hak menghasilkan **`notFound()`** atau respons setara pola repo (konsisten halaman sensitif lain).
+**Perlindungan server:** penyusutan menu tidak cukup; setiap loader dan mutasi tetap menyaring berdasarkan role + **`canVerifyEvent`**. Jalur **Anggota** (operasional) memakai **`hasOperationalOwnerParity`** / **`guardOwnerOrAdmin`**; jalur **Pengaturan lanjutan** memakai **`canManageCommitteeAdvancedSettings`** / **`guardOwner`**. Kunjungan URL langsung **tanpa** hak menghasilkan **`notFound()`** atau respons setara pola repo.
 
 ### 4.2 Breadcrumb (ringkas)
 
@@ -83,7 +83,7 @@ Halaman **`/admin`** (Beranda kartu event, tab status, aggregat **menunggu tinja
 
 ## 6) Success criteria
 
-- Satu peta mental jelas: **Beranda** = operasi; **Acara** = kelola direktori acara jangka panjang; **Anggota** / **Pengaturan** = Owner saja (**Admin**/Verifier seperti matriks).
+- Satu peta mental jelas: **Beranda** = operasi; **Acara** = kelola direktori acara; **Anggota** = Owner & Admin; **Pengaturan** (lanjutan) = Owner saja (matriks §4.1).
 - Tidak ada entri sidebar **Laporan** global di v1; PIC tetap bisa deep link **`/admin/events/[eventId]/report`** dari kartu atau sub-nav.
 - Sub-nav konteks desktop vs mobile konsisten antara **Inbox** dan **Laporan** tanpa duplikasi membingungkan (satu blok sidebar **atau** satu bar horizontal per breakpoint).
 
@@ -91,4 +91,5 @@ Halaman **`/admin`** (Beranda kartu event, tab status, aggregat **menunggu tinja
 
 - `prisma/schema.prisma` — `enum AdminRole { Owner Admin Verifier Viewer }`.
 - **`src/lib/permissions/guards.ts`** — **`canVerifyEvent`**.
-- **`src/lib/permissions/roles.ts`** — tipe **`AdminRole`**, **`hasGlobalVerifierAccess`** (Owner \| Admin \| Verifier untuk verifikasi lintas semua event).
+- **`src/lib/permissions/roles.ts`** — **`AdminRole`**, **`hasGlobalVerifierAccess`**, **`hasOperationalOwnerParity`**, **`canManageCommitteeAdvancedSettings`**.
+- **`src/lib/actions/guard.ts`** — **`guardOwner`** (lanjutan komite), **`guardOwnerOrAdmin`** (operasional Owner+Admin).

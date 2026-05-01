@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { canVerifyEvent, type AdminContext } from "@/lib/permissions/guards";
+import {
+  canManageCommitteeAdvancedSettings,
+  hasOperationalOwnerParity,
+} from "@/lib/permissions/roles";
 
 const base: AdminContext = {
   role: "Viewer",
@@ -30,5 +34,21 @@ describe("permissions: canVerifyEvent", () => {
     expect(
       canVerifyEvent({ ...base, role: "Viewer", helperEventIds: ["e1"] }, "e2"),
     ).toBe(false);
+  });
+});
+
+describe("permissions: committee vs operational scope", () => {
+  test("only Owner can manage committee advanced settings", () => {
+    expect(canManageCommitteeAdvancedSettings("Owner")).toBe(true);
+    expect(canManageCommitteeAdvancedSettings("Admin")).toBe(false);
+    expect(canManageCommitteeAdvancedSettings("Verifier")).toBe(false);
+    expect(canManageCommitteeAdvancedSettings("Viewer")).toBe(false);
+  });
+
+  test("Owner and Admin have operational owner parity", () => {
+    expect(hasOperationalOwnerParity("Owner")).toBe(true);
+    expect(hasOperationalOwnerParity("Admin")).toBe(true);
+    expect(hasOperationalOwnerParity("Verifier")).toBe(false);
+    expect(hasOperationalOwnerParity("Viewer")).toBe(false);
   });
 });
