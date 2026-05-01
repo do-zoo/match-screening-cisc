@@ -6,6 +6,9 @@ export const CLUB_AUDIT_ACTION = {
   CLUB_BRANDING_SAVED: "club_branding.saved",
   NOTIFICATION_PREFS_SAVED: "notification_preferences.saved",
   ADMIN_PROFILE_BOOTSTRAP_UPSERT: "admin_profile.bootstrap_upsert",
+  ADMIN_PROFILE_CREATED_UI: "admin_profile.created_ui",
+  ADMIN_PROFILE_ROLE_CHANGED: "admin_profile.role_changed",
+  ADMIN_PROFILE_MEMBER_LINK_CHANGED: "admin_profile.member_link_changed",
 } as const;
 
 export type ClubAuditAction =
