@@ -106,6 +106,10 @@ export function ManagementMemberFormDialog({
   }, [open, defaultValues, form]);
 
   function submit(values: FormValues) {
+    if (mode === "edit" && !member) {
+      setRootMessage("Data pengurus tidak ditemukan.");
+      return;
+    }
     setRootMessage(null);
     startTransition(async () => {
       const fd = new FormData();
@@ -120,7 +124,7 @@ export function ManagementMemberFormDialog({
               masterMemberId,
             }
           : {
-              id: member?.id ?? "",
+              id: member!.id,
               fullName: values.fullName,
               publicCode: values.publicCode,
               whatsapp: values.whatsapp,
@@ -173,8 +177,8 @@ export function ManagementMemberFormDialog({
           </DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "Tambahkan ManagementMember baru. Kode publik otomatis diubah ke huruf kapital."
-              : "Perbarui data ManagementMember. Kode publik otomatis diubah ke huruf kapital."}
+              ? "Tambahkan pengurus baru. Kode publik otomatis diubah ke huruf kapital."
+              : "Perbarui data pengurus. Kode publik otomatis diubah ke huruf kapital."}
           </DialogDescription>
         </DialogHeader>
 
@@ -254,7 +258,7 @@ export function ManagementMemberFormDialog({
               </Button>
             ) : null}
             {mode === "edit" && showDeleteConfirm ? (
-              <div className="mr-auto flex items-center gap-2">
+              <div className="mr-auto flex flex-wrap items-center gap-2">
                 <span className="text-sm text-destructive">Yakin hapus?</span>
                 <Button type="button" variant="destructive" size="sm" disabled={isDeleting} onClick={handleDelete}>
                   {isDeleting ? <Loader2 className="size-4 animate-spin" /> : "Ya, hapus"}
@@ -265,7 +269,7 @@ export function ManagementMemberFormDialog({
                 {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
               </div>
             ) : null}
-            <Button type="button" variant="outline" disabled={isPending} onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" disabled={isPending || isDeleting} onClick={() => onOpenChange(false)}>
               Batal
             </Button>
             <Button type="submit" disabled={isPending}>
