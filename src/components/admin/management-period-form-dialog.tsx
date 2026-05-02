@@ -161,15 +161,15 @@ export function ManagementPeriodFormDialog({
           ) : null}
 
           <Field label="Label periode" htmlFor="period-label" error={form.formState.errors.label?.message}>
-            <Input id="period-label" disabled={isPending} {...form.register("label")} />
+            <Input id="period-label" aria-invalid={Boolean(form.formState.errors.label)} disabled={isPending} {...form.register("label")} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Tanggal mulai" htmlFor="period-starts-at" error={form.formState.errors.startsAt?.message}>
-              <Input id="period-starts-at" type="date" disabled={isPending} {...form.register("startsAt")} />
+              <Input id="period-starts-at" type="date" aria-invalid={Boolean(form.formState.errors.startsAt)} disabled={isPending} {...form.register("startsAt")} />
             </Field>
             <Field label="Tanggal akhir" htmlFor="period-ends-at" error={form.formState.errors.endsAt?.message}>
-              <Input id="period-ends-at" type="date" disabled={isPending} {...form.register("endsAt")} />
+              <Input id="period-ends-at" type="date" aria-invalid={Boolean(form.formState.errors.endsAt)} disabled={isPending} {...form.register("endsAt")} />
             </Field>
           </div>
 
@@ -206,10 +206,8 @@ export function ManagementPeriodFormDialog({
                 >
                   Batal
                 </Button>
+                {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
               </div>
-            ) : null}
-            {deleteError ? (
-              <p className="text-sm text-destructive">{deleteError}</p>
             ) : null}
             <Button type="button" variant="outline" disabled={isPending} onClick={() => onOpenChange(false)}>
               Batal
