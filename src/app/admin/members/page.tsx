@@ -77,6 +77,7 @@ export default async function AdminMembersPage({
       filter={filter}
       searchQuery={q ?? ""}
       tabCounts={counts}
+      isOwner={ctx.role === "Owner"}
     />
   );
 }

@@ -36,6 +36,7 @@ type Props = {
     pageSize: number;
     totalItems: number;
   };
+  isOwner: boolean;
 };
 
 const activityFilters: Array<{ value: ActivityFilter; label: string }> = [
@@ -87,6 +88,7 @@ export function MembersAdminPage({
   searchQuery,
   tabCounts,
   pagination,
+  isOwner,
 }: Props) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -312,6 +314,7 @@ export function MembersAdminPage({
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSaved={refreshRows}
+        isOwner={isOwner}
       />
       <MemberFormDialog
         mode="edit"
@@ -321,6 +324,7 @@ export function MembersAdminPage({
         }}
         member={editingMember}
         onSaved={refreshRows}
+        isOwner={isOwner}
       />
     </main>
   );
