@@ -1,10 +1,40 @@
 import Link from "next/link";
 
-import { ClubAuditLogTable } from "@/components/admin/club-audit-log-table";
-import { loadRecentClubAuditForOwnerSettings } from "@/lib/audit/load-recent-club-audit";
+import { ClubAuditLogSection } from "@/components/admin/club-audit-log-table";
+import { loadClubAuditList } from "@/lib/audit/load-recent-club-audit";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
+import { parseAdminTablePage } from "@/lib/table/admin-pagination";
 
-export default async function SecuritySettingsPage() {
-  const rows = await loadRecentClubAuditForOwnerSettings();
+function firstString(param: string | string[] | undefined): string | undefined {
+  if (param === undefined) return undefined;
+  if (Array.isArray(param)) return param[0];
+  return param;
+}
+
+export default async function SecuritySettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+
+  const from = firstString(sp.from)?.trim() ?? "";
+  const to = firstString(sp.to)?.trim() ?? "";
+  const action = firstString(sp.action)?.trim() ?? "";
+  const userId = (firstString(sp.userId) ?? "").trim().slice(0, 200);
+
+  const requestedPage = parseAdminTablePage(sp.page);
+
+  const { rows, totalItems, page } = await loadClubAuditList(requestedPage, {
+    from: from || undefined,
+    to: to || undefined,
+    action: action || undefined,
+    userId: userId || undefined,
+  });
+
+  const actionOptions = Object.values(CLUB_AUDIT_ACTION).sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   return (
     <div className="space-y-10">
@@ -31,7 +61,8 @@ export default async function SecuritySettingsPage() {
             Akun
           </Link>
           . Verifikasi tambahan dengan kode email pada saat masuk hanya aktif jika pengiriman
-          email transaksional telah dikonfigurasi di lingkungan server. Dokumentasi Better Auth:{" "}
+          email transaksional telah dikonfigurasi di lingkungan server. Dokumentasi Better
+          Auth:{" "}
           <a
             href="https://www.better-auth.com/docs/plugins/two-factor"
             className="underline underline-offset-4"
@@ -47,10 +78,18 @@ export default async function SecuritySettingsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">Log audit</h2>
         <p className="text-muted-foreground text-sm">
-          100 entri terbaru (UTC). Metadata disanitasi; tidak berisi isi penuh templat
-          WhatsApp.
+          Paginasi 10 entri per halaman. Filter waktu memakai tanggal dan jam lokal
+          (kalender + field waktu); batas filter disimpan sebagai momen absolut (ISO) dan
+          dibandingkan ke stempel waktu di basis data. Metadata disanitasi; tidak berisi
+          isi penuh templat WhatsApp.
         </p>
-        <ClubAuditLogTable rows={rows} />
+        <ClubAuditLogSection
+          rows={rows}
+          totalItems={totalItems}
+          page={page}
+          filters={{ from, to, action, userId }}
+          actionOptions={actionOptions}
+        />
       </section>
     </div>
   );
