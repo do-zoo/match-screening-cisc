@@ -12,6 +12,17 @@ export const CLUB_AUDIT_ACTION = {
   ADMIN_PROFILE_DELETED_UI: "admin_profile.deleted_ui",
   EVENT_DELETED_UI: "event.deleted_ui",
   MASTER_MEMBER_DELETED_UI: "master_member.deleted_ui",
+  BOARD_PERIOD_CREATED: "board_period.created",
+  BOARD_PERIOD_UPDATED: "board_period.updated",
+  BOARD_ROLE_CREATED: "board_role.created",
+  BOARD_ROLE_UPDATED: "board_role.updated",
+  BOARD_ROLE_DEACTIVATED: "board_role.deactivated",
+  MANAGEMENT_MEMBER_CREATED: "management_member.created",
+  MANAGEMENT_MEMBER_UPDATED: "management_member.updated",
+  MANAGEMENT_MEMBER_PUBLIC_CODE_CHANGED: "management_member.public_code_changed",
+  BOARD_ASSIGNMENT_CREATED: "board_assignment.created",
+  BOARD_ASSIGNMENT_UPDATED: "board_assignment.updated",
+  BOARD_ASSIGNMENT_REMOVED: "board_assignment.removed",
 } as const;
 
 export type ClubAuditAction =
