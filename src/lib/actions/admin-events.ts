@@ -291,7 +291,17 @@ export async function updateAdminEvent(
 
   const existing = await prisma.event.findUnique({
     where: { id: eventId },
-    include: {
+    select: {
+      slug: true,
+      coverBlobUrl: true,
+      menuMode: true,
+      menuSelection: true,
+      ticketMemberPrice: true,
+      ticketNonMemberPrice: true,
+      voucherPrice: true,
+      pricingSource: true,
+      picAdminProfileId: true,
+      bankAccountId: true,
       menuItems: { select: { id: true } },
       helpers: { select: { memberId: true } },
       _count: { select: { registrations: true } },
