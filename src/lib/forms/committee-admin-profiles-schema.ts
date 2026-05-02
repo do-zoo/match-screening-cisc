@@ -39,3 +39,7 @@ export const updateCommitteeAdminMemberLinkSchema = z.object({
 export const revokeCommitteeAdminAccessSchema = z.object({
   adminProfileId: z.string().trim().min(1, "Profil admin wajib."),
 });
+
+export const deleteCommitteeAdminSchema = z.object({
+  adminProfileId: z.string().trim().min(1, "Profil admin wajib."),
+});

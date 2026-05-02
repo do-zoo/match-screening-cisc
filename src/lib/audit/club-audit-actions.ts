@@ -9,6 +9,9 @@ export const CLUB_AUDIT_ACTION = {
   ADMIN_PROFILE_CREATED_UI: "admin_profile.created_ui",
   ADMIN_PROFILE_ROLE_CHANGED: "admin_profile.role_changed",
   ADMIN_PROFILE_MEMBER_LINK_CHANGED: "admin_profile.member_link_changed",
+  ADMIN_PROFILE_DELETED_UI: "admin_profile.deleted_ui",
+  EVENT_DELETED_UI: "event.deleted_ui",
+  MASTER_MEMBER_DELETED_UI: "master_member.deleted_ui",
 } as const;
 
 export type ClubAuditAction =

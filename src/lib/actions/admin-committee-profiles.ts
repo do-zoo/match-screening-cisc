@@ -13,6 +13,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 import {
   addCommitteeAdminByEmailSchema,
+  deleteCommitteeAdminSchema,
   revokeCommitteeAdminAccessSchema,
   updateCommitteeAdminMemberLinkSchema,
   updateCommitteeAdminRoleSchema,
@@ -274,4 +275,55 @@ export async function revokeCommitteeAdminMeaningfulAccess(
 
   revalidatePath("/admin/settings/committee");
   return ok({ saved: true });
+}
+
+export async function deleteCommitteeAdmin(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ deleted: true }>> {
+  const gate = await requireOwner();
+  if (!("owner" in gate)) return gate;
+
+  const parsed = deleteCommitteeAdminSchema.safeParse({
+    adminProfileId: formData.get("adminProfileId"),
+  });
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+
+  const target = await prisma.adminProfile.findUnique({
+    where: { id: parsed.data.adminProfileId },
+    select: { id: true, authUserId: true, role: true },
+  });
+  if (!target) return rootError("Profil admin tidak ditemukan.");
+
+  if (target.authUserId === gate.owner.authUserId) {
+    return rootError("Tidak bisa menghapus profil sendiri.");
+  }
+
+  const ownerIds = await listOwnerAuthUserIds();
+  if (
+    !roleChangePreservesAtLeastOneOwner({
+      ownerAuthUserIds: ownerIds,
+      targetAuthUserId: target.authUserId,
+      previousRole: target.role,
+      nextRole: AdminRole.Viewer,
+    })
+  ) {
+    return rootError(
+      "Minimal harus ada satu Owner. Tambahkan Owner lain sebelum menghapus Owner ini.",
+    );
+  }
+
+  await prisma.adminProfile.delete({ where: { id: target.id } });
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: gate.owner.profileId,
+    actorAuthUserId: gate.owner.authUserId,
+    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_DELETED_UI,
+    targetType: "admin_profile",
+    targetId: target.id,
+    metadata: { targetAuthUserId: target.authUserId },
+  });
+
+  revalidatePath("/admin/settings/committee");
+  return ok({ deleted: true });
 }
