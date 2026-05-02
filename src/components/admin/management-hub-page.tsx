@@ -29,15 +29,12 @@ type Props = {
   activePeriodId: string | null;
 };
 
+type EditDialogState = { period: PeriodRow; mode: "edit" | "delete" } | null;
+
 export function ManagementHubPage({ periods, activePeriodId }: Props) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingPeriod, setEditingPeriod] = useState<PeriodRow | null>(null);
-  const [editDeleteMode, setEditDeleteMode] = useState(false);
-
-  function refresh() {
-    router.refresh();
-  }
+  const [editDialog, setEditDialog] = useState<EditDialogState>(null);
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
@@ -123,13 +120,13 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
                         <MoreVerticalIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setEditingPeriod(p); setEditDeleteMode(false); }}>
+                        <DropdownMenuItem onClick={() => setEditDialog({ period: p, mode: "edit" })}>
                           Edit periode
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => { setEditingPeriod(p); setEditDeleteMode(true); }}
+                          onClick={() => setEditDialog({ period: p, mode: "delete" })}
                         >
                           Hapus periode
                         </DropdownMenuItem>
@@ -147,16 +144,16 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
         mode="create"
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSaved={refresh}
+        onSaved={router.refresh}
       />
-      {editingPeriod ? (
+      {editDialog ? (
         <ManagementPeriodFormDialog
           mode="edit"
-          open={Boolean(editingPeriod)}
-          onOpenChange={(open) => { if (!open) { setEditingPeriod(null); setEditDeleteMode(false); } }}
-          period={editingPeriod}
-          onSaved={refresh}
-          defaultShowDeleteConfirm={editDeleteMode}
+          open
+          onOpenChange={(open) => { if (!open) setEditDialog(null); }}
+          period={editDialog.period}
+          onSaved={router.refresh}
+          defaultShowDeleteConfirm={editDialog.mode === "delete"}
         />
       ) : null}
     </main>
