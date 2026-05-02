@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, MoreVerticalIcon } from "lucide-react";
 
 import type {
   CommitteeAdminDirectoryRowVm,
@@ -30,6 +30,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -68,6 +75,8 @@ function fieldErrorsLines(fieldErrors?: Record<string, string>) {
     .join("\n");
 }
 
+type ManageDialogId = "role" | "member" | "revoke" | "delete";
+
 type ManageFormsProps = {
   row: CommitteeAdminDirectoryRowVm;
   memberOptions: CommitteeAdminDirectoryVm["memberOptions"];
@@ -77,6 +86,7 @@ type ManageFormsProps = {
 
 function ManageAdminDialogs(props: ManageFormsProps) {
   const { row, onAnySuccess } = props;
+  const [activeDialog, setActiveDialog] = useState<ManageDialogId | null>(null);
 
   const [roleState, roleDispatch, rolePending] = useActionState(
     updateCommitteeAdminRole,
@@ -97,6 +107,8 @@ function ManageAdminDialogs(props: ManageFormsProps) {
 
   useEffect(() => {
     if (roleState?.ok || memberState?.ok || revokeState?.ok || deleteState?.ok) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect -- sync controlled dialog closed after action success */
+      setActiveDialog(null);
       onAnySuccess();
     }
   }, [roleState?.ok, memberState?.ok, revokeState?.ok, deleteState?.ok, onAnySuccess]);
@@ -111,12 +123,56 @@ function ManageAdminDialogs(props: ManageFormsProps) {
     revokeState?.ok === false ? revokeState.fieldErrors : undefined,
   );
 
+  const actionDisabled =
+    rolePending || memberPending || revokePending || deletePending;
+
   return (
-    <div className="flex flex-wrap gap-2">
-      <Dialog>
-        <DialogTrigger disabled={rolePending} render={<Button variant="outline" size="sm" />}>
-          Ubah peran
-        </DialogTrigger>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label={`Aksi untuk ${row.email}`}
+          disabled={actionDisabled}
+          render={<Button variant="outline" size="icon-sm" />}
+        >
+          <MoreVerticalIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            disabled={rolePending}
+            onClick={() => setActiveDialog("role")}
+          >
+            Ubah peran
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={memberPending}
+            onClick={() => setActiveDialog("member")}
+          >
+            Tautan anggota
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            disabled={revokePending}
+            onClick={() => setActiveDialog("revoke")}
+          >
+            Cabut akses
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            disabled={deletePending}
+            onClick={() => setActiveDialog("delete")}
+          >
+            Hapus profil
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog
+        open={activeDialog === "role"}
+        onOpenChange={(open) => {
+          if (!open) setActiveDialog(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Ubah peran admin</DialogTitle>
@@ -169,10 +225,12 @@ function ManageAdminDialogs(props: ManageFormsProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog>
-        <DialogTrigger disabled={memberPending} render={<Button variant="outline" size="sm" />}>
-          Tautan anggota
-        </DialogTrigger>
+      <Dialog
+        open={activeDialog === "member"}
+        onOpenChange={(open) => {
+          if (!open) setActiveDialog(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Hubungkan ke MasterMember</DialogTitle>
@@ -230,10 +288,12 @@ function ManageAdminDialogs(props: ManageFormsProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog>
-        <DialogTrigger disabled={revokePending} render={<Button variant="destructive" size="sm" />}>
-          Cabut akses
-        </DialogTrigger>
+      <Dialog
+        open={activeDialog === "revoke"}
+        onOpenChange={(open) => {
+          if (!open) setActiveDialog(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Cabut akses bermakna</DialogTitle>
@@ -274,10 +334,12 @@ function ManageAdminDialogs(props: ManageFormsProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog>
-        <DialogTrigger disabled={deletePending} render={<Button variant="destructive" size="sm" />}>
-          Hapus
-        </DialogTrigger>
+      <Dialog
+        open={activeDialog === "delete"}
+        onOpenChange={(open) => {
+          if (!open) setActiveDialog(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Hapus profil admin</DialogTitle>
@@ -309,7 +371,7 @@ function ManageAdminDialogs(props: ManageFormsProps) {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 

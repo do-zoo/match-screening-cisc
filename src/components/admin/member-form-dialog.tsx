@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 
@@ -19,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   createMasterMember,
-  deleteMasterMember,
   updateMasterMember,
 } from "@/lib/actions/admin-master-members";
 import {
@@ -45,7 +43,6 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   member?: AdminMasterMemberRowVm | null;
   onSaved: () => void;
-  isOwner: boolean;
 };
 
 export function MemberFormDialog({
@@ -54,13 +51,9 @@ export function MemberFormDialog({
   onOpenChange,
   member,
   onSaved,
-  isOwner,
 }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [isDeleting, startDeleteTransition] = useTransition();
   const [rootMessage, setRootMessage] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const defaultValues = useMemo<MemberFormValues>(
     () => ({
@@ -89,23 +82,6 @@ export function MemberFormDialog({
       form.reset(defaultValues);
     }
   }, [defaultValues, form, open]);
-
-  function handleDelete() {
-    if (!member) return;
-    startDeleteTransition(async () => {
-      const fd = new FormData();
-      fd.set("memberId", member.id);
-      const result = await deleteMasterMember(undefined, fd);
-      if (result.ok) {
-        setConfirming(false);
-        setDeleteError(null);
-        onOpenChange(false);
-        onSaved();
-      } else {
-        setDeleteError(result.rootError ?? "Gagal menghapus anggota.");
-      }
-    });
-  }
 
   function submit(values: MemberFormValues) {
     setRootMessage(null);
@@ -166,11 +142,7 @@ export function MemberFormDialog({
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          setRootMessage(null);
-          setConfirming(false);
-          setDeleteError(null);
-        }
+        if (!nextOpen) setRootMessage(null);
         onOpenChange(nextOpen);
       }}
     >
@@ -265,59 +237,6 @@ export function MemberFormDialog({
             </Button>
           </DialogFooter>
         </form>
-
-        {mode === "edit" && isOwner ? (
-          confirming ? (
-            <div className="flex flex-col gap-3 border-t pt-4 mt-2">
-              <p className="text-sm text-destructive font-medium">
-                Hapus <strong>{member?.fullName}</strong> secara permanen? Tindakan
-                ini tidak bisa dibatalkan.
-              </p>
-              {deleteError ? (
-                <p className="text-sm text-destructive">{deleteError}</p>
-              ) : null}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={() => {
-                    setConfirming(false);
-                    setDeleteError(null);
-                  }}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    "Ya, hapus anggota"
-                  )}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="border-t pt-4 mt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setConfirming(true)}
-              >
-                Hapus anggota…
-              </Button>
-            </div>
-          )
-        ) : null}
       </DialogContent>
     </Dialog>
   );

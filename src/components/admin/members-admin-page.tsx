@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { DownloadIcon, PencilIcon, PlusIcon, SearchIcon } from "lucide-react";
+import {
+  DownloadIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  SearchIcon,
+} from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +25,15 @@ import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import { Input } from "@/components/ui/input";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { MemberCsvImportPanel } from "@/components/admin/member-csv-import-panel";
+import { MemberDeleteDialog } from "@/components/admin/member-delete-dialog";
 import { MemberFormDialog } from "@/components/admin/member-form-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { AdminMasterMemberRowVm } from "@/lib/members/query-admin-master-members";
 
 type ActivityFilter = "all" | "active" | "inactive";
@@ -93,6 +106,8 @@ export function MembersAdminPage({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingMember, setEditingMember] =
+    useState<AdminMasterMemberRowVm | null>(null);
+  const [memberPendingDelete, setMemberPendingDelete] =
     useState<AdminMasterMemberRowVm | null>(null);
 
   const counts = tabCounts;
@@ -188,23 +203,47 @@ export function MembersAdminPage({
         enableSorting: false,
         header: () => <span className="sr-only">Aksi</span>,
         cell: ({ row }) => (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setEditingMember(row.original)}
-            aria-label={`Edit ${row.original.fullName}`}
-          >
-            <PencilIcon />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`Aksi untuk ${row.original.fullName}`}
+              render={
+                <Button type="button" variant="ghost" size="icon-sm" />
+              }
+            >
+              <MoreVerticalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setEditingMember(row.original)}
+              >
+                Edit anggota
+              </DropdownMenuItem>
+              {isOwner ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setMemberPendingDelete(row.original)}
+                  >
+                    Hapus anggota
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ),
       },
     ],
-    [],
+    [isOwner],
   );
 
   function refreshRows() {
     router.refresh();
+  }
+
+  function handleMemberDeleted(deletedId: string) {
+    router.refresh();
+    if (editingMember?.id === deletedId) setEditingMember(null);
   }
 
   const paginationPreserved =
@@ -314,7 +353,6 @@ export function MembersAdminPage({
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSaved={refreshRows}
-        isOwner={isOwner}
       />
       <MemberFormDialog
         mode="edit"
@@ -324,7 +362,14 @@ export function MembersAdminPage({
         }}
         member={editingMember}
         onSaved={refreshRows}
-        isOwner={isOwner}
+      />
+      <MemberDeleteDialog
+        member={memberPendingDelete}
+        open={memberPendingDelete !== null}
+        onOpenChange={(next) => {
+          if (!next) setMemberPendingDelete(null);
+        }}
+        onDeleted={handleMemberDeleted}
       />
     </main>
   );
