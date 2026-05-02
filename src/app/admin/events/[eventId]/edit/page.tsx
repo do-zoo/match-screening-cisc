@@ -10,7 +10,8 @@ import { prisma } from "@/lib/db/prisma";
 import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
+import { hasOperationalOwnerParity, canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import { EventDeletePanel } from "@/components/admin/event-delete-panel";
 import { cn } from "@/lib/utils";
 
 export default async function AdminEditEventPage({
@@ -163,6 +164,13 @@ export default async function AdminEditEventPage({
         picOptions={picOptions}
         banksByPic={banksByPic}
       />
+      {canManageCommitteeAdvancedSettings(ctx.role) ? (
+        <EventDeletePanel
+          eventId={eventId}
+          eventTitle={event.title}
+          registrationCount={event._count.registrations}
+        />
+      ) : null}
     </main>
   );
 }
