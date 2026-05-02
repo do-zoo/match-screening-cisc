@@ -27,3 +27,7 @@ export type AdminMasterMemberCreateInput = z.infer<
 export type AdminMasterMemberUpdateInput = z.infer<
   typeof adminMasterMemberUpdateSchema
 >;
+
+export const deleteMasterMemberSchema = z.object({
+  memberId: z.string().trim().min(1, "ID anggota wajib."),
+});

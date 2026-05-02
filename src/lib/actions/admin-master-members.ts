@@ -4,11 +4,14 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import Papa from "papaparse";
 
-import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
+import { guardOwner, guardOwnerOrAdmin, isAuthError, type OwnerGuardContext } from "@/lib/actions/guard";
+import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
 import {
   adminMasterMemberCreateSchema,
   adminMasterMemberUpdateSchema,
+  deleteMasterMemberSchema,
 } from "@/lib/forms/admin-master-member-schema";
 import {
   fieldError,
@@ -25,6 +28,18 @@ import {
 import { assertCsvTextSingleLinePhysicalRecords } from "@/lib/members/master-member-csv-single-line-record";
 import { parseMasterMemberCsvText } from "@/lib/members/parse-master-member-csv-text";
 import { prepareMasterMemberCsvRow } from "@/lib/members/prepare-master-member-csv-row";
+
+async function requireOwner(): Promise<
+  ActionResult<never> | { owner: OwnerGuardContext }
+> {
+  try {
+    const owner = await guardOwner();
+    return { owner };
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
+}
 
 export type MasterMemberImportResult = {
   successCount: number;
@@ -278,4 +293,66 @@ export async function updateMasterMember(
   });
   revalidatePath("/admin/members");
   return ok({ id: z.data.id });
+}
+
+export async function deleteMasterMember(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ deleted: true }>> {
+  const gate = await requireOwner();
+  if (!("owner" in gate)) return gate;
+
+  const parsed = deleteMasterMemberSchema.safeParse({
+    memberId: formData.get("memberId"),
+  });
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+
+  const member = await prisma.masterMember.findUnique({
+    where: { id: parsed.data.memberId },
+    select: {
+      id: true,
+      fullName: true,
+      memberNumber: true,
+      _count: {
+        select: {
+          eventsAsPicMaster: true,
+          bankAccounts: true,
+        },
+      },
+    },
+  });
+  if (!member) return rootError("Anggota tidak ditemukan.");
+
+  if (member._count.eventsAsPicMaster > 0) {
+    return rootError(
+      `Anggota tidak bisa dihapus karena menjadi PIC di ${member._count.eventsAsPicMaster} acara. Ganti PIC acara tersebut terlebih dahulu.`,
+    );
+  }
+
+  if (member._count.bankAccounts > 0) {
+    return rootError(
+      `Anggota tidak bisa dihapus karena memiliki ${member._count.bankAccounts} rekening bank terdaftar. Hapus rekening terlebih dahulu.`,
+    );
+  }
+
+  try {
+    await prisma.masterMember.delete({ where: { id: member.id } });
+  } catch {
+    return rootError("Gagal menghapus anggota. Coba lagi atau periksa apakah ada data terkait yang baru ditambahkan.");
+  }
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: gate.owner.profileId,
+    actorAuthUserId: gate.owner.authUserId,
+    action: CLUB_AUDIT_ACTION.MASTER_MEMBER_DELETED_UI,
+    targetType: "master_member",
+    targetId: member.id,
+    metadata: {
+      memberNumber: member.memberNumber,
+      fullName: member.fullName,
+    },
+  });
+
+  revalidatePath("/admin/members");
+  return ok({ deleted: true });
 }
