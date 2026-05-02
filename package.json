@@ -22,6 +22,7 @@
     "auth:migrate:prod": "MATCH_DB_PROFILE=production npx tsx scripts/better-auth-migrate.ts",
     "lint": "eslint",
     "test": "vitest run",
+    "check-types": "tsc --noEmit",
     "test:watch": "vitest"
   },
   "dependencies": {
