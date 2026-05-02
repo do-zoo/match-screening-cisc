@@ -10,6 +10,7 @@ import type {
 } from "@/lib/admin/load-committee-admin-directory";
 import {
   addCommitteeAdminByEmail,
+  deleteCommitteeAdmin,
   revokeCommitteeAdminMeaningfulAccess,
   updateCommitteeAdminMemberLink,
   updateCommitteeAdminRole,
@@ -89,12 +90,16 @@ function ManageAdminDialogs(props: ManageFormsProps) {
     revokeCommitteeAdminMeaningfulAccess,
     null as ActionResult<{ saved: true }> | null,
   );
+  const [deleteState, deleteDispatch, deletePending] = useActionState(
+    deleteCommitteeAdmin,
+    null as ActionResult<{ deleted: true }> | null,
+  );
 
   useEffect(() => {
-    if (roleState?.ok || memberState?.ok || revokeState?.ok) {
+    if (roleState?.ok || memberState?.ok || revokeState?.ok || deleteState?.ok) {
       onAnySuccess();
     }
-  }, [roleState?.ok, memberState?.ok, revokeState?.ok, onAnySuccess]);
+  }, [roleState?.ok, memberState?.ok, revokeState?.ok, deleteState?.ok, onAnySuccess]);
 
   const flagLinesRole = fieldErrorsLines(
     roleState?.ok === false ? roleState.fieldErrors : undefined,
@@ -262,6 +267,42 @@ function ManageAdminDialogs(props: ManageFormsProps) {
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   "Ya, cabut akses"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog>
+        <DialogTrigger disabled={deletePending} render={<Button variant="destructive" size="sm" />}>
+          Hapus
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hapus profil admin</DialogTitle>
+            <DialogDescription>
+              Menghapus profil admin untuk <strong>{row.email}</strong> secara permanen.
+              Akun masuk tidak dihapus, tetapi semua akses admin dicabut. Tindakan ini tidak bisa dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteState?.ok === false && deleteState.rootError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Gagal</AlertTitle>
+              <AlertDescription>{deleteState.rootError}</AlertDescription>
+            </Alert>
+          ) : null}
+          <form
+            action={deleteDispatch}
+            key={`d-${props.manageKey}-${row.adminProfileId}`}
+          >
+            <input type="hidden" name="adminProfileId" value={row.adminProfileId} />
+            <DialogFooter>
+              <Button type="submit" variant="destructive" disabled={deletePending}>
+                {deletePending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Ya, hapus profil"
                 )}
               </Button>
             </DialogFooter>
