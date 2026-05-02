@@ -46,6 +46,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   period?: PeriodRow | null;
   onSaved: () => void;
+  defaultShowDeleteConfirm?: boolean;
 };
 
 function toDateInputValue(d: Date): string {
@@ -58,6 +59,7 @@ export function ManagementPeriodFormDialog({
   onOpenChange,
   period,
   onSaved,
+  defaultShowDeleteConfirm = false,
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [rootMessage, setRootMessage] = useState<string | null>(null);
@@ -89,9 +91,9 @@ export function ManagementPeriodFormDialog({
       form.reset(defaultValues);
       setRootMessage(null);
       setDeleteError(null);
-      setShowDeleteConfirm(false);
+      setShowDeleteConfirm(defaultShowDeleteConfirm);
     }
-  }, [open, defaultValues, form]);
+  }, [open, defaultValues, form, defaultShowDeleteConfirm]);
 
   function submit(values: FormValues) {
     setRootMessage(null);

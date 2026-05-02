@@ -33,6 +33,7 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingPeriod, setEditingPeriod] = useState<PeriodRow | null>(null);
+  const [editDeleteMode, setEditDeleteMode] = useState(false);
 
   function refresh() {
     router.refresh();
@@ -122,13 +123,13 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
                         <MoreVerticalIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingPeriod(p)}>
+                        <DropdownMenuItem onClick={() => { setEditingPeriod(p); setEditDeleteMode(false); }}>
                           Edit periode
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => setEditingPeriod(p)}
+                          onClick={() => { setEditingPeriod(p); setEditDeleteMode(true); }}
                         >
                           Hapus periode
                         </DropdownMenuItem>
@@ -152,9 +153,10 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
         <ManagementPeriodFormDialog
           mode="edit"
           open={Boolean(editingPeriod)}
-          onOpenChange={(open) => { if (!open) setEditingPeriod(null); }}
+          onOpenChange={(open) => { if (!open) { setEditingPeriod(null); setEditDeleteMode(false); } }}
           period={editingPeriod}
           onSaved={refresh}
+          defaultShowDeleteConfirm={editDeleteMode}
         />
       ) : null}
     </main>
