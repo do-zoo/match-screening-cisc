@@ -118,8 +118,68 @@ model MasterMember {
   updatedAt DateTime @updatedAt
 
   eventsAsHelper EventPicHelper[]
-  registrations     Registration[]
-  adminProfiles     AdminProfile[]
+  registrations          Registration[]
+  adminProfiles          AdminProfile[]
+  managementMemberRecord ManagementMember?
+}
+
+model BoardPeriod {
+  id        String   @id @default(cuid())
+  label     String
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments BoardAssignment[]
+
+  @@index([startsAt, endsAt])
+}
+
+model BoardRole {
+  id        String   @id @default(cuid())
+  title     String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments BoardAssignment[]
+
+  @@index([isActive, sortOrder])
+}
+
+model ManagementMember {
+  id             String        @id @default(cuid())
+  publicCode     String        @unique
+  fullName       String
+  whatsapp       String?
+  masterMemberId String?       @unique
+  masterMember   MasterMember? @relation(fields: [masterMemberId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments            BoardAssignment[]
+  registrationsAsPrimary Registration[]
+}
+
+model BoardAssignment {
+  id                 String @id @default(cuid())
+  boardPeriodId      String
+  boardPeriod        BoardPeriod      @relation(fields: [boardPeriodId], references: [id], onDelete: Cascade)
+  managementMemberId String
+  managementMember   ManagementMember @relation(fields: [managementMemberId], references: [id], onDelete: Cascade)
+  boardRoleId        String
+  boardRole          BoardRole        @relation(fields: [boardRoleId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([boardPeriodId, managementMemberId])
+  @@unique([boardPeriodId, boardRoleId])
+  @@index([managementMemberId])
+  @@index([boardRoleId])
 }
 
 model PicBankAccount {
@@ -231,6 +291,10 @@ model Registration {
   tickets     Ticket[]
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
+
+  primaryManagementMemberId   String?
+  primaryManagementMember     ManagementMember? @relation(fields: [primaryManagementMemberId], references: [id], onDelete: SetNull)
+  claimedManagementPublicCode String?
 
   @@index([eventId, createdAt])
   @@index([status])
