@@ -8,8 +8,6 @@ export const adminMasterMemberCreateSchema = z.object({
   fullName: nameSchema,
   whatsapp: z.union([z.string().trim().max(64), z.literal("")]).optional(),
   isActive: z.boolean(),
-  isPengurus: z.boolean(),
-  canBePIC: z.boolean(),
 });
 
 export const adminMasterMemberUpdateSchema = z.object({
@@ -17,8 +15,6 @@ export const adminMasterMemberUpdateSchema = z.object({
   fullName: nameSchema,
   whatsapp: z.union([z.string().trim().max(64), z.literal("")]).optional(),
   isActive: z.boolean(),
-  isPengurus: z.boolean(),
-  canBePIC: z.boolean(),
 });
 
 export type AdminMasterMemberCreateInput = z.infer<
@@ -27,3 +23,7 @@ export type AdminMasterMemberCreateInput = z.infer<
 export type AdminMasterMemberUpdateInput = z.infer<
   typeof adminMasterMemberUpdateSchema
 >;
+
+export const deleteMasterMemberSchema = z.object({
+  memberId: z.string().trim().min(1, "ID anggota wajib."),
+});

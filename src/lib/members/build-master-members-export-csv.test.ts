@@ -11,8 +11,7 @@ describe("buildMasterMembersExportCsv", () => {
         fullName: "A",
         whatsapp: null,
         isActive: true,
-        isPengurus: false,
-        canBePIC: true,
+        isManagementMember: false,
         updatedAt: "",
       },
     ]);
@@ -31,8 +30,7 @@ describe("buildMasterMembersExportCsv", () => {
         fullName: "Y",
         whatsapp: null,
         isActive: false,
-        isPengurus: false,
-        canBePIC: false,
+        isManagementMember: false,
         updatedAt: "",
       },
     ]);

@@ -8,8 +8,7 @@ export type AdminMasterMemberRowVm = {
   fullName: string;
   whatsapp: string | null;
   isActive: boolean;
-  isPengurus: boolean;
-  canBePIC: boolean;
+  isManagementMember: boolean;
   updatedAt: string;
 };
 
@@ -69,8 +68,7 @@ function mapMasterMemberRow(row: {
   fullName: string;
   whatsapp: string | null;
   isActive: boolean;
-  isPengurus: boolean;
-  canBePIC: boolean;
+  isManagementMember: boolean;
   updatedAt: Date;
 }): AdminMasterMemberRowVm {
   return {
@@ -79,8 +77,7 @@ function mapMasterMemberRow(row: {
     fullName: row.fullName,
     whatsapp: row.whatsapp,
     isActive: row.isActive,
-    isPengurus: row.isPengurus,
-    canBePIC: row.canBePIC,
+    isManagementMember: row.isManagementMember,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

@@ -78,10 +78,15 @@ export function aggregateCrossRegistrationConflicts(
     .sort((a, b) => a.contactName.localeCompare(b.contactName, "id"));
 }
 
-export type TicketContextPengurusVm =
+export type TicketContextManagementMemberVm =
   | { state: "no_primary_number" }
   | { state: "not_in_directory" }
-  | { state: "found"; isPengurus: boolean };
+  | { state: "found"; isManagementMember: boolean }
+  | {
+      state: "via_public_code";
+      publicCode: string;
+      fullName: string;
+    };
 
 export type TicketConflictRowVm = {
   registrationId: string;
@@ -99,7 +104,7 @@ export type TicketContextVm =
         ticketPriceType: TicketPriceType;
         ticketPriceTypeLabel: string;
       } | null;
-      pengurus: TicketContextPengurusVm;
+      managementMember: TicketContextManagementMemberVm;
       conflicts: TicketConflictRowVm[];
     }
   | { kind: "error"; message: string };

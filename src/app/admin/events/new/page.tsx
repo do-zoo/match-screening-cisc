@@ -4,6 +4,10 @@ import { notFound } from "next/navigation";
 import { EventAdminForm } from "@/components/admin/forms/event-admin-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  loadPicAdminProfileOptionsForEvents,
+  loadPicAdminToMemberLinkMap,
+} from "@/lib/admin/pic-options-for-event";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -35,46 +39,51 @@ export default async function AdminNewEventPage() {
   }
 
   const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
-  const [pics, banks] = await Promise.all([
-    prisma.masterMember.findMany({
-      where: { canBePIC: true, isActive: true },
-      orderBy: { fullName: "asc" },
-      select: { id: true, fullName: true, memberNumber: true },
-    }),
+  const [picOptions, banks, helperMembers, picMemberLinkByAdminId] =
+    await Promise.all([
+    loadPicAdminProfileOptionsForEvents(),
     prisma.picBankAccount.findMany({
       where: { isActive: true },
       orderBy: { bankName: "asc" },
       select: {
         id: true,
-        ownerMemberId: true,
+        ownerAdminProfileId: true,
         bankName: true,
         accountNumber: true,
         accountName: true,
       },
     }),
+    prisma.masterMember.findMany({
+      where: { isActive: true },
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, memberNumber: true },
+    }),
+    loadPicAdminToMemberLinkMap(),
   ]);
-
-  const picOptions = pics.map((p) => ({
-    id: p.id,
-    label: `${p.fullName} (${p.memberNumber})`,
-  }));
 
   const banksByPic: Record<
     string,
     Array<{ id: string; label: string }>
   > = {};
   for (const b of banks) {
-    const list = banksByPic[b.ownerMemberId] ?? [];
+    const list = banksByPic[b.ownerAdminProfileId] ?? [];
     list.push({
       id: b.id,
       label: `${b.bankName} — ${b.accountNumber} (${b.accountName})`,
     });
-    banksByPic[b.ownerMemberId] = list;
+    banksByPic[b.ownerAdminProfileId] = list;
   }
 
-  const firstPicId = pics[0]?.id;
+  const helperAdminOptions = helperMembers.map((m) => ({
+    id: m.id,
+    label: `${m.fullName} (${m.memberNumber})`,
+  }));
+
+  const firstPicId = picOptions[0]?.id;
   const firstBankId =
-    firstPicId && banksByPic[firstPicId]?.[0]?.id ? banksByPic[firstPicId]![0]!.id : "";
+    firstPicId && banksByPic[firstPicId]?.[0]?.id
+      ? banksByPic[firstPicId]![0]!.id
+      : "";
 
   const now = new Date();
   const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -96,7 +105,7 @@ export default async function AdminNewEventPage() {
     pricingSource: "global_default",
     ticketMemberPrice: committeeDefaults.ticketMemberPrice,
     ticketNonMemberPrice: committeeDefaults.ticketNonMemberPrice,
-    picMasterMemberId: firstPicId ?? "",
+    picAdminProfileId: firstPicId ?? "",
     bankAccountId: firstBankId,
     helperMasterMemberIds: [],
     menuItems: [
@@ -124,9 +133,9 @@ export default async function AdminNewEventPage() {
         <Alert>
           <AlertTitle>Belum siap membuat acara</AlertTitle>
           <AlertDescription>
-            Perlu minimal satu anggota dengan <code>canBePIC</code> aktif <strong>dan</strong> setidaknya
-            satu rekening PIC aktif untuk mereka. Lengkapi data di seed / master anggota atau pengaturan
-            komite terlebih dahulu.
+            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar <strong>dan</strong> setidaknya
+            satu rekening PIC aktif milik admin tersebut. Pastikan rekening bank dipasangkan ke profil admin
+            di pengaturan komite, lalu coba lagi.
           </AlertDescription>
         </Alert>
       </main>
@@ -154,6 +163,8 @@ export default async function AdminNewEventPage() {
         defaults={defaults}
         picOptions={picOptions}
         banksByPic={banksByPic}
+        helperAdminOptions={helperAdminOptions}
+        picMemberLinkByAdminId={picMemberLinkByAdminId}
       />
     </main>
   );

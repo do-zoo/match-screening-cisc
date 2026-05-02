@@ -10,7 +10,12 @@ import { prisma } from "@/lib/db/prisma";
 import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
+import { hasOperationalOwnerParity, canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import { EventDeletePanel } from "@/components/admin/event-delete-panel";
+import {
+  loadPicAdminProfileOptionsForEvents,
+  loadPicAdminToMemberLinkMap,
+} from "@/lib/admin/pic-options-for-event";
 import { cn } from "@/lib/utils";
 
 export default async function AdminEditEventPage({
@@ -54,42 +59,45 @@ export default async function AdminEditEventPage({
     notFound();
   }
 
-  const [pics, banks] = await Promise.all([
-    prisma.masterMember.findMany({
-      where: { canBePIC: true, isActive: true },
-      orderBy: { fullName: "asc" },
-      select: { id: true, fullName: true, memberNumber: true },
-    }),
-    prisma.picBankAccount.findMany({
-      where: { isActive: true },
-      orderBy: { bankName: "asc" },
-      select: {
-        id: true,
-        ownerMemberId: true,
-        bankName: true,
-        accountNumber: true,
-        accountName: true,
-      },
-    }),
-  ]);
-
-  const picOptions = pics.map((p) => ({
-    id: p.id,
-    label: `${p.fullName} (${p.memberNumber})`,
-  }));
+  const [picOptions, banks, helperMembers, picMemberLinkByAdminId] =
+    await Promise.all([
+      loadPicAdminProfileOptionsForEvents(),
+      prisma.picBankAccount.findMany({
+        where: { isActive: true },
+        orderBy: { bankName: "asc" },
+        select: {
+          id: true,
+          ownerAdminProfileId: true,
+          bankName: true,
+          accountNumber: true,
+          accountName: true,
+        },
+      }),
+      prisma.masterMember.findMany({
+        where: { isActive: true },
+        orderBy: { fullName: "asc" },
+        select: { id: true, fullName: true, memberNumber: true },
+      }),
+      loadPicAdminToMemberLinkMap(),
+    ]);
 
   const banksByPic: Record<
     string,
     Array<{ id: string; label: string }>
   > = {};
   for (const b of banks) {
-    const list = banksByPic[b.ownerMemberId] ?? [];
+    const list = banksByPic[b.ownerAdminProfileId] ?? [];
     list.push({
       id: b.id,
       label: `${b.bankName} — ${b.accountNumber} (${b.accountName})`,
     });
-    banksByPic[b.ownerMemberId] = list;
+    banksByPic[b.ownerAdminProfileId] = list;
   }
+
+  const helperAdminOptions = helperMembers.map((m) => ({
+    id: m.id,
+    label: `${m.fullName} (${m.memberNumber})`,
+  }));
 
   const defaults: AdminEventUpsertInput = {
     title: event.title,
@@ -108,7 +116,7 @@ export default async function AdminEditEventPage({
     pricingSource: event.pricingSource,
     ticketMemberPrice: event.ticketMemberPrice,
     ticketNonMemberPrice: event.ticketNonMemberPrice,
-    picMasterMemberId: event.picMasterMemberId,
+    picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
     helperMasterMemberIds: event.helpers.map((h) => h.memberId),
     menuItems: event.menuItems.map((m) => ({
@@ -129,7 +137,7 @@ export default async function AdminEditEventPage({
     ticketNonMemberPrice: event.ticketNonMemberPrice,
     voucherPrice: event.voucherPrice,
     pricingSource: event.pricingSource,
-    picMasterMemberId: event.picMasterMemberId,
+    picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
   };
 
@@ -162,7 +170,16 @@ export default async function AdminEditEventPage({
         persistedIntegrity={persistedIntegrity}
         picOptions={picOptions}
         banksByPic={banksByPic}
+        helperAdminOptions={helperAdminOptions}
+        picMemberLinkByAdminId={picMemberLinkByAdminId}
       />
+      {canManageCommitteeAdvancedSettings(ctx.role) ? (
+        <EventDeletePanel
+          eventId={eventId}
+          eventTitle={event.title}
+          registrationCount={event._count.registrations}
+        />
+      ) : null}
     </main>
   );
 }

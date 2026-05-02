@@ -67,8 +67,13 @@ export type EventAdminFormProps = {
   defaults: AdminEventUpsertInput;
   registrationCount?: number;
   persistedIntegrity?: EventIntegritySnapshot | null;
+  /** Admin profiles eligible as event PIC (financial owner). */
   picOptions: EventAdminPicOption[];
   banksByPic: Record<string, Array<{ id: string; label: string }>>;
+  /** Directory members for PIC pembantu (still MasterMember ids). */
+  helperAdminOptions: EventAdminPicOption[];
+  /** Optional directory member id per PIC admin (for disabling duplicate helper). */
+  picMemberLinkByAdminId: Record<string, string | null>;
 };
 
 export function EventAdminForm(props: EventAdminFormProps) {
@@ -89,7 +94,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
       ticketNonMemberPrice: props.defaults.ticketNonMemberPrice,
       voucherPrice: props.defaults.voucherPriceIdr,
       pricingSource: props.defaults.pricingSource,
-      picMasterMemberId: props.defaults.picMasterMemberId,
+      picAdminProfileId: props.defaults.picAdminProfileId,
       bankAccountId: props.defaults.bankAccountId,
     } satisfies EventIntegritySnapshot);
 
@@ -114,7 +119,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
     control: form.control,
     name: "pricingSource",
   });
-  const picId = useWatch({ control: form.control, name: "picMasterMemberId" });
+  const picId = useWatch({ control: form.control, name: "picAdminProfileId" });
   const bankAccountId = useWatch({
     control: form.control,
     name: "bankAccountId",
@@ -555,7 +560,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
               value={picId}
               onValueChange={(next) => {
                 if (next == null) return;
-                form.setValue("picMasterMemberId", next, { shouldDirty: true });
+                form.setValue("picAdminProfileId", next, { shouldDirty: true });
                 const first = props.banksByPic[next]?.[0]?.id ?? "";
                 form.setValue("bankAccountId", first, { shouldDirty: true });
               }}
@@ -603,14 +608,17 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
           <Field label={`PIC pembantu (${helpersSelected.length})`}>
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-3">
-              {props.picOptions.map((p) => {
+              {props.helperAdminOptions.map((p) => {
                 const checked = helpersSelected.includes(p.id);
-                const isPicMaster = picId === p.id;
+                const linkedMemberForPic =
+                  props.picMemberLinkByAdminId[picId] ?? null;
+                const isLinkedPicMember =
+                  linkedMemberForPic != null && p.id === linkedMemberForPic;
                 return (
                   <label key={p.id} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      disabled={pending || isPicMaster}
+                      disabled={pending || isLinkedPicMember}
                       checked={checked}
                       onChange={() => {
                         const cur =
@@ -631,10 +639,12 @@ export function EventAdminForm(props: EventAdminFormProps) {
                       }}
                     />
                     <span
-                      className={cn(isPicMaster && "text-muted-foreground")}
+                      className={cn(
+                        isLinkedPicMember && "text-muted-foreground",
+                      )}
                     >
                       {p.label}
-                      {isPicMaster ? " (PIC utama)" : ""}
+                      {isLinkedPicMember ? " (PIC utama)" : ""}
                     </span>
                   </label>
                 );

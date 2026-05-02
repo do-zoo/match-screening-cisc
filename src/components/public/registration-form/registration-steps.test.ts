@@ -52,7 +52,11 @@ describe("getTriggerFieldsForStep purchaser gate", () => {
         purchaserIsMember: true,
         directoryVerified: false,
       }),
-    ).toEqual(["purchaserIsMember", "claimedMemberNumber"]);
+    ).toEqual([
+      "purchaserIsMember",
+      "claimedMemberNumber",
+      "managementPublicCode",
+    ]);
   });
 
   it("member path after directory verified includes kontak dan foto kartu", () => {

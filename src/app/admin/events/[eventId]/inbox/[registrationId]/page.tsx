@@ -43,6 +43,8 @@ export default async function AdminEventInboxDetailPage({
       contactName: true,
       contactWhatsapp: true,
       claimedMemberNumber: true,
+      primaryManagementMemberId: true,
+      claimedManagementPublicCode: true,
       computedTotalAtSubmit: true,
       ticketMemberPriceApplied: true,
       ticketNonMemberPriceApplied: true,
@@ -95,6 +97,9 @@ export default async function AdminEventInboxDetailPage({
       registration: {
         id: registration.id,
         claimedMemberNumber: registration.claimedMemberNumber,
+        primaryManagementMemberId: registration.primaryManagementMemberId,
+        claimedManagementPublicCode:
+          registration.claimedManagementPublicCode,
         tickets: registration.tickets.map((t) => ({
           role: t.role,
           fullName: t.fullName,

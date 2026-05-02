@@ -14,7 +14,10 @@ const PROFILE_VAR = "MATCH_DB_PROFILE" as const;
 
 export type ResolvedDbProfile = "development" | "production";
 
-function resolveDbProfile(env: NodeJS.ProcessEnv): ResolvedDbProfile {
+/** Only reads MATCH_DB_PROFILE; avoids requiring full ProcessEnv (e.g. NODE_ENV in Next types). */
+export type MatchDbProfileEnv = Record<string, string | undefined>;
+
+function resolveDbProfile(env: MatchDbProfileEnv): ResolvedDbProfile {
   const raw = String(env[PROFILE_VAR] ?? "")
     .trim()
     .toLowerCase();
@@ -33,7 +36,7 @@ export function overlayPathForProfile(
 
 /** Current profile derived from env (reads `MATCH_DB_PROFILE`). */
 export function getResolvedDbProfile(
-  env: NodeJS.ProcessEnv = process.env,
+  env: MatchDbProfileEnv = process.env,
 ): ResolvedDbProfile {
   return resolveDbProfile(env);
 }

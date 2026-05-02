@@ -1,20 +1,26 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { PrismaClient, EventStatus, MenuMode, MenuSelection, PricingSource } from "@prisma/client";
+import {
+  AdminRole,
+  EventStatus,
+  MenuMode,
+  MenuSelection,
+  PrismaClient,
+  PricingSource,
+} from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 
 const prisma = new PrismaClient({
   adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
 });
 
-/** Semua kombinasi isActive × isPengurus × canBePIC (8 tipe). Suffix nomor = biner ABP (Active·Pengurus·PIC). */
+/** Kombinasi isActive × isManagementMember — untuk variasi direktori (tanpa PIC di member). */
 type MasterMemberSeed = {
   memberNumber: string;
   fullName: string;
   isActive: boolean;
-  isPengurus: boolean;
-  canBePIC: boolean;
+  isManagementMember: boolean;
   whatsapp?: string | null;
 };
 
@@ -23,58 +29,50 @@ const MASTER_MEMBER_SEEDS: MasterMemberSeed[] = [
     memberNumber: "CISC-DEMO-PIC-1",
     fullName: "Demo PIC Pengurus",
     isActive: true,
-    isPengurus: true,
-    canBePIC: true,
+    isManagementMember: true,
     whatsapp: "+6281380013800",
   },
   {
     memberNumber: "CISC-SEED-110",
-    fullName: "Seed · aktif · pengurus · bukan PIC",
+    fullName: "Seed · aktif · pengurus",
     isActive: true,
-    isPengurus: true,
-    canBePIC: false,
+    isManagementMember: true,
   },
   {
     memberNumber: "CISC-SEED-101",
-    fullName: "Seed · aktif · anggota · eligible PIC",
+    fullName: "Seed · aktif · anggota",
     isActive: true,
-    isPengurus: false,
-    canBePIC: true,
+    isManagementMember: false,
   },
   {
     memberNumber: "CISC-SEED-100",
     fullName: "Seed · aktif · anggota biasa",
     isActive: true,
-    isPengurus: false,
-    canBePIC: false,
+    isManagementMember: false,
   },
   {
     memberNumber: "CISC-SEED-011",
-    fullName: "Seed · nonaktif · pengurus · PIC",
+    fullName: "Seed · nonaktif · pengurus",
     isActive: false,
-    isPengurus: true,
-    canBePIC: true,
+    isManagementMember: true,
   },
   {
     memberNumber: "CISC-SEED-010",
-    fullName: "Seed · nonaktif · pengurus · bukan PIC",
+    fullName: "Seed · nonaktif · pengurus",
     isActive: false,
-    isPengurus: true,
-    canBePIC: false,
+    isManagementMember: true,
   },
   {
     memberNumber: "CISC-SEED-001",
-    fullName: "Seed · nonaktif · anggota · eligible PIC",
+    fullName: "Seed · nonaktif · anggota",
     isActive: false,
-    isPengurus: false,
-    canBePIC: true,
+    isManagementMember: false,
   },
   {
     memberNumber: "CISC-SEED-000",
     fullName: "Seed · nonaktif · anggota biasa",
     isActive: false,
-    isPengurus: false,
-    canBePIC: false,
+    isManagementMember: false,
   },
 ];
 
@@ -87,38 +85,46 @@ async function main() {
       update: {
         fullName: row.fullName,
         isActive: row.isActive,
-        isPengurus: row.isPengurus,
-        canBePIC: row.canBePIC,
+        isManagementMember: row.isManagementMember,
         ...(whatsapp !== undefined ? { whatsapp } : {}),
       },
       create: {
         memberNumber: row.memberNumber,
         fullName: row.fullName,
         isActive: row.isActive,
-        isPengurus: row.isPengurus,
-        canBePIC: row.canBePIC,
+        isManagementMember: row.isManagementMember,
         ...(whatsapp !== undefined ? { whatsapp } : {}),
       },
     });
   }
 
-  const pic = await prisma.masterMember.findUniqueOrThrow({
-    where: { memberNumber: "CISC-DEMO-PIC-1" },
+  const ownerProfile = await prisma.adminProfile.findFirst({
+    where: { role: AdminRole.Owner },
+    orderBy: { createdAt: "asc" },
   });
 
-  // Find or create bank account — update in place to avoid FK conflicts on re-runs
-  // (PicBankAccount has no unique constraint, so we find by ownerMemberId + accountNumber)
+  if (!ownerProfile) {
+    console.warn(
+      "Seed: lewati acara demo — tidak ada AdminProfile Owner. Jalankan bootstrap admin terlebih dahulu.",
+    );
+    return;
+  }
+
   const existingBank = await prisma.picBankAccount.findFirst({
-    where: { ownerMemberId: pic.id, accountNumber: "1234567890" },
+    where: { ownerAdminProfileId: ownerProfile.id, accountNumber: "1234567890" },
   });
   const bank = existingBank
     ? await prisma.picBankAccount.update({
         where: { id: existingBank.id },
-        data: { bankName: "BCA", accountName: "Demo CISC Tangsel", isActive: true },
+        data: {
+          bankName: "BCA",
+          accountName: "Demo CISC Tangsel",
+          isActive: true,
+        },
       })
     : await prisma.picBankAccount.create({
         data: {
-          ownerMemberId: pic.id,
+          ownerAdminProfileId: ownerProfile.id,
           bankName: "BCA",
           accountNumber: "1234567890",
           accountName: "Demo CISC Tangsel",
@@ -126,12 +132,11 @@ async function main() {
         },
       });
 
-  // Upsert event — always update bankAccountId (stable across re-runs since bank is reused)
   const event = await prisma.event.upsert({
     where: { slug: "demo-final-ucl-2026" },
     update: {
       bankAccountId: bank.id,
-      picMasterMemberId: pic.id,
+      picAdminProfileId: ownerProfile.id,
       summary:
         "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.",
       description:
@@ -164,21 +169,36 @@ async function main() {
       menuMode: MenuMode.PRESELECT,
       menuSelection: MenuSelection.SINGLE,
       voucherPrice: null,
-      picMasterMemberId: pic.id,
+      picAdminProfileId: ownerProfile.id,
       bankAccountId: bank.id,
     },
   });
 
-  // Recreate menu items (deleteMany + createMany is idempotent and order-safe)
   await prisma.eventMenuItem.deleteMany({ where: { eventId: event.id } });
   await prisma.eventMenuItem.createMany({
     data: [
-      { eventId: event.id, name: "Paket Burger", price: 55_000, sortOrder: 1, voucherEligible: true },
-      { eventId: event.id, name: "Paket Nasi", price: 50_000, sortOrder: 2, voucherEligible: true },
+      {
+        eventId: event.id,
+        name: "Paket Burger",
+        price: 55_000,
+        sortOrder: 1,
+        voucherEligible: true,
+      },
+      {
+        eventId: event.id,
+        name: "Paket Nasi",
+        price: 50_000,
+        sortOrder: 2,
+        voucherEligible: true,
+      },
     ],
   });
 
-  console.log("Seed OK:", event.slug, `(${MASTER_MEMBER_SEEDS.length} MasterMember variants)`);
+  console.log(
+    "Seed OK:",
+    event.slug,
+    `(${MASTER_MEMBER_SEEDS.length} MasterMember · PIC acara = Owner admin ${ownerProfile.id})`,
+  );
 }
 
 main()

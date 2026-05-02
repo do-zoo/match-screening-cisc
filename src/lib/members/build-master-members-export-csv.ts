@@ -14,8 +14,7 @@ export function buildMasterMembersExportCsv(
     full_name: r.fullName,
     whatsapp: r.whatsapp ?? "",
     is_active: r.isActive ? "true" : "false",
-    is_pengurus: r.isPengurus ? "true" : "false",
-    can_be_pic: r.canBePIC ? "true" : "false",
+    is_management_member: r.isManagementMember ? "true" : "false",
   }));
 
   const body =

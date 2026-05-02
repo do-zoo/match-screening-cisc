@@ -9,6 +9,7 @@ import {
   MenuIcon,
   Settings,
   Users,
+  UsersRound,
 } from "lucide-react";
 
 import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
@@ -42,6 +43,9 @@ function AdminNavLinks({
   const acaraExact = pathname === "/admin/events";
   const membersActive =
     pathname === "/admin/members" || pathname.startsWith("/admin/members/");
+  const managementActive =
+    pathname === "/admin/management" ||
+    pathname.startsWith("/admin/management/");
   const settingsActive =
     pathname === "/admin/settings" ||
     pathname.startsWith("/admin/settings/");
@@ -81,6 +85,19 @@ function AdminNavLinks({
         >
           <Users className={adminShellNavIconClass(membersActive)} aria-hidden />
           Anggota
+        </Link>
+      ) : null}
+      {navFlags.management ? (
+        <Link
+          href="/admin/management"
+          onClick={onNavigate}
+          className={adminShellNavLinkClass(managementActive)}
+        >
+          <UsersRound
+            className={adminShellNavIconClass(managementActive)}
+            aria-hidden
+          />
+          Kepengurusan
         </Link>
       ) : null}
       {navFlags.settings ? (

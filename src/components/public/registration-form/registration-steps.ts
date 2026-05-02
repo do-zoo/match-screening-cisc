@@ -82,7 +82,11 @@ export function getTriggerFieldsForStep(
       }
       const dirOk = opts?.directoryVerified === true;
       if (opts?.purchaserIsMember === true && !dirOk) {
-        return ["purchaserIsMember", "claimedMemberNumber"];
+        return [
+          "purchaserIsMember",
+          "claimedMemberNumber",
+          "managementPublicCode",
+        ];
       }
       return [
         "purchaserIsMember",

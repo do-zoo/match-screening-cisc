@@ -4,9 +4,11 @@ import { randomUUID } from "node:crypto";
 
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { AdminRole, Prisma } from "@prisma/client";
 
-import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
+import { guardOwner, guardOwnerOrAdmin, isAuthError, type OwnerGuardContext } from "@/lib/actions/guard";
+import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
 import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
 import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
@@ -32,6 +34,18 @@ import { uploadEventHeroCover } from "@/lib/uploads/upload-event-cover";
 
 const MENU_DELETE_BLOCKED = "__EVENT_MENU_DELETE_BLOCKED__";
 const INVALID_MENU_ITEM_ID = "__INVALID_MENU_ITEM_ID__";
+
+async function requireOwner(): Promise<
+  ActionResult<never> | { owner: OwnerGuardContext }
+> {
+  try {
+    const owner = await guardOwner();
+    return { owner };
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
+}
 
 function parsePayloadField(formData: FormData): unknown {
   const raw = formData.get("payload");
@@ -63,23 +77,23 @@ async function ticketPricesForWrite(opts: {
 
 async function validatePicBankAndHelpers(opts: Pick<
   AdminEventUpsertInput,
-  "picMasterMemberId" | "bankAccountId" | "helperMasterMemberIds"
+  "picAdminProfileId" | "bankAccountId" | "helperMasterMemberIds"
 >): Promise<ActionResult<void>> {
-  const pic = await prisma.masterMember.findUnique({
-    where: { id: opts.picMasterMemberId },
-    select: { id: true, canBePIC: true, isActive: true },
+  const pic = await prisma.adminProfile.findUnique({
+    where: { id: opts.picAdminProfileId },
+    select: { id: true, role: true, memberId: true },
   });
 
-  if (!pic || !pic.isActive || !pic.canBePIC) {
+  if (!pic || pic.role === AdminRole.Viewer) {
     return fieldError({
-      picMasterMemberId: "PIC tidak valid atau tidak boleh menjadi PIC.",
+      picAdminProfileId: "PIC tidak valid atau tidak boleh menjadi PIC.",
     });
   }
 
   const bank = await prisma.picBankAccount.findFirst({
     where: {
       id: opts.bankAccountId,
-      ownerMemberId: opts.picMasterMemberId,
+      ownerAdminProfileId: opts.picAdminProfileId,
       isActive: true,
     },
     select: { id: true },
@@ -90,8 +104,8 @@ async function validatePicBankAndHelpers(opts: Pick<
     });
   }
 
-  const helperIds = [...new Set(opts.helperMasterMemberIds)].filter(
-    (id) => id !== opts.picMasterMemberId,
+  const helperIds = [...new Set(opts.helperMasterMemberIds)].filter((id) =>
+    pic.memberId ? id !== pic.memberId : true,
   );
 
   if (helperIds.length > 0) {
@@ -108,6 +122,15 @@ async function validatePicBankAndHelpers(opts: Pick<
   }
 
   return ok(undefined);
+}
+
+function uniqueHelperMemberIdsExcludingPicLinkedMember(
+  helperMasterMemberIds: string[],
+  picLinkedMemberId: string | null,
+): string[] {
+  return [...new Set(helperMasterMemberIds)].filter((id) =>
+    picLinkedMemberId ? id !== picLinkedMemberId : true,
+  );
 }
 
 export async function createAdminEvent(
@@ -137,11 +160,16 @@ export async function createAdminEvent(
   if (!coverFile) return rootError("Sampul acara wajib diunggah.");
 
   const vPic = await validatePicBankAndHelpers({
-    picMasterMemberId: data.picMasterMemberId,
+    picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
     helperMasterMemberIds: data.helperMasterMemberIds,
   });
   if (!vPic.ok) return vPic;
+
+  const picForHelpers = await prisma.adminProfile.findUnique({
+    where: { id: data.picAdminProfileId },
+    select: { memberId: true },
+  });
 
   const { ticketMemberPrice, ticketNonMemberPrice } = await ticketPricesForWrite({
     pricingSource: data.pricingSource,
@@ -149,8 +177,9 @@ export async function createAdminEvent(
     parsedNonMember: data.ticketNonMemberPrice,
   });
 
-  const helperIds = [...new Set(data.helperMasterMemberIds)].filter(
-    (id) => id !== data.picMasterMemberId,
+  const helperIds = uniqueHelperMemberIdsExcludingPicLinkedMember(
+    data.helperMasterMemberIds,
+    picForHelpers?.memberId ?? null,
   );
 
   const id = randomUUID();
@@ -200,7 +229,7 @@ export async function createAdminEvent(
           menuMode: data.menuMode,
           menuSelection: data.menuSelection,
           voucherPrice,
-          picMasterMemberId: data.picMasterMemberId,
+          picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
       });
@@ -262,7 +291,17 @@ export async function updateAdminEvent(
 
   const existing = await prisma.event.findUnique({
     where: { id: eventId },
-    include: {
+    select: {
+      slug: true,
+      coverBlobUrl: true,
+      menuMode: true,
+      menuSelection: true,
+      ticketMemberPrice: true,
+      ticketNonMemberPrice: true,
+      voucherPrice: true,
+      pricingSource: true,
+      picAdminProfileId: true,
+      bankAccountId: true,
       menuItems: { select: { id: true } },
       helpers: { select: { memberId: true } },
       _count: { select: { registrations: true } },
@@ -279,7 +318,7 @@ export async function updateAdminEvent(
     ticketNonMemberPrice: existing.ticketNonMemberPrice,
     voucherPrice: existing.voucherPrice,
     pricingSource: existing.pricingSource,
-    picMasterMemberId: existing.picMasterMemberId,
+    picAdminProfileId: existing.picAdminProfileId,
     bankAccountId: existing.bankAccountId,
   };
 
@@ -308,7 +347,7 @@ export async function updateAdminEvent(
     ticketNonMemberPrice,
     voucherPrice: data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null,
     pricingSource: data.pricingSource,
-    picMasterMemberId: data.picMasterMemberId,
+    picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
   };
 
@@ -323,14 +362,19 @@ export async function updateAdminEvent(
   }
 
   const vPic = await validatePicBankAndHelpers({
-    picMasterMemberId: data.picMasterMemberId,
+    picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
     helperMasterMemberIds: data.helperMasterMemberIds,
   });
   if (!vPic.ok) return vPic;
 
-  const helperIds = [...new Set(data.helperMasterMemberIds)].filter(
-    (id) => id !== data.picMasterMemberId,
+  const picForHelpersUpdate = await prisma.adminProfile.findUnique({
+    where: { id: data.picAdminProfileId },
+    select: { memberId: true },
+  });
+  const helperIds = uniqueHelperMemberIdsExcludingPicLinkedMember(
+    data.helperMasterMemberIds,
+    picForHelpersUpdate?.memberId ?? null,
   );
 
   const cover = formData.get("cover");
@@ -442,7 +486,7 @@ export async function updateAdminEvent(
           menuMode: data.menuMode,
           menuSelection: data.menuSelection,
           voucherPrice,
-          picMasterMemberId: data.picMasterMemberId,
+          picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
       });
@@ -509,4 +553,56 @@ export async function updateAdminEvent(
   revalidatePath(`/admin/events/${eventId}/edit`);
 
   return ok({ eventId });
+}
+
+export async function deleteAdminEvent(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ deleted: true }>> {
+  const gate = await requireOwner();
+  if (!("owner" in gate)) return gate;
+
+  const eventId = formData.get("eventId");
+  if (!eventId || typeof eventId !== "string" || eventId.trim() === "") {
+    return rootError("ID acara tidak valid.");
+  }
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId.trim() },
+    select: {
+      id: true,
+      title: true,
+      coverBlobUrl: true,
+      _count: { select: { registrations: true } },
+    },
+  });
+  if (!event) return rootError("Acara tidak ditemukan.");
+
+  if (event._count.registrations > 0) {
+    return rootError(
+      `Acara tidak bisa dihapus karena memiliki ${event._count.registrations} registrasi.`,
+    );
+  }
+
+  await del(event.coverBlobUrl).catch(() => undefined);
+
+  try {
+    await prisma.event.delete({ where: { id: event.id } });
+  } catch {
+    return rootError("Gagal menghapus acara. Coba lagi atau periksa apakah ada registrasi baru.");
+  }
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: gate.owner.profileId,
+    actorAuthUserId: gate.owner.authUserId,
+    action: CLUB_AUDIT_ACTION.EVENT_DELETED_UI,
+    targetType: "event",
+    targetId: event.id,
+    metadata: { title: event.title },
+  });
+
+  revalidatePath("/admin/events");
+  revalidatePath("/");
+  revalidatePath("/events");
+  return ok({ deleted: true });
 }

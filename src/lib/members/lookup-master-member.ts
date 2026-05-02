@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 export type ActiveMasterMemberRow = {
   /** Nilai persis di kolom DB (sumber kanonis untuk penyimpanan & konsistensi direktori). */
   memberNumber: string;
-  isPengurus: boolean;
+  isManagementMember: boolean;
   fullName: string;
   whatsapp: string | null;
 };
@@ -28,7 +28,7 @@ export async function getActiveMasterMemberByMemberNumber(
     },
     select: {
       memberNumber: true,
-      isPengurus: true,
+      isManagementMember: true,
       fullName: true,
       whatsapp: true,
     },

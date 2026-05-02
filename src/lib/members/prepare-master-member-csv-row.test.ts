@@ -13,8 +13,7 @@ describe("prepareMasterMemberCsvRow", () => {
       full_name,
       whatsapp: "",
       is_active: "",
-      is_pengurus: "",
-      can_be_pic: "",
+      is_management_member: "",
     });
     const a = prepareMasterMemberCsvRow(2, cells("A"), m);
     const b = prepareMasterMemberCsvRow(3, cells("B"), m);
@@ -38,8 +37,7 @@ describe("prepareMasterMemberCsvRow", () => {
         full_name: "",
         whatsapp: "",
         is_active: "",
-        is_pengurus: "",
-        can_be_pic: "",
+        is_management_member: "",
       },
       m,
     );
@@ -55,8 +53,7 @@ describe("prepareMasterMemberCsvRow", () => {
         full_name: "N",
         whatsapp: "",
         is_active: "maybe",
-        is_pengurus: "",
-        can_be_pic: "",
+        is_management_member: "",
       },
       m,
     );

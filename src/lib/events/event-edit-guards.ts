@@ -12,7 +12,7 @@ export type EventIntegritySnapshot = {
   ticketNonMemberPrice: number;
   voucherPrice: number | null;
   pricingSource: PricingSource;
-  picMasterMemberId: string;
+  picAdminProfileId: string;
   bankAccountId: string;
 };
 
@@ -56,7 +56,7 @@ export function needsSensitiveAcknowledgement(opts: {
     merged.pricingSource !== opts.persisted.pricingSource;
 
   const financeActorChanged =
-    merged.picMasterMemberId !== opts.persisted.picMasterMemberId ||
+    merged.picAdminProfileId !== opts.persisted.picAdminProfileId ||
     merged.bankAccountId !== opts.persisted.bankAccountId;
 
   return pricingChanged || financeActorChanged;

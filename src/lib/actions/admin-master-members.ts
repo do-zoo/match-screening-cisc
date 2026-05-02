@@ -4,11 +4,14 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import Papa from "papaparse";
 
-import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
+import { guardOwner, guardOwnerOrAdmin, isAuthError, type OwnerGuardContext } from "@/lib/actions/guard";
+import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
+import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
 import {
   adminMasterMemberCreateSchema,
   adminMasterMemberUpdateSchema,
+  deleteMasterMemberSchema,
 } from "@/lib/forms/admin-master-member-schema";
 import {
   fieldError,
@@ -25,6 +28,18 @@ import {
 import { assertCsvTextSingleLinePhysicalRecords } from "@/lib/members/master-member-csv-single-line-record";
 import { parseMasterMemberCsvText } from "@/lib/members/parse-master-member-csv-text";
 import { prepareMasterMemberCsvRow } from "@/lib/members/prepare-master-member-csv-row";
+
+async function requireOwner(): Promise<
+  ActionResult<never> | { owner: OwnerGuardContext }
+> {
+  try {
+    const owner = await guardOwner();
+    return { owner };
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
+}
 
 export type MasterMemberImportResult = {
   successCount: number;
@@ -217,8 +232,6 @@ export async function createMasterMember(
         fullName: z.data.fullName.trim(),
         whatsapp: whatsappStored,
         isActive: z.data.isActive,
-        isPengurus: z.data.isPengurus,
-        canBePIC: z.data.canBePIC,
       },
       select: { id: true },
     });
@@ -271,11 +284,74 @@ export async function updateMasterMember(
       fullName: z.data.fullName.trim(),
       whatsapp: whatsappStored,
       isActive: z.data.isActive,
-      isPengurus: z.data.isPengurus,
-      canBePIC: z.data.canBePIC,
     },
     select: { id: true },
   });
   revalidatePath("/admin/members");
   return ok({ id: z.data.id });
+}
+
+export async function deleteMasterMember(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ deleted: true }>> {
+  const gate = await requireOwner();
+  if (!("owner" in gate)) return gate;
+
+  const parsed = deleteMasterMemberSchema.safeParse({
+    memberId: formData.get("memberId"),
+  });
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+
+  const member = await prisma.masterMember.findUnique({
+    where: { id: parsed.data.memberId },
+    select: {
+      id: true,
+      fullName: true,
+      memberNumber: true,
+    },
+  });
+  if (!member) return rootError("Anggota tidak ditemukan.");
+
+  const [eventsAsPic, bankCount] = await Promise.all([
+    prisma.event.count({
+      where: { picAdminProfile: { memberId: member.id } },
+    }),
+    prisma.picBankAccount.count({
+      where: { ownerAdmin: { memberId: member.id } },
+    }),
+  ]);
+
+  if (eventsAsPic > 0) {
+    return rootError(
+      `Anggota tidak bisa dihapus karena terkait ke akun admin yang dipakai sebagai PIC di ${eventsAsPic} acara. Ganti PIC atau lepaskan tautan admin–anggota terlebih dahulu.`,
+    );
+  }
+
+  if (bankCount > 0) {
+    return rootError(
+      `Anggota tidak bisa dihapus karena rekening PIC di bawah profil admin yang terhubung ke anggota ini masih ada (${bankCount}). Hapus rekening terlebih dahulu.`,
+    );
+  }
+
+  try {
+    await prisma.masterMember.delete({ where: { id: member.id } });
+  } catch {
+    return rootError("Gagal menghapus anggota. Coba lagi atau periksa apakah ada data terkait yang baru ditambahkan.");
+  }
+
+  await appendClubAuditLog(prisma, {
+    actorProfileId: gate.owner.profileId,
+    actorAuthUserId: gate.owner.authUserId,
+    action: CLUB_AUDIT_ACTION.MASTER_MEMBER_DELETED_UI,
+    targetType: "master_member",
+    targetId: member.id,
+    metadata: {
+      memberNumber: member.memberNumber,
+      fullName: member.fullName,
+    },
+  });
+
+  revalidatePath("/admin/members");
+  return ok({ deleted: true });
 }

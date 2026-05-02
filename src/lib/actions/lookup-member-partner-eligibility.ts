@@ -4,11 +4,11 @@ import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master
 
 export type MemberPartnerLookupResult =
   | { kind: "empty" }
-  | { kind: "ok"; found: false; isPengurus: false }
+  | { kind: "ok"; found: false; isManagementMember: false }
   | {
       kind: "ok";
       found: true;
-      isPengurus: boolean;
+      isManagementMember: boolean;
       /** Sesuai kolom `MasterMember.memberNumber` (penulisan kanonis). */
       canonicalMemberNumber: string;
       fullName: string;
@@ -16,7 +16,7 @@ export type MemberPartnerLookupResult =
     };
 
 /**
- * Public lookup: directory row for pricing/autofill plus whether pengurus may add partner ticket.
+ * Public lookup: directory row for pricing/autofill plus whether management members may add partner ticket.
  */
 export async function lookupMemberPartnerEligibility(
   memberNumberRaw: string,
@@ -28,12 +28,12 @@ export async function lookupMemberPartnerEligibility(
 
   const row = await getActiveMasterMemberByMemberNumber(trimmed);
   if (!row) {
-    return { kind: "ok", found: false, isPengurus: false };
+    return { kind: "ok", found: false, isManagementMember: false };
   }
   return {
     kind: "ok",
     found: true,
-    isPengurus: row.isPengurus,
+    isManagementMember: row.isManagementMember,
     canonicalMemberNumber: row.memberNumber,
     fullName: row.fullName,
     whatsapp: row.whatsapp,

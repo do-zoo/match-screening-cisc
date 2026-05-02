@@ -17,6 +17,12 @@ export const MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE =
 export const MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE =
   "Nomor member wajib diisi untuk pendaftar member CISC." as const;
 
+export const MEMBER_IDENTITY_NUMBER_OR_CODE_MESSAGE =
+  "Isi nomor member di direktori atau kode pengurus (salah satu)." as const;
+
+export const MEMBER_NUMBER_AND_CODE_CONFLICT_MESSAGE =
+  "Hanya boleh mengisi nomor member atau kode pengurus, tidak keduanya." as const;
+
 /** Sama makna dengan validasi tiket tunggal per member per event (lihat juga server action submit). */
 export const MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE =
   "Member dengan nomor ini sudah terdaftar untuk acara ini (satu tiket per nomor)." as const;
@@ -34,10 +40,15 @@ const isNonemptyFile = (val: unknown): val is File => {
 
 /** Same rule as `.superRefine` on memberCardPhoto (client step navigation). */
 export function isMemberCardPhotoMissingWhenRequired(values: {
+  purchaserIsMember?: boolean;
   claimedMemberNumber?: string | undefined;
+  managementPublicCode?: string | undefined;
   memberCardPhoto?: unknown;
 }): boolean {
-  const claiming = Boolean(String(values.claimedMemberNumber ?? "").trim());
+  if (!values.purchaserIsMember) return false;
+  const claiming =
+    Boolean(String(values.claimedMemberNumber ?? "").trim()) ||
+    Boolean(String(values.managementPublicCode ?? "").trim());
   return claiming && !isNonemptyFile(values.memberCardPhoto);
 }
 
@@ -45,10 +56,12 @@ export function isMemberCardPhotoMissingWhenRequired(values: {
 export function isMemberNumberMissingWhenMember(values: {
   purchaserIsMember?: boolean;
   claimedMemberNumber?: string | undefined;
+  managementPublicCode?: string | undefined;
 }): boolean {
   return (
     Boolean(values.purchaserIsMember) &&
-    !String(values.claimedMemberNumber ?? "").trim()
+    !String(values.claimedMemberNumber ?? "").trim() &&
+    !String(values.managementPublicCode ?? "").trim()
   );
 }
 
@@ -93,6 +106,7 @@ export function createSubmitRegistrationFormSchema(
       contactName: z.string().trim().min(2, "Nama wajib diisi"),
       contactWhatsapp: phone,
       claimedMemberNumber: z.string().trim().optional(),
+      managementPublicCode: z.string().trim().optional(),
       qtyPartner: z.union([z.literal(0), z.literal(1)]),
       partnerIsMember: z.boolean(),
       partnerName: z.string().trim().optional(),
@@ -223,25 +237,50 @@ export function createSubmitRegistrationFormSchema(
         }
       }
 
+      const numTrim = data.claimedMemberNumber?.trim() ?? "";
+      const codeTrim = data.managementPublicCode?.trim() ?? "";
+
       if (data.purchaserIsMember) {
-        if (!data.claimedMemberNumber?.trim()) {
+        if (numTrim && codeTrim) {
           ctxZod.addIssue({
             code: z.ZodIssueCode.custom,
-            message: MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
+            message: MEMBER_NUMBER_AND_CODE_CONFLICT_MESSAGE,
+            path: ["claimedMemberNumber"],
+          });
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: MEMBER_NUMBER_AND_CODE_CONFLICT_MESSAGE,
+            path: ["managementPublicCode"],
+          });
+        } else if (!numTrim && !codeTrim) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: MEMBER_IDENTITY_NUMBER_OR_CODE_MESSAGE,
             path: ["claimedMemberNumber"],
           });
         }
-      } else if (data.claimedMemberNumber?.trim()) {
-        ctxZod.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            "Hapus nomor member atau ubah status menjadi member CISC.",
-          path: ["claimedMemberNumber"],
-        });
+      } else {
+        if (data.claimedMemberNumber?.trim()) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "Hapus nomor member atau ubah status menjadi member CISC.",
+            path: ["claimedMemberNumber"],
+          });
+        }
+        if (codeTrim) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "Kode pengurus hanya untuk pemesan dengan status member CISC.",
+            path: ["managementPublicCode"],
+          });
+        }
       }
 
-      const isClaimingMember = Boolean(data.claimedMemberNumber?.trim());
-      if (isClaimingMember) {
+      const claimingPrimaryIdentity =
+        data.purchaserIsMember && (Boolean(numTrim) || Boolean(codeTrim));
+      if (claimingPrimaryIdentity) {
         if (!isNonemptyFile(data.memberCardPhoto)) {
           ctxZod.addIssue({
             code: z.ZodIssueCode.custom,

@@ -22,7 +22,7 @@ export default function AdminSettingsHubPage() {
         <SettingsCard
           href="/admin/settings/committee"
           title="Komite & admin"
-          description="Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; PIC serta rekening tetap dari Anggota."
+          description="Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; rekening PIC dilampirkan ke profil admin."
         />
         <SettingsCard
           href="/admin/settings/pricing"

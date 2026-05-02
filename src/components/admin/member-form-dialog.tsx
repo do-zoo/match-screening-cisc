@@ -33,8 +33,6 @@ type MemberFormValues = {
   fullName: string;
   whatsapp?: string;
   isActive: boolean;
-  isPengurus: boolean;
-  canBePIC: boolean;
 };
 
 type Props = {
@@ -62,8 +60,6 @@ export function MemberFormDialog({
       fullName: member?.fullName ?? "",
       whatsapp: member?.whatsapp ?? "",
       isActive: member?.isActive ?? true,
-      isPengurus: member?.isPengurus ?? false,
-      canBePIC: member?.canBePIC ?? false,
     }),
     [member],
   );
@@ -94,16 +90,12 @@ export function MemberFormDialog({
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? "",
               isActive: values.isActive,
-              isPengurus: values.isPengurus,
-              canBePIC: values.canBePIC,
             }
           : {
               id: member?.id ?? values.id ?? "",
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? "",
               isActive: values.isActive,
-              isPengurus: values.isPengurus,
-              canBePIC: values.canBePIC,
             };
 
       fd.set("payload", JSON.stringify(payload));
@@ -206,18 +198,6 @@ export function MemberFormDialog({
               label="Aktif"
               disabled={isPending}
             />
-            <BooleanField
-              control={form.control}
-              name="isPengurus"
-              label="Pengurus"
-              disabled={isPending}
-            />
-            <BooleanField
-              control={form.control}
-              name="canBePIC"
-              label="Boleh PIC"
-              disabled={isPending}
-            />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -269,7 +249,7 @@ function BooleanField({
   disabled,
 }: {
   control: ReturnType<typeof useForm<MemberFormValues>>["control"];
-  name: "isActive" | "isPengurus" | "canBePIC";
+  name: "isActive";
   label: string;
   disabled: boolean;
 }) {

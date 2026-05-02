@@ -10,8 +10,7 @@ const exampleRow: Record<MasterMemberCsvColumn, string> = {
   full_name: "Contoh Nama",
   whatsapp: "6281234567890",
   is_active: "true",
-  is_pengurus: "false",
-  can_be_pic: "true",
+  is_management_member: "false",
 };
 
 export function buildMasterMemberCsvTemplate(): string {

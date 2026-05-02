@@ -112,24 +112,80 @@ model MasterMember {
   fullName     String
   whatsapp     String?
   isActive     Boolean @default(true)
-
-  isPengurus Boolean @default(false)
-  canBePIC   Boolean @default(false)
+  isManagementMember Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bankAccounts      PicBankAccount[]
-  eventsAsPicMaster Event[]          @relation("EventPicMaster")
-  eventsAsHelper    EventPicHelper[]
-  registrations     Registration[]
-  adminProfiles     AdminProfile[]
+  eventsAsHelper EventPicHelper[]
+  registrations          Registration[]
+  adminProfiles          AdminProfile[]
+  managementMemberRecord ManagementMember?
+}
+
+model BoardPeriod {
+  id        String   @id @default(cuid())
+  label     String
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments BoardAssignment[]
+
+  @@index([startsAt, endsAt])
+}
+
+model BoardRole {
+  id        String   @id @default(cuid())
+  title     String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments BoardAssignment[]
+
+  @@index([isActive, sortOrder])
+}
+
+model ManagementMember {
+  id             String        @id @default(cuid())
+  publicCode     String        @unique
+  fullName       String
+  whatsapp       String?
+  masterMemberId String?       @unique
+  masterMember   MasterMember? @relation(fields: [masterMemberId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments            BoardAssignment[]
+  registrationsAsPrimary Registration[]
+}
+
+model BoardAssignment {
+  id                 String @id @default(cuid())
+  boardPeriodId      String
+  boardPeriod        BoardPeriod      @relation(fields: [boardPeriodId], references: [id], onDelete: Cascade)
+  managementMemberId String
+  managementMember   ManagementMember @relation(fields: [managementMemberId], references: [id], onDelete: Cascade)
+  boardRoleId        String
+  boardRole          BoardRole        @relation(fields: [boardRoleId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([boardPeriodId, managementMemberId])
+  @@unique([boardPeriodId, boardRoleId])
+  @@index([managementMemberId])
+  @@index([boardRoleId])
 }
 
 model PicBankAccount {
-  id            String       @id @default(cuid())
-  ownerMemberId String
-  ownerMember   MasterMember @relation(fields: [ownerMemberId], references: [id], onDelete: Restrict)
+  id                  String        @id @default(cuid())
+  ownerAdminProfileId String
+  ownerAdmin          AdminProfile @relation(fields: [ownerAdminProfileId], references: [id], onDelete: Restrict)
 
   bankName      String
   accountNumber String
@@ -141,7 +197,7 @@ model PicBankAccount {
 
   events Event[]
 
-  @@index([ownerMemberId])
+  @@index([ownerAdminProfileId])
 }
 
 model Event {
@@ -173,8 +229,8 @@ model Event {
   menuSelection MenuSelection
   voucherPrice  Int?
 
-  picMasterMemberId String
-  picMasterMember   MasterMember @relation("EventPicMaster", fields: [picMasterMemberId], references: [id], onDelete: Restrict)
+  picAdminProfileId String
+  picAdminProfile   AdminProfile @relation(fields: [picAdminProfileId], references: [id], onDelete: Restrict)
 
   bankAccountId String
   bankAccount   PicBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
@@ -187,7 +243,7 @@ model Event {
   menuItems     EventMenuItem[]
 
   @@index([status, startAt])
-  @@index([picMasterMemberId])
+  @@index([picAdminProfileId])
   @@index([bankAccountId])
 }
 
@@ -235,6 +291,10 @@ model Registration {
   tickets     Ticket[]
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
+
+  primaryManagementMemberId   String?
+  primaryManagementMember     ManagementMember? @relation(fields: [primaryManagementMemberId], references: [id], onDelete: SetNull)
+  claimedManagementPublicCode String?
 
   @@index([eventId, createdAt])
   @@index([status])
@@ -425,6 +485,9 @@ model AdminProfile {
   // Optional: link to a MasterMember so PIC helper checks are possible.
   memberId String?
   member   MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  ownedPicBankAccounts PicBankAccount[]
+  eventsAsPic          Event[]
 
   auditEntries ClubAuditLog[]
 
