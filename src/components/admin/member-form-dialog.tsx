@@ -33,8 +33,7 @@ type MemberFormValues = {
   fullName: string;
   whatsapp?: string;
   isActive: boolean;
-  isPengurus: boolean;
-  canBePIC: boolean;
+  isManagementMember: boolean;
 };
 
 type Props = {
@@ -62,8 +61,7 @@ export function MemberFormDialog({
       fullName: member?.fullName ?? "",
       whatsapp: member?.whatsapp ?? "",
       isActive: member?.isActive ?? true,
-      isPengurus: member?.isPengurus ?? false,
-      canBePIC: member?.canBePIC ?? false,
+      isManagementMember: member?.isManagementMember ?? false,
     }),
     [member],
   );
@@ -94,16 +92,14 @@ export function MemberFormDialog({
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? "",
               isActive: values.isActive,
-              isPengurus: values.isPengurus,
-              canBePIC: values.canBePIC,
+              isManagementMember: values.isManagementMember,
             }
           : {
               id: member?.id ?? values.id ?? "",
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? "",
               isActive: values.isActive,
-              isPengurus: values.isPengurus,
-              canBePIC: values.canBePIC,
+              isManagementMember: values.isManagementMember,
             };
 
       fd.set("payload", JSON.stringify(payload));
@@ -208,14 +204,8 @@ export function MemberFormDialog({
             />
             <BooleanField
               control={form.control}
-              name="isPengurus"
+              name="isManagementMember"
               label="Pengurus"
-              disabled={isPending}
-            />
-            <BooleanField
-              control={form.control}
-              name="canBePIC"
-              label="Boleh PIC"
               disabled={isPending}
             />
           </div>
@@ -269,7 +259,7 @@ function BooleanField({
   disabled,
 }: {
   control: ReturnType<typeof useForm<MemberFormValues>>["control"];
-  name: "isActive" | "isPengurus" | "canBePIC";
+  name: "isActive" | "isManagementMember";
   label: string;
   disabled: boolean;
 }) {

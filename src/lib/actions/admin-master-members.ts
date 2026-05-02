@@ -232,8 +232,7 @@ export async function createMasterMember(
         fullName: z.data.fullName.trim(),
         whatsapp: whatsappStored,
         isActive: z.data.isActive,
-        isPengurus: z.data.isPengurus,
-        canBePIC: z.data.canBePIC,
+        isManagementMember: z.data.isManagementMember,
       },
       select: { id: true },
     });
@@ -286,8 +285,7 @@ export async function updateMasterMember(
       fullName: z.data.fullName.trim(),
       whatsapp: whatsappStored,
       isActive: z.data.isActive,
-      isPengurus: z.data.isPengurus,
-      canBePIC: z.data.canBePIC,
+      isManagementMember: z.data.isManagementMember,
     },
     select: { id: true },
   });
@@ -313,25 +311,28 @@ export async function deleteMasterMember(
       id: true,
       fullName: true,
       memberNumber: true,
-      _count: {
-        select: {
-          eventsAsPicMaster: true,
-          bankAccounts: true,
-        },
-      },
     },
   });
   if (!member) return rootError("Anggota tidak ditemukan.");
 
-  if (member._count.eventsAsPicMaster > 0) {
+  const [eventsAsPic, bankCount] = await Promise.all([
+    prisma.event.count({
+      where: { picAdminProfile: { memberId: member.id } },
+    }),
+    prisma.picBankAccount.count({
+      where: { ownerAdmin: { memberId: member.id } },
+    }),
+  ]);
+
+  if (eventsAsPic > 0) {
     return rootError(
-      `Anggota tidak bisa dihapus karena menjadi PIC di ${member._count.eventsAsPicMaster} acara. Ganti PIC acara tersebut terlebih dahulu.`,
+      `Anggota tidak bisa dihapus karena terkait ke akun admin yang dipakai sebagai PIC di ${eventsAsPic} acara. Ganti PIC atau lepaskan tautan admin–anggota terlebih dahulu.`,
     );
   }
 
-  if (member._count.bankAccounts > 0) {
+  if (bankCount > 0) {
     return rootError(
-      `Anggota tidak bisa dihapus karena memiliki ${member._count.bankAccounts} rekening bank terdaftar. Hapus rekening terlebih dahulu.`,
+      `Anggota tidak bisa dihapus karena rekening PIC di bawah profil admin yang terhubung ke anggota ini masih ada (${bankCount}). Hapus rekening terlebih dahulu.`,
     );
   }
 

@@ -195,19 +195,19 @@ export async function submitRegistration(
       ? data.partnerMemberNumber?.trim() || undefined
       : undefined;
 
-  const picMaster = primaryMemberNumberInput
+  const primaryDirectoryRow = primaryMemberNumberInput
     ? await getActiveMasterMemberByMemberNumber(primaryMemberNumberInput)
     : null;
 
-  if (primaryMemberNumberInput && !picMaster) {
+  if (primaryMemberNumberInput && !primaryDirectoryRow) {
     return fieldError({
       claimedMemberNumber: MEMBER_NOT_IN_DIRECTORY_MESSAGE,
     });
   }
 
   /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs unique tiket. */
-  const primaryMemberNumber = picMaster
-    ? picMaster.memberNumber
+  const primaryMemberNumber = primaryDirectoryRow
+    ? primaryDirectoryRow.memberNumber
     : primaryMemberNumberInput;
 
   let canonicalPartnerMemberNumber: string | undefined;
@@ -233,7 +233,7 @@ export async function submitRegistration(
   }
 
   if (includePartner) {
-    if (!picMaster?.isPengurus) {
+    if (!primaryDirectoryRow?.isManagementMember) {
       return rootError(
         "Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama."
       );

@@ -8,6 +8,8 @@ vi.mock("@/lib/db/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    event: { count: vi.fn() },
+    picBankAccount: { count: vi.fn() },
   },
 }));
 
@@ -44,6 +46,8 @@ describe("deleteMasterMember", () => {
   beforeEach(() => {
     vi.mocked(prisma.masterMember.findUnique).mockReset();
     vi.mocked(prisma.masterMember.delete).mockReset();
+    vi.mocked(prisma.event.count).mockReset();
+    vi.mocked(prisma.picBankAccount.count).mockReset();
     vi.mocked(appendClubAuditLog).mockReset();
   });
 
@@ -61,8 +65,9 @@ describe("deleteMasterMember", () => {
       id: "m1",
       fullName: "Budi",
       memberNumber: "001",
-      _count: { eventsAsPicMaster: 2, bankAccounts: 0 },
     } as never);
+    vi.mocked(prisma.event.count).mockResolvedValueOnce(2);
+    vi.mocked(prisma.picBankAccount.count).mockResolvedValueOnce(0);
     const fd = new FormData();
     fd.set("memberId", "m1");
     const r = await deleteMasterMember(undefined, fd);
@@ -75,8 +80,9 @@ describe("deleteMasterMember", () => {
       id: "m2",
       fullName: "Sari",
       memberNumber: "002",
-      _count: { eventsAsPicMaster: 0, bankAccounts: 1 },
     } as never);
+    vi.mocked(prisma.event.count).mockResolvedValueOnce(0);
+    vi.mocked(prisma.picBankAccount.count).mockResolvedValueOnce(1);
     const fd = new FormData();
     fd.set("memberId", "m2");
     const r = await deleteMasterMember(undefined, fd);
@@ -89,8 +95,9 @@ describe("deleteMasterMember", () => {
       id: "m3",
       fullName: "Andi",
       memberNumber: "003",
-      _count: { eventsAsPicMaster: 0, bankAccounts: 0 },
     } as never);
+    vi.mocked(prisma.event.count).mockResolvedValueOnce(0);
+    vi.mocked(prisma.picBankAccount.count).mockResolvedValueOnce(0);
     vi.mocked(prisma.masterMember.delete).mockResolvedValueOnce({} as never);
     const fd = new FormData();
     fd.set("memberId", "m3");

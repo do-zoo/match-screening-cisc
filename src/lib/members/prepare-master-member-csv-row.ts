@@ -3,9 +3,8 @@ import { interpretMasterMemberCsvBoolean } from "./master-member-csv-boolean";
 export type MasterMemberCsvWritablePatch = {
   fullName?: string;
   whatsapp?: string | null;
-  isPengurus?: boolean;
+  isManagementMember?: boolean;
   isActive?: boolean;
-  canBePIC?: boolean;
 };
 
 export type PreparedMasterMemberCsvRow =
@@ -62,11 +61,11 @@ export function prepareMasterMemberCsvRow(
 
   const active = interpretMasterMemberCsvBoolean(cells.is_active);
   if (active !== undefined) patch.isActive = active;
-  const pengurus = interpretMasterMemberCsvBoolean(cells.is_pengurus);
-  if (pengurus !== undefined) patch.isPengurus = pengurus;
-  const pic = interpretMasterMemberCsvBoolean(cells.can_be_pic);
-  if (pic !== undefined) patch.canBePIC = pic;
-
+  const managementMember = interpretMasterMemberCsvBoolean(
+    cells.is_management_member,
+  );
+  if (managementMember !== undefined)
+    patch.isManagementMember = managementMember;
   return {
     tag: "ok",
     lineNumberPhysical,

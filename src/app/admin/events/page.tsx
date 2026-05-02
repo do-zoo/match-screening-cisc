@@ -68,9 +68,10 @@ export default async function AdminEventsIndexPage({
       status: true,
       startAt: true,
       endAt: true,
-      picMasterMember: {
+      picAdminProfile: {
         select: {
-          fullName: true,
+          authUserId: true,
+          member: { select: { fullName: true } },
         },
       },
       _count: {
@@ -81,15 +82,35 @@ export default async function AdminEventsIndexPage({
     },
   });
 
-  const eventRows = events.map((event) => ({
-    id: event.id,
-    slug: event.slug,
-    title: event.title,
-    status: event.status,
-    startAtIso: event.startAt.toISOString(),
-    picFullName: event.picMasterMember?.fullName ?? null,
-    registrationCount: event._count.registrations,
-  }));
+  const picAuthIds = [
+    ...new Set(events.map((e) => e.picAdminProfile.authUserId)),
+  ];
+  const picUsers =
+    picAuthIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: picAuthIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+  const userById = new Map(picUsers.map((u) => [u.id, u]));
+
+  const eventRows = events.map((event) => {
+    const u = userById.get(event.picAdminProfile.authUserId);
+    const picFullName =
+      event.picAdminProfile.member?.fullName?.trim() ||
+      u?.name?.trim() ||
+      u?.email ||
+      null;
+    return {
+      id: event.id,
+      slug: event.slug,
+      title: event.title,
+      status: event.status,
+      startAtIso: event.startAt.toISOString(),
+      picFullName,
+      registrationCount: event._count.registrations,
+    };
+  });
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">

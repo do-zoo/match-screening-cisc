@@ -164,27 +164,14 @@ export function MembersAdminPage({
         ),
       },
       {
-        accessorKey: "isPengurus",
+        accessorKey: "isManagementMember",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Pengurus" />
         ),
         cell: ({ row }) => (
           <BooleanBadge
-            value={row.original.isPengurus}
+            value={row.original.isManagementMember}
             trueLabel="Ya"
-            falseLabel="Tidak"
-          />
-        ),
-      },
-      {
-        accessorKey: "canBePIC",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="PIC siap" />
-        ),
-        cell: ({ row }) => (
-          <BooleanBadge
-            value={row.original.canBePIC}
-            trueLabel="Siap"
             falseLabel="Tidak"
           />
         ),
@@ -260,7 +247,7 @@ export function MembersAdminPage({
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Anggota</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola master anggota, status aktif, pengurus, dan kesiapan PIC.
+            Kelola master anggota, status aktif, dan pengurus. PIC acara diatur per acara (profil admin).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -390,22 +390,24 @@ export function RegistrationDetail({
                 <div className="font-medium">
                   Pengurus (dari direktori, nomor utama)
                 </div>
-                {ticketContext.pengurus.state === "no_primary_number" && (
+                {ticketContext.managementMember.state === "no_primary_number" && (
                   <p className="text-muted-foreground">
                     Tidak ada nomor member pada tiket utama / klaim — lookup tidak
                     dijalankan.
                   </p>
                 )}
-                {ticketContext.pengurus.state === "not_in_directory" && (
+                {ticketContext.managementMember.state === "not_in_directory" && (
                   <p className="text-amber-700 dark:text-amber-400">
                     Nomor utama tidak ditemukan di direktori member aktif.
                   </p>
                 )}
-                {ticketContext.pengurus.state === "found" && (
+                {ticketContext.managementMember.state === "found" && (
                   <p>
                     Status komite/pengurus:{" "}
                     <span className="font-medium">
-                      {ticketContext.pengurus.isPengurus ? "Ya" : "Tidak"}
+                      {ticketContext.managementMember.isManagementMember
+                        ? "Ya"
+                        : "Tidak"}
                     </span>
                   </p>
                 )}

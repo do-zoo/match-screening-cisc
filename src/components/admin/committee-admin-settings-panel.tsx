@@ -235,7 +235,8 @@ function ManageAdminDialogs(props: ManageFormsProps) {
           <DialogHeader>
             <DialogTitle>Hubungkan ke MasterMember</DialogTitle>
             <DialogDescription>
-              Opsional. PIC, rekening, dan flag PIC dikelola di halaman Anggota.
+              Opsional. Untuk bantuan operasional, hubungkan admin ke baris direktori. PIC acara dan
+              rekening terkait dikonfigurasi lewat profil admin (bukan lewat flag di Anggota).
             </DialogDescription>
           </DialogHeader>
           <form

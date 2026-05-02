@@ -80,7 +80,7 @@ export function usePartnerGate(
             status: "ready",
             forTrim: trimmed,
             found: false,
-            isPengurus: false,
+            isManagementMember: false,
           });
           resetPartnerFields();
           return;
@@ -108,7 +108,7 @@ export function usePartnerGate(
                 status: "ready",
                 forTrim: canon,
                 found: true,
-                isPengurus: r.isPengurus,
+                isManagementMember: r.isManagementMember,
                 seatForEvent: "taken",
               });
               resetPartnerFields();
@@ -130,10 +130,10 @@ export function usePartnerGate(
               status: "ready",
               forTrim: canon,
               found: true,
-              isPengurus: r.isPengurus,
+              isManagementMember: r.isManagementMember,
               seatForEvent: "available",
             });
-            if (!r.isPengurus) resetPartnerFields();
+            if (!r.isManagementMember) resetPartnerFields();
           },
         );
       });
@@ -171,7 +171,7 @@ export function usePartnerGate(
     effectivePartnerGate.status === "ready" &&
     effectivePartnerGate.found &&
     effectivePartnerGate.seatForEvent === "available" &&
-    effectivePartnerGate.isPengurus;
+    effectivePartnerGate.isManagementMember;
 
   return { effectivePartnerGate, showPartnerSection };
 }

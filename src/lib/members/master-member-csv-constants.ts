@@ -4,8 +4,7 @@ export const MASTER_MEMBER_CSV_COLUMNS = [
   "full_name",
   "whatsapp",
   "is_active",
-  "is_pengurus",
-  "can_be_pic",
+  "is_management_member",
 ] as const;
 
 export type MasterMemberCsvColumn =

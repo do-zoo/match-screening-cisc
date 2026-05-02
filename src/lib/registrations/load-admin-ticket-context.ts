@@ -35,15 +35,21 @@ export async function loadTicketContextVm(input: {
     registration.claimedMemberNumber,
   );
 
-  let pengurus: Extract<TicketContextVm, { kind: "ok" }>["pengurus"];
+  let managementMember: Extract<
+    TicketContextVm,
+    { kind: "ok" }
+  >["managementMember"];
   if (!primaryNum) {
-    pengurus = { state: "no_primary_number" };
+    managementMember = { state: "no_primary_number" };
   } else {
     const row = await getActiveMasterMemberByMemberNumber(primaryNum);
     if (!row) {
-      pengurus = { state: "not_in_directory" };
+      managementMember = { state: "not_in_directory" };
     } else {
-      pengurus = { state: "found", isPengurus: row.isPengurus };
+      managementMember = {
+        state: "found",
+        isManagementMember: row.isManagementMember,
+      };
     }
   }
 
@@ -90,7 +96,7 @@ export async function loadTicketContextVm(input: {
   return {
     kind: "ok",
     partner,
-    pengurus,
+    managementMember,
     conflicts,
   };
 }

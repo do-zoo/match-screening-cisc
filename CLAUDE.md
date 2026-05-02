@@ -73,8 +73,8 @@ An event registration system for a members-only social club (CISC). Members and 
 
 Key entities:
 
-- **`MasterMember`** — the club member directory; `isPengurus` flag gates partner ticket eligibility
-- **`Event`** — has a slug, pricing, menu config (`MenuMode`: `PRESELECT` | `VOUCHER`), and PIC assignment
+- **`MasterMember`** — the club member directory; `isManagementMember` flag gates partner ticket eligibility (committee/board in product language)
+- **`Event`** — slug, pricing, menu config (`MenuMode`: `PRESELECT` | `VOUCHER`); financial PIC is **`picAdminProfileId`** (`AdminProfile`), not a directory flag; **`PicBankAccount`** is owned by **`ownerAdminProfileId`**
 - **`Registration`** — one per submission; prices are snapshotted at submit time (`*Applied` fields); status flows: `submitted → pending_review → approved / rejected / payment_issue`
 - **`Ticket`** — one `primary` + optional `partner` per registration; unique constraint on `(eventId, memberNumber)` prevents double-booking
 - **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage

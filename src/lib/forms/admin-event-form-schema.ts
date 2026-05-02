@@ -40,7 +40,7 @@ export const adminEventUpsertSchema = z
     pricingSource: z.nativeEnum(PricingSource),
     ticketMemberPrice: idrSchema,
     ticketNonMemberPrice: idrSchema,
-    picMasterMemberId: z.string().min(1),
+    picAdminProfileId: z.string().min(1),
     bankAccountId: z.string().min(1),
     helperMasterMemberIds: z.array(z.string().min(1)),
     menuItems: z.array(menuItemDraftSchema).min(1),

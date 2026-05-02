@@ -7,7 +7,7 @@ import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ memberId: string }> },
+  { params }: { params: Promise<{ adminProfileId: string }> },
 ) {
   const session = await getAdminSession();
   if (!session) {
@@ -19,9 +19,9 @@ export async function GET(
     return new NextResponse(null, { status: 404 });
   }
 
-  const { memberId } = await params;
+  const { adminProfileId } = await params;
   const rows = await prisma.picBankAccount.findMany({
-    where: { ownerMemberId: memberId, isActive: true },
+    where: { ownerAdminProfileId: adminProfileId, isActive: true },
     orderBy: { bankName: "asc" },
     select: {
       id: true,

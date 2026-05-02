@@ -14,7 +14,7 @@ const persisted: EventIntegritySnapshot = {
   ticketNonMemberPrice: 2,
   voucherPrice: null,
   pricingSource: "global_default",
-  picMasterMemberId: "m1",
+  picAdminProfileId: "a1",
   bankAccountId: "b1",
 };
 

@@ -112,24 +112,20 @@ model MasterMember {
   fullName     String
   whatsapp     String?
   isActive     Boolean @default(true)
-
-  isPengurus Boolean @default(false)
-  canBePIC   Boolean @default(false)
+  isManagementMember Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bankAccounts      PicBankAccount[]
-  eventsAsPicMaster Event[]          @relation("EventPicMaster")
-  eventsAsHelper    EventPicHelper[]
+  eventsAsHelper EventPicHelper[]
   registrations     Registration[]
   adminProfiles     AdminProfile[]
 }
 
 model PicBankAccount {
-  id            String       @id @default(cuid())
-  ownerMemberId String
-  ownerMember   MasterMember @relation(fields: [ownerMemberId], references: [id], onDelete: Restrict)
+  id                  String        @id @default(cuid())
+  ownerAdminProfileId String
+  ownerAdmin          AdminProfile @relation(fields: [ownerAdminProfileId], references: [id], onDelete: Restrict)
 
   bankName      String
   accountNumber String
@@ -141,7 +137,7 @@ model PicBankAccount {
 
   events Event[]
 
-  @@index([ownerMemberId])
+  @@index([ownerAdminProfileId])
 }
 
 model Event {
@@ -173,8 +169,8 @@ model Event {
   menuSelection MenuSelection
   voucherPrice  Int?
 
-  picMasterMemberId String
-  picMasterMember   MasterMember @relation("EventPicMaster", fields: [picMasterMemberId], references: [id], onDelete: Restrict)
+  picAdminProfileId String
+  picAdminProfile   AdminProfile @relation(fields: [picAdminProfileId], references: [id], onDelete: Restrict)
 
   bankAccountId String
   bankAccount   PicBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
@@ -187,7 +183,7 @@ model Event {
   menuItems     EventMenuItem[]
 
   @@index([status, startAt])
-  @@index([picMasterMemberId])
+  @@index([picAdminProfileId])
   @@index([bankAccountId])
 }
 
@@ -425,6 +421,9 @@ model AdminProfile {
   // Optional: link to a MasterMember so PIC helper checks are possible.
   memberId String?
   member   MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  ownedPicBankAccounts PicBankAccount[]
+  eventsAsPic          Event[]
 
   auditEntries ClubAuditLog[]
 
