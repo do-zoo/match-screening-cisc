@@ -81,7 +81,12 @@ export function aggregateCrossRegistrationConflicts(
 export type TicketContextManagementMemberVm =
   | { state: "no_primary_number" }
   | { state: "not_in_directory" }
-  | { state: "found"; isManagementMember: boolean };
+  | { state: "found"; isManagementMember: boolean }
+  | {
+      state: "via_public_code";
+      publicCode: string;
+      fullName: string;
+    };
 
 export type TicketConflictRowVm = {
   registrationId: string;

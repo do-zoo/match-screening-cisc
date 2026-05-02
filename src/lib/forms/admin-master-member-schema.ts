@@ -8,7 +8,6 @@ export const adminMasterMemberCreateSchema = z.object({
   fullName: nameSchema,
   whatsapp: z.union([z.string().trim().max(64), z.literal("")]).optional(),
   isActive: z.boolean(),
-  isManagementMember: z.boolean(),
 });
 
 export const adminMasterMemberUpdateSchema = z.object({
@@ -16,7 +15,6 @@ export const adminMasterMemberUpdateSchema = z.object({
   fullName: nameSchema,
   whatsapp: z.union([z.string().trim().max(64), z.literal("")]).optional(),
   isActive: z.boolean(),
-  isManagementMember: z.boolean(),
 });
 
 export type AdminMasterMemberCreateInput = z.infer<

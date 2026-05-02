@@ -18,7 +18,7 @@ import {
   isPartnerMemberNumberMissingWhenPartnerMember,
   MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
   MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
-  MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
+  MEMBER_IDENTITY_NUMBER_OR_CODE_MESSAGE,
   MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
@@ -36,6 +36,7 @@ import {
   resolveActiveStepAfterStepsChange,
 } from "./registration-steps";
 import type { RegistrationFormProps } from "./types";
+import { useManagementCodeGate } from "./use-management-code-gate";
 import { usePartnerGate } from "./use-partner-gate";
 import { usePartnerMemberNumberValidation } from "./use-partner-member-number-validation";
 import { usePricingPreview } from "./use-pricing-preview";
@@ -54,7 +55,12 @@ function serverFieldErrorsToStepHint(
   ) {
     return "partner";
   }
-  if (fe.memberCardPhoto || fe.claimedMemberNumber || fe.purchaserIsMember) {
+  if (
+    fe.memberCardPhoto ||
+    fe.claimedMemberNumber ||
+    fe.managementPublicCode ||
+    fe.purchaserIsMember
+  ) {
     return "purchaser";
   }
   if (fe.contactName || fe.contactWhatsapp) return "purchaser";
@@ -77,6 +83,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       contactName: "",
       contactWhatsapp: "",
       claimedMemberNumber: undefined,
+      managementPublicCode: "",
       qtyPartner: 0,
       partnerIsMember: false,
       partnerName: "",
@@ -101,12 +108,15 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     [watched.selectedMenuItemIds]
   );
   const claimedMemberTrim = String(watched.claimedMemberNumber ?? "").trim();
+  const managementCodeTrim = String(watched.managementPublicCode ?? "").trim();
 
-  const { effectivePartnerGate, showPartnerSection } = usePartnerGate(
-    form,
-    event.slug,
-    claimedMemberTrim
-  );
+  const { effectivePartnerGate, showPartnerSection: showPartnerByNumber } =
+    usePartnerGate(form, event.slug, claimedMemberTrim, managementCodeTrim);
+
+  const { directoryVerifiedByCode, effectiveManagementCodeGate } =
+    useManagementCodeGate(form, managementCodeTrim, claimedMemberTrim);
+
+  const showPartnerSection = showPartnerByNumber || directoryVerifiedByCode;
 
   const { effectivePartnerMemberGate } = usePartnerMemberNumberValidation(
     form,
@@ -149,16 +159,21 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     ],
   );
 
-  const directoryVerified = useMemo(
-    () =>
+  const directoryVerified = useMemo(() => {
+    const numberPath =
       purchaserIsMember &&
       claimedMemberTrim.length > 0 &&
       effectivePartnerGate.status === "ready" &&
       effectivePartnerGate.found &&
       effectivePartnerGate.seatForEvent === "available" &&
-      effectivePartnerGate.forTrim === claimedMemberTrim,
-    [purchaserIsMember, claimedMemberTrim, effectivePartnerGate]
-  );
+      effectivePartnerGate.forTrim === claimedMemberTrim;
+    return numberPath || directoryVerifiedByCode;
+  }, [
+    purchaserIsMember,
+    claimedMemberTrim,
+    effectivePartnerGate,
+    directoryVerifiedByCode,
+  ]);
 
   const pricingPreview = usePricingPreview(
     event,
@@ -166,6 +181,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     watched.claimedMemberNumber,
     watched.qtyPartner,
     watched.partnerIsMember,
+    watched.managementPublicCode,
   );
 
   const goNext = useCallback(async () => {
@@ -190,7 +206,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     ) {
       form.setError("claimedMemberNumber", {
         type: "custom",
-        message: MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
+        message: MEMBER_IDENTITY_NUMBER_OR_CODE_MESSAGE,
       });
       void form.setFocus("claimedMemberNumber");
       return;
@@ -213,6 +229,26 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
           "Tunggu hingga nomor dikenali atau perbaiki nomor member Anda sebelum melanjutkan.",
       });
       void form.setFocus("claimedMemberNumber");
+      return;
+    }
+    if (
+      stepId === "purchaser" &&
+      purchaserIsMember &&
+      claimedMemberTrim.length === 0 &&
+      managementCodeTrim.length > 0 &&
+      !directoryVerifiedByCode
+    ) {
+      if (effectiveManagementCodeGate.status === "checking") return;
+      if (form.getFieldState("managementPublicCode", form.formState).error) {
+        void form.setFocus("managementPublicCode");
+        return;
+      }
+      form.setError("managementPublicCode", {
+        type: "custom",
+        message:
+          "Tunggu hingga kode dikenali atau perbaiki kode pengurus sebelum melanjutkan.",
+      });
+      void form.setFocus("managementPublicCode");
       return;
     }
     /** Subset `trigger` tidak selalu membawa error superRefine untuk file kondisional — selaraskan dengan skema Zod. */
@@ -282,6 +318,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     directoryVerified,
     effectivePartnerGate.status,
     claimedMemberTrim,
+    managementCodeTrim,
+    directoryVerifiedByCode,
+    effectiveManagementCodeGate.status,
     partnerMemberTrim,
     partnerDirectoryVerified,
     partnerIsMemberWatch,
@@ -371,6 +410,10 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     fd.set("contactWhatsapp", values.contactWhatsapp);
 
     fd.set("claimedMemberNumber", values.claimedMemberNumber?.trim() ?? "");
+    fd.set(
+      "managementPublicCode",
+      values.managementPublicCode?.trim() ?? "",
+    );
     fd.set("qtyPartner", String(values.qtyPartner));
 
     fd.set("partnerIsMember", values.partnerIsMember ? "1" : "0");
@@ -405,6 +448,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       "slug",
       "purchaserIsMember",
       "claimedMemberNumber",
+      "managementPublicCode",
       "transferProof",
       "memberCardPhoto",
       "partnerIsMember",
@@ -501,7 +545,10 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
                     setValue={form.setValue}
                     clearErrors={form.clearErrors}
                     claimedMemberTrim={claimedMemberTrim}
+                    managementCodeTrim={managementCodeTrim}
                     effectivePartnerGate={effectivePartnerGate}
+                    effectiveManagementCodeGate={effectiveManagementCodeGate}
+                    directoryVerifiedByCode={directoryVerifiedByCode}
                   />
                 ) : null}
                 {stepId === "partner" ? (

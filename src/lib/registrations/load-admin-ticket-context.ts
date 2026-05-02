@@ -13,6 +13,8 @@ import {
 type RegistrationForContext = {
   id: string;
   claimedMemberNumber: string | null;
+  primaryManagementMemberId: string | null;
+  claimedManagementPublicCode: string | null;
   tickets: Array<{
     role: TicketRole;
     fullName: string;
@@ -29,29 +31,6 @@ export async function loadTicketContextVm(input: {
   const { eventId, registration } = input;
 
   const partner = partnerSummaryFromTickets(registration.tickets);
-
-  const primaryNum = resolvePrimaryMemberNumberForDirectoryLookup(
-    registration.tickets,
-    registration.claimedMemberNumber,
-  );
-
-  let managementMember: Extract<
-    TicketContextVm,
-    { kind: "ok" }
-  >["managementMember"];
-  if (!primaryNum) {
-    managementMember = { state: "no_primary_number" };
-  } else {
-    const row = await getActiveMasterMemberByMemberNumber(primaryNum);
-    if (!row) {
-      managementMember = { state: "not_in_directory" };
-    } else {
-      managementMember = {
-        state: "found",
-        isManagementMember: row.isManagementMember,
-      };
-    }
-  }
 
   const nums = [
     ...new Set(
@@ -92,6 +71,50 @@ export async function loadTicketContextVm(input: {
   }
 
   const conflicts = aggregateCrossRegistrationConflicts(conflictsFlat);
+
+  if (registration.primaryManagementMemberId) {
+    const mm = await prisma.managementMember.findUnique({
+      where: { id: registration.primaryManagementMemberId },
+      select: { fullName: true, publicCode: true },
+    });
+    const publicCode =
+      registration.claimedManagementPublicCode?.trim() ||
+      mm?.publicCode ||
+      "";
+    return {
+      kind: "ok",
+      partner,
+      managementMember: {
+        state: "via_public_code",
+        publicCode,
+        fullName: mm?.fullName ?? "—",
+      },
+      conflicts,
+    };
+  }
+
+  const primaryNum = resolvePrimaryMemberNumberForDirectoryLookup(
+    registration.tickets,
+    registration.claimedMemberNumber,
+  );
+
+  let managementMember: Extract<
+    TicketContextVm,
+    { kind: "ok" }
+  >["managementMember"];
+  if (!primaryNum) {
+    managementMember = { state: "no_primary_number" };
+  } else {
+    const row = await getActiveMasterMemberByMemberNumber(primaryNum);
+    if (!row) {
+      managementMember = { state: "not_in_directory" };
+    } else {
+      managementMember = {
+        state: "found",
+        isManagementMember: row.isManagementMember,
+      };
+    }
+  }
 
   return {
     kind: "ok",

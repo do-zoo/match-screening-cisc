@@ -17,6 +17,7 @@ export function usePartnerGate(
   form: UseFormReturn<SubmitRegistrationInput>,
   eventSlug: string,
   claimedMemberTrim: string,
+  managementCodeTrim: string,
 ) {
   const [partnerGate, setPartnerGate] = useState<PartnerGateState>({
     status: "empty",
@@ -42,17 +43,19 @@ export function usePartnerGate(
   }, [form]);
 
   useEffect(() => {
-    if (claimedMemberTrim.length === 0) {
+    if (claimedMemberTrim.length === 0 && managementCodeTrim.length === 0) {
       form.setValue("memberCardPhoto", undefined, { shouldValidate: false });
       form.clearErrors("memberCardPhoto");
       form.clearErrors("claimedMemberNumber");
     }
-  }, [claimedMemberTrim, form]);
+  }, [claimedMemberTrim, managementCodeTrim, form]);
 
   useEffect(() => {
     if (claimedMemberTrim.length === 0) {
-      form.clearErrors("claimedMemberNumber");
-      resetPartnerFields();
+      if (managementCodeTrim.length === 0) {
+        form.clearErrors("claimedMemberNumber");
+        resetPartnerFields();
+      }
       return;
     }
 
@@ -143,7 +146,7 @@ export function usePartnerGate(
       discarded = true;
       window.clearTimeout(timeoutId);
     };
-  }, [claimedMemberTrim, eventSlug, form, resetPartnerFields]);
+  }, [claimedMemberTrim, eventSlug, form, managementCodeTrim, resetPartnerFields]);
 
   const effectivePartnerGate: PartnerGateState = useMemo(() => {
     if (claimedMemberTrim.length === 0) {

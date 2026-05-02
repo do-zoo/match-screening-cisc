@@ -36,6 +36,7 @@ import {
   maskDisplayName,
   maskDisplayWhatsapp,
 } from "./mask-contact-display";
+import type { ManagementCodeGateState } from "./use-management-code-gate";
 import type { PartnerGateState } from "./types";
 
 type Props = {
@@ -43,7 +44,10 @@ type Props = {
   setValue: UseFormSetValue<SubmitRegistrationInput>;
   clearErrors: UseFormClearErrors<SubmitRegistrationInput>;
   claimedMemberTrim: string;
+  managementCodeTrim: string;
   effectivePartnerGate: PartnerGateState;
+  effectiveManagementCodeGate: ManagementCodeGateState;
+  directoryVerifiedByCode: boolean;
 };
 
 /** Kartu ringkas bergaya profile card (visual mirip pola React Bits Profile Card — reactbits.dev). Bukan enkripsi kriptografi, hanya penyamaran tampilan. */
@@ -140,7 +144,10 @@ export function PurchaserInfoSection({
   setValue,
   clearErrors,
   claimedMemberTrim,
+  managementCodeTrim,
   effectivePartnerGate,
+  effectiveManagementCodeGate,
+  directoryVerifiedByCode,
 }: Props) {
   const purchaserIsMember = Boolean(
     useWatch({ control, name: "purchaserIsMember" })
@@ -164,7 +171,9 @@ export function PurchaserInfoSection({
     );
   }, [purchaserIsMember, claimedMemberTrim, effectivePartnerGate]);
 
-  const editingWhileVerified = directoryVerified && contactsShowInputs;
+  const identityVerified = directoryVerified || directoryVerifiedByCode;
+
+  const editingWhileVerified = identityVerified && contactsShowInputs;
 
   const showMaskedProfileCard =
     directoryVerified &&
@@ -173,7 +182,8 @@ export function PurchaserInfoSection({
 
   /** Sama dengan ambang tampilan mask + min Zod WhatsApp (8). */
   const whatsappLooksEmpty = contactWhatsapp.trim().length < 8;
-  const showWhatsappFillHint = directoryVerified && whatsappLooksEmpty;
+  const showWhatsappFillHint =
+    (directoryVerified || directoryVerifiedByCode) && whatsappLooksEmpty;
 
   return (
     <section aria-label="Informasi pemesan" className="grid gap-5 rounded-xl">
@@ -197,10 +207,17 @@ export function PurchaserInfoSection({
                   setValue("claimedMemberNumber", undefined, {
                     shouldValidate: true,
                   });
+                  setValue("managementPublicCode", "", {
+                    shouldValidate: true,
+                  });
                   setValue("memberCardPhoto", undefined, {
                     shouldValidate: false,
                   });
-                  clearErrors(["claimedMemberNumber", "memberCardPhoto"]);
+                  clearErrors([
+                    "claimedMemberNumber",
+                    "managementPublicCode",
+                    "memberCardPhoto",
+                  ]);
                 }
               }}
             >
@@ -270,7 +287,7 @@ export function PurchaserInfoSection({
                 <FieldLabel htmlFor="ms-registration-member-number">
                   Nomor member{" "}
                   <span className="font-normal text-muted-foreground">
-                    (wajib)
+                    (atau kode pengurus di bawah)
                   </span>
                 </FieldLabel>
                 <Input
@@ -279,8 +296,15 @@ export function PurchaserInfoSection({
                   placeholder="Contoh: CISC-xxxx"
                   value={mField.value ?? ""}
                   autoComplete="off"
-                  required={purchaserIsMember}
-                  aria-required={purchaserIsMember}
+                  onChange={(e) => {
+                    mField.onChange(e);
+                    const v = e.target.value.trim();
+                    if (v) {
+                      setValue("managementPublicCode", "", {
+                        shouldValidate: true,
+                      });
+                    }
+                  }}
                   aria-invalid={fieldState.invalid}
                 />
                 <FieldDescription className="text-foreground/80">
@@ -315,7 +339,49 @@ export function PurchaserInfoSection({
             )}
           />
 
-          {directoryVerified ? (
+          <Controller
+            control={control}
+            name="managementPublicCode"
+            render={({ field: cField, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="ms-registration-management-code">
+                  Kode pengurus
+                </FieldLabel>
+                <Input
+                  {...cField}
+                  id="ms-registration-management-code"
+                  placeholder="Jika tidak ada nomor di direktori"
+                  value={cField.value ?? ""}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    cField.onChange(e);
+                    const v = e.target.value.trim();
+                    if (v) {
+                      setValue("claimedMemberNumber", undefined, {
+                        shouldValidate: true,
+                      });
+                    }
+                  }}
+                  aria-invalid={fieldState.invalid}
+                />
+                <FieldDescription className="text-foreground/80">
+                  Alternatif bagi pengurus yang belum punya baris di direktori
+                  anggota. Jangan isi bersamaan dengan nomor member.
+                </FieldDescription>
+                {managementCodeTrim.length > 0 &&
+                effectiveManagementCodeGate.status === "checking" ? (
+                  <FieldDescription className="text-foreground/80">
+                    Memeriksa kode kepengurusan…
+                  </FieldDescription>
+                ) : null}
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : null}
+              </Field>
+            )}
+          />
+
+          {identityVerified ? (
             <Controller
               control={control}
               name="memberCardPhoto"
@@ -353,7 +419,7 @@ export function PurchaserInfoSection({
         </>
       ) : null}
 
-      {!purchaserIsMember || directoryVerified ? (
+      {!purchaserIsMember || identityVerified ? (
         <>
           {showMaskedProfileCard ? (
             <DirectoryContactProfileCard

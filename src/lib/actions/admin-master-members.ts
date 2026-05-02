@@ -232,7 +232,6 @@ export async function createMasterMember(
         fullName: z.data.fullName.trim(),
         whatsapp: whatsappStored,
         isActive: z.data.isActive,
-        isManagementMember: z.data.isManagementMember,
       },
       select: { id: true },
     });
@@ -285,7 +284,6 @@ export async function updateMasterMember(
       fullName: z.data.fullName.trim(),
       whatsapp: whatsappStored,
       isActive: z.data.isActive,
-      isManagementMember: z.data.isManagementMember,
     },
     select: { id: true },
   });

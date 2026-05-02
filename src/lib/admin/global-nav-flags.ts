@@ -8,6 +8,7 @@ export type GlobalSidebarNav = {
   beranda: true;
   acara: boolean;
   members: boolean;
+  management: boolean;
   settings: boolean;
 };
 
@@ -17,6 +18,7 @@ export function deriveGlobalSidebarNav(ctx: AdminContext | null): GlobalSidebarN
     beranda: true,
     acara: ctx !== null && hasOperationalOwnerParity(ctx.role),
     members: ctx !== null && hasOperationalOwnerParity(ctx.role),
+    management: ctx !== null && hasOperationalOwnerParity(ctx.role),
     settings: ctx !== null && canManageCommitteeAdvancedSettings(ctx.role),
   };
 }

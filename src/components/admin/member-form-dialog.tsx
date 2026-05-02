@@ -33,7 +33,6 @@ type MemberFormValues = {
   fullName: string;
   whatsapp?: string;
   isActive: boolean;
-  isManagementMember: boolean;
 };
 
 type Props = {
@@ -61,7 +60,6 @@ export function MemberFormDialog({
       fullName: member?.fullName ?? "",
       whatsapp: member?.whatsapp ?? "",
       isActive: member?.isActive ?? true,
-      isManagementMember: member?.isManagementMember ?? false,
     }),
     [member],
   );
@@ -92,14 +90,12 @@ export function MemberFormDialog({
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? "",
               isActive: values.isActive,
-              isManagementMember: values.isManagementMember,
             }
           : {
               id: member?.id ?? values.id ?? "",
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? "",
               isActive: values.isActive,
-              isManagementMember: values.isManagementMember,
             };
 
       fd.set("payload", JSON.stringify(payload));
@@ -202,12 +198,6 @@ export function MemberFormDialog({
               label="Aktif"
               disabled={isPending}
             />
-            <BooleanField
-              control={form.control}
-              name="isManagementMember"
-              label="Pengurus"
-              disabled={isPending}
-            />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -259,7 +249,7 @@ function BooleanField({
   disabled,
 }: {
   control: ReturnType<typeof useForm<MemberFormValues>>["control"];
-  name: "isActive" | "isManagementMember";
+  name: "isActive";
   label: string;
   disabled: boolean;
 }) {

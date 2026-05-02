@@ -15,6 +15,8 @@ import {
 } from "@/lib/forms/submit-registration-schema";
 import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
 import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master-member";
+import { normalizePublicManagementCode } from "@/lib/management/normalize-public-code";
+import { resolveManagementMemberForPublicRegistration } from "@/lib/management/resolve-management-member-for-registration";
 import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
 import { UploadError } from "@/lib/uploads/errors";
 import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
@@ -155,6 +157,7 @@ export async function submitRegistration(
     contactName: coerceForSchema(raw.contactName),
     contactWhatsapp: coerceForSchema(raw.contactWhatsapp),
     claimedMemberNumber: coerceForSchema(raw.claimedMemberNumber),
+    managementPublicCode: coerceForSchema(raw.managementPublicCode),
     qtyPartner: qtyPartnerNorm,
     partnerIsMember,
     partnerName: coerceForSchema(raw.partnerName),
@@ -205,6 +208,27 @@ export async function submitRegistration(
     });
   }
 
+  const managementPublicCodeTrim =
+    data.managementPublicCode?.trim() || undefined;
+
+  let primaryManagementMemberId: string | null = null;
+  let claimedManagementPublicCodeStored: string | null = null;
+
+  if (managementPublicCodeTrim) {
+    const norm = normalizePublicManagementCode(managementPublicCodeTrim);
+    const resolved = await resolveManagementMemberForPublicRegistration(norm);
+    if (!resolved.ok) {
+      return fieldError({
+        managementPublicCode:
+          resolved.reason === "not_found"
+            ? "Kode pengurus tidak dikenali."
+            : "Pengurus tidak terdaftar dalam kepengurusan aktif untuk periode ini.",
+      });
+    }
+    primaryManagementMemberId = resolved.managementMemberId;
+    claimedManagementPublicCodeStored = norm;
+  }
+
   /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs unique tiket. */
   const primaryMemberNumber = primaryDirectoryRow
     ? primaryDirectoryRow.memberNumber
@@ -233,14 +257,18 @@ export async function submitRegistration(
   }
 
   if (includePartner) {
-    if (!primaryDirectoryRow?.isManagementMember) {
+    const primaryEligibleForPartner =
+      Boolean(primaryDirectoryRow?.isManagementMember) ||
+      Boolean(primaryManagementMemberId);
+    if (!primaryEligibleForPartner) {
       return rootError(
-        "Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama."
+        "Tiket partner hanya untuk pengurus (komite) — validasi identitas utama."
       );
     }
   }
 
-  const primaryIsMemberPrice = Boolean(primaryMemberNumber);
+  const primaryIsMemberPrice =
+    Boolean(primaryMemberNumber) || Boolean(primaryManagementMemberId);
   const partnerTicketPriceType = data.partnerIsMember ? "member" : "non_member";
 
   // Konstruksi menu berdasarkan skema yang sudah valid (aman dari manipulasi)
@@ -314,6 +342,8 @@ export async function submitRegistration(
           contactName: data.contactName,
           contactWhatsapp: data.contactWhatsapp,
           claimedMemberNumber: primaryMemberNumber ?? null,
+          primaryManagementMemberId,
+          claimedManagementPublicCode: claimedManagementPublicCodeStored,
           ticketMemberPriceApplied: pricing.ticketMemberPriceApplied,
           ticketNonMemberPriceApplied: pricing.ticketNonMemberPriceApplied,
           voucherPriceApplied: pricing.voucherPriceApplied,

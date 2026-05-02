@@ -9,8 +9,6 @@ export function masterMemberCsvPatchToUpdateData(
   if (patch.fullName !== undefined) data.fullName = patch.fullName;
   if (patch.whatsapp !== undefined) data.whatsapp = patch.whatsapp;
   if (patch.isActive !== undefined) data.isActive = patch.isActive;
-  if (patch.isManagementMember !== undefined)
-    data.isManagementMember = patch.isManagementMember;
   return data;
 }
 
@@ -26,8 +24,5 @@ export function masterMemberCsvPatchToCreateData(
     fullName: patch.fullName.trim(),
     whatsapp: patch.whatsapp ?? null,
     ...(patch.isActive !== undefined ? { isActive: patch.isActive } : {}),
-    ...(patch.isManagementMember !== undefined
-      ? { isManagementMember: patch.isManagementMember }
-      : {}),
   };
 }

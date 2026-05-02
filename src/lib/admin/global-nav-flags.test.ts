@@ -13,6 +13,7 @@ describe("deriveGlobalSidebarNav", () => {
       beranda: true,
       acara: false,
       members: false,
+      management: false,
       settings: false,
     });
   });
@@ -22,6 +23,7 @@ describe("deriveGlobalSidebarNav", () => {
       beranda: true,
       acara: true,
       members: true,
+      management: true,
       settings: true,
     });
   });
@@ -31,6 +33,7 @@ describe("deriveGlobalSidebarNav", () => {
       beranda: true,
       acara: true,
       members: true,
+      management: true,
       settings: false,
     });
   });
@@ -40,6 +43,7 @@ describe("deriveGlobalSidebarNav", () => {
       beranda: true,
       acara: false,
       members: false,
+      management: false,
       settings: false,
     });
   });
@@ -49,6 +53,7 @@ describe("deriveGlobalSidebarNav", () => {
       beranda: true,
       acara: false,
       members: false,
+      management: false,
       settings: false,
     });
   });

@@ -28,6 +28,7 @@ function minimalVoucherPayload(
     purchaserIsMember: false,
     contactName: "Tester",
     contactWhatsapp: "08123456789",
+    managementPublicCode: "",
     qtyPartner: 0,
     partnerIsMember: false,
     partnerName: "",
@@ -43,6 +44,7 @@ describe("isMemberCardPhotoMissingWhenRequired", () => {
   it("requires a non-empty file when claimed member number is non-empty", () => {
     expect(
       isMemberCardPhotoMissingWhenRequired({
+        purchaserIsMember: true,
         claimedMemberNumber: "CISC-1",
         memberCardPhoto: undefined,
       }),
@@ -50,6 +52,7 @@ describe("isMemberCardPhotoMissingWhenRequired", () => {
     const emptyFile = new File([], "x.jpg", { type: "image/jpeg" });
     expect(
       isMemberCardPhotoMissingWhenRequired({
+        purchaserIsMember: true,
         claimedMemberNumber: "CISC-1",
         memberCardPhoto: emptyFile,
       }),
@@ -59,18 +62,21 @@ describe("isMemberCardPhotoMissingWhenRequired", () => {
     });
     expect(
       isMemberCardPhotoMissingWhenRequired({
+        purchaserIsMember: true,
         claimedMemberNumber: "CISC-1",
         memberCardPhoto: nonempty,
       }),
     ).toBe(false);
     expect(
       isMemberCardPhotoMissingWhenRequired({
+        purchaserIsMember: true,
         claimedMemberNumber: "",
         memberCardPhoto: undefined,
       }),
     ).toBe(false);
     expect(
       isMemberCardPhotoMissingWhenRequired({
+        purchaserIsMember: true,
         claimedMemberNumber: "   ",
         memberCardPhoto: undefined,
       }),
@@ -123,6 +129,16 @@ describe("isMemberNumberMissingWhenMember", () => {
       }),
     ).toBe(false);
   });
+
+  it("is false when member uses management public code instead of number", () => {
+    expect(
+      isMemberNumberMissingWhenMember({
+        purchaserIsMember: true,
+        claimedMemberNumber: "",
+        managementPublicCode: "ABC",
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
@@ -139,7 +155,7 @@ describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
     const claimedIssue = r.error.issues.find(
       (i) => i.path[0] === "claimedMemberNumber",
     );
-    expect(claimedIssue?.message).toMatch(/wajib/i);
+    expect(claimedIssue?.message).toMatch(/nomor member|kode pengurus/i);
   });
 
   it("rejects claimed number when not member", () => {

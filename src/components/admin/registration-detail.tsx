@@ -388,8 +388,21 @@ export function RegistrationDetail({
             <>
               <div className="grid gap-1">
                 <div className="font-medium">
-                  Pengurus (dari direktori, nomor utama)
+                  Pengurus / komite (tiket utama)
                 </div>
+                {ticketContext.managementMember.state === "via_public_code" && (
+                  <p>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                      Kode pengurus
+                    </span>{" "}
+                    Kode:{" "}
+                    <span className="font-mono font-medium">
+                      {ticketContext.managementMember.publicCode}
+                    </span>
+                    {" — "}
+                    Nama pengurus: {ticketContext.managementMember.fullName}
+                  </p>
+                )}
                 {ticketContext.managementMember.state === "no_primary_number" && (
                   <p className="text-muted-foreground">
                     Tidak ada nomor member pada tiket utama / klaim — lookup tidak
@@ -403,6 +416,9 @@ export function RegistrationDetail({
                 )}
                 {ticketContext.managementMember.state === "found" && (
                   <p>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                      Direktori
+                    </span>{" "}
                     Status komite/pengurus:{" "}
                     <span className="font-medium">
                       {ticketContext.managementMember.isManagementMember

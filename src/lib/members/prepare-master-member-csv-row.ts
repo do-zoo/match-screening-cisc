@@ -3,7 +3,6 @@ import { interpretMasterMemberCsvBoolean } from "./master-member-csv-boolean";
 export type MasterMemberCsvWritablePatch = {
   fullName?: string;
   whatsapp?: string | null;
-  isManagementMember?: boolean;
   isActive?: boolean;
 };
 
@@ -61,11 +60,6 @@ export function prepareMasterMemberCsvRow(
 
   const active = interpretMasterMemberCsvBoolean(cells.is_active);
   if (active !== undefined) patch.isActive = active;
-  const managementMember = interpretMasterMemberCsvBoolean(
-    cells.is_management_member,
-  );
-  if (managementMember !== undefined)
-    patch.isManagementMember = managementMember;
   return {
     tag: "ok",
     lineNumberPhysical,
