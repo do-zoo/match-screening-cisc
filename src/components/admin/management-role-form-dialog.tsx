@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import {
   Select,
   SelectContent,
@@ -238,6 +239,24 @@ export function ManagementRoleFormDialog({
 
   const canDeactivate = mode === "edit" && role?.isActive;
 
+  const parentRoleComboboxOptions = useMemo(
+    () => [
+      {
+        value: ROLE_PARENT_NONE,
+        label: "— Tidak ada induk —",
+        keywords: "tidak induk",
+      },
+      ...allRoles
+        .filter((r) => r.id !== role?.id)
+        .map((r) => ({
+          value: r.id,
+          label: r.title,
+          keywords: r.title,
+        })),
+    ],
+    [allRoles, role?.id],
+  );
+
   return (
     <Dialog
       open={open}
@@ -302,31 +321,16 @@ export function ManagementRoleFormDialog({
               control={form.control}
               name="parentRoleId"
               render={({ field }) => (
-                <Select
+                <EntityCombobox
+                  id="role-parent"
+                  placeholder="— Tidak ada induk —"
                   value={field.value ?? ROLE_PARENT_NONE}
-                  onValueChange={field.onChange}
+                  onValueChange={(next) =>
+                    field.onChange(next ?? ROLE_PARENT_NONE)
+                  }
+                  options={parentRoleComboboxOptions}
                   disabled={isPending}
-                >
-                  <SelectTrigger
-                    id="role-parent"
-                    size="default"
-                    className="h-10 w-full"
-                  >
-                    <SelectValue placeholder="— Tidak ada induk —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ROLE_PARENT_NONE}>
-                      — Tidak ada induk —
-                    </SelectItem>
-                    {allRoles
-                      .filter((r) => r.id !== role?.id)
-                      .map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.title}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                />
               )}
             />
           </Field>
