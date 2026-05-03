@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  formatAdminProfileDeleteBlockedMessage,
+  loadAdminProfileDeletionBlockers,
+} from "@/lib/admin/admin-profile-delete-guard";
 import { roleChangePreservesAtLeastOneOwner } from "@/lib/admin/committee-owner-invariants";
 import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
@@ -317,6 +321,12 @@ export async function deleteCommitteeAdmin(
     return rootError(
       "Minimal harus ada satu Owner. Tambahkan Owner lain sebelum menghapus Owner ini.",
     );
+  }
+
+  const blockers = await loadAdminProfileDeletionBlockers(target.id);
+  const blockedMessage = formatAdminProfileDeleteBlockedMessage(blockers);
+  if (blockedMessage) {
+    return rootError(blockedMessage);
   }
 
   await prisma.adminProfile.delete({ where: { id: target.id } });
