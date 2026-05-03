@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 
+import { assertAdminMagicLinkEmail } from "@/lib/auth/assert-admin-magic-link-email";
 import { buildTwoFactorPlugin } from "@/lib/auth/build-two-factor-plugin-options";
 import { renderMagicLinkEmail } from "@/lib/auth/emails/render-emails";
 import { sendTransactionalEmail } from "@/lib/auth/send-transactional-email";
@@ -16,11 +17,13 @@ export const auth = betterAuth({
     nextCookies(),
     buildTwoFactorPlugin(),
     magicLink({
+      disableSignUp: true,
       sendMagicLink: async ({ email, url }) => {
         if (!isTransactionalEmailConfigured()) {
           console.log("[magicLink] Email belum dikonfigurasi.", { email, url });
           return;
         }
+        await assertAdminMagicLinkEmail(email);
         const html = await renderMagicLinkEmail(url);
         await sendTransactionalEmail({
           to: email,
