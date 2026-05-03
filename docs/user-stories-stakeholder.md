@@ -32,3 +32,44 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 | Direktori anggota | Basis data anggota klub yang dipakai untuk validasi nomor anggota dan kelayakan tertentu. |
 | Peran admin | **Pemilik (Owner)** dan **Admin** mengoperasikan hampir semua modul; **Verifier** fokus meninjau pendaftaran; **Viewer** hanya melihat sesuai izin. |
 | Kepengurusan | Struktur periode dewan/jabatan yang mempengaruhi flag tertentu di direktori (misalnya kelayakan partner untuk periode aktif). |
+
+## Epik: Pengunjung dan pendaftar (publik)
+
+### US-PUB-01 — Melihat acara yang sedang dibuka pendaftarannya
+
+- **Sebagai** calon peserta, **saya ingin** melihat daftar acara yang relevan di beranda atau halaman daftar acara, **agar** saya tahu acara apa yang bisa saya ikuti sekarang.
+- **Kriteria penerimaan:**
+  - Acara yang sudah lewat jendela pendaftaran atau tidak aktif **tidak** ditampilkan sebagai pilihan registrasi utama.
+  - Setiap kartu atau ringkasan acara menampilkan minimal nama acara dan indikasi apakah masih bisa mendaftar.
+
+### US-PUB-02 — Membaca detail acara sebelum mendaftar
+
+- **Sebagai** calon peserta, **saya ingin** membuka halaman detail acara dari tautan atau slug acara, **agar** saya memahami harga, waktu, kebijakan operasional terkait, dan persyaratan sebelum mengisi formulir.
+- **Kriteria penerimaan:**
+  - Halaman detail memuat ringkasan biaya dan informasi operasional yang konsisten dengan kebijakan klub untuk tampilan publik.
+
+### US-PUB-03 — Mengisi formulir registrasi lengkap
+
+- **Sebagai** pendaftar, **saya ingin** mengisi data diri, pilihan tiket, serta data pendamping jika diperbolehkan, **agar** pengajuan saya mencerminkan kebutuhan saya secara sah menurut aturan acara.
+- **Kriteria penerimaan:**
+  - Formulir memvalidasi field wajib; pesan kesalahan mudah dibaca dalam bahasa Indonesia.
+  - Jika kursi member untuk nomor tertentu sudah terpakai oleh pendaftar lain pada acara yang sama, sistem menolak pengajuan dengan penjelasan yang jelas.
+
+### US-PUB-04 — Melihat perkiraan total biaya saat mengisi formulir
+
+- **Sebagai** pendaftar, **saya ingin** melihat rincian harga secara transparan **sebelum** submit, **agar** saya bisa mentransfer jumlah yang tepat.
+- **Kriteria penerimaan:**
+  - Total dan komponen harga (anggota/non-anggota, tambahan partner, item terkait menu bila ada) konsisten antara tampilan form dan nilai yang tersimpan setelah submit.
+
+### US-PUB-05 — Mengunggah bukti pembayaran dan lampiran gambar yang diminta
+
+- **Sebagai** pendaftar, **saya ingin** mengunggah bukti transfer (dan foto kartu anggota jika diminta), **agar** tim admin dapat memverifikasi identitas dan pembayaran saya.
+- **Kriteria penerimaan:**
+  - Unggahan ditolak jika tipe atau ukuran file tidak sesuai aturan form, dengan pesan yang jelas.
+  - Setelah berhasil, bukti tersimpan dan terlihat oleh alur kerja admin pada registrasi tersebut.
+
+### US-PUB-06 — Menerima konfirmasi setelah pengajuan terkirim
+
+- **Sebagai** pendaftar, **saya ingin** diarahkan ke halaman konfirmasi berisi identitas pengajuan saya, **agar** saya punya bukti bahwa pendaftaran masuk ke sistem.
+- **Kriteria penerimaan:**
+  - URL konfirmasi unik per registrasi dan menampilkan status awal yang sesuai proses bisnis (misalnya menunggu tinjauan).
