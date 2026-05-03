@@ -144,9 +144,14 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
             onSubmit={magicForm.handleSubmit((values) => {
               magicForm.clearErrors("root.server");
               startMagicTransition(async () => {
+                const path = next.startsWith("/") ? next : `/${next}`;
+                const callbackURL =
+                  typeof window !== "undefined"
+                    ? `${window.location.origin}${path}`
+                    : path;
                 const res = await adminAuthClient.signIn.magicLink({
                   email: values.email,
-                  callbackURL: next,
+                  callbackURL,
                 });
                 if (res.error) {
                   magicForm.setError("root.server", {
