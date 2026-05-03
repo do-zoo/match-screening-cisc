@@ -4,6 +4,9 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 
 import { buildTwoFactorPlugin } from "@/lib/auth/build-two-factor-plugin-options";
+import { renderMagicLinkEmail } from "@/lib/auth/emails/render-emails";
+import { sendTransactionalEmail } from "@/lib/auth/send-transactional-email";
+import { isTransactionalEmailConfigured } from "@/lib/auth/transactional-email-config";
 import { prisma } from "../db/prisma";
 
 export const auth = betterAuth({
@@ -13,10 +16,18 @@ export const auth = betterAuth({
     nextCookies(),
     buildTwoFactorPlugin(),
     magicLink({
-      // For foundations: keep email sending as a no-op.
-      // In later plans, replace with Resend and real templates.
       sendMagicLink: async ({ email, url }) => {
-        console.log("[magicLink]", { email, url });
+        if (!isTransactionalEmailConfigured()) {
+          console.log("[magicLink] Email belum dikonfigurasi.", { email, url });
+          return;
+        }
+        const html = await renderMagicLinkEmail(url);
+        await sendTransactionalEmail({
+          to: email,
+          subject: "Link masuk Match Screening",
+          text: `Klik link berikut untuk masuk ke Match Screening:\n\n${url}\n\nLink berlaku 5 menit.`,
+          html,
+        });
       },
     }),
   ],
