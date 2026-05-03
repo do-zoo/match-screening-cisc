@@ -1,6 +1,6 @@
 import { twoFactor } from "better-auth/plugins";
 
-import { isEmailOtpConfigured } from "@/lib/auth/email-otp-config";
+import { isTransactionalEmailConfigured } from "@/lib/auth/transactional-email-config";
 import { sendTransactionalEmail } from "@/lib/auth/send-transactional-email";
 
 export function buildTwoFactorPlugin() {
@@ -21,7 +21,7 @@ export function buildTwoFactorPluginOptions() {
     },
   };
 
-  if (!isEmailOtpConfigured()) {
+  if (!isTransactionalEmailConfigured()) {
     return base;
   }
 
