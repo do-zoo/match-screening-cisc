@@ -208,3 +208,17 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 ### US-SET-05 — Keamanan akun dan profil admin
 
 - **Sebagai** admin, **saya ingin** memperbarui informasi profil dan preferensi keamanan yang disediakan UI, **agar** akun pengelola tetap aman dan terkini.
+
+---
+
+## Ruang lingkup dan batasan yang perlu disepakati stakeholder
+
+- Aplikasi ini **bukan** gateway pembayaran otomatis: konfirmasi pembayaran mengandalkan bukti transfer manual dan keputusan admin.
+- **Email transaksional** bergantung pada konfigurasi lingkungan; di lingkungan pengembangan, tautan magic link dapat muncul di log alih-alih inbox nyata.
+- Angka dan kebijakan yang **benar secara bisnis** harus divalidasi oleh pengurus; dokumen ini menjelaskan **kemampuan sistem**, bukan peraturan rumah tangga klub.
+
+## Riwayat dokumen
+
+| Versi | Tanggal | Catatan |
+| --- | --- | --- |
+| 1.0 | 2026-05-04 | Rilis awal berdasarkan rencana stakeholder dan pemetaan traceability internal. |
