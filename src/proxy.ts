@@ -9,6 +9,17 @@ function safeInternalPath(raw: string | null): string | null {
   return raw;
 }
 
+/**
+ * Admin routes that must stay reachable without a session (same policy as `/admin/sign-in`).
+ * Without this, `/admin/sign-in/magic-link-sent` etc. are caught by the admin gate and
+ * anonymous users get redirected — never seeing the confirmation page behind a proxy.
+ */
+const ANONYMOUS_ADMIN_AUTH_PATHS = new Set([
+  "/admin/sign-in",
+  "/admin/sign-in/magic-link-sent",
+  "/admin/sign-in/two-factor",
+]);
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (!pathname.startsWith("/admin")) return NextResponse.next();
@@ -17,14 +28,19 @@ export async function proxy(req: NextRequest) {
     headers: req.headers,
   });
 
-  // Sign-in page: skip auth redirect when anonymous; bounce authenticated users away.
-  if (pathname === "/admin/sign-in") {
+  const isAnonymousAuthRoute = ANONYMOUS_ADMIN_AUTH_PATHS.has(pathname);
+
+  // Sign-in flow pages: allow anonymous; redirect signed-in users away from sign-in root only.
+  if (isAnonymousAuthRoute) {
     if (!session) return NextResponse.next();
-    const nextParam = safeInternalPath(req.nextUrl.searchParams.get("next"));
-    const fallback = "/admin";
-    const destination =
-      nextParam && nextParam !== "/admin/sign-in" ? nextParam : fallback;
-    return NextResponse.redirect(new URL(destination, req.url));
+    if (pathname === "/admin/sign-in") {
+      const nextParam = safeInternalPath(req.nextUrl.searchParams.get("next"));
+      const fallback = "/admin";
+      const destination =
+        nextParam && nextParam !== "/admin/sign-in" ? nextParam : fallback;
+      return NextResponse.redirect(new URL(destination, req.url));
+    }
+    return NextResponse.next();
   }
 
   if (!session) {

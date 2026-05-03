@@ -15,8 +15,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CISC Match Screening",
-  description: "Public registration and admin verification for CISC events",
+  metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
+  title: {
+    default: "CISC Match Screening",
+    template: "%s — CISC",
+  },
+  description:
+    "Daftar acara nobar dan kegiatan CISC. Registrasi online, cepat, dan mudah.",
+  openGraph: {
+    siteName: "CISC Match Screening",
+    locale: "id_ID",
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

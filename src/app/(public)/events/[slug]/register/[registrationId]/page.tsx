@@ -1,6 +1,12 @@
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
 import { prisma } from "@/lib/db/prisma";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Pendaftaran Diterima",
+  robots: { index: false, follow: false },
+};
 
 const idr = (n: number) =>
   new Intl.NumberFormat("id-ID", {

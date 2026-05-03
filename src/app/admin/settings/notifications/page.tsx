@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ClubNotificationPreferencesForm } from "@/components/admin/club-notification-preferences-form";
+
+export const metadata: Metadata = { title: "Notifikasi" };
 import { prisma } from "@/lib/db/prisma";
 import { CLUB_NOTIFICATION_PREFS_KEY } from "@/lib/public/load-club-notification-preferences";
 

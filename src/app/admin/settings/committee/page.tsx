@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CommitteeAdminSettingsPanel } from "@/components/admin/committee-admin-settings-panel";
+
+export const metadata: Metadata = { title: "Komite" };
 import { loadCommitteeAdminDirectory } from "@/lib/admin/load-committee-admin-directory";
 
 export default async function CommitteeSettingsPage() {

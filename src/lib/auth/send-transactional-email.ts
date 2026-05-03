@@ -4,12 +4,9 @@ export type SendTransactionalEmailInput = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
 };
 
-/**
- * Sends a plain-text transactional email. Requires RESEND_API_KEY and uses
- * AUTH_TRANSACTIONAL_FROM as the sender (same gate as OTP plugin).
- */
 export async function sendTransactionalEmail(input: SendTransactionalEmailInput): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.AUTH_TRANSACTIONAL_FROM?.trim();
@@ -23,6 +20,7 @@ export async function sendTransactionalEmail(input: SendTransactionalEmailInput)
     to: input.to,
     subject: input.subject,
     text: input.text,
+    ...(input.html !== undefined ? { html: input.html } : {}),
   });
 
   if (error) {

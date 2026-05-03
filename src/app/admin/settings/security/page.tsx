@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ClubAuditLogSection } from "@/components/admin/club-audit-log-table";
+
+export const metadata: Metadata = { title: "Keamanan" };
 import { loadClubAuditList } from "@/lib/audit/load-recent-club-audit";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { parseAdminTablePage } from "@/lib/table/admin-pagination";

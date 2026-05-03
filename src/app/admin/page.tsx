@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Dashboard" };
 import type { VariantProps } from "class-variance-authority";
 import type { EventStatus } from "@prisma/client";
 

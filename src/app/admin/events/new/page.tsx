@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = { title: "Buat Acara" };
 
 import { EventAdminForm } from "@/components/admin/forms/event-admin-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

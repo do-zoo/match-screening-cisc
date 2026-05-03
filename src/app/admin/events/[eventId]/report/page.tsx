@@ -1,9 +1,23 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { canVerifyEvent } from "@/lib/permissions/guards";
 import { prisma } from "@/lib/db/prisma";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}): Promise<Metadata> {
+  const { eventId } = await params;
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { title: true },
+  });
+  return { title: event ? `Laporan · ${event.title}` : "Laporan" };
+}
 import { getEventReport } from "@/lib/reports/queries";
 import {
   Card,

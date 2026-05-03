@@ -1,5 +1,17 @@
 import { HomeLanding } from "@/components/public/home-landing";
 import { getPublicActiveEvents } from "@/lib/events/public-active-events";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Beranda",
+  description:
+    "Temukan acara nobar dan kegiatan CISC yang sedang dibuka pendaftarannya.",
+  openGraph: {
+    title: "CISC Match Screening",
+    description:
+      "Temukan acara nobar dan kegiatan CISC yang sedang dibuka pendaftarannya.",
+  },
+};
 
 export const dynamic = "force-dynamic";
 

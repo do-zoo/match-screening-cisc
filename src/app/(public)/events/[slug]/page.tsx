@@ -24,9 +24,10 @@ export async function generateMetadata({
     title: event.title,
     description: event.summary,
     openGraph: {
-      title: event.title,
+      title: `${event.title} — CISC`,
       description: event.summary,
-      images: [{ url: event.coverBlobUrl }],
+      images: event.coverBlobUrl ? [{ url: event.coverBlobUrl }] : [],
+      type: "website",
     },
   };
 }

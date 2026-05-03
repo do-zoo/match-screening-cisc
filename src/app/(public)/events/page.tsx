@@ -1,5 +1,12 @@
 import { EventCard } from "@/components/public/event-card";
 import { getPublicActiveEvents } from "@/lib/events/public-active-events";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Acara Aktif",
+  description:
+    "Daftar nobar dan kegiatan CISC yang sedang dibuka pendaftarannya. Pilih kartu untuk membuka formulir.",
+};
 
 export const dynamic = "force-dynamic";
 

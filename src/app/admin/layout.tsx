@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AdminAppShell } from "@/components/admin/admin-app-shell";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { deriveGlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 import { getAdminSession } from "@/lib/auth/session";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Admin",
+    template: "%s — Admin | CISC",
+  },
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminLayout({
   children,

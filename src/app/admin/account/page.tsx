@@ -1,6 +1,10 @@
+import type { Metadata } from "next";
+
 import { AdminAccountPageClient } from "@/components/admin/admin-account-page-client";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
+
+export const metadata: Metadata = { title: "Akun" };
 
 export default async function AdminAccountPage() {
   const session = await requireAdminSession();
