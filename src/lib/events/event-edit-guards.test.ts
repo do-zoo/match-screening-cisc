@@ -8,6 +8,7 @@ import {
 
 const persisted: EventIntegritySnapshot = {
   slug: "demo",
+  venueId: "v1",
   menuMode: "PRESELECT",
   menuSelection: "SINGLE",
   ticketMemberPrice: 1,

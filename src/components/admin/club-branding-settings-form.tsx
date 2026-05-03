@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ActionResult } from "@/lib/forms/action-result";
+import { toastCudSuccess } from "@/lib/client/cud-notify";
 
 export function ClubBrandingSettingsForm(props: {
   initialClubName: string;
@@ -25,6 +26,12 @@ export function ClubBrandingSettingsForm(props: {
     saveClubBranding,
     null as ActionResult<{ saved: true }> | null,
   );
+
+  useEffect(() => {
+    if (state?.ok) {
+      toastCudSuccess("update", "Branding berhasil disimpan.");
+    }
+  }, [state]);
 
   return (
     <div className="max-w-xl space-y-6">

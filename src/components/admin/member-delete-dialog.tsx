@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 
 import { deleteMasterMember } from "@/lib/actions/admin-master-members";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,9 +46,11 @@ export function MemberDeleteDialog({
       fd.set("memberId", member.id);
       const result = await deleteMasterMember(undefined, fd);
       if (result.ok) {
+        toastCudSuccess("delete", "Anggota berhasil dihapus.");
         onOpenChange(false);
         onDeleted(member.id);
       } else {
+        toastActionErr(result, "Gagal menghapus anggota.");
         setError(result.rootError ?? "Gagal menghapus anggota.");
       }
     });
@@ -61,8 +64,8 @@ export function MemberDeleteDialog({
         <DialogHeader>
           <DialogTitle>Hapus anggota</DialogTitle>
           <DialogDescription>
-            Hapus <strong>{name}</strong> secara permanen? Tindakan ini tidak bisa
-            dibatalkan.
+            Hapus <strong>{name}</strong> secara permanen? Tindakan ini tidak
+            bisa dibatalkan.
           </DialogDescription>
         </DialogHeader>
         {error ? (
@@ -70,7 +73,7 @@ export function MemberDeleteDialog({
             {error}
           </p>
         ) : null}
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button
             type="button"
             variant="outline"

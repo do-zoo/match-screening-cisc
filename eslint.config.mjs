@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // One-shot M1→venue migration helper; mismatches generated client after M2 (see tsconfig exclude).
+    "scripts/backfill-venue-menu-from-events.ts",
     // Local agent/skill tooling (CommonJS scripts, not app source)
     ".claude/**",
     ".agents/**",

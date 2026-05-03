@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { importMasterMembersCsv } from "@/lib/actions/admin-master-members";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Props = {
   csvTemplateText: string;
@@ -49,6 +50,7 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
     startTransition(async () => {
       const result = await importMasterMembersCsv(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "CSV gagal diimpor.");
         setError(
           result.rootError ??
             Object.values(result.fieldErrors ?? {}).join(", ") ??
@@ -57,6 +59,10 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
         return;
       }
 
+      toastCudSuccess(
+        "create",
+        `Import CSV selesai: ${result.data.successCount} berhasil${result.data.failureCount > 0 ? `, ${result.data.failureCount} gagal` : ""}.`,
+      );
       setSummary(result.data);
       if (fileRef.current) fileRef.current.value = "";
       onImported();

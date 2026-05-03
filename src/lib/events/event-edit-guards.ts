@@ -6,6 +6,7 @@ import type {
 
 export type EventIntegritySnapshot = {
   slug: string;
+  venueId: string;
   menuMode: MenuMode;
   menuSelection: MenuSelection;
   ticketMemberPrice: number;
@@ -22,16 +23,21 @@ export function findLockedViolations(opts: {
   registrationCount: number;
   persisted: EventIntegritySnapshot;
   candidate: EventIntegrityPatch;
-}): Array<keyof Pick<
-  EventIntegritySnapshot,
-  "slug" | "menuMode" | "menuSelection"
->> {
+}): Array<
+  keyof Pick<
+    EventIntegritySnapshot,
+    "slug" | "venueId" | "menuMode" | "menuSelection"
+  >
+> {
   if (opts.registrationCount === 0) return [];
 
-  const out: Array<"slug" | "menuMode" | "menuSelection"> = [];
+  const out: Array<"slug" | "venueId" | "menuMode" | "menuSelection"> = [];
 
   const nextSlug = opts.candidate.slug ?? opts.persisted.slug;
   if (nextSlug !== opts.persisted.slug) out.push("slug");
+
+  const nextVenue = opts.candidate.venueId ?? opts.persisted.venueId;
+  if (nextVenue !== opts.persisted.venueId) out.push("venueId");
 
   const nextMode = opts.candidate.menuMode ?? opts.persisted.menuMode;
   if (nextMode !== opts.persisted.menuMode) out.push("menuMode");

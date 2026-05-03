@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { overrideMemberValidation } from "@/lib/actions/member-validation";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Ticket = {
   id: string;
@@ -60,11 +61,13 @@ export function MemberValidationPanel({
         newPrimaryPriceType: newPriceType || undefined,
       });
       if (!res.ok) {
+        toastActionErr(res);
         setError(res.rootError ?? "Terjadi kesalahan.");
       } else {
         const msg = res.data.adjustmentCreated
           ? "Validasi diperbarui. Penyesuaian invoice kekurangan dibuat otomatis."
           : "Validasi diperbarui.";
+        toastCudSuccess("update", msg);
         setResult(msg);
       }
     });

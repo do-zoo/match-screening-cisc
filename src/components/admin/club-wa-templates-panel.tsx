@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { WaTemplateKey } from "@prisma/client";
 
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import type { ActionResult } from "@/lib/forms/action-result";
+import { toastCudSuccess } from "@/lib/client/cud-notify";
 import { CLUB_WA_DEFAULT_BODIES } from "@/lib/wa-templates/db-default-template-bodies";
 import { REQUIRED_TOKENS } from "@/lib/wa-templates/wa-template-policy";
 
@@ -84,6 +85,18 @@ function ClubWaTemplateKeyCard(props: {
     resetClubWaTemplateBody,
     initialState,
   );
+
+  useEffect(() => {
+    if (saveState?.ok) {
+      toastCudSuccess("update", "Template WA disimpan.");
+    }
+  }, [saveState]);
+
+  useEffect(() => {
+    if (resetState?.ok) {
+      toastCudSuccess("update", "Template WA dikembalikan ke default.");
+    }
+  }, [resetState]);
 
   function mutationErrorAlerts(s: Exclude<ActionResult<{ saved: true }>, { ok: true }>) {
     return (

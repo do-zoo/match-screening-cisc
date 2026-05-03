@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { Loader2 } from "lucide-react";
 
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ActionResult } from "@/lib/forms/action-result";
+import { toastCudSuccess } from "@/lib/client/cud-notify";
 
 export function ClubOperationalSettingsForm(props: {
   initialRegistrationGloballyDisabled: boolean;
@@ -24,6 +25,12 @@ export function ClubOperationalSettingsForm(props: {
     saveClubOperationalSettings,
     null as ActionResult<{ saved: true }> | null,
   );
+
+  useEffect(() => {
+    if (state?.ok) {
+      toastCudSuccess("update", "Pengaturan operasional berhasil disimpan.");
+    }
+  }, [state]);
 
   return (
     <div className="max-w-xl space-y-6">

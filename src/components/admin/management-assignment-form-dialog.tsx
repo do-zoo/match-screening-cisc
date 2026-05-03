@@ -15,18 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import {
   createBoardAssignment,
   deleteBoardAssignment,
   updateBoardAssignment,
 } from "@/lib/actions/admin-board-assignments";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminBoardAssignmentUpsertSchema,
   adminBoardAssignmentUpdateSchema,
@@ -34,6 +29,8 @@ import {
 
 type MemberOption = { id: string; fullName: string; publicCode: string };
 type RoleOption = { id: string; title: string };
+
+const NO_AVAILABLE_MEMBERS: readonly MemberOption[] = [];
 
 type AssignmentRow = {
   id: string;
@@ -184,12 +181,19 @@ export function ManagementAssignmentFormDialog(props: Props) {
           ? await createBoardAssignment(undefined, fd)
           : await updateBoardAssignment(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result);
         dispatchExtras({
           type: "set-root-message",
           message: result.rootError ?? "Terjadi kesalahan.",
         });
         return;
       }
+      toastCudSuccess(
+        props.mode === "create" ? "create" : "update",
+        props.mode === "create"
+          ? "Penugasan berhasil ditambahkan."
+          : "Penugasan berhasil diperbarui.",
+      );
       props.onOpenChange(false);
       props.onSaved();
     });
@@ -203,20 +207,42 @@ export function ManagementAssignmentFormDialog(props: Props) {
       fd.set("payload", JSON.stringify({ id: props.assignment.id }));
       const result = await deleteBoardAssignment(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "Gagal menghapus penugasan.");
         dispatchExtras({
           type: "set-delete-error",
           message: result.rootError ?? "Gagal menghapus penugasan.",
         });
         return;
       }
+      toastCudSuccess("delete", "Penugasan berhasil dihapus.");
       props.onOpenChange(false);
       props.onSaved();
     });
   }
 
   const availableRoles = props.availableRoles;
-  const availableMembers =
-    props.mode === "create" ? props.availableMembers : [];
+  const availableMembersForPicker =
+    props.mode === "create" ? props.availableMembers : NO_AVAILABLE_MEMBERS;
+
+  const assignmentMemberOptions = useMemo(
+    () =>
+      availableMembersForPicker.map((m) => ({
+        value: m.id,
+        label: `${m.fullName} (${m.publicCode})`,
+        keywords: `${m.fullName} ${m.publicCode}`,
+      })),
+    [availableMembersForPicker],
+  );
+
+  const assignmentRoleOptions = useMemo(
+    () =>
+      availableRoles.map((r) => ({
+        value: r.id,
+        label: r.title,
+        keywords: r.title,
+      })),
+    [availableRoles],
+  );
 
   return (
     <Dialog
@@ -270,35 +296,19 @@ export function ManagementAssignmentFormDialog(props: Props) {
                     name="managementMemberId"
                     render={({ field, fieldState }) => (
                       <div className="space-y-1.5">
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
+                        <EntityCombobox
+                          id="assign-member"
+                          placeholder="Pilih pengurus…"
+                          value={
+                            field.value === "" ? null : field.value
+                          }
+                          onValueChange={(next) =>
+                            field.onChange(next ?? "")
+                          }
+                          options={assignmentMemberOptions}
                           disabled={isPending}
-                        >
-                          <SelectTrigger
-                            id="assign-member"
-                            size="default"
-                            className="h-11 w-full min-w-0 px-3 shadow-sm transition-colors hover:bg-muted/40"
-                          >
-                            <SelectValue placeholder="Pilih pengurus…" />
-                          </SelectTrigger>
-                          <SelectContent
-                            className="min-w-(--anchor-width) max-w-[calc(100vw-2rem)]"
-                            align="start"
-                          >
-                            {availableMembers.map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
-                                <span className="font-medium">
-                                  {m.fullName}
-                                </span>
-                                <span className="font-mono text-xs text-muted-foreground">
-                                  {" "}
-                                  ({m.publicCode})
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          aria-invalid={fieldState.invalid}
+                        />
                         {fieldState.error ? (
                           <p className="text-xs text-destructive">
                             {fieldState.error.message}
@@ -338,29 +348,19 @@ export function ManagementAssignmentFormDialog(props: Props) {
                   name="boardRoleId"
                   render={({ field, fieldState }) => (
                     <div className="space-y-1.5">
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
+                      <EntityCombobox
+                        id="assign-role"
+                        placeholder="Pilih jabatan…"
+                        value={
+                          field.value === "" ? null : field.value
+                        }
+                        onValueChange={(next) =>
+                          field.onChange(next ?? "")
+                        }
+                        options={assignmentRoleOptions}
                         disabled={isPending}
-                      >
-                        <SelectTrigger
-                          id="assign-role"
-                          size="default"
-                          className="h-11 w-full min-w-0 px-3 shadow-sm transition-colors hover:bg-muted/40"
-                        >
-                          <SelectValue placeholder="Pilih jabatan…" />
-                        </SelectTrigger>
-                        <SelectContent
-                          className="min-w-(--anchor-width) max-w-[calc(100vw-2rem)]"
-                          align="start"
-                        >
-                          {availableRoles.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        aria-invalid={fieldState.invalid}
+                      />
                       {fieldState.error ? (
                         <p className="text-xs text-destructive">
                           {fieldState.error.message}

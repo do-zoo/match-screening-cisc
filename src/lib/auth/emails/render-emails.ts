@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { render } from "@react-email/render";
+import { render } from "react-email";
 
 import { MagicLinkEmail } from "./magic-link-email";
 import { OtpEmail } from "./otp-email";

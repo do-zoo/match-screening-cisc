@@ -8,6 +8,7 @@ import {
   rejectRegistration,
   markPaymentIssue,
 } from "@/lib/actions/verify-registration";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Props = {
   eventId: string;
@@ -35,7 +36,10 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
     startTransition(async () => {
       const result = await approveRegistration(eventId, registrationId);
       if (!result.ok) {
+        toastActionErr(result);
         setApproveError(result.rootError ?? "Terjadi kesalahan.");
+      } else {
+        toastCudSuccess("update", "Pendaftaran disetujui.");
       }
     });
   }
@@ -45,8 +49,10 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
     startTransition(async () => {
       const result = await rejectRegistration(eventId, registrationId, rejectReason);
       if (!result.ok) {
+        toastActionErr(result);
         setRejectError(result.rootError ?? "Terjadi kesalahan.");
       } else {
+        toastCudSuccess("update", "Pendaftaran ditolak.");
         setRejectOpen(false);
         setRejectReason("");
       }
@@ -58,8 +64,10 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
     startTransition(async () => {
       const result = await markPaymentIssue(eventId, registrationId, paymentReason);
       if (!result.ok) {
+        toastActionErr(result);
         setPaymentError(result.rootError ?? "Terjadi kesalahan.");
       } else {
+        toastCudSuccess("update", "Status pembayaran diperbarui.");
         setPaymentOpen(false);
         setPaymentReason("");
       }

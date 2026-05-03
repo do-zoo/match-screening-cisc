@@ -3,7 +3,9 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     ticket: { findUnique: vi.fn() },
-    eventMenuItem: { findUnique: vi.fn() },
+    venueMenuItem: { findUnique: vi.fn() },
+    event: { findUnique: vi.fn() },
+    eventVenueMenuItem: { findUnique: vi.fn() },
   },
 }));
 vi.mock("@/lib/actions/guard", () => ({
@@ -22,7 +24,9 @@ import { redeemVoucher } from "@/lib/actions/voucher-redemption";
 describe("redeemVoucher", () => {
   beforeEach(() => {
     vi.mocked(prisma.ticket.findUnique).mockReset();
-    vi.mocked(prisma.eventMenuItem.findUnique).mockReset();
+    vi.mocked(prisma.venueMenuItem.findUnique).mockReset();
+    vi.mocked(prisma.event.findUnique).mockReset();
+    vi.mocked(prisma.eventVenueMenuItem.findUnique).mockReset();
   });
 
   it("returns error if ticket not in event", async () => {
@@ -38,10 +42,16 @@ describe("redeemVoucher", () => {
       voucherRedeemedMenuItemId: null,
       registration: { event: { menuMode: "VOUCHER", id: "evt1" } },
     } as never);
-    vi.mocked(prisma.eventMenuItem.findUnique).mockResolvedValueOnce({
+    vi.mocked(prisma.venueMenuItem.findUnique).mockResolvedValueOnce({
       id: "menu1",
-      eventId: "evt1",
+      venueId: "ven1",
       voucherEligible: false,
+    } as never);
+    vi.mocked(prisma.event.findUnique).mockResolvedValueOnce({
+      venueId: "ven1",
+    } as never);
+    vi.mocked(prisma.eventVenueMenuItem.findUnique).mockResolvedValueOnce({
+      eventId: "evt1",
     } as never);
     const result = await redeemVoucher("evt1", "ticket1", "menu1");
     expect(result.ok).toBe(false);

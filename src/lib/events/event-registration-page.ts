@@ -12,13 +12,18 @@ import {
   registrationBlockMessageForPublic,
 } from "./registration-window";
 
+import { flattenedMenuRowsFromEventVenueLinks } from "./flatten-event-venue-menu";
+
 /** Deduped per request — detail, register route, metadata */
 export const getActiveEventRegistrationPageData = cache(async (slug: string) =>
   prisma.event.findFirst({
     where: { slug, status: "active" },
     include: {
       bankAccount: true,
-      menuItems: { orderBy: { sortOrder: "asc" } },
+      venue: true,
+      eventVenueMenuItems: {
+        include: { venueMenuItem: true },
+      },
     },
   }),
 );
@@ -61,7 +66,7 @@ export const getSerializedEventForPublicRegistration = cache(
       summary: event.summary,
       descriptionHtml: sanitizePublicEventDescriptionHtml(event.description),
       coverBlobUrl: event.coverBlobUrl,
-      venueName: event.venueName,
+      venueName: event.venue.name,
       startAtIso: event.startAt.toISOString(),
       endAtIso: event.endAt.toISOString(),
       registrationOpen,
@@ -76,12 +81,7 @@ export const getSerializedEventForPublicRegistration = cache(
         accountNumber: event.bankAccount.accountNumber,
         accountName: event.bankAccount.accountName,
       },
-      menuItems: event.menuItems.map((m) => ({
-        id: m.id,
-        name: m.name,
-        price: m.price,
-        voucherEligible: m.voucherEligible,
-      })),
+      menuItems: flattenedMenuRowsFromEventVenueLinks(event.eventVenueMenuItems),
     };
   },
 );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { Loader2 } from "lucide-react";
 import { saveClubNotificationPreferences } from "@/lib/actions/admin-club-notification-preferences";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ActionResult } from "@/lib/forms/action-result";
+import { toastCudSuccess } from "@/lib/client/cud-notify";
 
 import type { NotificationOutboundMode } from "@prisma/client";
 
@@ -24,6 +25,12 @@ export function ClubNotificationPreferencesForm(props: {
     saveClubNotificationPreferences,
     null as ActionResult<{ saved: true }> | null,
   );
+
+  useEffect(() => {
+    if (state?.ok) {
+      toastCudSuccess("update", "Preferensi notifikasi berhasil disimpan.");
+    }
+  }, [state]);
 
   return (
     <div className="max-w-xl space-y-6">

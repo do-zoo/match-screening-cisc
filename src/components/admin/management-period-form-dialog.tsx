@@ -22,6 +22,7 @@ import {
   deleteBoardPeriod,
   updateBoardPeriod,
 } from "@/lib/actions/admin-board-periods";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminBoardPeriodCreateSchema,
   adminBoardPeriodUpdateSchema,
@@ -173,11 +174,18 @@ function ManagementPeriodFormDialogBody({
           ? await createBoardPeriod(undefined, fd)
           : await updateBoardPeriod(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result);
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
           form.setError(f as keyof FormValues, { message: m });
         setRootMessage(result.rootError ?? "Terjadi kesalahan.");
         return;
       }
+      toastCudSuccess(
+        mode === "create" ? "create" : "update",
+        mode === "create"
+          ? "Periode berhasil ditambahkan."
+          : "Periode berhasil diperbarui.",
+      );
       onOpenChange(false);
       onSaved();
     });
@@ -191,9 +199,11 @@ function ManagementPeriodFormDialogBody({
       fd.set("payload", JSON.stringify({ id: period.id }));
       const result = await deleteBoardPeriod(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "Gagal menghapus periode.");
         setDeleteError(result.rootError ?? "Gagal menghapus periode.");
         return;
       }
+      toastCudSuccess("delete", "Periode berhasil dihapus.");
       onOpenChange(false);
       onSaved();
     });
@@ -289,7 +299,7 @@ function ManagementPeriodFormDialogBody({
           </Field>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           {mode === "edit" && !showDeleteConfirm ? (
             <Button
               type="button"

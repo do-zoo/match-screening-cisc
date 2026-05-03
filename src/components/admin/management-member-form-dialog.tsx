@@ -16,24 +16,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import {
   createManagementMember,
   deleteManagementMember,
   updateManagementMember,
 } from "@/lib/actions/admin-management-members";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminManagementMemberCreateSchema,
   adminManagementMemberUpdateSchema,
 } from "@/lib/forms/admin-management-member-schema";
 
-type MasterMemberOption = { id: string; memberNumber: string; fullName: string };
+type MasterMemberOption = {
+  id: string;
+  memberNumber: string;
+  fullName: string;
+};
 
 type MemberRow = {
   id: string;
@@ -73,7 +72,10 @@ const INITIAL_EXTRAS: DialogExtras = {
   showDeleteConfirm: false,
 };
 
-function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
+function extrasReducer(
+  state: DialogExtras,
+  action: ExtrasAction,
+): DialogExtras {
   switch (action.type) {
     case "opened":
       return {
@@ -131,6 +133,22 @@ export function ManagementMemberFormDialog({
     [member],
   );
 
+  const masterMemberComboboxOptions = useMemo(
+    () => [
+      {
+        value: NO_LINK,
+        label: "Tidak ditautkan",
+        keywords: "tidak taut",
+      },
+      ...availableMasterMembers.map((m) => ({
+        value: m.id,
+        label: `${m.memberNumber} — ${m.fullName}`,
+        keywords: `${m.memberNumber} ${m.fullName}`,
+      })),
+    ],
+    [availableMasterMembers],
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(
       (mode === "create"
@@ -183,6 +201,7 @@ export function ManagementMemberFormDialog({
           ? await createManagementMember(undefined, fd)
           : await updateManagementMember(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result);
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
           form.setError(f as keyof FormValues, { message: m });
         dispatchExtras({
@@ -191,6 +210,12 @@ export function ManagementMemberFormDialog({
         });
         return;
       }
+      toastCudSuccess(
+        mode === "create" ? "create" : "update",
+        mode === "create"
+          ? "Pengurus berhasil ditambahkan."
+          : "Pengurus berhasil diperbarui.",
+      );
       onOpenChange(false);
       onSaved();
     });
@@ -204,12 +229,14 @@ export function ManagementMemberFormDialog({
       fd.set("payload", JSON.stringify({ id: member.id }));
       const result = await deleteManagementMember(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "Gagal menghapus pengurus.");
         dispatchExtras({
           type: "set-delete-error",
           message: result.rootError ?? "Gagal menghapus pengurus.",
         });
         return;
       }
+      toastCudSuccess("delete", "Pengurus berhasil dihapus.");
       onOpenChange(false);
       onSaved();
     });
@@ -237,14 +264,21 @@ export function ManagementMemberFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(submit)}
+        >
           {rootMessage ? (
             <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {rootMessage}
             </p>
           ) : null}
 
-          <Field label="Nama lengkap" htmlFor="mm-full-name" error={form.formState.errors.fullName?.message}>
+          <Field
+            label="Nama lengkap"
+            htmlFor="mm-full-name"
+            error={form.formState.errors.fullName?.message}
+          >
             <Input
               id="mm-full-name"
               aria-invalid={Boolean(form.formState.errors.fullName)}
@@ -253,7 +287,11 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <Field label="Kode publik" htmlFor="mm-public-code" error={form.formState.errors.publicCode?.message}>
+          <Field
+            label="Kode publik"
+            htmlFor="mm-public-code"
+            error={form.formState.errors.publicCode?.message}
+          >
             <Input
               id="mm-public-code"
               aria-invalid={Boolean(form.formState.errors.publicCode)}
@@ -264,7 +302,11 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <Field label="WhatsApp (opsional)" htmlFor="mm-whatsapp" error={form.formState.errors.whatsapp?.message}>
+          <Field
+            label="WhatsApp (opsional)"
+            htmlFor="mm-whatsapp"
+            error={form.formState.errors.whatsapp?.message}
+          >
             <Input
               id="mm-whatsapp"
               aria-invalid={Boolean(form.formState.errors.whatsapp)}
@@ -274,33 +316,31 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <Field label="Tautan anggota (opsional)" htmlFor="mm-master-member" error={form.formState.errors.masterMemberId?.message}>
+          <Field
+            label="Tautan anggota (opsional)"
+            htmlFor="mm-master-member"
+            error={form.formState.errors.masterMemberId?.message}
+          >
             <Controller
               control={form.control}
               name="masterMemberId"
               render={({ field }) => (
-                <Select
+                <EntityCombobox
+                  id="mm-master-member"
+                  placeholder="Tidak ditautkan"
                   value={field.value ?? NO_LINK}
-                  onValueChange={field.onChange}
+                  onValueChange={(next) =>
+                    field.onChange(next ?? NO_LINK)
+                  }
+                  options={masterMemberComboboxOptions}
                   disabled={isPending}
-                >
-                  <SelectTrigger id="mm-master-member">
-                    <SelectValue placeholder="Tidak ditautkan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_LINK}>Tidak ditautkan</SelectItem>
-                    {availableMasterMembers.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.memberNumber} — {m.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  aria-invalid={Boolean(form.formState.errors.masterMemberId)}
+                />
               )}
             />
           </Field>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             {mode === "edit" && !showDeleteConfirm ? (
               <Button
                 type="button"
@@ -315,8 +355,18 @@ export function ManagementMemberFormDialog({
             {mode === "edit" && showDeleteConfirm ? (
               <div className="mr-auto flex flex-wrap items-center gap-2">
                 <span className="text-sm text-destructive">Yakin hapus?</span>
-                <Button type="button" variant="destructive" size="sm" disabled={isDeleting} onClick={handleDelete}>
-                  {isDeleting ? <Loader2 className="size-4 animate-spin" /> : "Ya, hapus"}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Ya, hapus"
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -329,10 +379,17 @@ export function ManagementMemberFormDialog({
                 >
                   Batal
                 </Button>
-                {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
+                {deleteError ? (
+                  <p className="text-sm text-destructive">{deleteError}</p>
+                ) : null}
               </div>
             ) : null}
-            <Button type="button" variant="outline" disabled={isPending || isDeleting} onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending || isDeleting}
+              onClick={() => onOpenChange(false)}
+            >
               Batal
             </Button>
             <Button type="submit" disabled={isPending || isDeleting}>
@@ -345,8 +402,16 @@ export function ManagementMemberFormDialog({
   );
 }
 
-function Field({ label, htmlFor, error, children }: {
-  label: string; htmlFor: string; error?: string; children: React.ReactNode;
+function Field({
+  label,
+  htmlFor,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">

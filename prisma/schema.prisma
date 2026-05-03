@@ -1,6 +1,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -205,6 +206,51 @@ model PicBankAccount {
   @@index([ownerAdminProfileId])
 }
 
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   String   @db.Text
+  notes     String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  menuItems VenueMenuItem[]
+  events    Event[]
+}
+
+/// Baris menu kanonik per venue. Relasi tiket/menu pilihan akan dipindahkan ke model ini pada migrasi kontrak (M2).
+model VenueMenuItem {
+  id              String   @id @default(cuid())
+  venueId         String
+  venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name            String
+  /// IDR smallest unit (sama seperti harga tiket).
+  price           Int
+  sortOrder       Int      @default(0)
+  voucherEligible Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  eventVenueLinks    EventVenueMenuItem[]
+  ticketSelections   TicketMenuSelection[]
+  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
+
+  @@index([venueId])
+}
+
+model EventVenueMenuItem {
+  eventId         String
+  venueMenuItemId String
+  sortOrder       Int?
+
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  venueMenuItem VenueMenuItem @relation(fields: [venueMenuItemId], references: [id], onDelete: Restrict)
+
+  @@id([eventId, venueMenuItemId])
+  @@index([venueMenuItemId])
+}
+
 model Event {
   id          String   @id @default(cuid())
   slug        String   @unique
@@ -215,8 +261,8 @@ model Event {
   startAt     DateTime
   endAt       DateTime
 
-  venueName    String
-  venueAddress String
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
 
   coverBlobUrl  String
   coverBlobPath String
@@ -243,11 +289,12 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  helpers       EventPicHelper[]
-  registrations Registration[]
-  menuItems     EventMenuItem[]
+  helpers               EventPicHelper[]
+  registrations         Registration[]
+  eventVenueMenuItems   EventVenueMenuItem[]
 
   @@index([status, startAt])
+  @@index([venueId])
   @@index([picAdminProfileId])
   @@index([bankAccountId])
 }
@@ -329,7 +376,7 @@ model Ticket {
 
   voucherRedeemedMenuItemId String?
   voucherRedeemedAt         DateTime?
-  voucherRedeemedItem       EventMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
+  voucherRedeemedItem       VenueMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
 
   @@index([registrationId])
   @@index([eventId])
@@ -338,32 +385,12 @@ model Ticket {
   @@unique([registrationId, role])
 }
 
-model EventMenuItem {
-  id      String @id @default(cuid())
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  name            String
-  /// IDR smallest unit (consistent with ticket prices).
-  price           Int
-  sortOrder       Int     @default(0)
-  voucherEligible Boolean @default(false)
-
-  selections         TicketMenuSelection[]
-  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([eventId])
-}
-
 model TicketMenuSelection {
   ticketId String
   ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   menuItemId String
-  menuItem   EventMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  menuItem   VenueMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
 

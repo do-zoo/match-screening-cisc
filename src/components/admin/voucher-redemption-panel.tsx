@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { TicketRole } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { redeemVoucher } from "@/lib/actions/voucher-redemption";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Ticket = {
   id: string;
@@ -30,8 +29,18 @@ const idr = (n: number) =>
 
 export function VoucherRedemptionPanel({ eventId, tickets, menuItems }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [selections, setSelections] = useState<Record<string, string | undefined>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const menuComboboxOptions = useMemo(
+    () =>
+      menuItems.map((m) => ({
+        value: m.id,
+        label: `${m.name} — ${idr(m.price)}`,
+        keywords: `${m.name} ${m.price}`,
+      })),
+    [menuItems],
+  );
 
   function handleRedeem(ticketId: string) {
     const menuItemId = selections[ticketId];
@@ -43,8 +52,11 @@ export function VoucherRedemptionPanel({ eventId, tickets, menuItems }: Props) {
     startTransition(async () => {
       const result = await redeemVoucher(eventId, ticketId, menuItemId);
       if (!result.ok) {
+        toastActionErr(result);
         const msg: string = result.rootError ?? "Terjadi kesalahan.";
         setErrors((prev) => ({ ...prev, [ticketId]: msg }));
+      } else {
+        toastCudSuccess("update", "Voucher berhasil ditukar.");
       }
     });
   }
@@ -68,20 +80,19 @@ export function VoucherRedemptionPanel({ eventId, tickets, menuItems }: Props) {
               </p>
             ) : (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Select
-                  value={selections[ticket.id] ?? ""}
-                  onValueChange={(v) => { if (v !== null) setSelections((prev) => ({ ...prev, [ticket.id]: v })); }}
+                <EntityCombobox
+                  className="w-full sm:w-64"
+                  placeholder="Pilih menu…"
+                  value={selections[ticket.id] ?? null}
+                  onValueChange={(next) => {
+                    setSelections((prev) => ({
+                      ...prev,
+                      [ticket.id]: next ?? undefined,
+                    }));
+                  }}
+                  options={menuComboboxOptions}
                   disabled={isPending}
-                >
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="Pilih menu…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {menuItems.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name} — {idr(m.price)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <Button size="sm" onClick={() => handleRedeem(ticket.id)} disabled={isPending}>
                   Tukarkan
                 </Button>

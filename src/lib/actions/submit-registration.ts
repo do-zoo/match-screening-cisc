@@ -27,6 +27,7 @@ import {
   registrationBlockMessageForPublic,
   RegistrationNotAcceptableError,
 } from "@/lib/events/registration-window";
+import { flattenedMenuRowsFromEventVenueLinks } from "@/lib/events/flatten-event-venue-menu";
 import {
   DEFAULT_GLOBAL_REGISTRATION_CLOSED,
   mergeGlobalRegistrationClosure,
@@ -96,12 +97,26 @@ export async function submitRegistration(
   // 1. Ambil Event Terlebih Dahulu
   const event = await prisma.event.findFirst({
     where: { slug, status: "active" },
-    include: { menuItems: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      eventVenueMenuItems: {
+        include: { venueMenuItem: true },
+      },
+    },
   });
 
   if (!event) {
     return rootError("Event tidak tersedia atau belum aktif.");
   }
+
+  type PublicMenuRow = {
+    id: string;
+    name: string;
+    price: number;
+    voucherEligible: boolean;
+  };
+  const menuRowList: PublicMenuRow[] = flattenedMenuRowsFromEventVenueLinks(
+    event.eventVenueMenuItems,
+  );
 
   const registrationsTowardQuotaPreview = await countRegistrationsTowardQuota(
     prisma,
@@ -171,7 +186,11 @@ export async function submitRegistration(
     ),
   };
 
-  const schema = createSubmitRegistrationFormSchema(event);
+  const schema = createSubmitRegistrationFormSchema({
+    menuMode: event.menuMode,
+    menuSelection: event.menuSelection,
+    menuItems: menuRowList.map((m) => ({ id: m.id })),
+  });
   const parsed = schema.safeParse(payload);
 
   if (!parsed.success) {
@@ -285,7 +304,7 @@ export async function submitRegistration(
     if (includePartner) menuParts.push({ mode: "VOUCHER" });
   } else {
     const ids = data.selectedMenuItemIds ?? [];
-    const items = event.menuItems.filter((m) => ids.includes(m.id));
+    const items = menuRowList.filter((m) => ids.includes(m.id));
     if (items.length !== ids.length) {
       return rootError(
         "Konfigurasi menu acara tidak konsisten atau berubah. Muat ulang halaman ini."
