@@ -15,13 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import {
   createBoardAssignment,
   deleteBoardAssignment,
@@ -225,8 +219,26 @@ export function ManagementAssignmentFormDialog(props: Props) {
   }
 
   const availableRoles = props.availableRoles;
-  const availableMembers =
-    props.mode === "create" ? props.availableMembers : [];
+
+  const assignmentMemberOptions = useMemo(
+    () =>
+      (props.mode === "create" ? props.availableMembers : []).map((m) => ({
+        value: m.id,
+        label: `${m.fullName} (${m.publicCode})`,
+        keywords: `${m.fullName} ${m.publicCode}`,
+      })),
+    [props.mode, props.availableMembers],
+  );
+
+  const assignmentRoleOptions = useMemo(
+    () =>
+      availableRoles.map((r) => ({
+        value: r.id,
+        label: r.title,
+        keywords: r.title,
+      })),
+    [availableRoles],
+  );
 
   return (
     <Dialog
@@ -280,35 +292,19 @@ export function ManagementAssignmentFormDialog(props: Props) {
                     name="managementMemberId"
                     render={({ field, fieldState }) => (
                       <div className="space-y-1.5">
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
+                        <EntityCombobox
+                          id="assign-member"
+                          placeholder="Pilih pengurus…"
+                          value={
+                            field.value === "" ? null : field.value
+                          }
+                          onValueChange={(next) =>
+                            field.onChange(next ?? "")
+                          }
+                          options={assignmentMemberOptions}
                           disabled={isPending}
-                        >
-                          <SelectTrigger
-                            id="assign-member"
-                            size="default"
-                            className="h-11 w-full min-w-0 px-3 shadow-sm transition-colors hover:bg-muted/40"
-                          >
-                            <SelectValue placeholder="Pilih pengurus…" />
-                          </SelectTrigger>
-                          <SelectContent
-                            className="min-w-(--anchor-width) max-w-[calc(100vw-2rem)]"
-                            align="start"
-                          >
-                            {availableMembers.map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
-                                <span className="font-medium">
-                                  {m.fullName}
-                                </span>
-                                <span className="font-mono text-xs text-muted-foreground">
-                                  {" "}
-                                  ({m.publicCode})
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          aria-invalid={fieldState.invalid}
+                        />
                         {fieldState.error ? (
                           <p className="text-xs text-destructive">
                             {fieldState.error.message}
@@ -348,29 +344,19 @@ export function ManagementAssignmentFormDialog(props: Props) {
                   name="boardRoleId"
                   render={({ field, fieldState }) => (
                     <div className="space-y-1.5">
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
+                      <EntityCombobox
+                        id="assign-role"
+                        placeholder="Pilih jabatan…"
+                        value={
+                          field.value === "" ? null : field.value
+                        }
+                        onValueChange={(next) =>
+                          field.onChange(next ?? "")
+                        }
+                        options={assignmentRoleOptions}
                         disabled={isPending}
-                      >
-                        <SelectTrigger
-                          id="assign-role"
-                          size="default"
-                          className="h-11 w-full min-w-0 px-3 shadow-sm transition-colors hover:bg-muted/40"
-                        >
-                          <SelectValue placeholder="Pilih jabatan…" />
-                        </SelectTrigger>
-                        <SelectContent
-                          className="min-w-(--anchor-width) max-w-[calc(100vw-2rem)]"
-                          align="start"
-                        >
-                          {availableRoles.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        aria-invalid={fieldState.invalid}
+                      />
                       {fieldState.error ? (
                         <p className="text-xs text-destructive">
                           {fieldState.error.message}
