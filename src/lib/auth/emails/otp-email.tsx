@@ -1,11 +1,4 @@
-import {
-  Body,
-  Container,
-  Head,
-  Html,
-  Preview,
-  Text,
-} from "@react-email/components";
+import { Body, Container, Head, Html, Preview, Text } from "react-email";
 
 export function OtpEmail({ otp }: { otp: string }) {
   return (
@@ -13,7 +6,12 @@ export function OtpEmail({ otp }: { otp: string }) {
       <Head />
       <Preview>Kode verifikasi Match Screening: {otp}</Preview>
       <Body
-        style={{ backgroundColor: "#f9fafb", fontFamily: "sans-serif", margin: 0, padding: 0 }}
+        style={{
+          backgroundColor: "#f9fafb",
+          fontFamily: "sans-serif",
+          margin: 0,
+          padding: 0,
+        }}
       >
         <Container
           style={{
@@ -25,7 +23,12 @@ export function OtpEmail({ otp }: { otp: string }) {
           }}
         >
           <Text
-            style={{ fontSize: "20px", fontWeight: "bold", margin: "0 0 8px", color: "#18181b" }}
+            style={{
+              fontSize: "20px",
+              fontWeight: "bold",
+              margin: "0 0 8px",
+              color: "#18181b",
+            }}
           >
             Kode verifikasi
           </Text>
@@ -46,7 +49,8 @@ export function OtpEmail({ otp }: { otp: string }) {
             {otp}
           </Text>
           <Text style={{ color: "#6b7280", fontSize: "12px", margin: 0 }}>
-            Kode berlaku selama 5 menit. Jika Anda tidak meminta kode ini, abaikan email ini.
+            Kode berlaku selama 5 menit. Jika Anda tidak meminta kode ini,
+            abaikan email ini.
           </Text>
         </Container>
       </Body>

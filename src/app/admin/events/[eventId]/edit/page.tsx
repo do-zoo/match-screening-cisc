@@ -57,18 +57,41 @@ export default async function AdminEditEventPage({
     notFound();
   }
 
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    include: {
-      menuItems: { orderBy: { sortOrder: "asc" } },
-      helpers: { select: { adminProfileId: true } },
-      _count: { select: { registrations: true } },
-    },
-  });
+  const [event, venuesRaw] = await Promise.all([
+    prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        eventVenueMenuItems: { include: { venueMenuItem: true } },
+        helpers: { select: { adminProfileId: true } },
+        _count: { select: { registrations: true } },
+      },
+    }),
+    prisma.venue.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        menuItems: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+  ]);
 
   if (!event) {
     notFound();
   }
+
+  const venueOptions = venuesRaw.map((v) => ({
+    id: v.id,
+    name: v.name,
+    menuItems: v.menuItems.map((m) => ({
+      id: m.id,
+      name: m.name,
+      price: m.price,
+      sortOrder: m.sortOrder,
+      voucherEligible: m.voucherEligible,
+    })),
+  }));
 
   const [picOptions, banks] = await Promise.all([
     loadPicAdminProfileOptionsForEvents(),
@@ -100,12 +123,21 @@ export default async function AdminEditEventPage({
 
   const helperAdminOptions = picOptions;
 
+  const sortedEventLinks = [...event.eventVenueMenuItems].sort(
+    (a, b) =>
+      (a.sortOrder ?? a.venueMenuItem.sortOrder) -
+      (b.sortOrder ?? b.venueMenuItem.sortOrder),
+  );
+
   const defaults: AdminEventUpsertInput = {
     title: event.title,
     summary: event.summary,
     descriptionHtml: event.description,
-    venueName: event.venueName,
-    venueAddress: event.venueAddress,
+    venueId: event.venueId,
+    linkedVenueMenuItems: sortedEventLinks.map((x, idx) => ({
+      venueMenuItemId: x.venueMenuItemId,
+      sortOrder: x.sortOrder ?? idx,
+    })),
     startAtIso: event.startAt.toISOString(),
     endAtIso: event.endAt.toISOString(),
     registrationCapacity: event.registrationCapacity,
@@ -120,18 +152,12 @@ export default async function AdminEditEventPage({
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
     helperAdminProfileIds: event.helpers.map((h) => h.adminProfileId),
-    menuItems: event.menuItems.map((m) => ({
-      id: m.id,
-      name: m.name,
-      priceIdr: m.price,
-      sortOrder: m.sortOrder,
-      voucherEligible: m.voucherEligible,
-    })),
     acknowledgeSensitiveChanges: false,
   };
 
   const persistedIntegrity: EventIntegritySnapshot = {
     slug: event.slug,
+    venueId: event.venueId,
     menuMode: event.menuMode,
     menuSelection: event.menuSelection,
     ticketMemberPrice: event.ticketMemberPrice,
@@ -172,6 +198,7 @@ export default async function AdminEditEventPage({
         picOptions={picOptions}
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
+        venueOptions={venueOptions}
       />
       {canManageCommitteeAdvancedSettings(ctx.role) ? (
         <EventDeletePanel

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   Home,
+  MapPin,
   MenuIcon,
   Settings,
   Users,
@@ -41,6 +42,8 @@ function AdminNavLinks({
 }) {
   const pathname = usePathname();
   const acaraExact = pathname === "/admin/events";
+  const venuesActive =
+    pathname === "/admin/venues" || pathname.startsWith("/admin/venues/");
   const membersActive =
     pathname === "/admin/members" || pathname.startsWith("/admin/members/");
   const managementActive =
@@ -75,6 +78,16 @@ function AdminNavLinks({
             aria-hidden
           />
           Acara
+        </Link>
+      ) : null}
+      {navFlags.venues ? (
+        <Link
+          href="/admin/venues"
+          onClick={onNavigate}
+          className={adminShellNavLinkClass(venuesActive)}
+        >
+          <MapPin className={adminShellNavIconClass(venuesActive)} aria-hidden />
+          Venue
         </Link>
       ) : null}
       {navFlags.members ? (

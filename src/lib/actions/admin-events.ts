@@ -4,9 +4,14 @@ import { randomUUID } from "node:crypto";
 
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
-import { AdminRole, Prisma } from "@prisma/client";
+import { AdminRole } from "@prisma/client";
 
-import { guardOwner, guardOwnerOrAdmin, isAuthError, type OwnerGuardContext } from "@/lib/actions/guard";
+import {
+  guardOwner,
+  guardOwnerOrAdmin,
+  isAuthError,
+  type OwnerGuardContext,
+} from "@/lib/actions/guard";
 import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
@@ -31,9 +36,7 @@ import { zodToFieldErrors } from "@/lib/forms/zod";
 import { sanitizePublicEventDescriptionHtml } from "@/lib/public/sanitize-event-description";
 import { isUploadError } from "@/lib/uploads/errors";
 import { uploadEventHeroCover } from "@/lib/uploads/upload-event-cover";
-
-const MENU_DELETE_BLOCKED = "__EVENT_MENU_DELETE_BLOCKED__";
-const INVALID_MENU_ITEM_ID = "__INVALID_MENU_ITEM_ID__";
+import { validateVenueSubsetForEvent } from "@/lib/venues/assert-event-venue-subset";
 
 async function requireOwner(): Promise<
   ActionResult<never> | { owner: OwnerGuardContext }
@@ -75,10 +78,12 @@ async function ticketPricesForWrite(opts: {
   };
 }
 
-async function validatePicBankAndHelpers(opts: Pick<
-  AdminEventUpsertInput,
-  "picAdminProfileId" | "bankAccountId" | "helperAdminProfileIds"
->): Promise<ActionResult<void>> {
+async function validatePicBankAndHelpers(
+  opts: Pick<
+    AdminEventUpsertInput,
+    "picAdminProfileId" | "bankAccountId" | "helperAdminProfileIds"
+  >,
+): Promise<ActionResult<void>> {
   const pic = await prisma.adminProfile.findUnique({
     where: { id: opts.picAdminProfileId },
     select: { id: true, role: true },
@@ -124,6 +129,59 @@ async function validatePicBankAndHelpers(opts: Pick<
   return ok(undefined);
 }
 
+function persistedVenueSubsetOrderKey(
+  rows: Array<{
+    venueMenuItemId: string;
+    sortOrder: number | null;
+    venueMenuItem: { sortOrder: number };
+  }>,
+): string {
+  return [...rows]
+    .sort(
+      (a, b) =>
+        (a.sortOrder ?? a.venueMenuItem.sortOrder) -
+          (b.sortOrder ?? b.venueMenuItem.sortOrder) ||
+        a.venueMenuItemId.localeCompare(b.venueMenuItemId),
+    )
+    .map((r) => r.venueMenuItemId)
+    .join("|");
+}
+
+function incomingVenueSubsetOrderKey(
+  rows: AdminEventUpsertInput["linkedVenueMenuItems"],
+): string {
+  return [...rows]
+    .sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+        a.venueMenuItemId.localeCompare(b.venueMenuItemId),
+    )
+    .map((r) => r.venueMenuItemId)
+    .join("|");
+}
+
+async function validateLinkedVenueMenuOrError(
+  data: AdminEventUpsertInput,
+): Promise<ActionResult<void>> {
+  const ids = data.linkedVenueMenuItems.map((l) => l.venueMenuItemId);
+  const rows = await prisma.venueMenuItem.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, venueId: true },
+  });
+  const catalog = new Map(rows.map((r) => [r.id, r]));
+  if (catalog.size !== ids.length) {
+    return rootError(
+      "Salah satu item menu tidak dikenal atau bukan milik venue.",
+    );
+  }
+  const msg = validateVenueSubsetForEvent({
+    eventVenueId: data.venueId,
+    venueMenuItemIds: ids,
+    catalogById: catalog,
+  });
+  return msg ? rootError(msg) : ok(undefined);
+}
+
 export async function createAdminEvent(
   _prev: unknown,
   formData: FormData,
@@ -146,8 +204,7 @@ export async function createAdminEvent(
   const data = parsed.data;
 
   const cover = formData.get("cover");
-  const coverFile =
-    cover instanceof File && cover.size > 0 ? cover : undefined;
+  const coverFile = cover instanceof File && cover.size > 0 ? cover : undefined;
   if (!coverFile) return rootError("Sampul acara wajib diunggah.");
 
   const vPic = await validatePicBankAndHelpers({
@@ -157,11 +214,15 @@ export async function createAdminEvent(
   });
   if (!vPic.ok) return vPic;
 
-  const { ticketMemberPrice, ticketNonMemberPrice } = await ticketPricesForWrite({
-    pricingSource: data.pricingSource,
-    parsedMember: data.ticketMemberPrice,
-    parsedNonMember: data.ticketNonMemberPrice,
-  });
+  const vMenu = await validateLinkedVenueMenuOrError(data);
+  if (!vMenu.ok) return vMenu;
+
+  const { ticketMemberPrice, ticketNonMemberPrice } =
+    await ticketPricesForWrite({
+      pricingSource: data.pricingSource,
+      parsedMember: data.ticketMemberPrice,
+      parsedNonMember: data.ticketNonMemberPrice,
+    });
 
   const helperIds = [...new Set(data.helperAdminProfileIds)].filter(
     (id) => id !== data.picAdminProfileId,
@@ -185,7 +246,8 @@ export async function createAdminEvent(
   }
 
   const description = sanitizePublicEventDescriptionHtml(data.descriptionHtml);
-  const voucherPrice = data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
+  const voucherPrice =
+    data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -198,8 +260,7 @@ export async function createAdminEvent(
           description,
           startAt: new Date(data.startAtIso),
           endAt: new Date(data.endAtIso),
-          venueName: data.venueName,
-          venueAddress: data.venueAddress,
+          venueId: data.venueId,
           coverBlobUrl: coverPut.url,
           coverBlobPath: coverPut.pathname,
           registrationManualClosed: data.registrationManualClosed,
@@ -219,13 +280,11 @@ export async function createAdminEvent(
         },
       });
 
-      await tx.eventMenuItem.createMany({
-        data: data.menuItems.map((m, idx) => ({
+      await tx.eventVenueMenuItem.createMany({
+        data: data.linkedVenueMenuItems.map((m) => ({
           eventId: id,
-          name: m.name,
-          price: m.priceIdr,
-          sortOrder: m.sortOrder ?? idx + 1,
-          voucherEligible: m.voucherEligible,
+          venueMenuItemId: m.venueMenuItemId,
+          sortOrder: m.sortOrder ?? null,
         })),
       });
 
@@ -281,6 +340,7 @@ export async function updateAdminEvent(
     where: { id: eventId },
     select: {
       slug: true,
+      venueId: true,
       coverBlobUrl: true,
       menuMode: true,
       menuSelection: true,
@@ -290,7 +350,13 @@ export async function updateAdminEvent(
       pricingSource: true,
       picAdminProfileId: true,
       bankAccountId: true,
-      menuItems: { select: { id: true } },
+      eventVenueMenuItems: {
+        select: {
+          venueMenuItemId: true,
+          sortOrder: true,
+          venueMenuItem: { select: { sortOrder: true } },
+        },
+      },
       helpers: { select: { adminProfileId: true } },
       _count: { select: { registrations: true } },
     },
@@ -300,6 +366,7 @@ export async function updateAdminEvent(
 
   const persistedIntegrity: EventIntegritySnapshot = {
     slug: existing.slug,
+    venueId: existing.venueId,
     menuMode: existing.menuMode,
     menuSelection: existing.menuSelection,
     ticketMemberPrice: existing.ticketMemberPrice,
@@ -314,6 +381,7 @@ export async function updateAdminEvent(
     registrationCount: existing._count.registrations,
     persisted: persistedIntegrity,
     candidate: {
+      venueId: data.venueId,
       menuMode: data.menuMode,
       menuSelection: data.menuSelection,
     },
@@ -324,11 +392,30 @@ export async function updateAdminEvent(
     );
   }
 
-  const { ticketMemberPrice, ticketNonMemberPrice } = await ticketPricesForWrite({
-    pricingSource: data.pricingSource,
-    parsedMember: data.ticketMemberPrice,
-    parsedNonMember: data.ticketNonMemberPrice,
-  });
+  const persistedMenuKey = persistedVenueSubsetOrderKey(
+    existing.eventVenueMenuItems,
+  );
+  const incomingMenuKey = incomingVenueSubsetOrderKey(
+    data.linkedVenueMenuItems,
+  );
+  if (
+    existing._count.registrations > 0 &&
+    persistedMenuKey !== incomingMenuKey
+  ) {
+    return rootError(
+      "Susunan menu acara tidak dapat diubah karena sudah ada pendaftaran.",
+    );
+  }
+
+  const vMenu = await validateLinkedVenueMenuOrError(data);
+  if (!vMenu.ok) return vMenu;
+
+  const { ticketMemberPrice, ticketNonMemberPrice } =
+    await ticketPricesForWrite({
+      pricingSource: data.pricingSource,
+      parsedMember: data.ticketMemberPrice,
+      parsedNonMember: data.ticketNonMemberPrice,
+    });
 
   const candidateSensitivity: Partial<EventIntegritySnapshot> = {
     ticketMemberPrice,
@@ -361,8 +448,7 @@ export async function updateAdminEvent(
   );
 
   const cover = formData.get("cover");
-  const coverFile =
-    cover instanceof File && cover.size > 0 ? cover : undefined;
+  const coverFile = cover instanceof File && cover.size > 0 ? cover : undefined;
 
   let coverPut: { url: string; pathname: string } | null = null;
   if (coverFile) {
@@ -380,63 +466,31 @@ export async function updateAdminEvent(
   }
 
   const description = sanitizePublicEventDescriptionHtml(data.descriptionHtml);
-  const voucherPrice = data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
+  const voucherPrice =
+    data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
 
   const prevCoverUrl = existing.coverBlobUrl;
-  const existingMenuIds = new Set(existing.menuItems.map((m) => m.id));
-  const incomingMenuIds = new Set(
-    data.menuItems.flatMap((m) => (m.id ? [m.id] : [])),
-  );
 
   try {
     await prisma.$transaction(async (tx) => {
-      for (const oldId of existingMenuIds) {
-        if (!incomingMenuIds.has(oldId)) {
-          try {
-            await tx.eventMenuItem.delete({ where: { id: oldId } });
-          } catch (e) {
-            if (
-              e instanceof Prisma.PrismaClientKnownRequestError &&
-              e.code === "P2003"
-            ) {
-              throw new Error(MENU_DELETE_BLOCKED);
-            }
-            throw e;
-          }
-        }
-      }
-
-      for (const row of data.menuItems) {
-        if (row.id && !existingMenuIds.has(row.id)) {
-          throw new Error(INVALID_MENU_ITEM_ID);
-        }
-        if (row.id && existingMenuIds.has(row.id)) {
-          await tx.eventMenuItem.update({
-            where: { id: row.id },
-            data: {
-              name: row.name,
-              price: row.priceIdr,
-              sortOrder: row.sortOrder,
-              voucherEligible: row.voucherEligible,
-            },
-          });
-        } else if (!row.id) {
-          await tx.eventMenuItem.create({
-            data: {
-              eventId,
-              name: row.name,
-              price: row.priceIdr,
-              sortOrder: row.sortOrder,
-              voucherEligible: row.voucherEligible,
-            },
-          });
-        }
+      if (existing._count.registrations === 0) {
+        await tx.eventVenueMenuItem.deleteMany({ where: { eventId } });
+        await tx.eventVenueMenuItem.createMany({
+          data: data.linkedVenueMenuItems.map((m) => ({
+            eventId,
+            venueMenuItemId: m.venueMenuItemId,
+            sortOrder: m.sortOrder ?? null,
+          })),
+        });
       }
 
       await tx.eventPicHelper.deleteMany({ where: { eventId } });
       if (helperIds.length > 0) {
         await tx.eventPicHelper.createMany({
-          data: helperIds.map((adminProfileId) => ({ eventId, adminProfileId })),
+          data: helperIds.map((adminProfileId) => ({
+            eventId,
+            adminProfileId,
+          })),
           skipDuplicates: true,
         });
       }
@@ -449,8 +503,7 @@ export async function updateAdminEvent(
           description,
           startAt: new Date(data.startAtIso),
           endAt: new Date(data.endAtIso),
-          venueName: data.venueName,
-          venueAddress: data.venueAddress,
+          venueId: data.venueId,
           ...(coverPut
             ? {
                 coverBlobUrl: coverPut.url,
@@ -483,38 +536,6 @@ export async function updateAdminEvent(
       }
     }
   } catch (e) {
-    if (
-      typeof e === "object" &&
-      e instanceof Error &&
-      e.message === MENU_DELETE_BLOCKED
-    ) {
-      if (coverPut) {
-        try {
-          await del(coverPut.url);
-        } catch {
-          // ignore
-        }
-      }
-      return rootError(
-        "Menu masih digunakan di pendaftaran — menghapus item ini tidak boleh.",
-      );
-    }
-    if (
-      typeof e === "object" &&
-      e instanceof Error &&
-      e.message === INVALID_MENU_ITEM_ID
-    ) {
-      if (coverPut) {
-        try {
-          await del(coverPut.url);
-        } catch {
-          // ignore
-        }
-      }
-      return fieldError({
-        menuItems: "Ada id menu tidak dikenal untuk acara ini.",
-      });
-    }
     if (coverPut) {
       try {
         await del(coverPut.url);
@@ -572,7 +593,9 @@ export async function deleteAdminEvent(
   try {
     await prisma.event.delete({ where: { id: event.id } });
   } catch {
-    return rootError("Gagal menghapus acara. Coba lagi atau periksa apakah ada registrasi baru.");
+    return rootError(
+      "Gagal menghapus acara. Coba lagi atau periksa apakah ada registrasi baru.",
+    );
   }
 
   await appendClubAuditLog(prisma, {

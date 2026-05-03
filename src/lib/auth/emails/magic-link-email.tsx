@@ -7,7 +7,7 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
+} from "react-email";
 
 export function MagicLinkEmail({ url }: { url: string }) {
   return (
@@ -15,7 +15,12 @@ export function MagicLinkEmail({ url }: { url: string }) {
       <Head />
       <Preview>Link masuk ke Match Screening admin</Preview>
       <Body
-        style={{ backgroundColor: "#f9fafb", fontFamily: "sans-serif", margin: 0, padding: 0 }}
+        style={{
+          backgroundColor: "#f9fafb",
+          fontFamily: "sans-serif",
+          margin: 0,
+          padding: 0,
+        }}
       >
         <Container
           style={{
@@ -27,13 +32,20 @@ export function MagicLinkEmail({ url }: { url: string }) {
           }}
         >
           <Text
-            style={{ fontSize: "20px", fontWeight: "bold", margin: "0 0 8px", color: "#18181b" }}
+            style={{
+              fontSize: "20px",
+              fontWeight: "bold",
+              margin: "0 0 8px",
+              color: "#18181b",
+            }}
           >
             Match Screening
           </Text>
-          <Text style={{ color: "#374151", lineHeight: "1.6", margin: "0 0 24px" }}>
-            Klik tombol di bawah untuk masuk ke halaman admin. Link ini hanya berlaku sekali dan
-            akan kedaluwarsa dalam 5 menit.
+          <Text
+            style={{ color: "#374151", lineHeight: "1.6", margin: "0 0 24px" }}
+          >
+            Klik tombol di bawah untuk masuk ke halaman admin. Link ini hanya
+            berlaku sekali dan akan kedaluwarsa dalam 5 menit.
           </Text>
           <Section style={{ textAlign: "center", margin: "0 0 24px" }}>
             <Button

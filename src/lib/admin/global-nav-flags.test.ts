@@ -12,6 +12,7 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(null)).toEqual({
       beranda: true,
       acara: false,
+      venues: false,
       members: false,
       management: false,
       settings: false,
@@ -22,6 +23,7 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(ctx("Owner"))).toEqual({
       beranda: true,
       acara: true,
+      venues: true,
       members: true,
       management: true,
       settings: true,
@@ -32,6 +34,7 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(ctx("Admin"))).toEqual({
       beranda: true,
       acara: true,
+      venues: true,
       members: true,
       management: true,
       settings: false,
@@ -42,6 +45,7 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(ctx("Verifier"))).toEqual({
       beranda: true,
       acara: false,
+      venues: false,
       members: false,
       management: false,
       settings: false,
@@ -52,6 +56,7 @@ describe("deriveGlobalSidebarNav", () => {
     expect(deriveGlobalSidebarNav(ctx("Viewer"))).toEqual({
       beranda: true,
       acara: false,
+      venues: false,
       members: false,
       management: false,
       settings: false,

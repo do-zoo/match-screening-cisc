@@ -5,14 +5,11 @@ import {
   EventStatus,
   MenuMode,
   MenuSelection,
-  PrismaClient,
   PricingSource,
 } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
 
-const prisma = new PrismaClient({
-  adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
-});
+/** Same Neon + `db.localtest.me` proxy setup as the app (`scripts/bootstrap-admin` pattern). */
+import { prisma } from "@/lib/db/prisma";
 
 /** Kombinasi isActive × isManagementMember — untuk variasi direktori (tanpa PIC di member). */
 type MasterMemberSeed = {
@@ -175,16 +172,133 @@ async function main() {
         },
       });
 
+  const DEMO_VENUE_ID = "cm_seed_venue_demo_final";
+  const CATALOG_VENUE_ID = "cm_seed_venue_catalog_wide";
+
+  const demoVenue = await prisma.venue.upsert({
+    where: { id: DEMO_VENUE_ID },
+    update: {
+      name: "Venue Demo · Nobar",
+      address: "Jl. Demo No. 1, Tangerang Selatan",
+      notes:
+        "Contoh venue untuk acara nobar demo. Dipakai `demo-final-ucl-2026` dengan subset dua menu.",
+      isActive: true,
+    },
+    create: {
+      id: DEMO_VENUE_ID,
+      name: "Venue Demo · Nobar",
+      address: "Jl. Demo No. 1, Tangerang Selatan",
+      notes:
+        "Contoh venue untuk acara nobar demo. Dipakai `demo-final-ucl-2026` dengan subset dua menu.",
+      isActive: true,
+    },
+  });
+
+  const catalogVenue = await prisma.venue.upsert({
+    where: { id: CATALOG_VENUE_ID },
+    update: {
+      name: "Venue Demo · Katalog luas",
+      address: "Jl. Contoh No. 99 (tanpa acara)",
+      notes:
+        "Venue kedua untuk uji CRUD katalog: banyak item menu, belum ditautkan ke acara mana pun.",
+      isActive: true,
+    },
+    create: {
+      id: CATALOG_VENUE_ID,
+      name: "Venue Demo · Katalog luas",
+      address: "Jl. Contoh No. 99 (tanpa acara)",
+      notes:
+        "Venue kedua untuk uji CRUD katalog: banyak item menu, belum ditautkan ke acara mana pun.",
+      isActive: true,
+    },
+  });
+
+  await prisma.venueMenuItem.deleteMany({
+    where: { venueId: demoVenue.id },
+  });
+  await prisma.venueMenuItem.deleteMany({
+    where: { venueId: catalogVenue.id },
+  });
+
+  const [vmBurger, vmNasi] = await Promise.all([
+    prisma.venueMenuItem.create({
+      data: {
+        venueId: demoVenue.id,
+        name: "Paket Burger",
+        price: 55_000,
+        sortOrder: 1,
+        voucherEligible: true,
+      },
+    }),
+    prisma.venueMenuItem.create({
+      data: {
+        venueId: demoVenue.id,
+        name: "Paket Nasi",
+        price: 50_000,
+        sortOrder: 2,
+        voucherEligible: true,
+      },
+    }),
+  ]);
+
+  await prisma.venueMenuItem.createMany({
+    data: [
+      {
+        venueId: catalogVenue.id,
+        name: "Snack ringan",
+        price: 35_000,
+        sortOrder: 1,
+        voucherEligible: true,
+      },
+      {
+        venueId: catalogVenue.id,
+        name: "Minuman",
+        price: 25_000,
+        sortOrder: 2,
+        voucherEligible: true,
+      },
+      {
+        venueId: catalogVenue.id,
+        name: "Paket premium",
+        price: 95_000,
+        sortOrder: 3,
+        voucherEligible: false,
+      },
+      {
+        venueId: catalogVenue.id,
+        name: "Dessert",
+        price: 40_000,
+        sortOrder: 4,
+        voucherEligible: true,
+      },
+    ],
+  });
+
+  const eventSummary =
+    "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.";
+  const eventDescription =
+    "<p>Acara demo untuk alur pendaftaran. <strong>Perbarui deskripsi ini</strong> lewat admin ketika editor WYSIWYG tersedia.</p><p>Pastikan pembayaran menggunakan rekening yang tertera di formulir.</p>";
+
   const event = await prisma.event.upsert({
     where: { slug: "demo-final-ucl-2026" },
     update: {
+      title: "Demo — Final Watch Party",
       bankAccountId: bank.id,
       picAdminProfileId: ownerProfile.id,
-      summary:
-        "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.",
-      description:
-        "<p>Acara demo untuk alur pendaftaran. <strong>Perbarui deskripsi ini</strong> lewat admin ketika editor WYSIWYG tersedia.</p><p>Pastikan pembayaran menggunakan rekening yang tertera di formulir.</p>",
+      venueId: demoVenue.id,
+      summary: eventSummary,
+      description: eventDescription,
+      startAt: new Date("2026-05-20T18:30:00+07:00"),
       endAt: new Date("2026-05-20T23:00:00+07:00"),
+      registrationManualClosed: false,
+      registrationCapacity: null,
+      status: EventStatus.active,
+      ticketMemberPrice: 125_000,
+      ticketNonMemberPrice: 175_000,
+      pricingSource: PricingSource.global_default,
+      menuMode: MenuMode.PRESELECT,
+      menuSelection: MenuSelection.SINGLE,
+      voucherPrice: null,
       coverBlobUrl:
         "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
       coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
@@ -192,10 +306,8 @@ async function main() {
     create: {
       slug: "demo-final-ucl-2026",
       title: "Demo — Final Watch Party",
-      summary:
-        "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.",
-      description:
-        "<p>Acara demo untuk alur pendaftaran. <strong>Perbarui deskripsi ini</strong> lewat admin ketika editor WYSIWYG tersedia.</p><p>Pastikan pembayaran menggunakan rekening yang tertera di formulir.</p>",
+      summary: eventSummary,
+      description: eventDescription,
       startAt: new Date("2026-05-20T18:30:00+07:00"),
       endAt: new Date("2026-05-20T23:00:00+07:00"),
       coverBlobUrl:
@@ -203,8 +315,7 @@ async function main() {
       coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
       registrationManualClosed: false,
       registrationCapacity: null,
-      venueName: "Venue Demo",
-      venueAddress: "Jl. Demo No. 1, Tangerang Selatan",
+      venueId: demoVenue.id,
       status: EventStatus.active,
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
@@ -217,23 +328,11 @@ async function main() {
     },
   });
 
-  await prisma.eventMenuItem.deleteMany({ where: { eventId: event.id } });
-  await prisma.eventMenuItem.createMany({
+  await prisma.eventVenueMenuItem.deleteMany({ where: { eventId: event.id } });
+  await prisma.eventVenueMenuItem.createMany({
     data: [
-      {
-        eventId: event.id,
-        name: "Paket Burger",
-        price: 55_000,
-        sortOrder: 1,
-        voucherEligible: true,
-      },
-      {
-        eventId: event.id,
-        name: "Paket Nasi",
-        price: 50_000,
-        sortOrder: 2,
-        voucherEligible: true,
-      },
+      { eventId: event.id, venueMenuItemId: vmBurger.id, sortOrder: 1 },
+      { eventId: event.id, venueMenuItemId: vmNasi.id, sortOrder: 2 },
     ],
   });
 
@@ -243,7 +342,7 @@ async function main() {
   console.log(
     "Seed OK:",
     event.slug,
-    `(${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC acara = Owner admin ${ownerProfile.id})`,
+    `· venue acara=${demoVenue.id} · venue katalog tambahan=${catalogVenue.id} (${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
   );
 }
 

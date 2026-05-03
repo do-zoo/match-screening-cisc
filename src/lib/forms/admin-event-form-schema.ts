@@ -10,15 +10,13 @@ import {
 
 const idrSchema = z.coerce.number().int().nonnegative();
 
-const menuItemDraftSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().trim().min(1),
-  priceIdr: idrSchema,
-  sortOrder: z.coerce.number().int().nonnegative(),
-  voucherEligible: z.boolean(),
+const linkedVenueMenuItemSchema = z.object({
+  venueMenuItemId: z.string().min(1),
+  /** Urutan tampilan di acara; jika kosong dipakai `VenueMenuItem.sortOrder`. */
+  sortOrder: idrSchema.optional(),
 });
 
-export type AdminMenuItemDraft = z.infer<typeof menuItemDraftSchema>;
+export type LinkedVenueMenuItemDraft = z.infer<typeof linkedVenueMenuItemSchema>;
 
 export const adminEventUpsertSchema = z
   .object({
@@ -26,8 +24,8 @@ export const adminEventUpsertSchema = z
     summary: z.string().trim().min(1),
     /** Raw HTML sanitized before persistence on server (never trust strip on client-only). */
     descriptionHtml: z.string(),
-    venueName: z.string().trim().min(1),
-    venueAddress: z.string().trim().min(1),
+    venueId: z.string().min(1),
+    linkedVenueMenuItems: z.array(linkedVenueMenuItemSchema).min(1),
     /** Accept `new Date(...)` compat strings from serialized JSON payloads. */
     startAtIso: z.string().min(1),
     endAtIso: z.string().min(1),
@@ -43,7 +41,6 @@ export const adminEventUpsertSchema = z
     picAdminProfileId: z.string().min(1),
     bankAccountId: z.string().min(1),
     helperAdminProfileIds: z.array(z.string().min(1)),
-    menuItems: z.array(menuItemDraftSchema).min(1),
     acknowledgeSensitiveChanges: z.boolean().optional(),
   })
   .superRefine((v, ctx) => {
@@ -84,6 +81,19 @@ export const adminEventUpsertSchema = z
         path: ["voucherPriceIdr"],
         message: "Kosongkan harga voucher jika Mode Menu bukan Voucher.",
       });
+    }
+
+    const seen = new Set<string>();
+    for (let i = 0; i < v.linkedVenueMenuItems.length; i++) {
+      const row = v.linkedVenueMenuItems[i]!;
+      if (seen.has(row.venueMenuItemId)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["linkedVenueMenuItems", i, "venueMenuItemId"],
+          message: "Item menu tidak boleh duplikat untuk satu acara.",
+        });
+      }
+      seen.add(row.venueMenuItemId);
     }
   });
 

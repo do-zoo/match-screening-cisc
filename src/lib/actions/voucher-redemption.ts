@@ -42,13 +42,31 @@ export async function redeemVoucher(
     return rootError("Voucher tiket ini sudah digunakan.");
   }
 
-  const menuItem = await prisma.eventMenuItem.findUnique({
+  const menuItem = await prisma.venueMenuItem.findUnique({
     where: { id: menuItemId },
-    select: { id: true, eventId: true, voucherEligible: true },
+    select: { id: true, venueId: true, voucherEligible: true },
   });
 
-  if (!menuItem || menuItem.eventId !== eventId) {
+  const eventVenueRow = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { venueId: true },
+  });
+
+  if (!menuItem || !eventVenueRow || menuItem.venueId !== eventVenueRow.venueId) {
     return rootError("Menu item tidak ditemukan untuk acara ini.");
+  }
+
+  const inSubset = await prisma.eventVenueMenuItem.findUnique({
+    where: {
+      eventId_venueMenuItemId: {
+        eventId,
+        venueMenuItemId: menuItemId,
+      },
+    },
+    select: { eventId: true },
+  });
+  if (!inSubset) {
+    return rootError("Menu item tidak dipilih untuk acara ini.");
   }
   if (!menuItem.voucherEligible) {
     return rootError("Menu item ini tidak eligible untuk penukaran voucher.");

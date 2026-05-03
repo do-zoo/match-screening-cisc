@@ -6,6 +6,7 @@ import { RegistrationDetail } from "@/components/admin/registration-detail";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
+import { flattenedMenuRowsFromEventVenueLinks } from "@/lib/events/flatten-event-venue-menu";
 import { canVerifyEvent } from "@/lib/permissions/guards";
 
 export async function generateMetadata({
@@ -70,12 +71,11 @@ export default async function AdminEventInboxDetailPage({
       event: {
         select: {
           title: true,
-          venueName: true,
           startAt: true,
           menuMode: true,
-          menuItems: {
-            orderBy: { sortOrder: "asc" as const },
-            select: { id: true, name: true, price: true, voucherEligible: true },
+          venue: { select: { name: true } },
+          eventVenueMenuItems: {
+            include: { venueMenuItem: true },
           },
           bankAccount: {
             select: { bankName: true, accountNumber: true, accountName: true },
@@ -103,6 +103,20 @@ export default async function AdminEventInboxDetailPage({
   });
 
   if (!registration) notFound();
+
+  const registrationForDetail = {
+    ...registration,
+    event: {
+      title: registration.event.title,
+      venueName: registration.event.venue.name,
+      startAt: registration.event.startAt,
+      menuMode: registration.event.menuMode,
+      menuItems: flattenedMenuRowsFromEventVenueLinks(
+        registration.event.eventVenueMenuItems,
+      ),
+      bankAccount: registration.event.bankAccount,
+    },
+  };
 
   let ticketContext: TicketContextVm;
   try {
@@ -139,7 +153,7 @@ export default async function AdminEventInboxDetailPage({
           <h1 className="text-2xl font-semibold tracking-tight">
             Detail pendaftar
           </h1>
-          <p className="text-sm text-muted-foreground">{registration.event.title}</p>
+          <p className="text-sm text-muted-foreground">{registrationForDetail.event.title}</p>
         </div>
         <Link
           href={`/admin/events/${eventId}/inbox`}
@@ -151,7 +165,7 @@ export default async function AdminEventInboxDetailPage({
 
       <RegistrationDetail
         eventId={eventId}
-        registration={registration}
+        registration={registrationForDetail}
         ticketContext={ticketContext}
         waBodies={waBodies}
       />

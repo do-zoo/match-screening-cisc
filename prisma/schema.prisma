@@ -1,6 +1,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -231,7 +232,9 @@ model VenueMenuItem {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  eventVenueLinks EventVenueMenuItem[]
+  eventVenueLinks    EventVenueMenuItem[]
+  ticketSelections   TicketMenuSelection[]
+  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
 
   @@index([venueId])
 }
@@ -258,11 +261,8 @@ model Event {
   startAt     DateTime
   endAt       DateTime
 
-  venueId String?
-  venue   Venue?  @relation(fields: [venueId], references: [id], onDelete: Restrict)
-
-  venueName    String
-  venueAddress String
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
 
   coverBlobUrl  String
   coverBlobPath String
@@ -291,7 +291,6 @@ model Event {
 
   helpers               EventPicHelper[]
   registrations         Registration[]
-  menuItems             EventMenuItem[]
   eventVenueMenuItems   EventVenueMenuItem[]
 
   @@index([status, startAt])
@@ -377,7 +376,7 @@ model Ticket {
 
   voucherRedeemedMenuItemId String?
   voucherRedeemedAt         DateTime?
-  voucherRedeemedItem       EventMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
+  voucherRedeemedItem       VenueMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
 
   @@index([registrationId])
   @@index([eventId])
@@ -386,32 +385,12 @@ model Ticket {
   @@unique([registrationId, role])
 }
 
-model EventMenuItem {
-  id      String @id @default(cuid())
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  name            String
-  /// IDR smallest unit (consistent with ticket prices).
-  price           Int
-  sortOrder       Int     @default(0)
-  voucherEligible Boolean @default(false)
-
-  selections         TicketMenuSelection[]
-  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([eventId])
-}
-
 model TicketMenuSelection {
   ticketId String
   ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   menuItemId String
-  menuItem   EventMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  menuItem   VenueMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
 

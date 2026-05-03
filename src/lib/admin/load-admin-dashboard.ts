@@ -31,7 +31,7 @@ function collectAuthorizedEventRows(ctx: AdminContext) {
         title: true,
         status: true,
         startAt: true,
-        venueName: true,
+        venue: { select: { name: true } },
       },
     });
   }
@@ -46,7 +46,7 @@ function collectAuthorizedEventRows(ctx: AdminContext) {
       title: true,
       status: true,
       startAt: true,
-      venueName: true,
+      venue: { select: { name: true } },
     },
   });
 }
@@ -116,7 +116,7 @@ export async function loadAdminDashboard(
           title: e.title,
           status: e.status,
           startAt: e.startAt,
-          venueName: e.venueName,
+          venueName: e.venue.name,
         })),
         counts.pendingReviewByEventId,
         counts.approvedByEventId,

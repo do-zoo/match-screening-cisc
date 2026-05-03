@@ -129,7 +129,7 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     // Fetch menu item names for PRESELECT
     const itemIds = menuSelections.map((s) => s.menuItemId);
     const items = itemIds.length
-      ? await prisma.eventMenuItem.findMany({
+      ? await prisma.venueMenuItem.findMany({
           where: { id: { in: itemIds } },
           select: { id: true, name: true },
         })

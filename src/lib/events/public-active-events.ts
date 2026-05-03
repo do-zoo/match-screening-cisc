@@ -6,7 +6,7 @@ const publicActiveEventSelect = {
   summary: true,
   coverBlobUrl: true,
   startAt: true,
-  venueName: true,
+  venue: { select: { name: true } },
 } as const;
 
 export type PublicActiveEventRow = {
@@ -30,7 +30,7 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
     title: e.title,
     summary: e.summary,
     coverBlobUrl: e.coverBlobUrl,
-    venueName: e.venueName,
+    venueName: e.venue.name,
     startAtIso: e.startAt.toISOString(),
   }));
 }

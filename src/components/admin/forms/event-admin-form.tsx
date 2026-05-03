@@ -14,7 +14,6 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Controller,
-  useFieldArray,
   useForm,
   useWatch,
   type Resolver,
@@ -25,6 +24,7 @@ import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminEventUpsertSchema,
   type AdminEventUpsertInput,
+  type LinkedVenueMenuItemDraft,
 } from "@/lib/forms/admin-event-form-schema";
 import { findLockedViolations } from "@/lib/events/event-edit-guards";
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
@@ -58,6 +58,21 @@ const SENSITIVE_ACK_MESSAGE =
 
 export type EventAdminPicOption = { id: string; label: string };
 
+export type VenueOptionForEventAdmin = {
+  id: string;
+  name: string;
+  menuItems: Array<{
+    id: string;
+    name: string;
+    price: number;
+    sortOrder: number;
+    voucherEligible: boolean;
+  }>;
+};
+
+/** Stable fallback so `useWatch` `?? []` does not allocate a fresh array each render. */
+const FALLBACK_LINKED_VENUE_MENU_ITEMS: LinkedVenueMenuItemDraft[] = [];
+
 export type EventAdminFormProps = {
   mode: "create" | "edit";
   eventId?: string;
@@ -73,6 +88,8 @@ export type EventAdminFormProps = {
   banksByPic: Record<string, Array<{ id: string; label: string }>>;
   /** Admin profiles eligible as PIC pembantu (same pool as PIC; PIC excluded in form). */
   helperAdminOptions: EventAdminPicOption[];
+  /** Venue aktif + katalog menu kanonik (subsenua acara). */
+  venueOptions: VenueOptionForEventAdmin[];
 };
 
 export function EventAdminForm(props: EventAdminFormProps) {
@@ -87,6 +104,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
     props.persistedIntegrity ??
     ({
       slug: "",
+      venueId: props.defaults.venueId,
       menuMode: props.defaults.menuMode,
       menuSelection: props.defaults.menuSelection,
       ticketMemberPrice: props.defaults.ticketMemberPrice,
@@ -97,6 +115,8 @@ export function EventAdminForm(props: EventAdminFormProps) {
       bankAccountId: props.defaults.bankAccountId,
     } satisfies EventIntegritySnapshot);
 
+  const venueOptions = props.venueOptions;
+
   const form = useForm<AdminEventUpsertInput>({
     resolver: zodResolver(
       adminEventUpsertSchema as never,
@@ -104,10 +124,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
     defaultValues: props.defaults,
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "menuItems",
-  });
+  const venueId = useWatch({ control: form.control, name: "venueId" });
+
+  const currentVenue = useMemo(() => {
+    return venueOptions.find((v) => v.id === venueId) ?? null;
+  }, [venueOptions, venueId]);
 
   const menuMode = useWatch({ control: form.control, name: "menuMode" });
   const menuSelection = useWatch({
@@ -139,11 +160,70 @@ export function EventAdminForm(props: EventAdminFormProps) {
       registrationCount,
       persisted: persistedIntegrity,
       candidate: {
+        venueId,
         menuMode,
         menuSelection,
       },
     });
-  }, [registrationCount, persistedIntegrity, menuMode, menuSelection]);
+  }, [
+    registrationCount,
+    persistedIntegrity,
+    venueId,
+    menuMode,
+    menuSelection,
+  ]);
+
+  const setLinkedVenueMenusFromVenueSelection = React.useCallback(
+    (vid: string) => {
+      const v = venueOptions.find((o) => o.id === vid);
+      if (!v) {
+        form.setValue("linkedVenueMenuItems", [], { shouldDirty: true });
+        return;
+      }
+      const sorted = [...v.menuItems].sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+      form.setValue(
+        "linkedVenueMenuItems",
+        sorted.map((m, idx) => ({
+          venueMenuItemId: m.id,
+          sortOrder: idx,
+        })),
+        { shouldDirty: true },
+      );
+    },
+    [form, venueOptions],
+  );
+
+  const linkedVenueMenus =
+    useWatch({ control: form.control, name: "linkedVenueMenuItems" }) ??
+    FALLBACK_LINKED_VENUE_MENU_ITEMS;
+
+  const linkedVenueMenuIdSet = useMemo(
+    () => new Set(linkedVenueMenus.map((x) => x.venueMenuItemId)),
+    [linkedVenueMenus],
+  );
+
+  const toggleVenueMenuItemForEvent = React.useCallback(
+    (menuItemId: string, checked: boolean) => {
+      if (!currentVenue || registrationCount > 0) return;
+      const sortedMaster = [...currentVenue.menuItems].sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+      const cur = form.getValues("linkedVenueMenuItems") ?? [];
+      const idSet = new Set(cur.map((c) => c.venueMenuItemId));
+      if (checked) idSet.add(menuItemId);
+      else idSet.delete(menuItemId);
+      const nextRows = sortedMaster
+        .filter((m) => idSet.has(m.id))
+        .map((m, idx) => ({
+          venueMenuItemId: m.id,
+          sortOrder: idx,
+        }));
+      form.setValue("linkedVenueMenuItems", nextRows, { shouldDirty: true });
+    },
+    [currentVenue, form, registrationCount],
+  );
 
   const pickCommitteePrices = useCallback(() => {
     if (!committee) return;
@@ -291,11 +371,43 @@ export function EventAdminForm(props: EventAdminFormProps) {
               )}
             />
           </Field>
-          <Field label="Nama venue">
-            <Input {...form.register("venueName")} disabled={pending} />
-          </Field>
-          <Field label="Alamat venue">
-            <Input {...form.register("venueAddress")} disabled={pending} />
+          <Field label="Venue" className="sm:col-span-2">
+            <Controller
+              control={form.control}
+              name="venueId"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(v) => {
+                    if (v != null) {
+                      field.onChange(v);
+                      setLinkedVenueMenusFromVenueSelection(v);
+                    }
+                  }}
+                  disabled={
+                    pending || lockedMenuKeys.includes("venueId")
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih venue" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venueOptions.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {lockedMenuKeys.includes("venueId") ? (
+              <Muted>Terhubung pada pendaftar — venue tidak dapat diubah.</Muted>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                Menu di formulir pengunjung diturunkan dari katalog venue. Ubah nama/harga menu di pengelola venue.
+              </p>
+            )}
           </Field>
         </section>
 
@@ -487,77 +599,52 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </section>
 
         <section className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <h2 className="text-lg font-medium">Item menu</h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={() =>
-                append({
-                  name: "Item baru",
-                  priceIdr: 0,
-                  sortOrder: fields.length + 1,
-                  voucherEligible: true,
-                })
-              }
-            >
-              Tambah item
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {fields.map((row, index) => (
-              <div
-                key={row.id}
-                className="bg-card flex flex-wrap items-end gap-3 rounded-lg border p-3"
-              >
-                <Field label="Nama" className="min-w-[10rem] flex-1">
-                  <Input
-                    {...form.register(`menuItems.${index}.name`)}
-                    disabled={pending}
-                  />
-                </Field>
-                <Field label="Harga (IDR)" className="w-32">
-                  <Input
-                    type="number"
-                    min={0}
-                    disabled={pending}
-                    {...form.register(`menuItems.${index}.priceIdr`, {
-                      valueAsNumber: true,
-                    })}
-                  />
-                </Field>
-                <Field label="Urutan" className="w-24">
-                  <Input
-                    type="number"
-                    min={0}
-                    disabled={pending}
-                    {...form.register(`menuItems.${index}.sortOrder`, {
-                      valueAsNumber: true,
-                    })}
-                  />
-                </Field>
-                <label className="flex items-center gap-2 pb-2 text-xs">
-                  <input
-                    type="checkbox"
-                    {...form.register(`menuItems.${index}.voucherEligible`)}
-                    disabled={pending}
-                  />
-                  Voucher eligible
-                </label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={pending || fields.length <= 1}
-                  onClick={() => remove(index)}
-                >
-                  Hapus
-                </Button>
+          <h2 className="text-lg font-medium">Subset menu untuk acara ini</h2>
+          {!currentVenue ? (
+            <p className="text-muted-foreground text-sm">
+              Pilih venue untuk menampilkan item menu yang bisa diaktifkan di acara ini.
+            </p>
+          ) : (
+            <div className="border-muted bg-card space-y-2 rounded-lg border p-4">
+              <p className="text-muted-foreground text-xs">
+                Minimal satu item. Urutan diturunkan dari daftar venue (atas ke bawah pada item yang dicentang).
+              </p>
+              <div className="flex flex-col gap-2">
+                {[...currentVenue.menuItems]
+                  .sort((a, b) => a.sortOrder - b.sortOrder)
+                  .map((m) => {
+                    const checked = linkedVenueMenuIdSet.has(m.id);
+                    return (
+                      <label
+                        key={m.id}
+                        className="hover:bg-accent/60 flex cursor-pointer items-start gap-2 rounded px-2 py-1 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 shrink-0"
+                          checked={checked}
+                          disabled={pending || registrationCount > 0}
+                          onChange={(e) =>
+                            toggleVenueMenuItemForEvent(m.id, e.target.checked)
+                          }
+                        />
+                        <span>
+                          <span className="font-medium">{m.name}</span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {m.price.toLocaleString("id-ID")} ·{" "}
+                            {m.voucherEligible ? "voucher eligible" : "tanpa voucher"}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
               </div>
-            ))}
-          </div>
+              {registrationCount > 0 ? (
+                <Muted>Subset menu dikunci untuk acara dengan pendaftar.</Muted>
+              ) : null}
+            </div>
+          )}
         </section>
 
         <section className="space-y-4">

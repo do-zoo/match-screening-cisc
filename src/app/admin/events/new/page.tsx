@@ -39,6 +39,17 @@ export default async function AdminNewEventPage() {
   }
 
   const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
+
+  const venuesRaw = await prisma.venue.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      menuItems: { orderBy: { sortOrder: "asc" } },
+    },
+  });
+
   const [picOptions, banks] = await Promise.all([
     loadPicAdminProfileOptionsForEvents(),
     prisma.picBankAccount.findMany({
@@ -69,6 +80,18 @@ export default async function AdminNewEventPage() {
 
   const helperAdminOptions = picOptions;
 
+  const venueOptions = venuesRaw.map((v) => ({
+    id: v.id,
+    name: v.name,
+    menuItems: v.menuItems.map((m) => ({
+      id: m.id,
+      name: m.name,
+      price: m.price,
+      sortOrder: m.sortOrder,
+      voucherEligible: m.voucherEligible,
+    })),
+  }));
+
   const firstPicId = picOptions[0]?.id;
   const firstBankId =
     firstPicId && banksByPic[firstPicId]?.[0]?.id
@@ -78,12 +101,23 @@ export default async function AdminNewEventPage() {
   const now = new Date();
   const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+  const firstVenue = venueOptions[0];
+  const defaultLinked =
+    firstVenue != null
+      ? [...firstVenue.menuItems]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((m, idx) => ({
+            venueMenuItemId: m.id,
+            sortOrder: idx,
+          }))
+      : [];
+
   const defaults: AdminEventUpsertInput = {
     title: "",
     summary: "",
     descriptionHtml: "<p></p>",
-    venueName: "",
-    venueAddress: "",
+    venueId: firstVenue?.id ?? "",
+    linkedVenueMenuItems: defaultLinked,
     startAtIso: now.toISOString(),
     endAtIso: inOneWeek.toISOString(),
     registrationCapacity: null,
@@ -98,15 +132,36 @@ export default async function AdminNewEventPage() {
     picAdminProfileId: firstPicId ?? "",
     bankAccountId: firstBankId,
     helperAdminProfileIds: [],
-    menuItems: [
-      {
-        name: "Contoh menu",
-        priceIdr: 0,
-        sortOrder: 1,
-        voucherEligible: true,
-      },
-    ],
   };
+
+  if (
+    venueOptions.length === 0 ||
+    venueOptions.every((v) => v.menuItems.length === 0)
+  ) {
+    return (
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+        <header className="flex flex-col gap-2">
+          <Link
+            href="/admin/events"
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+          >
+            ← Kembali ke daftar acara
+          </Link>
+          <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
+        </header>
+        <Alert>
+          <AlertTitle>Venue atau menu venue belum siap</AlertTitle>
+          <AlertDescription>
+            Buat minimal satu venue yang memiliki setidaknya satu item menu di{" "}
+            <Link href="/admin/venues" className="font-medium underline underline-offset-4">
+              pengelola venue
+            </Link>{" "}
+            sebelum membuat acara.
+          </AlertDescription>
+        </Alert>
+      </main>
+    );
+  }
 
   if (!firstPicId || !firstBankId) {
     return (
@@ -154,6 +209,7 @@ export default async function AdminNewEventPage() {
         picOptions={picOptions}
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
+        venueOptions={venueOptions}
       />
     </main>
   );
