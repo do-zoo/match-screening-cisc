@@ -30,6 +30,8 @@ import {
 type MemberOption = { id: string; fullName: string; publicCode: string };
 type RoleOption = { id: string; title: string };
 
+const NO_AVAILABLE_MEMBERS: readonly MemberOption[] = [];
+
 type AssignmentRow = {
   id: string;
   boardRole: { id: string; title: string };
@@ -219,15 +221,17 @@ export function ManagementAssignmentFormDialog(props: Props) {
   }
 
   const availableRoles = props.availableRoles;
+  const availableMembersForPicker =
+    props.mode === "create" ? props.availableMembers : NO_AVAILABLE_MEMBERS;
 
   const assignmentMemberOptions = useMemo(
     () =>
-      (props.mode === "create" ? props.availableMembers : []).map((m) => ({
+      availableMembersForPicker.map((m) => ({
         value: m.id,
         label: `${m.fullName} (${m.publicCode})`,
         keywords: `${m.fullName} ${m.publicCode}`,
       })),
-    [props.mode, props.availableMembers],
+    [availableMembersForPicker],
   );
 
   const assignmentRoleOptions = useMemo(

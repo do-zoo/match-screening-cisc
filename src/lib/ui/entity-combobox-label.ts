@@ -1,7 +1,6 @@
 export type EntityComboboxOptionRow = {
   value: string;
   label: string;
-  /** Teks tambahan untuk filter (tidak ditampilkan sebagai label utama). */
   keywords?: string;
 };
 
