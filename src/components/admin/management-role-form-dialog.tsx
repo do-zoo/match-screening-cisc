@@ -28,6 +28,7 @@ import {
   deactivateBoardRole,
   updateBoardRole,
 } from "@/lib/actions/admin-board-roles";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminBoardRoleCreateSchema,
   adminBoardRoleUpdateSchema,
@@ -194,6 +195,7 @@ export function ManagementRoleFormDialog({
           ? await createBoardRole(undefined, fd)
           : await updateBoardRole(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result);
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
           form.setError(f as keyof FormValues, { message: m });
         dispatchExtras({
@@ -202,6 +204,12 @@ export function ManagementRoleFormDialog({
         });
         return;
       }
+      toastCudSuccess(
+        mode === "create" ? "create" : "update",
+        mode === "create"
+          ? "Jabatan berhasil ditambahkan."
+          : "Jabatan berhasil diperbarui.",
+      );
       onOpenChange(false);
       onSaved();
     });
@@ -215,12 +223,14 @@ export function ManagementRoleFormDialog({
       fd.set("payload", JSON.stringify({ id: role.id }));
       const result = await deactivateBoardRole(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "Gagal menonaktifkan jabatan.");
         dispatchExtras({
           type: "set-deactivate-error",
           message: result.rootError ?? "Gagal menonaktifkan jabatan.",
         });
         return;
       }
+      toastCudSuccess("update", "Jabatan berhasil dinonaktifkan.");
       onOpenChange(false);
       onSaved();
     });

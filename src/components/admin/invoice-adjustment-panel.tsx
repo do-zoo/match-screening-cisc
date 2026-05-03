@@ -11,6 +11,7 @@ import {
   markAdjustmentUnpaid,
 } from "@/lib/actions/invoice-adjustment";
 import { uploadAdjustmentProof } from "@/lib/actions/upload-adjustment-proof";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Adjustment = {
   id: string;
@@ -50,8 +51,10 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
         amount: parsed,
       });
       if (!result.ok) {
+        toastActionErr(result);
         setCreateError(result.rootError ?? Object.values(result.fieldErrors ?? {}).join(", "));
       } else {
+        toastCudSuccess("create", "Penyesuaian invoice ditambahkan.");
         setCreateOpen(false);
         setAmount("");
       }
@@ -62,7 +65,12 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
     setActionError(null);
     startTransition(async () => {
       const result = await markAdjustmentPaid(eventId, adjustmentId);
-      if (!result.ok) setActionError(result.rootError ?? "Terjadi kesalahan.");
+      if (!result.ok) {
+        toastActionErr(result);
+        setActionError(result.rootError ?? "Terjadi kesalahan.");
+      } else {
+        toastCudSuccess("update", "Penyesuaian ditandai lunas.");
+      }
     });
   }
 
@@ -70,7 +78,12 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
     setActionError(null);
     startTransition(async () => {
       const result = await markAdjustmentUnpaid(eventId, adjustmentId);
-      if (!result.ok) setActionError(result.rootError ?? "Terjadi kesalahan.");
+      if (!result.ok) {
+        toastActionErr(result);
+        setActionError(result.rootError ?? "Terjadi kesalahan.");
+      } else {
+        toastCudSuccess("update", "Penyesuaian ditandai belum lunas.");
+      }
     });
   }
 
@@ -84,7 +97,10 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
     startTransition(async () => {
       const result = await uploadAdjustmentProof(eventId, formData);
       if (!result.ok) {
+        toastActionErr(result);
         setActionError(result.rootError ?? Object.values(result.fieldErrors ?? {}).join(", "));
+      } else {
+        toastCudSuccess("update", "Bukti penyesuaian diunggah.");
       }
     });
   }

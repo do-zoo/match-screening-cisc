@@ -27,6 +27,7 @@ import {
   deleteBoardAssignment,
   updateBoardAssignment,
 } from "@/lib/actions/admin-board-assignments";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminBoardAssignmentUpsertSchema,
   adminBoardAssignmentUpdateSchema,
@@ -184,12 +185,19 @@ export function ManagementAssignmentFormDialog(props: Props) {
           ? await createBoardAssignment(undefined, fd)
           : await updateBoardAssignment(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result);
         dispatchExtras({
           type: "set-root-message",
           message: result.rootError ?? "Terjadi kesalahan.",
         });
         return;
       }
+      toastCudSuccess(
+        props.mode === "create" ? "create" : "update",
+        props.mode === "create"
+          ? "Penugasan berhasil ditambahkan."
+          : "Penugasan berhasil diperbarui.",
+      );
       props.onOpenChange(false);
       props.onSaved();
     });
@@ -203,12 +211,14 @@ export function ManagementAssignmentFormDialog(props: Props) {
       fd.set("payload", JSON.stringify({ id: props.assignment.id }));
       const result = await deleteBoardAssignment(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "Gagal menghapus penugasan.");
         dispatchExtras({
           type: "set-delete-error",
           message: result.rootError ?? "Gagal menghapus penugasan.",
         });
         return;
       }
+      toastCudSuccess("delete", "Penugasan berhasil dihapus.");
       props.onOpenChange(false);
       props.onSaved();
     });

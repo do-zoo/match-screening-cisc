@@ -48,6 +48,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ActionResult } from "@/lib/forms/action-result";
+import { toastCudSuccess } from "@/lib/client/cud-notify";
 
 const ROLE_LABELS: Record<string, string> = {
   Owner: "Owner",
@@ -112,6 +113,23 @@ function ManageAdminDialogs(props: ManageFormsProps) {
       onAnySuccess();
     }
   }, [roleState?.ok, memberState?.ok, revokeState?.ok, deleteState?.ok, onAnySuccess]);
+
+  useEffect(() => {
+    if (roleState?.ok) toastCudSuccess("update", "Peran admin diperbarui.");
+  }, [roleState]);
+
+  useEffect(() => {
+    if (memberState?.ok)
+      toastCudSuccess("update", "Tautan anggota admin diperbarui.");
+  }, [memberState]);
+
+  useEffect(() => {
+    if (revokeState?.ok) toastCudSuccess("update", "Akses admin dicabut.");
+  }, [revokeState]);
+
+  useEffect(() => {
+    if (deleteState?.ok) toastCudSuccess("delete", "Admin komite dihapus.");
+  }, [deleteState]);
 
   const flagLinesRole = fieldErrorsLines(
     roleState?.ok === false ? roleState.fieldErrors : undefined,
@@ -394,6 +412,7 @@ export function CommitteeAdminSettingsPanel(props: {
 
   useEffect(() => {
     if (!addState?.ok) return;
+    toastCudSuccess("create", "Admin komite ditambahkan.");
     // useActionState has no imperative reset; close + key bump so reopen shows a fresh shell.
     /* eslint-disable-next-line react-hooks/set-state-in-effect -- post-mutation UI sync only */
     setAddOpen(false);

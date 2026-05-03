@@ -5,6 +5,7 @@ import { AttendanceStatus, RegistrationStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { setAttendance } from "@/lib/actions/attendance";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Props = {
   eventId: string;
@@ -23,7 +24,12 @@ export function AttendancePanel({ eventId, registrationId, current, registration
     setError(null);
     startTransition(async () => {
       const result = await setAttendance(eventId, registrationId, status);
-      if (!result.ok) setError(result.rootError ?? "Terjadi kesalahan.");
+      if (!result.ok) {
+        toastActionErr(result);
+        setError(result.rootError ?? "Terjadi kesalahan.");
+      } else {
+        toastCudSuccess("update", "Kehadiran diperbarui.");
+      }
     });
   }
 

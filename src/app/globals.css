@@ -129,3 +129,21 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .cn-toast {
+    @apply gap-3 border font-sans text-sm shadow-md;
+  }
+
+  .cn-toast [data-title] {
+    @apply font-medium leading-snug;
+  }
+
+  .cn-toast [data-description] {
+    @apply text-muted-foreground text-xs leading-relaxed;
+  }
+
+  .toaster.group {
+    @apply [--width:22rem] sm:[--width:24rem];
+  }
+}

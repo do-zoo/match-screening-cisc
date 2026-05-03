@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 import {
@@ -15,6 +15,7 @@ import { saveCommitteeDefaultTicketPrices } from "@/lib/actions/admin-committee-
 import type { CommitteeTicketDefaultPrices } from "@/lib/events/event-admin-defaults";
 import { committeeDefaultPricingFormSchema } from "@/lib/forms/committee-default-pricing-schema";
 import type { ActionResult } from "@/lib/forms/action-result";
+import { toastCudSuccess } from "@/lib/client/cud-notify";
 
 export function CommitteeDefaultPricingForm(props: {
   initial: CommitteeTicketDefaultPrices & { persisted: boolean };
@@ -23,6 +24,12 @@ export function CommitteeDefaultPricingForm(props: {
     saveCommitteeDefaultTicketPrices,
     null as ActionResult<{ saved: true }> | null,
   );
+
+  useEffect(() => {
+    if (state?.ok) {
+      toastCudSuccess("update", "Harga default tiket komite berhasil disimpan.");
+    }
+  }, [state]);
 
   const fv = committeeDefaultPricingFormSchema.safeParse({
     ticketMemberPrice: props.initial.ticketMemberPrice,

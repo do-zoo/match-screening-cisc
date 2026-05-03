@@ -20,6 +20,7 @@ import {
   createMasterMember,
   updateMasterMember,
 } from "@/lib/actions/admin-master-members";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminMasterMemberCreateSchema,
   adminMasterMemberUpdateSchema,
@@ -106,6 +107,7 @@ export function MemberFormDialog({
           : await updateMasterMember(undefined, fd);
 
       if (!result.ok) {
+        toastActionErr(result);
         const fieldErrors = result.fieldErrors ?? {};
         for (const [field, message] of Object.entries(fieldErrors)) {
           form.setError(field as keyof MemberFormValues, { message });
@@ -119,6 +121,12 @@ export function MemberFormDialog({
         return;
       }
 
+      toastCudSuccess(
+        mode === "create" ? "create" : "update",
+        mode === "create"
+          ? "Anggota berhasil ditambahkan."
+          : "Anggota berhasil diperbarui.",
+      );
       onOpenChange(false);
       onSaved();
     });

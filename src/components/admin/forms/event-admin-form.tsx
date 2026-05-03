@@ -21,6 +21,7 @@ import {
 } from "react-hook-form";
 
 import { createAdminEvent, updateAdminEvent } from "@/lib/actions/admin-events";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminEventUpsertSchema,
   type AdminEventUpsertInput,
@@ -201,6 +202,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         }
 
         if (!result.ok) {
+          toastActionErr(result);
           if (result.rootError) setRootMessage(result.rootError);
           else if (result.fieldErrors && Object.keys(result.fieldErrors).length)
             setRootMessage(Object.values(result.fieldErrors).join(" "));
@@ -208,8 +210,10 @@ export function EventAdminForm(props: EventAdminFormProps) {
         }
 
         if (props.mode === "create") {
+          toastCudSuccess("create", "Acara berhasil dibuat.");
           router.push(`/admin/events/${result.data.eventId}/edit`);
         } else {
+          toastCudSuccess("update", "Acara berhasil diperbarui.");
           router.refresh();
         }
       });

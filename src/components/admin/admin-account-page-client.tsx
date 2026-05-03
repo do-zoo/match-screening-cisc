@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { normalizeAdminDisplayName } from "@/lib/admin/normalize-admin-display-name";
 import { updateAdminDisplayName } from "@/lib/actions/update-admin-display-name";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type FormValues = { name: string };
 
@@ -58,6 +59,7 @@ export function AdminAccountPageClient({
               fd.set("name", values.name);
               const res = await updateAdminDisplayName(fd);
               if (!res.ok) {
+                toastActionErr(res);
                 if (res.fieldErrors?.name) {
                   form.setError("name", { message: res.fieldErrors.name });
                 }
@@ -66,6 +68,7 @@ export function AdminAccountPageClient({
                 }
                 return;
               }
+              toastCudSuccess("update", "Nama tampilan diperbarui.");
               router.refresh();
             });
           })}

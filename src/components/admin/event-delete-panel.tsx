@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { deleteAdminEvent } from "@/lib/actions/admin-events";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import type { ActionResult } from "@/lib/forms/action-result";
 
 type Props = {
@@ -37,9 +38,14 @@ export function EventDeletePanel({
 
   useEffect(() => {
     if (state?.ok) {
+      toastCudSuccess("delete", "Acara berhasil dihapus.");
       router.push("/admin/events");
     }
-  }, [state?.ok, router]);
+  }, [state, router]);
+
+  useEffect(() => {
+    if (state?.ok === false) toastActionErr(state);
+  }, [state]);
 
   return (
     <section className="rounded-lg border border-destructive/40 p-6 flex flex-col gap-4">

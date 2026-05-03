@@ -8,6 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { redeemVoucher } from "@/lib/actions/voucher-redemption";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Ticket = {
   id: string;
@@ -43,8 +44,11 @@ export function VoucherRedemptionPanel({ eventId, tickets, menuItems }: Props) {
     startTransition(async () => {
       const result = await redeemVoucher(eventId, ticketId, menuItemId);
       if (!result.ok) {
+        toastActionErr(result);
         const msg: string = result.rootError ?? "Terjadi kesalahan.";
         setErrors((prev) => ({ ...prev, [ticketId]: msg }));
+      } else {
+        toastCudSuccess("update", "Voucher berhasil ditukar.");
       }
     });
   }

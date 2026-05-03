@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cancelRegistration, refundRegistration } from "@/lib/actions/cancel-refund";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
 type Props = {
   eventId: string;
@@ -46,8 +47,10 @@ export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
     startTransition(async () => {
       const result = await cancelRegistration(eventId, registrationId);
       if (!result.ok) {
+        toastActionErr(result);
         setError(result.rootError ?? "Terjadi kesalahan.");
       } else {
+        toastCudSuccess("update", "Pendaftaran dibatalkan.");
         setCancelOpen(false);
       }
     });
@@ -58,8 +61,10 @@ export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
     startTransition(async () => {
       const result = await refundRegistration(eventId, registrationId);
       if (!result.ok) {
+        toastActionErr(result);
         setError(result.rootError ?? "Terjadi kesalahan.");
       } else {
+        toastCudSuccess("update", "Pengembalian dana dicatat.");
         setRefundOpen(false);
       }
     });

@@ -28,6 +28,7 @@ import {
   deleteManagementMember,
   updateManagementMember,
 } from "@/lib/actions/admin-management-members";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
   adminManagementMemberCreateSchema,
   adminManagementMemberUpdateSchema,
@@ -190,6 +191,7 @@ export function ManagementMemberFormDialog({
           ? await createManagementMember(undefined, fd)
           : await updateManagementMember(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result);
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
           form.setError(f as keyof FormValues, { message: m });
         dispatchExtras({
@@ -198,6 +200,12 @@ export function ManagementMemberFormDialog({
         });
         return;
       }
+      toastCudSuccess(
+        mode === "create" ? "create" : "update",
+        mode === "create"
+          ? "Pengurus berhasil ditambahkan."
+          : "Pengurus berhasil diperbarui.",
+      );
       onOpenChange(false);
       onSaved();
     });
@@ -211,12 +219,14 @@ export function ManagementMemberFormDialog({
       fd.set("payload", JSON.stringify({ id: member.id }));
       const result = await deleteManagementMember(undefined, fd);
       if (!result.ok) {
+        toastActionErr(result, "Gagal menghapus pengurus.");
         dispatchExtras({
           type: "set-delete-error",
           message: result.rootError ?? "Gagal menghapus pengurus.",
         });
         return;
       }
+      toastCudSuccess("delete", "Pengurus berhasil dihapus.");
       onOpenChange(false);
       onSaved();
     });

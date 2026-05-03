@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { submitRegistration } from "@/lib/actions/submit-registration";
+import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import type { ActionResult } from "@/lib/forms/action-result";
 import {
   createSubmitRegistrationFormSchema,
@@ -437,11 +438,14 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       await submitRegistration(null, fd);
 
     if (result.ok) {
+      toastCudSuccess("create", "Pendaftaran berhasil dikirim.");
       router.push(
         `/events/${event.slug}/register/${result.data.registrationId}`
       );
       return;
     }
+
+    toastActionErr(result);
 
     form.clearErrors("root.server");
     form.clearErrors([
