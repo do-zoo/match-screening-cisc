@@ -205,6 +205,49 @@ model PicBankAccount {
   @@index([ownerAdminProfileId])
 }
 
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   String   @db.Text
+  notes     String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  menuItems VenueMenuItem[]
+  events    Event[]
+}
+
+/// Baris menu kanonik per venue. Relasi tiket/menu pilihan akan dipindahkan ke model ini pada migrasi kontrak (M2).
+model VenueMenuItem {
+  id              String   @id @default(cuid())
+  venueId         String
+  venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name            String
+  /// IDR smallest unit (sama seperti harga tiket).
+  price           Int
+  sortOrder       Int      @default(0)
+  voucherEligible Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  eventVenueLinks EventVenueMenuItem[]
+
+  @@index([venueId])
+}
+
+model EventVenueMenuItem {
+  eventId         String
+  venueMenuItemId String
+  sortOrder       Int?
+
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  venueMenuItem VenueMenuItem @relation(fields: [venueMenuItemId], references: [id], onDelete: Restrict)
+
+  @@id([eventId, venueMenuItemId])
+  @@index([venueMenuItemId])
+}
+
 model Event {
   id          String   @id @default(cuid())
   slug        String   @unique
@@ -214,6 +257,9 @@ model Event {
   description String   @db.Text
   startAt     DateTime
   endAt       DateTime
+
+  venueId String?
+  venue   Venue?  @relation(fields: [venueId], references: [id], onDelete: Restrict)
 
   venueName    String
   venueAddress String
@@ -243,11 +289,13 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  helpers       EventPicHelper[]
-  registrations Registration[]
-  menuItems     EventMenuItem[]
+  helpers               EventPicHelper[]
+  registrations         Registration[]
+  menuItems             EventMenuItem[]
+  eventVenueMenuItems   EventVenueMenuItem[]
 
   @@index([status, startAt])
+  @@index([venueId])
   @@index([picAdminProfileId])
   @@index([bankAccountId])
 }
