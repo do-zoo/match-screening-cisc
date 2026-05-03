@@ -5,22 +5,25 @@ import { cn } from "@/lib/utils";
 
 export type LogoProps = {
   className?: string;
-  /** Visual height in CSS pixels; width follows intrinsic aspect ratio. */
+  /**
+   * Edge length in CSS pixels (square). The asset is 1:1; width and height
+   * are set to this value.
+   */
   height?: number;
   priority?: boolean;
 };
 
-/** Club logo from `/public/logo.webp` (served at `/logo.webp`). */
+/** Square club logo from `/public/logo.webp` (served at `/logo.webp`). */
 export function Logo({ className, height = 40, priority }: LogoProps) {
   return (
     <Image
       src="/logo.webp"
       alt={SITE_BRAND_SHORT}
-      width={480}
-      height={160}
+      width={512}
+      height={512}
       priority={priority}
-      className={cn("w-auto object-contain object-left", className)}
-      style={{ height, width: "auto", maxWidth: "min(100%, 280px)" }}
+      className={cn("box-border shrink-0 object-contain object-center", className)}
+      style={{ width: height, height, maxWidth: "100%" }}
     />
   );
 }
