@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useReducer, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   createBoardRole,
   deactivateBoardRole,
   updateBoardRole,
@@ -26,17 +33,25 @@ import {
   adminBoardRoleUpdateSchema,
 } from "@/lib/forms/admin-board-role-schema";
 
+const ROLE_PARENT_NONE = "__none__";
+
 type RoleRow = {
   id: string;
   title: string;
   sortOrder: number;
   isActive: boolean;
+  isUnique: boolean;
+  parentRoleId: string | null;
 };
+
+type RoleOption = { id: string; title: string };
 
 type FormValues = {
   id?: string;
   title: string;
   sortOrder: string;
+  isUnique: boolean;
+  parentRoleId: string;
 };
 
 type Props = {
@@ -44,6 +59,8 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role?: RoleRow | null;
+  /** All active roles — used for parent selector. */
+  allRoles: RoleOption[];
   onSaved: () => void;
   defaultShowDeactivateConfirm?: boolean;
 };
@@ -96,6 +113,7 @@ export function ManagementRoleFormDialog({
   open,
   onOpenChange,
   role,
+  allRoles,
   onSaved,
   defaultShowDeactivateConfirm = false,
 }: Props) {
@@ -109,6 +127,8 @@ export function ManagementRoleFormDialog({
       id: role?.id,
       title: role?.title ?? "",
       sortOrder: String(role?.sortOrder ?? 0),
+      isUnique: role?.isUnique ?? true,
+      parentRoleId: role?.parentRoleId ?? ROLE_PARENT_NONE,
     }),
     [role],
   );
@@ -142,10 +162,25 @@ export function ManagementRoleFormDialog({
     dispatchExtras({ type: "set-root-message", message: null });
     startTransition(async () => {
       const fd = new FormData();
+      const parentNorm =
+        values.parentRoleId === ROLE_PARENT_NONE
+          ? null
+          : values.parentRoleId.trim() || null;
       const payload =
         mode === "create"
-          ? { title: values.title, sortOrder: Number(values.sortOrder) }
-          : { id: role!.id, title: values.title, sortOrder: Number(values.sortOrder) };
+          ? {
+              title: values.title,
+              sortOrder: Number(values.sortOrder),
+              isUnique: values.isUnique,
+              parentRoleId: parentNorm,
+            }
+          : {
+              id: role!.id,
+              title: values.title,
+              sortOrder: Number(values.sortOrder),
+              isUnique: values.isUnique,
+              parentRoleId: parentNorm,
+            };
       fd.set("payload", JSON.stringify(payload));
       const result =
         mode === "create"
@@ -231,6 +266,56 @@ export function ManagementRoleFormDialog({
               aria-invalid={Boolean(form.formState.errors.sortOrder)}
               disabled={isPending}
               {...form.register("sortOrder")}
+            />
+          </Field>
+
+          <Field label="Jabatan induk" htmlFor="role-parent">
+            <Controller
+              control={form.control}
+              name="parentRoleId"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={isPending}
+                >
+                  <SelectTrigger id="role-parent" size="default" className="h-10 w-full">
+                    <SelectValue placeholder="— Tidak ada induk —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ROLE_PARENT_NONE}>— Tidak ada induk —</SelectItem>
+                    {allRoles
+                      .filter((r) => r.id !== role?.id)
+                      .map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.title}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+
+          <Field label="Kapasitas" htmlFor="role-unique">
+            <Controller
+              control={form.control}
+              name="isUnique"
+              render={({ field }) => (
+                <Select
+                  value={field.value ? "1" : "many"}
+                  onValueChange={(v) => field.onChange(v === "1")}
+                  disabled={isPending}
+                >
+                  <SelectTrigger id="role-unique" size="default" className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Hanya 1 orang per periode</SelectItem>
+                    <SelectItem value="many">Boleh banyak orang</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             />
           </Field>
 

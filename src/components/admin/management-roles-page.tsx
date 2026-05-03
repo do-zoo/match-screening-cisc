@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { ManagementRoleFormDialog } from "@/components/admin/management-role-form-dialog";
+import { buildRoleTree, flattenTreeDepthFirst } from "@/lib/management/build-role-tree";
 import { cn } from "@/lib/utils";
 import type {
   AdminBoardRoleRowVm,
@@ -57,6 +58,7 @@ function buildManagementRolesHref(opts: {
 
 type Props = {
   roles: AdminBoardRoleRowVm[];
+  allRolesForTree: AdminBoardRoleRowVm[];
   directoryEmpty: boolean;
   pagination: {
     page: number;
@@ -75,6 +77,7 @@ type EditDialogState = {
 
 export function ManagementRolesPage({
   roles,
+  allRolesForTree,
   directoryEmpty,
   pagination,
   filter,
@@ -84,6 +87,34 @@ export function ManagementRolesPage({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [editDialog, setEditDialog] = useState<EditDialogState>(null);
+
+  const isTreeMode =
+    allRolesForTree.length > 0 &&
+    filter === "all" &&
+    searchQuery.trim() === "";
+
+  const treeFlat = useMemo(() => {
+    if (!isTreeMode) return [];
+    const tree = buildRoleTree(allRolesForTree);
+    return flattenTreeDepthFirst(tree);
+  }, [isTreeMode, allRolesForTree]);
+
+  const displayRoles: AdminBoardRoleRowVm[] = useMemo(() => {
+    if (!isTreeMode) return roles;
+    return treeFlat.map(({ node }) => ({
+      id: node.id,
+      title: node.title,
+      sortOrder: node.sortOrder,
+      isActive: node.isActive,
+      isUnique: node.isUnique,
+      parentRoleId: node.parentRoleId,
+    }));
+  }, [isTreeMode, roles, treeFlat]);
+
+  const allRoleOptions = (isTreeMode ? allRolesForTree : roles).map((r) => ({
+    id: r.id,
+    title: r.title,
+  }));
 
   const columns = useMemo<ColumnDef<AdminBoardRoleRowVm>[]>(
     () => [
@@ -96,9 +127,33 @@ export function ManagementRolesPage({
             className="text-muted-foreground"
           />
         ),
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.title}</span>
-        ),
+        cell: ({ row }) => {
+          if (!isTreeMode) return <span className="font-medium">{row.original.title}</span>;
+          const entry = treeFlat.find((f) => f.node.id === row.original.id);
+          const depth = entry?.depth ?? 0;
+          return (
+            <span className="font-medium" style={{ paddingLeft: depth * 20 }}>
+              {depth > 0 ? (
+                <span className="mr-1 text-muted-foreground">{"└─".repeat(depth)}</span>
+              ) : null}
+              {row.original.title}
+            </span>
+          );
+        },
+      },
+      {
+        id: "isUnique",
+        header: () => <span className="text-muted-foreground">Kapasitas</span>,
+        cell: ({ row }) =>
+          row.original.isUnique ? (
+            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              1 orang
+            </Badge>
+          ) : (
+            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+              Banyak
+            </Badge>
+          ),
       },
       {
         accessorKey: "sortOrder",
@@ -183,7 +238,7 @@ export function ManagementRolesPage({
         ),
       },
     ],
-    [],
+    [isTreeMode, treeFlat],
   );
 
   const counts = tabCounts;
@@ -285,20 +340,22 @@ export function ManagementRolesPage({
           <div className="overflow-hidden rounded-lg border">
             <DataTable
               columns={columns}
-              data={roles}
+              data={displayRoles}
               enableSorting={false}
               emptyMessage="Tidak ada jabatan yang cocok dengan filter atau kata kunci."
               getRowClassName={(row) =>
                 cn(!row.isActive && "opacity-60 hover:opacity-80")
               }
             />
-            <TablePagination
-              pathname="/admin/management/roles"
-              preservedQuery={paginationPreserved}
-              currentPage={pagination.page}
-              pageSize={pagination.pageSize}
-              totalItems={pagination.totalItems}
-            />
+            {!isTreeMode ? (
+              <TablePagination
+                pathname="/admin/management/roles"
+                preservedQuery={paginationPreserved}
+                currentPage={pagination.page}
+                pageSize={pagination.pageSize}
+                totalItems={pagination.totalItems}
+              />
+            ) : null}
           </div>
         </div>
       )}
@@ -307,6 +364,7 @@ export function ManagementRolesPage({
         mode="create"
         open={createOpen}
         onOpenChange={setCreateOpen}
+        allRoles={allRoleOptions}
         onSaved={router.refresh}
       />
       {editDialog ? (
@@ -317,6 +375,7 @@ export function ManagementRolesPage({
             if (!open) setEditDialog(null);
           }}
           role={editDialog.role}
+          allRoles={allRoleOptions}
           onSaved={router.refresh}
           defaultShowDeactivateConfirm={editDialog.mode === "deactivate"}
         />

@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVerticalIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { LayoutListIcon, MoreVerticalIcon, NetworkIcon, PlusIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -8,7 +8,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { ManagementAssignmentFormDialog } from "@/components/admin/management-assignment-form-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,10 +28,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/ui/table-pagination";
+import type { PeriodTreeRow } from "@/lib/management/query-admin-period-tree";
 import type {
   AdminPeriodAssignmentRowVm,
   PeriodAssignmentAdminFilter,
 } from "@/lib/management/query-admin-period-assignments";
+import { cn } from "@/lib/utils";
 
 type MemberOption = { id: string; fullName: string; publicCode: string };
 type RoleOption = { id: string; title: string };
@@ -47,12 +49,13 @@ const FILTER_OPTIONS: Array<{
 
 function buildPeriodAssignmentsHref(
   periodId: string,
-  opts: { filter: PeriodAssignmentAdminFilter; q: string },
+  opts: { filter: PeriodAssignmentAdminFilter; q: string; view: "list" | "tree" },
 ): string {
   const qs = new URLSearchParams();
   const qTrim = opts.q.trim();
   if (qTrim) qs.set("q", qTrim.slice(0, 200));
   if (opts.filter !== "all") qs.set("filter", opts.filter);
+  if (opts.view === "tree") qs.set("view", "tree");
   const s = qs.toString();
   return s
     ? `/admin/management/${periodId}?${s}`
@@ -62,7 +65,6 @@ function buildPeriodAssignmentsHref(
 type Props = {
   period: { id: string; label: string; startsAt: Date; endsAt: Date };
   assignments: AdminPeriodAssignmentRowVm[];
-  /** True hanya jika periode ini belum punya penugasan sama sekali (tanpa filter). */
   assignmentsEmpty: boolean;
   availableMembers: MemberOption[];
   availableRoles: RoleOption[];
@@ -75,6 +77,8 @@ type Props = {
   filter: PeriodAssignmentAdminFilter;
   searchQuery: string;
   tabCounts: { all: number; linked: number; unlinked: number };
+  view: "list" | "tree";
+  treeRows: PeriodTreeRow[];
 };
 
 type EditDialogState = {
@@ -93,10 +97,13 @@ export function ManagementPeriodDetail({
   filter,
   searchQuery,
   tabCounts,
+  view,
+  treeRows,
 }: Props) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [editDialog, setEditDialog] = useState<EditDialogState>(null);
+  const [treeAddRoleId, setTreeAddRoleId] = useState<string | undefined>(undefined);
 
   const columns = useMemo<ColumnDef<AdminPeriodAssignmentRowVm>[]>(
     () => [
@@ -217,7 +224,7 @@ export function ManagementPeriodDetail({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -234,18 +241,58 @@ export function ManagementPeriodDetail({
             {period.endsAt.toISOString().slice(0, 10)}
           </p>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <PlusIcon data-icon="inline-start" />
-          Tambah Penugasan
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/admin/management/${period.id}`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                view === "list" && "bg-muted",
+              )}
+            >
+              <LayoutListIcon data-icon="inline-start" />
+              Daftar
+            </Link>
+            <Link
+              href={`/admin/management/${period.id}?view=tree`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                view === "tree" && "bg-muted",
+              )}
+            >
+              <NetworkIcon data-icon="inline-start" />
+              Struktur
+            </Link>
+          </div>
+          <a
+            href={`/admin/management/${period.id}/export-csv`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+            download
+          >
+            Export CSV
+          </a>
+          <a
+            href={`/admin/management/${period.id}/export-pdf`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+            download
+          >
+            Export PDF
+          </a>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            Tambah Penugasan
+          </Button>
+        </div>
       </div>
 
-      {assignmentsEmpty ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-          Belum ada penugasan. Klik &quot;Tambah Penugasan&quot; untuk mengisi
-          roster periode ini.
-        </p>
-      ) : (
+      {view === "list" && (
+        <>
+          {assignmentsEmpty ? (
+            <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
+              Belum ada penugasan. Klik &quot;Tambah Penugasan&quot; untuk mengisi
+              roster periode ini.
+            </p>
+          ) : (
         <div className="flex flex-col gap-4">
           <form
             method="get"
@@ -274,6 +321,7 @@ export function ManagementPeriodDetail({
                     buildPeriodAssignmentsHref(period.id, {
                       filter: next,
                       q: searchQuery,
+                      view,
                     }),
                   );
                 }}
@@ -325,6 +373,81 @@ export function ManagementPeriodDetail({
             />
           </div>
         </div>
+          )}
+        </>
+      )}
+
+      {view === "tree" && (
+        <div className="rounded-lg border">
+          {treeRows.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted-foreground">
+              Belum ada jabatan. Tambahkan jabatan di halaman{" "}
+              <Link href="/admin/management/roles" className="underline">
+                Jabatan
+              </Link>{" "}
+              terlebih dahulu.
+            </p>
+          ) : (
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-muted/40">
+                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Jabatan</th>
+                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Pemegang</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {treeRows.map((row) => (
+                  <tr key={row.roleId} className="border-t hover:bg-muted/20">
+                    <td className="px-4 py-2.5" style={{ paddingLeft: 16 + row.depth * 20 }}>
+                      {row.depth > 0 && (
+                        <span className="mr-1 text-muted-foreground">{"└─"}</span>
+                      )}
+                      <span className={cn("font-medium", row.assignees.length === 0 && "text-muted-foreground")}>
+                        {row.roleTitle}
+                      </span>
+                      {!row.roleIsUnique && (
+                        <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 text-xs">
+                          Banyak
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {row.assignees.length === 0 ? (
+                        <span className="text-muted-foreground italic">Belum diisi</span>
+                      ) : (
+                        <span>
+                          {row.assignees.map((a, i) => (
+                            <span key={a.assignmentId}>
+                              {a.fullName}
+                              {a.masterMemberId && (
+                                <span className="ml-1 text-xs text-green-600 dark:text-green-400">· direktori</span>
+                              )}
+                              {i < row.assignees.length - 1 ? ", " : ""}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setTreeAddRoleId(row.roleId);
+                          setCreateOpen(true);
+                        }}
+                      >
+                        + Tugaskan
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
 
       <ManagementAssignmentFormDialog
@@ -332,8 +455,12 @@ export function ManagementPeriodDetail({
         boardPeriodId={period.id}
         availableMembers={availableMembers}
         availableRoles={availableRoles}
+        defaultRoleId={treeAddRoleId}
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) setTreeAddRoleId(undefined);
+        }}
         onSaved={router.refresh}
       />
       {editDialog ? (

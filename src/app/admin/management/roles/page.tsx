@@ -9,6 +9,7 @@ import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 import {
   countBoardRolesByTabForAdmin,
   countBoardRolesForAdmin,
+  listAllBoardRolesForAdminTree,
   listBoardRolesForAdmin,
   type BoardRoleAdminFilter,
 } from "@/lib/management/query-admin-board-roles";
@@ -58,7 +59,9 @@ export default async function AdminManagementRolesPage({
   );
   const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
 
-  const [roles, tabCounts, totalInDb] = await Promise.all([
+  const isTreeMode = filter === "all" && !q;
+
+  const [roles, tabCounts, totalInDb, allRolesForTree] = await Promise.all([
     listBoardRolesForAdmin({
       filter,
       q,
@@ -67,11 +70,13 @@ export default async function AdminManagementRolesPage({
     }),
     countBoardRolesByTabForAdmin({ q }),
     prisma.boardRole.count(),
+    isTreeMode ? listAllBoardRolesForAdminTree() : Promise.resolve([]),
   ]);
 
   return (
     <ManagementRolesPage
       roles={roles}
+      allRolesForTree={allRolesForTree}
       directoryEmpty={totalInDb === 0}
       pagination={{
         page,

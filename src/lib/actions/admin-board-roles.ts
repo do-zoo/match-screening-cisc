@@ -53,6 +53,8 @@ export async function createBoardRole(
     data: {
       title: parsed.data.title,
       sortOrder: parsed.data.sortOrder,
+      isUnique: parsed.data.isUnique ?? true,
+      parentRoleId: parsed.data.parentRoleId ?? null,
     },
     select: { id: true },
   });
@@ -95,12 +97,35 @@ export async function updateBoardRole(
   if (!parsed.success)
     return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) };
 
+  if (parsed.data.parentRoleId) {
+    if (parsed.data.parentRoleId === parsed.data.id) {
+      return rootError("Jabatan tidak dapat menjadi induk dari dirinya sendiri.");
+    }
+    let cursor: string | null = parsed.data.parentRoleId;
+    let hops = 0;
+    while (cursor !== null && hops < 64) {
+      hops += 1;
+      if (cursor === parsed.data.id) {
+        return rootError("Jabatan tidak dapat menjadi induk dari turunannya sendiri.");
+      }
+      const parentRow: { parentRoleId: string | null } | null =
+        await prisma.boardRole.findUnique({
+          where: { id: cursor },
+          select: { parentRoleId: true },
+        });
+      if (!parentRow) break;
+      cursor = parentRow.parentRoleId;
+    }
+  }
+
   try {
     await prisma.boardRole.update({
       where: { id: parsed.data.id },
       data: {
         title: parsed.data.title,
         sortOrder: parsed.data.sortOrder,
+        isUnique: parsed.data.isUnique ?? true,
+        parentRoleId: parsed.data.parentRoleId ?? null,
       },
     });
   } catch (e) {

@@ -135,16 +135,22 @@ model BoardPeriod {
 }
 
 model BoardRole {
-  id        String   @id @default(cuid())
-  title     String
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  id           String      @id @default(cuid())
+  title        String
+  sortOrder    Int         @default(0)
+  isActive     Boolean     @default(true)
+  isUnique     Boolean     @default(true)
+  parentRoleId String?
+  parent       BoardRole?  @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  children     BoardRole[] @relation("RoleHierarchy")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   assignments BoardAssignment[]
 
   @@index([isActive, sortOrder])
+  @@index([parentRoleId])
 }
 
 model ManagementMember {
@@ -175,8 +181,8 @@ model BoardAssignment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([boardPeriodId, managementMemberId])
-  @@unique([boardPeriodId, boardRoleId])
+  @@index([boardPeriodId, managementMemberId])
+  @@index([boardPeriodId, boardRoleId])
   @@index([managementMemberId])
   @@index([boardRoleId])
 }

@@ -9,6 +9,8 @@ export type AdminBoardRoleRowVm = {
   title: string;
   sortOrder: number;
   isActive: boolean;
+  isUnique: boolean;
+  parentRoleId: string | null;
 };
 
 function trimmedSearch(q: string | undefined): string | undefined {
@@ -84,9 +86,31 @@ export async function listBoardRolesForAdmin(opts: {
 }): Promise<AdminBoardRoleRowVm[]> {
   return prisma.boardRole.findMany({
     where: boardRoleAdminWhere(opts),
-    select: { id: true, title: true, sortOrder: true, isActive: true },
+    select: {
+      id: true,
+      title: true,
+      sortOrder: true,
+      isActive: true,
+      isUnique: true,
+      parentRoleId: true,
+    },
     orderBy: { sortOrder: "asc" },
     skip: opts.skip,
     take: opts.take,
+  });
+}
+
+/** Fetches all board roles for tree rendering (no pagination). Used when no filter/search is active. */
+export async function listAllBoardRolesForAdminTree(): Promise<AdminBoardRoleRowVm[]> {
+  return prisma.boardRole.findMany({
+    select: {
+      id: true,
+      title: true,
+      sortOrder: true,
+      isActive: true,
+      isUnique: true,
+      parentRoleId: true,
+    },
+    orderBy: { sortOrder: "asc" },
   });
 }

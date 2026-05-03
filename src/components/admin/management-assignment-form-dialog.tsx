@@ -46,6 +46,8 @@ type CreateProps = {
   boardPeriodId: string;
   availableMembers: MemberOption[];
   availableRoles: RoleOption[];
+  /** Pre-select role (e.g. from tree view click). */
+  defaultRoleId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
@@ -140,7 +142,7 @@ export function ManagementAssignmentFormDialog(props: Props) {
       return {
         boardPeriodId: props.boardPeriodId,
         managementMemberId: "",
-        boardRoleId: "",
+        boardRoleId: props.defaultRoleId ?? "",
       } as CreateFormValues;
     }
     return {

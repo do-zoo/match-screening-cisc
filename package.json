@@ -28,6 +28,7 @@
     "@prisma/client": "^7.8.0",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.8",
+    "@react-pdf/renderer": "^4.5.1",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-link": "^3.22.5",
     "@tiptap/extension-underline": "^3.22.5",

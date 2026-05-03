@@ -11,6 +11,7 @@ import {
   type PeriodAssignmentAdminFilter,
 } from "@/lib/management/query-admin-period-assignments";
 import { findActiveBoardPeriod } from "@/lib/management/active-period";
+import { listPeriodRolesAsTree } from "@/lib/management/query-admin-period-tree";
 import {
   ADMIN_TABLE_PAGE_SIZE,
   parseAdminTablePage,
@@ -75,6 +76,8 @@ export default async function AdminManagementPeriodPage({
   const filter = parseFilter(firstString(sp.filter));
   const qRaw = firstString(sp.q) ?? "";
   const q = qRaw.trim().slice(0, 200) || undefined;
+  const viewRaw = firstString(sp.view);
+  const view: "list" | "tree" = viewRaw === "tree" ? "tree" : "list";
 
   const requestedPage = parseAdminTablePage(sp.page);
 
@@ -90,7 +93,15 @@ export default async function AdminManagementPeriodPage({
   );
   const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
 
-  const [assignments, availableMembers, availableRoles, allPeriods, tabCounts, assignmentsInPeriod] =
+  const [
+    assignments,
+    availableMembers,
+    availableRoles,
+    allPeriods,
+    tabCounts,
+    assignmentsInPeriod,
+    treeRows,
+  ] =
     await Promise.all([
       listPeriodAssignmentsForAdmin({
         boardPeriodId: periodId,
@@ -113,6 +124,7 @@ export default async function AdminManagementPeriodPage({
       }),
       countPeriodAssignmentsByTabForAdmin({ boardPeriodId: periodId, q }),
       prisma.boardAssignment.count({ where: { boardPeriodId: periodId } }),
+      view === "tree" ? listPeriodRolesAsTree(periodId) : Promise.resolve([]),
     ]);
 
   const activePeriod = findActiveBoardPeriod(allPeriods, new Date());
@@ -138,6 +150,8 @@ export default async function AdminManagementPeriodPage({
       filter={filter}
       searchQuery={q ?? ""}
       tabCounts={tabCounts}
+      view={view}
+      treeRows={treeRows}
     />
   );
 }
