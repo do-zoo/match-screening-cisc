@@ -156,4 +156,49 @@ Contoh **UAT-EVT-10** **A** (laporan ringkas):
 | 1 | Buka halaman laporan acara tempat registrasi uji berada. | Angka ringkasan kasar selaras: minimal **1** registrasi disetujui jika Anda menyetujui satu. |
 | 2 | Unduh ekspor CSV jika tersedia. | File terbuka di Excel/Numbers; baris contoh berisi **UjiUAT2026** atau ID registrasi uji. |
 
+## 9. Skenario UAT — Direktori, kepengurusan, venue, pengaturan (prioritas B)
+
+Lakukan hanya dengan akun **Owner/Admin** yang memiliki wewenang; jika tidak punya, `Blok` dengan “akun tidak punya wewenang”.
+
+### UAT-DIR-01 — Baca daftar anggota & unduh contoh *(US-DIR-01)*
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Buka halaman direktori anggota. | Tabel memuat baris; pencarian sederhana memberi hasil relevan jika fitur ada. |
+| 2 | Jika tombol ekspor CSV ada, unduh. | File valid (opsional: buka 5 baris pertama). |
+
+Impor CSV **jangan** di staging produksi nyata tanpa arahan IT; jika staging dedikat: ikuti file sampel IT.
+
+### UAT-MGT-01 — Lihat halaman kepengurusan *(US-MGT-01)*
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Buka modul manajemen periode/penugasan sesuai menu admin. | Daftar periode atau struktur tampil; tidak crash. |
+
+### UAT-VEN-01 — Daftar venue *(US-VEN-01)*
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Buka daftar venue. | Minimal satu venue staging tampil bila data disiapkan. |
+
+### UAT-SET-01 s/d 05 — Pengaturan klub *(US-SET-01..05)*
+
+| ID | Cek singkat | Ekspektasi minimal |
+| --- | --- | --- |
+| UAT-SET-01 | Buka branding | Form memuat field yang sudah ada; simpan tanpa error jika diizinkan. |
+| UAT-SET-02 | Buka template WhatsApp | Daftar template skenario bisnis terlihat (setujui, tolak, dll.). |
+| UAT-SET-03 | Buka preferensi notifikasi | Nilai radio/checkbox dapat dibaca. |
+| UAT-SET-04 | Buka harga komite / operasional | Tidak error; perubahan hanya jika disetujui bisnis. |
+| UAT-SET-05 | Buka profil/keamanan akun admin | Pengguna dapat memperbarui nama tampilan atau setelan yang disediakan UI. |
+
 ---
+
+## 10. Eskalasi defek
+
+Kirim ke saluran internal yang disepakati (misalnya email ke `it-support@…` dengan subjek `[UAT Gagal] UAT-EVT-04 — …`) lampiran:
+
+1. ID skenario UAT.
+2. Akun peran yang dipakai (tanpa password).
+3. Langkah nomor yang gagal.
+4. Harapan vs aktual.
+5. Satu tangkapan layar **atau** hash waktu server jika diberikan.
