@@ -3,6 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import {
+  SITE_BRAND_SHORT,
+  SITE_DESCRIPTION_APP,
+  SITE_TITLE_APP,
+} from "@/lib/site-metadata";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,13 +22,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
   title: {
-    default: "CISC Match Screening",
-    template: "%s — CISC",
+    default: SITE_TITLE_APP,
+    template: `%s — ${SITE_BRAND_SHORT}`,
   },
-  description:
-    "Daftar acara nobar dan kegiatan CISC. Registrasi online, cepat, dan mudah.",
+  description: SITE_DESCRIPTION_APP,
   openGraph: {
-    siteName: "CISC Match Screening",
+    siteName: SITE_TITLE_APP,
     locale: "id_ID",
     type: "website",
   },

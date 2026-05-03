@@ -5,11 +5,12 @@ import { AdminAppShell } from "@/components/admin/admin-app-shell";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { deriveGlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 import { getAdminSession } from "@/lib/auth/session";
+import { SITE_BRAND_SHORT } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: {
     default: "Admin",
-    template: "%s — Admin | CISC",
+    template: `%s — Admin | ${SITE_BRAND_SHORT}`,
   },
   robots: { index: false, follow: false },
 };

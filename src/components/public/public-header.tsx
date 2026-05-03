@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import { Logo } from "@/components/branding/logo";
+
 export function PublicHeader(props: {
   clubNameNav: string;
   logoUrl: string | null;
@@ -12,18 +14,20 @@ export function PublicHeader(props: {
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-6">
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-2 font-semibold tracking-tight text-[hsl(var(--foreground))]"
+          className="flex min-w-0 items-center gap-3 font-semibold tracking-tight text-[hsl(var(--foreground))]"
         >
           {props.logoUrl ? (
             <Image
               src={props.logoUrl}
               alt={`Logo ${title}`}
-              width={32}
-              height={32}
-              className="shrink-0 rounded-sm object-contain"
-              sizes="32px"
+              width={96}
+              height={96}
+              className="size-9 shrink-0 rounded-sm object-contain"
+              sizes="36px"
             />
-          ) : null}
+          ) : (
+            <Logo height={36} priority />
+          )}
           <span className="truncate">{title}</span>
         </Link>
         <nav className="flex shrink-0 items-center gap-5 text-sm">
