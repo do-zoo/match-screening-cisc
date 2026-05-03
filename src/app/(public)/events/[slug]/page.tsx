@@ -6,6 +6,7 @@ import {
   getSerializedEventForPublicRegistration,
 } from "@/lib/events/event-registration-page";
 import { cn } from "@/lib/utils";
+import { SITE_BRAND_SHORT } from "@/lib/site-metadata";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,7 +25,7 @@ export async function generateMetadata({
     title: event.title,
     description: event.summary,
     openGraph: {
-      title: `${event.title} — CISC`,
+      title: `${event.title} — ${SITE_BRAND_SHORT}`,
       description: event.summary,
       images: event.coverBlobUrl ? [{ url: event.coverBlobUrl }] : [],
       type: "website",
