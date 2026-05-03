@@ -7,6 +7,23 @@ function resolveFirst(param: string | string[] | undefined): string | undefined 
   return Array.isArray(param) ? param[0] : param;
 }
 
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/** Partially hide local part when echoing email from query (optional UX). */
+function maskEmailForDisplay(email: string): string {
+  const [local, domain] = email.trim().split("@");
+  if (!domain || local === undefined) return email;
+  if (local.length <= 1) return `*@${domain}`;
+  if (local.length <= 2) return `${local[0]}*@${domain}`;
+  return `${local.slice(0, 2)}•••@${domain}`;
+}
+
 /** Maps Better Auth magic-link verify errors (redirect query `error`). */
 function magicLinkVerifyErrorMessage(code: string): string {
   switch (code) {
@@ -32,6 +49,7 @@ export default async function MagicLinkSentPage({
 }) {
   const sp = (await searchParams) ?? {};
   const errorCode = resolveFirst(sp.error);
+  const emailRaw = resolveFirst(sp.email);
 
   if (errorCode) {
     return (
@@ -58,7 +76,17 @@ export default async function MagicLinkSentPage({
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold tracking-tight">Cek email Anda</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Kami sudah mengirim link masuk ke email Anda. Link berlaku selama 5 menit.
+        {emailRaw ? (
+          <>
+            Kami sudah mengirim link masuk ke{" "}
+            <span className="font-medium text-foreground tabular-nums">
+              {maskEmailForDisplay(safeDecodeURIComponent(emailRaw))}
+            </span>
+            . Link berlaku selama 5 menit.
+          </>
+        ) : (
+          <>Kami sudah mengirim link masuk ke email Anda. Link berlaku selama 5 menit.</>
+        )}
       </p>
       <p className="mt-6 text-xs text-muted-foreground">
         Tidak menerima email? Periksa folder spam atau{" "}

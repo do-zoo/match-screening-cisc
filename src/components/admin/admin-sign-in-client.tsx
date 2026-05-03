@@ -1,25 +1,15 @@
 "use client";
 
-import { Suspense, useMemo, useRef, useEffect, useState, useTransition } from "react";
+import { Suspense, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { adminAuthClient } from "@/lib/auth/admin-auth-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-/** Partially hide local part for on-screen confirmation (not security-critical). */
-function maskEmailForDisplay(email: string): string {
-  const [local, domain] = email.trim().split("@");
-  if (!domain || local === undefined) return email;
-  if (local.length <= 1) return `*@${domain}`;
-  if (local.length <= 2) return `${local[0]}*@${domain}`;
-  return `${local.slice(0, 2)}•••@${domain}`;
-}
 
 const AdminSignInSchema = z.object({
   email: z.string().email("Email tidak valid."),
@@ -52,14 +42,6 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
 
   const [isPending, startTransition] = useTransition();
   const [isMagicPending, startMagicTransition] = useTransition();
-  const [magicLinkSentTo, setMagicLinkSentTo] = useState<string | null>(null);
-  const magicLinkSuccessRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (magicLinkSentTo && magicLinkSuccessRef.current) {
-      magicLinkSuccessRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [magicLinkSentTo]);
 
   const form = useForm<AdminSignInFormValues>({
     resolver: adminSignInResolver,
@@ -157,134 +139,65 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
             </div>
           </div>
 
-          {magicLinkSentTo ? (
-            <div
-              ref={magicLinkSuccessRef}
-              className="space-y-4"
-              role="status"
-              aria-live="polite"
-            >
-              <Alert className="border-emerald-500/40 bg-emerald-50/80 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-50">
-                <AlertTitle>Periksa email Anda</AlertTitle>
-                <AlertDescription className="space-y-2 text-emerald-900/90 dark:text-emerald-100/90">
-                  <p>
-                    Link masuk sudah dikirim ke{" "}
-                    <span className="font-medium tabular-nums">{maskEmailForDisplay(magicLinkSentTo)}</span>.
-                    Buka tautan di email—berlaku sekitar 5 menit.
-                  </p>
-                  <p className="text-sm">
-                    Tidak ada di kotak masuk? Periksa folder spam atau promosi.
-                  </p>
-                </AlertDescription>
-              </Alert>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isMagicPending}
-                  onClick={() => {
-                    magicForm.clearErrors("root.server");
-                    startMagicTransition(async () => {
-                      const path = next.startsWith("/") ? next : `/${next}`;
-                      const callbackURL =
-                        typeof window !== "undefined"
-                          ? `${window.location.origin}${path}`
-                          : path;
-                      const res = await adminAuthClient.signIn.magicLink({
-                        email: magicLinkSentTo,
-                        callbackURL,
-                      });
-                      if (res.error) {
-                        const prev = magicLinkSentTo;
-                        setMagicLinkSentTo(null);
-                        magicForm.reset({ email: prev ?? "" });
-                        magicForm.setError("root.server", {
-                          message: res.error.message ?? "Gagal mengirim ulang.",
-                        });
-                        return;
-                      }
-                    });
-                  }}
-                >
-                  {isMagicPending ? "Mengirim…" : "Kirim ulang link"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => {
-                    setMagicLinkSentTo(null);
-                    magicForm.reset({ email: "" });
-                    magicForm.clearErrors("root.server");
-                  }}
-                >
-                  Alamat email lain
-                </Button>
-              </div>
-              {magicForm.formState.errors.root?.server ? (
-                <FieldError errors={[magicForm.formState.errors.root.server]} />
-              ) : null}
-            </div>
-          ) : (
-            <form
-              className="space-y-4"
-              onSubmit={magicForm.handleSubmit((values) => {
-                magicForm.clearErrors("root.server");
-                startMagicTransition(async () => {
-                  const path = next.startsWith("/") ? next : `/${next}`;
-                  const callbackURL =
-                    typeof window !== "undefined"
-                      ? `${window.location.origin}${path}`
-                      : path;
-                  const res = await adminAuthClient.signIn.magicLink({
-                    email: values.email,
-                    callbackURL,
-                  });
-                  if (res.error) {
-                    magicForm.setError("root.server", {
-                      message: res.error.message ?? "Gagal mengirim magic link.",
-                    });
-                    return;
-                  }
-                  setMagicLinkSentTo(values.email.trim());
+          <form
+            className="space-y-4"
+            onSubmit={magicForm.handleSubmit((values) => {
+              magicForm.clearErrors("root.server");
+              startMagicTransition(async () => {
+                const path = next.startsWith("/") ? next : `/${next}`;
+                const callbackURL =
+                  typeof window !== "undefined"
+                    ? `${window.location.origin}${path}`
+                    : path;
+                const res = await adminAuthClient.signIn.magicLink({
+                  email: values.email,
+                  callbackURL,
                 });
-              })}
+                if (res.error) {
+                  magicForm.setError("root.server", {
+                    message: res.error.message ?? "Gagal mengirim magic link.",
+                  });
+                  return;
+                }
+                router.push(
+                  `/admin/sign-in/magic-link-sent?email=${encodeURIComponent(values.email.trim())}`,
+                );
+              });
+            })}
+          >
+            <p className="text-sm font-medium">Masuk dengan magic link</p>
+            <Controller
+              control={magicForm.control}
+              name="email"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="ms-admin-magic-email">Email</FieldLabel>
+                  <Input
+                    {...field}
+                    id="ms-admin-magic-email"
+                    type="email"
+                    aria-invalid={fieldState.invalid}
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            {magicForm.formState.errors.root?.server ? (
+              <FieldError errors={[magicForm.formState.errors.root.server]} />
+            ) : null}
+
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full"
+              disabled={isMagicPending}
             >
-              <p className="text-sm font-medium">Masuk dengan magic link</p>
-              <Controller
-                control={magicForm.control}
-                name="email"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="ms-admin-magic-email">Email</FieldLabel>
-                    <Input
-                      {...field}
-                      id="ms-admin-magic-email"
-                      type="email"
-                      aria-invalid={fieldState.invalid}
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )}
-              />
-
-              {magicForm.formState.errors.root?.server ? (
-                <FieldError errors={[magicForm.formState.errors.root.server]} />
-              ) : null}
-
-              <Button
-                type="submit"
-                variant="outline"
-                className="w-full"
-                disabled={isMagicPending}
-              >
-                {isMagicPending ? "Mengirim…" : "Kirim magic link"}
-              </Button>
-            </form>
-          )}
+              {isMagicPending ? "Mengirim…" : "Kirim magic link"}
+            </Button>
+          </form>
         </>
       ) : null}
     </main>
