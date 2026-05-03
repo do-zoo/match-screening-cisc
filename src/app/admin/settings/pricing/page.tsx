@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CommitteeDefaultPricingForm } from "@/components/admin/committee-default-pricing-form";
+
+export const metadata: Metadata = { title: "Harga" };
 import { prisma } from "@/lib/db/prisma";
 import {
   COMMITTEE_TICKET_DEFAULTS_KEY,

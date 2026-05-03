@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth/session";
+
+export const metadata: Metadata = { title: "Jabatan" };
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 import { prisma } from "@/lib/db/prisma";

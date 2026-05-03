@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ClubOperationalSettingsForm } from "@/components/admin/club-operational-settings-form";
+
+export const metadata: Metadata = { title: "Operasional" };
 import { prisma } from "@/lib/db/prisma";
 import { CLUB_OPERATIONAL_SINGLETON_KEY } from "@/lib/public/load-club-operational-settings";
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -6,6 +7,19 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}): Promise<Metadata> {
+  const { eventId } = await params;
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { title: true },
+  });
+  return { title: event ? `Registrasi · ${event.title}` : "Registrasi" };
+}
 import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
 import { loadTicketContextVm } from "@/lib/registrations/load-admin-ticket-context";
 import { loadClubWaTemplateBodies } from "@/lib/wa-templates/load-club-wa-templates";

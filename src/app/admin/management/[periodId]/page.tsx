@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth/session";
@@ -6,6 +7,19 @@ import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 import { prisma } from "@/lib/db/prisma";
 import { findActiveBoardPeriod } from "@/lib/management/active-period";
 import { ManagementPeriodDetail } from "@/components/admin/management-period-detail";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ periodId: string }>;
+}): Promise<Metadata> {
+  const { periodId } = await params;
+  const period = await prisma.boardPeriod.findUnique({
+    where: { id: periodId },
+    select: { label: true },
+  });
+  return { title: period ? `Periode ${period.label}` : "Periode Kepengurusan" };
+}
 
 export default async function AdminManagementPeriodPage({
   params,

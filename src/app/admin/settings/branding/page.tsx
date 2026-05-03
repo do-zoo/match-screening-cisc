@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ClubBrandingSettingsForm } from "@/components/admin/club-branding-settings-form";
+
+export const metadata: Metadata = { title: "Branding" };
 import { prisma } from "@/lib/db/prisma";
 import { CLUB_BRANDING_SINGLETON_KEY } from "@/lib/public/load-club-branding";
 
