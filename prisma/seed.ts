@@ -1,5 +1,4 @@
-import { config } from "dotenv";
-config({ path: ".env.local" });
+import "dotenv/config";
 
 import {
   AdminRole,
@@ -79,7 +78,7 @@ const MASTER_MEMBER_SEEDS: MasterMemberSeed[] = [
 async function main() {
   for (const row of MASTER_MEMBER_SEEDS) {
     const whatsapp =
-      row.whatsapp === undefined ? undefined : row.whatsapp ?? null;
+      row.whatsapp === undefined ? undefined : (row.whatsapp ?? null);
     await prisma.masterMember.upsert({
       where: { memberNumber: row.memberNumber },
       update: {
@@ -111,7 +110,10 @@ async function main() {
   }
 
   const existingBank = await prisma.picBankAccount.findFirst({
-    where: { ownerAdminProfileId: ownerProfile.id, accountNumber: "1234567890" },
+    where: {
+      ownerAdminProfileId: ownerProfile.id,
+      accountNumber: "1234567890",
+    },
   });
   const bank = existingBank
     ? await prisma.picBankAccount.update({
