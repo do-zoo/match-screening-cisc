@@ -139,11 +139,62 @@ Tabel flat yang ada sekarang. Karena satu orang kini bisa punya banyak jabatan, 
 
 ---
 
+## Bagian 5 — Relasi AdminProfile → ManagementMember
+
+### Perubahan schema
+
+`AdminProfile.memberId → MasterMember` **dihapus** dan diganti dengan relasi langsung ke `ManagementMember`:
+
+```prisma
+model AdminProfile {
+  // HAPUS:
+  // memberId String?
+  // member   MasterMember? @relation(...)
+
+  // BARU:
+  managementMemberId String?           @unique
+  managementMember   ManagementMember? @relation(fields: [managementMemberId], references: [id], onDelete: SetNull)
+
+  // ...existing fields tetap...
+  ownedPicBankAccounts PicBankAccount[]
+  eventsAsPic          Event[]
+}
+```
+
+`ManagementMember` sebaliknya mendapat back-relation:
+```prisma
+model ManagementMember {
+  // ... existing fields ...
+  adminProfile AdminProfile?   // back-relation (tidak ada field baru di sini)
+}
+```
+
+### Dampak ke kode
+
+| File | Perubahan |
+|------|-----------|
+| `src/lib/auth/admin-context.ts` | `profile.member.eventsAsHelper` → `profile.managementMember?.masterMember?.eventsAsHelper` |
+| `src/lib/admin/pic-options-for-event.ts` | Label PIC: `p.member?.memberNumber` → `p.managementMember?.publicCode`; helper exclusion map: `r.memberId` → `r.managementMember?.masterMemberId ?? null` |
+| `src/lib/admin/load-committee-admin-directory.ts` | `memberId`/`member` → `managementMemberId`/`managementMember`; `memberOptions` dari `MasterMember` → dari `ManagementMember` |
+| `src/lib/actions/admin-committee-profiles.ts` | Linking admin: `memberId → MasterMember` → `managementMemberId → ManagementMember` |
+| `src/lib/actions/admin-events.ts` | `pic.memberId` → `pic.managementMember?.masterMemberId` (untuk exclude PIC dari daftar helper) |
+| `src/app/admin/events/page.tsx` | `picAdminProfile.member?.fullName` → `picAdminProfile.managementMember?.fullName` |
+| `src/components/admin/committee-admin-settings-panel.tsx` | UI link admin ke ManagementMember (bukan MasterMember lagi) |
+| `src/app/api/admin/pic-banks/[adminProfileId]/route.ts` | Tidak ada perubahan logika; tetap fetch PicBankAccount by adminProfileId |
+
+### Catatan
+
+- `EventPicHelper` tetap pada `MasterMember` — jalur `AdminProfile → ManagementMember → masterMember → eventsAsHelper` tetap berfungsi (2-hop)
+- `ManagementMember` yang tidak punya `masterMemberId` otomatis tidak bisa jadi helper event — ini perilaku yang benar
+- Admin yang sebelumnya punya `memberId` perlu di-migrate: jika MasterMember tersebut punya `managementMemberRecord`, set `managementMemberId` ke record tersebut; jika tidak, set null (data migration di migration script)
+
+---
+
 ## Perubahan File
 
 | File | Perubahan |
 |------|-----------|
-| `prisma/schema.prisma` | Tambah `isUnique`, `parentRoleId`, `parent`, `children` ke `BoardRole`; hapus dua `@@unique` dari `BoardAssignment` |
+| `prisma/schema.prisma` | Tambah `isUnique`, `parentRoleId`, `parent`, `children` ke `BoardRole`; hapus dua `@@unique` dari `BoardAssignment`; hapus `AdminProfile.memberId → MasterMember`, tambah `AdminProfile.managementMemberId → ManagementMember` |
 | `prisma/migrations/...` | Migration baru |
 | `src/lib/forms/admin-board-role-schema.ts` | Tambah `isUnique`, `parentRoleId` ke schema Zod |
 | `src/lib/forms/admin-board-assignment-schema.ts` | Tidak ada perubahan schema; enforcement pindah ke server action |
