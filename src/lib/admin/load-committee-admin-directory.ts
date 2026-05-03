@@ -10,6 +10,8 @@ export type CommitteeAdminDirectoryRowVm = {
   memberSummary: string | null;
   twoFactorEnabled: boolean;
   lastSessionActivityAtIso: string | null;
+  eventPicCount: number;
+  picBankAccountOwnedCount: number;
 };
 
 export type CommitteeAdminDirectoryVm = {
@@ -20,24 +22,40 @@ export type CommitteeAdminDirectoryVm = {
 export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirectoryVm> {
   const now = new Date();
 
-  const [profiles, memberOptionsRaw] = await Promise.all([
-    prisma.adminProfile.findMany({
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        authUserId: true,
-        role: true,
-        managementMemberId: true,
-        managementMember: {
-          select: { publicCode: true, fullName: true },
+  const [profiles, memberOptionsRaw, eventPicGroups, bankGroups] =
+    await Promise.all([
+      prisma.adminProfile.findMany({
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          authUserId: true,
+          role: true,
+          managementMemberId: true,
+          managementMember: {
+            select: { publicCode: true, fullName: true },
+          },
         },
-      },
-    }),
-    prisma.managementMember.findMany({
-      orderBy: { fullName: "asc" },
-      select: { id: true, publicCode: true, fullName: true },
-    }),
-  ]);
+      }),
+      prisma.managementMember.findMany({
+        orderBy: { fullName: "asc" },
+        select: { id: true, publicCode: true, fullName: true },
+      }),
+      prisma.event.groupBy({
+        by: ["picAdminProfileId"],
+        _count: { _all: true },
+      }),
+      prisma.picBankAccount.groupBy({
+        by: ["ownerAdminProfileId"],
+        _count: { _all: true },
+      }),
+    ]);
+
+  const eventPicByProfile = new Map(
+    eventPicGroups.map((g) => [g.picAdminProfileId, g._count._all]),
+  );
+  const bankOwnedByProfile = new Map(
+    bankGroups.map((g) => [g.ownerAdminProfileId, g._count._all]),
+  );
 
   const userIds = profiles.map((p) => p.authUserId);
   const users = await prisma.user.findMany({
@@ -82,6 +100,8 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
         : null,
       twoFactorEnabled: Boolean(u?.twoFactorEnabled),
       lastSessionActivityAtIso: last ? last.toISOString() : null,
+      eventPicCount: eventPicByProfile.get(p.id) ?? 0,
+      picBankAccountOwnedCount: bankOwnedByProfile.get(p.id) ?? 0,
     };
   });
 

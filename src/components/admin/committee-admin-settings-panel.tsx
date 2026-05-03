@@ -20,7 +20,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -427,7 +427,14 @@ export function CommitteeAdminSettingsPanel(props: {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-medium">Admin terdaftar</h2>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/settings/committee/export"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Unduh CSV
+          </Link>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger disabled={addPending} render={<Button />}>
             Tambah admin…
           </DialogTrigger>
@@ -472,7 +479,8 @@ export function CommitteeAdminSettingsPanel(props: {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -485,13 +493,19 @@ export function CommitteeAdminSettingsPanel(props: {
               <TableHead>Anggota terkait</TableHead>
               <TableHead>2FA</TableHead>
               <TableHead>Aktivitas sesi*</TableHead>
+              <TableHead className="whitespace-nowrap text-right tabular-nums">
+                Acara (PIC)
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right tabular-nums">
+                Rek. PIC
+              </TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {props.directory.rows.length === 0 ? (
               <TableRow>
-                <TableCell className="text-muted-foreground" colSpan={7}>
+                <TableCell className="text-muted-foreground" colSpan={9}>
                   Belum ada AdminProfile.
                 </TableCell>
               </TableRow>
@@ -507,6 +521,12 @@ export function CommitteeAdminSettingsPanel(props: {
                   <TableCell>{row.twoFactorEnabled ? "Ya" : "Tidak"}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {formatSessionHint(row.lastSessionActivityAtIso)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-xs">
+                    {row.eventPicCount}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-xs">
+                    {row.picBankAccountOwnedCount}
                   </TableCell>
                   <TableCell className="text-right">
                     <ManageAdminDialogs
