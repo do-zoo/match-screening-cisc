@@ -16,13 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import {
   createManagementMember,
   deleteManagementMember,
@@ -137,6 +131,22 @@ export function ManagementMemberFormDialog({
       masterMemberId: member?.masterMemberId ?? NO_LINK,
     }),
     [member],
+  );
+
+  const masterMemberComboboxOptions = useMemo(
+    () => [
+      {
+        value: NO_LINK,
+        label: "Tidak ditautkan",
+        keywords: "tidak taut",
+      },
+      ...availableMasterMembers.map((m) => ({
+        value: m.id,
+        label: `${m.memberNumber} — ${m.fullName}`,
+        keywords: `${m.memberNumber} ${m.fullName}`,
+      })),
+    ],
+    [availableMasterMembers],
   );
 
   const form = useForm<FormValues>({
@@ -315,23 +325,17 @@ export function ManagementMemberFormDialog({
               control={form.control}
               name="masterMemberId"
               render={({ field }) => (
-                <Select
+                <EntityCombobox
+                  id="mm-master-member"
+                  placeholder="Tidak ditautkan"
                   value={field.value ?? NO_LINK}
-                  onValueChange={field.onChange}
+                  onValueChange={(next) =>
+                    field.onChange(next ?? NO_LINK)
+                  }
+                  options={masterMemberComboboxOptions}
                   disabled={isPending}
-                >
-                  <SelectTrigger id="mm-master-member">
-                    <SelectValue placeholder="Tidak ditautkan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_LINK}>Tidak ditautkan</SelectItem>
-                    {availableMasterMembers.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.memberNumber} — {m.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  aria-invalid={Boolean(form.formState.errors.masterMemberId)}
+                />
               )}
             />
           </Field>
