@@ -15,7 +15,6 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "auth:migrate": "npx tsx scripts/better-auth-migrate.ts",
     "lint": "eslint",
     "test": "vitest run",
     "check-types": "tsc --noEmit",
