@@ -2,6 +2,7 @@
 
 import FadeContent from "@/components/FadeContent";
 import ShinyText from "@/components/ShinyText";
+import { PublicSiteLogoLink } from "@/components/branding/public-site-logo-link";
 import { EventCard } from "@/components/public/event-card";
 import { buttonVariants } from "@/components/ui/button";
 import type { PublicActiveEventRow } from "@/lib/events/public-active-events";
@@ -34,6 +35,9 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-6 py-12 md:gap-16 md:py-16">
+      <div className="flex justify-start">
+        <PublicSiteLogoLink height={56} priority />
+      </div>
       <FadeContent blur className="max-w-2xl" threshold={0.15} duration={900}>
         <p className="text-xs font-medium tracking-widest text-[hsl(var(--muted-foreground))] uppercase">
           Komunitas

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/branding/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function resolveFirst(param: string | string[] | undefined): string | undefined {
@@ -54,6 +55,9 @@ export default async function MagicLinkSentPage({
   if (errorCode) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+        <div className="mb-8 flex justify-center">
+          <Logo height={52} priority />
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight">Tautan tidak bisa dipakai</h1>
         <Alert variant="destructive" className="mt-4">
           <AlertTitle>Verifikasi gagal</AlertTitle>
@@ -74,6 +78,9 @@ export default async function MagicLinkSentPage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+      <div className="mb-8 flex justify-center">
+        <Logo height={52} priority />
+      </div>
       <h1 className="text-2xl font-semibold tracking-tight">Cek email Anda</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {emailRaw ? (

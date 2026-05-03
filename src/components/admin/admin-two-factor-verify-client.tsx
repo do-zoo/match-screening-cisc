@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { adminAuthClient } from "@/lib/auth/admin-auth-client";
+import { Logo } from "@/components/branding/logo";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,9 @@ export function AdminTwoFactorVerifyClient({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+      <div className="mb-8 flex justify-center">
+        <Logo height={52} priority />
+      </div>
       <h1 className="text-2xl font-semibold tracking-tight">Verifikasi kedua</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Masukkan kode dari aplikasi autentikator atau kode cadangan Anda.

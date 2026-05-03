@@ -1,3 +1,4 @@
+import { PublicSiteLogoLink } from "@/components/branding/public-site-logo-link";
 import { EventCard } from "@/components/public/event-card";
 import { getPublicActiveEvents } from "@/lib/events/public-active-events";
 import { SITE_DESCRIPTION_EVENTS_LIST } from "@/lib/site-metadata";
@@ -15,6 +16,9 @@ export default async function PublicEventsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-12">
+      <div className="flex justify-start">
+        <PublicSiteLogoLink height={48} />
+      </div>
       <div>
         <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
           Acara aktif

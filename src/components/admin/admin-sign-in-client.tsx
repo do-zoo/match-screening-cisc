@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
+import { Logo } from "@/components/branding/logo";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,9 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+      <div className="mb-8 flex justify-center">
+        <Logo height={52} priority />
+      </div>
       <h1 className="text-2xl font-semibold tracking-tight">Admin sign in</h1>
       <p className="mt-2 text-sm text-zinc-600">Masuk menggunakan email dan password.</p>
 
