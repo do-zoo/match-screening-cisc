@@ -117,9 +117,7 @@ model MasterMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  eventsAsHelper EventPicHelper[]
   registrations          Registration[]
-  adminProfiles          AdminProfile[]
   managementMemberRecord ManagementMember?
 }
 
@@ -137,16 +135,22 @@ model BoardPeriod {
 }
 
 model BoardRole {
-  id        String   @id @default(cuid())
-  title     String
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  id           String      @id @default(cuid())
+  title        String
+  sortOrder    Int         @default(0)
+  isActive     Boolean     @default(true)
+  isUnique     Boolean     @default(true)
+  parentRoleId String?
+  parent       BoardRole?  @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  children     BoardRole[] @relation("RoleHierarchy")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   assignments BoardAssignment[]
 
   @@index([isActive, sortOrder])
+  @@index([parentRoleId])
 }
 
 model ManagementMember {
@@ -162,6 +166,7 @@ model ManagementMember {
 
   assignments            BoardAssignment[]
   registrationsAsPrimary Registration[]
+  adminProfile           AdminProfile?
 }
 
 model BoardAssignment {
@@ -176,8 +181,8 @@ model BoardAssignment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([boardPeriodId, managementMemberId])
-  @@unique([boardPeriodId, boardRoleId])
+  @@index([boardPeriodId, managementMemberId])
+  @@index([boardPeriodId, boardRoleId])
   @@index([managementMemberId])
   @@index([boardRoleId])
 }
@@ -248,16 +253,16 @@ model Event {
 }
 
 model EventPicHelper {
-  eventId  String
-  memberId String
+  eventId        String
+  adminProfileId String
 
-  event  Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  member MasterMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  adminProfile AdminProfile @relation(fields: [adminProfileId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  @@id([eventId, memberId])
-  @@index([memberId])
+  @@id([eventId, adminProfileId])
+  @@index([adminProfileId])
 }
 
 model Registration {
@@ -482,9 +487,9 @@ model AdminProfile {
 
   role AdminRole @default(Viewer)
 
-  // Optional: link to a MasterMember so PIC helper checks are possible.
-  memberId String?
-  member   MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  managementMemberId String?           @unique
+  managementMember   ManagementMember? @relation(fields: [managementMemberId], references: [id], onDelete: SetNull)
+  eventsAsHelper     EventPicHelper[]
 
   ownedPicBankAccounts PicBankAccount[]
   eventsAsPic          Event[]
@@ -495,7 +500,7 @@ model AdminProfile {
   updatedAt DateTime @updatedAt
 
   @@index([role])
-  @@index([memberId])
+  @@index([managementMemberId])
 }
 
 model User {

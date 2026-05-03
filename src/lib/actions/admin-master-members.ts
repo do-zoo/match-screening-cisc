@@ -315,10 +315,18 @@ export async function deleteMasterMember(
 
   const [eventsAsPic, bankCount] = await Promise.all([
     prisma.event.count({
-      where: { picAdminProfile: { memberId: member.id } },
+      where: {
+        picAdminProfile: {
+          managementMember: { masterMemberId: member.id },
+        },
+      },
     }),
     prisma.picBankAccount.count({
-      where: { ownerAdmin: { memberId: member.id } },
+      where: {
+        ownerAdmin: {
+          managementMember: { masterMemberId: member.id },
+        },
+      },
     }),
   ]);
 

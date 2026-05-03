@@ -9,11 +9,6 @@ const adminRoleEnum = z.enum([
   AdminRole.Viewer,
 ]);
 
-function emptyToNull(s: string): string | null {
-  const t = s.trim();
-  return t === "" ? null : t;
-}
-
 export const addCommitteeAdminByEmailSchema = z.object({
   email: z
     .string()
@@ -30,10 +25,12 @@ export const updateCommitteeAdminRoleSchema = z.object({
 
 export const updateCommitteeAdminMemberLinkSchema = z.object({
   adminProfileId: z.string().trim().min(1, "Profil admin wajib."),
-  memberId: z
+  managementMemberId: z
     .string()
     .optional()
-    .transform((s) => (s == null ? null : emptyToNull(s))),
+    .transform((s) =>
+      s == null ? null : s.trim() === "" ? null : s.trim(),
+    ),
 });
 
 export const revokeCommitteeAdminAccessSchema = z.object({

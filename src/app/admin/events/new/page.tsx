@@ -7,10 +7,7 @@ export const metadata: Metadata = { title: "Buat Acara" };
 import { EventAdminForm } from "@/components/admin/forms/event-admin-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  loadPicAdminProfileOptionsForEvents,
-  loadPicAdminToMemberLinkMap,
-} from "@/lib/admin/pic-options-for-event";
+import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for-event";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -42,8 +39,7 @@ export default async function AdminNewEventPage() {
   }
 
   const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
-  const [picOptions, banks, helperMembers, picMemberLinkByAdminId] =
-    await Promise.all([
+  const [picOptions, banks] = await Promise.all([
     loadPicAdminProfileOptionsForEvents(),
     prisma.picBankAccount.findMany({
       where: { isActive: true },
@@ -56,12 +52,6 @@ export default async function AdminNewEventPage() {
         accountName: true,
       },
     }),
-    prisma.masterMember.findMany({
-      where: { isActive: true },
-      orderBy: { fullName: "asc" },
-      select: { id: true, fullName: true, memberNumber: true },
-    }),
-    loadPicAdminToMemberLinkMap(),
   ]);
 
   const banksByPic: Record<
@@ -77,10 +67,7 @@ export default async function AdminNewEventPage() {
     banksByPic[b.ownerAdminProfileId] = list;
   }
 
-  const helperAdminOptions = helperMembers.map((m) => ({
-    id: m.id,
-    label: `${m.fullName} (${m.memberNumber})`,
-  }));
+  const helperAdminOptions = picOptions;
 
   const firstPicId = picOptions[0]?.id;
   const firstBankId =
@@ -110,7 +97,7 @@ export default async function AdminNewEventPage() {
     ticketNonMemberPrice: committeeDefaults.ticketNonMemberPrice,
     picAdminProfileId: firstPicId ?? "",
     bankAccountId: firstBankId,
-    helperMasterMemberIds: [],
+    helperAdminProfileIds: [],
     menuItems: [
       {
         name: "Contoh menu",
@@ -167,7 +154,6 @@ export default async function AdminNewEventPage() {
         picOptions={picOptions}
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
-        picMemberLinkByAdminId={picMemberLinkByAdminId}
       />
     </main>
   );

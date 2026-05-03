@@ -77,11 +77,11 @@ async function ticketPricesForWrite(opts: {
 
 async function validatePicBankAndHelpers(opts: Pick<
   AdminEventUpsertInput,
-  "picAdminProfileId" | "bankAccountId" | "helperMasterMemberIds"
+  "picAdminProfileId" | "bankAccountId" | "helperAdminProfileIds"
 >): Promise<ActionResult<void>> {
   const pic = await prisma.adminProfile.findUnique({
     where: { id: opts.picAdminProfileId },
-    select: { id: true, role: true, memberId: true },
+    select: { id: true, role: true },
   });
 
   if (!pic || pic.role === AdminRole.Viewer) {
@@ -104,33 +104,24 @@ async function validatePicBankAndHelpers(opts: Pick<
     });
   }
 
-  const helperIds = [...new Set(opts.helperMasterMemberIds)].filter((id) =>
-    pic.memberId ? id !== pic.memberId : true,
+  // Exclude PIC from helpers before validation
+  const helperIds = [...new Set(opts.helperAdminProfileIds)].filter(
+    (id) => id !== opts.picAdminProfileId,
   );
 
   if (helperIds.length > 0) {
-    const rows = await prisma.masterMember.findMany({
-      where: { id: { in: helperIds }, isActive: true },
+    const rows = await prisma.adminProfile.findMany({
+      where: { id: { in: helperIds } },
       select: { id: true },
     });
     if (rows.length !== helperIds.length) {
       return fieldError({
-        helperMasterMemberIds:
-          "Salah satu PIC helper tidak aktif atau tidak ditemukan.",
+        helperAdminProfileIds: "Salah satu PIC helper tidak ditemukan.",
       });
     }
   }
 
   return ok(undefined);
-}
-
-function uniqueHelperMemberIdsExcludingPicLinkedMember(
-  helperMasterMemberIds: string[],
-  picLinkedMemberId: string | null,
-): string[] {
-  return [...new Set(helperMasterMemberIds)].filter((id) =>
-    picLinkedMemberId ? id !== picLinkedMemberId : true,
-  );
 }
 
 export async function createAdminEvent(
@@ -162,14 +153,9 @@ export async function createAdminEvent(
   const vPic = await validatePicBankAndHelpers({
     picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
-    helperMasterMemberIds: data.helperMasterMemberIds,
+    helperAdminProfileIds: data.helperAdminProfileIds,
   });
   if (!vPic.ok) return vPic;
-
-  const picForHelpers = await prisma.adminProfile.findUnique({
-    where: { id: data.picAdminProfileId },
-    select: { memberId: true },
-  });
 
   const { ticketMemberPrice, ticketNonMemberPrice } = await ticketPricesForWrite({
     pricingSource: data.pricingSource,
@@ -177,9 +163,8 @@ export async function createAdminEvent(
     parsedNonMember: data.ticketNonMemberPrice,
   });
 
-  const helperIds = uniqueHelperMemberIdsExcludingPicLinkedMember(
-    data.helperMasterMemberIds,
-    picForHelpers?.memberId ?? null,
+  const helperIds = [...new Set(data.helperAdminProfileIds)].filter(
+    (id) => id !== data.picAdminProfileId,
   );
 
   const id = randomUUID();
@@ -246,7 +231,10 @@ export async function createAdminEvent(
 
       if (helperIds.length > 0) {
         await tx.eventPicHelper.createMany({
-          data: helperIds.map((memberId) => ({ eventId: id, memberId })),
+          data: helperIds.map((adminProfileId) => ({
+            eventId: id,
+            adminProfileId,
+          })),
           skipDuplicates: true,
         });
       }
@@ -303,7 +291,7 @@ export async function updateAdminEvent(
       picAdminProfileId: true,
       bankAccountId: true,
       menuItems: { select: { id: true } },
-      helpers: { select: { memberId: true } },
+      helpers: { select: { adminProfileId: true } },
       _count: { select: { registrations: true } },
     },
   });
@@ -364,17 +352,12 @@ export async function updateAdminEvent(
   const vPic = await validatePicBankAndHelpers({
     picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
-    helperMasterMemberIds: data.helperMasterMemberIds,
+    helperAdminProfileIds: data.helperAdminProfileIds,
   });
   if (!vPic.ok) return vPic;
 
-  const picForHelpersUpdate = await prisma.adminProfile.findUnique({
-    where: { id: data.picAdminProfileId },
-    select: { memberId: true },
-  });
-  const helperIds = uniqueHelperMemberIdsExcludingPicLinkedMember(
-    data.helperMasterMemberIds,
-    picForHelpersUpdate?.memberId ?? null,
+  const helperIds = [...new Set(data.helperAdminProfileIds)].filter(
+    (id) => id !== data.picAdminProfileId,
   );
 
   const cover = formData.get("cover");
@@ -453,7 +436,7 @@ export async function updateAdminEvent(
       await tx.eventPicHelper.deleteMany({ where: { eventId } });
       if (helperIds.length > 0) {
         await tx.eventPicHelper.createMany({
-          data: helperIds.map((memberId) => ({ eventId, memberId })),
+          data: helperIds.map((adminProfileId) => ({ eventId, adminProfileId })),
           skipDuplicates: true,
         });
       }

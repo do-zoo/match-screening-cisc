@@ -25,7 +25,7 @@ import {
   type ActionResult,
 } from "@/lib/forms/action-result";
 import { zodToFieldErrors } from "@/lib/forms/zod";
-import { AdminRole } from "@prisma/client";
+import { AdminRole, Prisma } from "@prisma/client";
 
 async function requireOwner(): Promise<
   ActionResult<never> | { owner: OwnerGuardContext }
@@ -166,39 +166,45 @@ export async function updateCommitteeAdminMemberLink(
 
   const parsed = updateCommitteeAdminMemberLinkSchema.safeParse({
     adminProfileId: formData.get("adminProfileId"),
-    memberId: formData.get("memberId") ?? "",
+    managementMemberId: formData.get("managementMemberId") ?? "",
   });
   if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
 
   const target = await prisma.adminProfile.findUnique({
     where: { id: parsed.data.adminProfileId },
-    select: {
-      id: true,
-      authUserId: true,
-      memberId: true,
-    },
+    select: { id: true, authUserId: true, managementMemberId: true },
   });
-  if (!target) {
-    return rootError("Profil admin tidak ditemukan.");
-  }
+  if (!target) return rootError("Profil admin tidak ditemukan.");
 
-  let nextMemberId: string | null = parsed.data.memberId;
-  if (nextMemberId) {
-    const member = await prisma.masterMember.findUnique({
-      where: { id: nextMemberId },
+  let nextManagementMemberId: string | null =
+    parsed.data.managementMemberId;
+  if (nextManagementMemberId) {
+    const member = await prisma.managementMember.findUnique({
+      where: { id: nextManagementMemberId },
       select: { id: true },
     });
-    if (!member) return rootError("Anggota yang dipilih tidak ditemukan.");
+    if (!member) return rootError("Pengurus yang dipilih tidak ditemukan.");
   } else {
-    nextMemberId = null;
+    nextManagementMemberId = null;
   }
 
-  const prevMemberId = target.memberId;
+  const prevManagementMemberId = target.managementMemberId;
 
-  await prisma.adminProfile.update({
-    where: { id: target.id },
-    data: { memberId: nextMemberId },
-  });
+  try {
+    await prisma.adminProfile.update({
+      where: { id: target.id },
+      data: { managementMemberId: nextManagementMemberId },
+    });
+  } catch (e) {
+    // P2002 = unique constraint: another admin already linked to this ManagementMember
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      return rootError("Pengurus ini sudah dikaitkan ke akun admin lain.");
+    }
+    throw e;
+  }
 
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.owner.profileId,
@@ -208,8 +214,8 @@ export async function updateCommitteeAdminMemberLink(
     targetId: target.id,
     metadata: {
       targetAuthUserId: target.authUserId,
-      prevMemberId,
-      nextMemberId,
+      prevManagementMemberId,
+      nextManagementMemberId,
     },
   });
 
@@ -255,7 +261,7 @@ export async function revokeCommitteeAdminMeaningfulAccess(
     where: { id: target.id },
     data: {
       role: AdminRole.Viewer,
-      memberId: null,
+      managementMemberId: null,
     },
   });
 

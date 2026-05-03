@@ -70,10 +70,8 @@ export type EventAdminFormProps = {
   /** Admin profiles eligible as event PIC (financial owner). */
   picOptions: EventAdminPicOption[];
   banksByPic: Record<string, Array<{ id: string; label: string }>>;
-  /** Directory members for PIC pembantu (still MasterMember ids). */
+  /** Admin profiles eligible as PIC pembantu (same pool as PIC; PIC excluded in form). */
   helperAdminOptions: EventAdminPicOption[];
-  /** Optional directory member id per PIC admin (for disabling duplicate helper). */
-  picMemberLinkByAdminId: Record<string, string | null>;
 };
 
 export function EventAdminForm(props: EventAdminFormProps) {
@@ -128,7 +126,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
   const helpersSelected =
     useWatch({
       control: form.control,
-      name: "helperMasterMemberIds",
+      name: "helperAdminProfileIds",
     }) ?? [];
 
   const bankChoices = useMemo(() => {
@@ -609,43 +607,41 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <Field label={`PIC pembantu (${helpersSelected.length})`}>
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-3">
               {props.helperAdminOptions.map((p) => {
-                const checked = helpersSelected.includes(p.id);
-                const linkedMemberForPic =
-                  props.picMemberLinkByAdminId[picId] ?? null;
-                const isLinkedPicMember =
-                  linkedMemberForPic != null && p.id === linkedMemberForPic;
+                const currentHelpers: string[] =
+                  form.getValues("helperAdminProfileIds") ?? [];
+                const checked = currentHelpers.includes(p.id);
+                const disabledAsPic = p.id === picId;
                 return (
-                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                  <label
+                    key={p.id}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                      checked && "border-primary/40 bg-primary/5",
+                      disabledAsPic && "cursor-not-allowed opacity-50",
+                    )}
+                  >
                     <input
                       type="checkbox"
-                      disabled={pending || isLinkedPicMember}
+                      className="accent-primary"
                       checked={checked}
-                      onChange={() => {
-                        const cur =
-                          form.getValues("helperMasterMemberIds") ??
-                          ([] as string[]);
-                        if (checked)
+                      disabled={disabledAsPic || pending}
+                      onChange={(e) => {
+                        const prev: string[] =
+                          form.getValues("helperAdminProfileIds") ?? [];
+                        if (e.target.checked) {
+                          form.setValue("helperAdminProfileIds", [...prev, p.id], {
+                            shouldDirty: true,
+                          });
+                        } else {
                           form.setValue(
-                            "helperMasterMemberIds",
-                            cur.filter((x) => x !== p.id),
+                            "helperAdminProfileIds",
+                            prev.filter((id) => id !== p.id),
                             { shouldDirty: true },
                           );
-                        else
-                          form.setValue(
-                            "helperMasterMemberIds",
-                            [...cur, p.id],
-                            { shouldDirty: true },
-                          );
+                        }
                       }}
                     />
-                    <span
-                      className={cn(
-                        isLinkedPicMember && "text-muted-foreground",
-                      )}
-                    >
-                      {p.label}
-                      {isLinkedPicMember ? " (PIC utama)" : ""}
-                    </span>
+                    {p.label}
                   </label>
                 );
               })}

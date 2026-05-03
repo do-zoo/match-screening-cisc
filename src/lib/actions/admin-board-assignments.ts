@@ -67,10 +67,21 @@ export async function createBoardAssignment(
 
   const role = await prisma.boardRole.findUnique({
     where: { id: parsed.data.boardRoleId },
-    select: { isActive: true },
+    select: { isActive: true, isUnique: true },
   });
   if (!role?.isActive) {
     return rootError("Jabatan tidak aktif atau tidak ditemukan.");
+  }
+  if (role.isUnique) {
+    const existing = await prisma.boardAssignment.count({
+      where: {
+        boardPeriodId: parsed.data.boardPeriodId,
+        boardRoleId: parsed.data.boardRoleId,
+      },
+    });
+    if (existing > 0) {
+      return rootError("Jabatan ini hanya boleh dipegang 1 orang per periode.");
+    }
   }
 
   try {
@@ -112,14 +123,6 @@ export async function createBoardAssignment(
     revalidatePath("/admin/management");
     return ok({ id: row.id });
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return rootError(
-        "Penugasan bentrok: satu orang atau satu jabatan sudah terisi untuk periode ini.",
-      );
-    }
     console.error(e);
     return rootError("Gagal menyimpan penugasan.");
   }
@@ -152,10 +155,22 @@ export async function updateBoardAssignment(
 
   const role = await prisma.boardRole.findUnique({
     where: { id: parsed.data.boardRoleId },
-    select: { isActive: true },
+    select: { isActive: true, isUnique: true },
   });
   if (!role?.isActive) {
     return rootError("Jabatan tidak aktif atau tidak ditemukan.");
+  }
+  if (role.isUnique) {
+    const existing = await prisma.boardAssignment.count({
+      where: {
+        boardPeriodId: parsed.data.boardPeriodId,
+        boardRoleId: parsed.data.boardRoleId,
+        id: { not: parsed.data.id },
+      },
+    });
+    if (existing > 0) {
+      return rootError("Jabatan ini hanya boleh dipegang 1 orang per periode.");
+    }
   }
 
   try {
@@ -175,14 +190,6 @@ export async function updateBoardAssignment(
       await recomputeDirectoryManagementFlagsTx(tx, seeds);
     });
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return rootError(
-        "Penugasan bentrok: satu orang atau satu jabatan sudah terisi untuk periode ini.",
-      );
-    }
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
       e.code === "P2025"

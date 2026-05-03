@@ -26,10 +26,7 @@ import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity, canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
 import { EventDeletePanel } from "@/components/admin/event-delete-panel";
-import {
-  loadPicAdminProfileOptionsForEvents,
-  loadPicAdminToMemberLinkMap,
-} from "@/lib/admin/pic-options-for-event";
+import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for-event";
 import { cn } from "@/lib/utils";
 
 export default async function AdminEditEventPage({
@@ -64,7 +61,7 @@ export default async function AdminEditEventPage({
     where: { id: eventId },
     include: {
       menuItems: { orderBy: { sortOrder: "asc" } },
-      helpers: { select: { memberId: true } },
+      helpers: { select: { adminProfileId: true } },
       _count: { select: { registrations: true } },
     },
   });
@@ -73,27 +70,20 @@ export default async function AdminEditEventPage({
     notFound();
   }
 
-  const [picOptions, banks, helperMembers, picMemberLinkByAdminId] =
-    await Promise.all([
-      loadPicAdminProfileOptionsForEvents(),
-      prisma.picBankAccount.findMany({
-        where: { isActive: true },
-        orderBy: { bankName: "asc" },
-        select: {
-          id: true,
-          ownerAdminProfileId: true,
-          bankName: true,
-          accountNumber: true,
-          accountName: true,
-        },
-      }),
-      prisma.masterMember.findMany({
-        where: { isActive: true },
-        orderBy: { fullName: "asc" },
-        select: { id: true, fullName: true, memberNumber: true },
-      }),
-      loadPicAdminToMemberLinkMap(),
-    ]);
+  const [picOptions, banks] = await Promise.all([
+    loadPicAdminProfileOptionsForEvents(),
+    prisma.picBankAccount.findMany({
+      where: { isActive: true },
+      orderBy: { bankName: "asc" },
+      select: {
+        id: true,
+        ownerAdminProfileId: true,
+        bankName: true,
+        accountNumber: true,
+        accountName: true,
+      },
+    }),
+  ]);
 
   const banksByPic: Record<
     string,
@@ -108,10 +98,7 @@ export default async function AdminEditEventPage({
     banksByPic[b.ownerAdminProfileId] = list;
   }
 
-  const helperAdminOptions = helperMembers.map((m) => ({
-    id: m.id,
-    label: `${m.fullName} (${m.memberNumber})`,
-  }));
+  const helperAdminOptions = picOptions;
 
   const defaults: AdminEventUpsertInput = {
     title: event.title,
@@ -132,7 +119,7 @@ export default async function AdminEditEventPage({
     ticketNonMemberPrice: event.ticketNonMemberPrice,
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
-    helperMasterMemberIds: event.helpers.map((h) => h.memberId),
+    helperAdminProfileIds: event.helpers.map((h) => h.adminProfileId),
     menuItems: event.menuItems.map((m) => ({
       id: m.id,
       name: m.name,
@@ -185,7 +172,6 @@ export default async function AdminEditEventPage({
         picOptions={picOptions}
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
-        picMemberLinkByAdminId={picMemberLinkByAdminId}
       />
       {canManageCommitteeAdvancedSettings(ctx.role) ? (
         <EventDeletePanel

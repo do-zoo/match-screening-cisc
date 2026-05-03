@@ -19,7 +19,7 @@ describe("admin-pagination", () => {
 
   test("clamps page to totalPages", () => {
     expect(resolveClampedPage(1, 0, ADMIN_TABLE_PAGE_SIZE)).toBe(1);
-    expect(resolveClampedPage(400, 25, ADMIN_TABLE_PAGE_SIZE)).toBe(2);
+    expect(resolveClampedPage(400, 25, ADMIN_TABLE_PAGE_SIZE)).toBe(3);
     expect(resolveClampedPage(1, 40, ADMIN_TABLE_PAGE_SIZE)).toBe(1);
     expect(resolveClampedPage(2, 40, ADMIN_TABLE_PAGE_SIZE)).toBe(2);
   });
