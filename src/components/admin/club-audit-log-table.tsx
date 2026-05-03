@@ -136,6 +136,19 @@ export function ClubAuditLogTable(props: {
   );
 }
 
+function buildAdminProfileAuditExportHref(filters: {
+  from: string;
+  to: string;
+}): string {
+  const p = new URLSearchParams();
+  p.set("actionPrefix", "admin_profile.");
+  const fromTrim = filters.from.trim();
+  const toTrim = filters.to.trim();
+  if (fromTrim) p.set("from", fromTrim);
+  if (toTrim) p.set("to", toTrim);
+  return `/admin/settings/security/audit-export?${p.toString()}`;
+}
+
 const SECURITY_PATH = "/admin/settings/security";
 
 export function ClubAuditLogSection(props: {
@@ -173,6 +186,14 @@ export function ClubAuditLogSection(props: {
         actionOptions={props.actionOptions}
         securityPath={SECURITY_PATH}
       />
+      <div>
+        <Link
+          href={buildAdminProfileAuditExportHref(props.filters)}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Unduh CSV (aksi profil admin, maks. 10.000 baris)
+        </Link>
+      </div>
       <ClubAuditLogTable
         rows={props.rows}
         emptyMessage={
