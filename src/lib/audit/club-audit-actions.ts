@@ -8,6 +8,7 @@ export const CLUB_AUDIT_ACTION = {
   ADMIN_PROFILE_BOOTSTRAP_UPSERT: "admin_profile.bootstrap_upsert",
   ADMIN_PROFILE_CREATED_UI: "admin_profile.created_ui",
   ADMIN_PROFILE_ROLE_CHANGED: "admin_profile.role_changed",
+  ADMIN_PROFILE_ACCESS_REVOKED: "admin_profile.access_revoked",
   ADMIN_PROFILE_MEMBER_LINK_CHANGED: "admin_profile.member_link_changed",
   ADMIN_PROFILE_DELETED_UI: "admin_profile.deleted_ui",
   EVENT_DELETED_UI: "event.deleted_ui",

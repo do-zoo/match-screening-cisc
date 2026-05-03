@@ -272,7 +272,7 @@ export async function revokeCommitteeAdminMeaningfulAccess(
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.owner.profileId,
     actorAuthUserId: gate.owner.authUserId,
-    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_ROLE_CHANGED,
+    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_ACCESS_REVOKED,
     targetType: "admin_profile",
     targetId: target.id,
     metadata: {
