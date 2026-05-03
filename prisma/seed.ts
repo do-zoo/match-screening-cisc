@@ -21,6 +21,8 @@ type MasterMemberSeed = {
   isActive: boolean;
   isManagementMember: boolean;
   whatsapp?: string | null;
+  /** Jika diisi, buat ManagementMember dengan publicCode ini dan tautkan ke MasterMember. */
+  managementPublicCode?: string;
 };
 
 const MASTER_MEMBER_SEEDS: MasterMemberSeed[] = [
@@ -30,12 +32,14 @@ const MASTER_MEMBER_SEEDS: MasterMemberSeed[] = [
     isActive: true,
     isManagementMember: true,
     whatsapp: "+6281380013800",
+    managementPublicCode: "DEMO-PIC",
   },
   {
     memberNumber: "CISC-SEED-110",
     fullName: "Seed · aktif · pengurus",
     isActive: true,
     isManagementMember: true,
+    managementPublicCode: "SEED-A",
   },
   {
     memberNumber: "CISC-SEED-101",
@@ -54,12 +58,14 @@ const MASTER_MEMBER_SEEDS: MasterMemberSeed[] = [
     fullName: "Seed · nonaktif · pengurus",
     isActive: false,
     isManagementMember: true,
+    managementPublicCode: "SEED-B",
   },
   {
     memberNumber: "CISC-SEED-010",
     fullName: "Seed · nonaktif · pengurus",
     isActive: false,
     isManagementMember: true,
+    managementPublicCode: "SEED-C",
   },
   {
     memberNumber: "CISC-SEED-001",
@@ -97,6 +103,27 @@ async function main() {
     });
   }
 
+  // Upsert ManagementMember records for every seed that has a publicCode.
+  // Each is linked to its MasterMember via masterMemberId.
+  for (const row of MASTER_MEMBER_SEEDS) {
+    if (!row.managementPublicCode) continue;
+    const master = await prisma.masterMember.findUnique({
+      where: { memberNumber: row.memberNumber },
+      select: { id: true },
+    });
+    if (!master) continue;
+    await prisma.managementMember.upsert({
+      where: { publicCode: row.managementPublicCode },
+      update: { fullName: row.fullName, masterMemberId: master.id },
+      create: {
+        publicCode: row.managementPublicCode,
+        fullName: row.fullName,
+        masterMemberId: master.id,
+        ...(row.whatsapp ? { whatsapp: row.whatsapp } : {}),
+      },
+    });
+  }
+
   const ownerProfile = await prisma.adminProfile.findFirst({
     where: { role: AdminRole.Owner },
     orderBy: { createdAt: "asc" },
@@ -107,6 +134,20 @@ async function main() {
       "Seed: lewati acara demo — tidak ada AdminProfile Owner. Jalankan bootstrap admin terlebih dahulu.",
     );
     return;
+  }
+
+  // Link owner admin profile to the DEMO-PIC ManagementMember if not already linked.
+  if (!ownerProfile.managementMemberId) {
+    const demoPicMember = await prisma.managementMember.findUnique({
+      where: { publicCode: "DEMO-PIC" },
+      select: { id: true },
+    });
+    if (demoPicMember) {
+      await prisma.adminProfile.update({
+        where: { id: ownerProfile.id },
+        data: { managementMemberId: demoPicMember.id },
+      });
+    }
   }
 
   const existingBank = await prisma.picBankAccount.findFirst({
@@ -196,10 +237,13 @@ async function main() {
     ],
   });
 
+  const mgmtCount = MASTER_MEMBER_SEEDS.filter(
+    (r) => r.managementPublicCode,
+  ).length;
   console.log(
     "Seed OK:",
     event.slug,
-    `(${MASTER_MEMBER_SEEDS.length} MasterMember · PIC acara = Owner admin ${ownerProfile.id})`,
+    `(${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC acara = Owner admin ${ownerProfile.id})`,
   );
 }
 
