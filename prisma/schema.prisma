@@ -522,11 +522,38 @@ model AdminProfile {
 
   auditEntries ClubAuditLog[]
 
+  invitationsCreated AdminInvitation[] @relation("AdminInvitationCreator")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
   @@index([managementMemberId])
+}
+
+/// Undangan Owner -> admin baru; token disimpan sebagai hash (bukan plaintext).
+model AdminInvitation {
+  id String @id @default(cuid())
+
+  /// Email normalisasi lowercase + trim.
+  emailNormalized String
+
+  role AdminRole
+
+  /// SHA-256 hex dari token raw.
+  tokenHash String @unique
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  createdByAdminProfileId String
+  createdBy               AdminProfile @relation("AdminInvitationCreator", fields: [createdByAdminProfileId], references: [id], onDelete: Restrict)
+
+  consumedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([emailNormalized])
+  @@index([expiresAt])
 }
 
 model User {
