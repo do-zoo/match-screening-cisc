@@ -96,3 +96,68 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 - **Kriteria penerimaan:**
   - Verifier dapat menjalankan tugas tinjauan sesuai izin tanpa mengubah konfigurasi yang hanya untuk Owner/Admin tingkat lanjut.
   - Viewer tidak dapat mengubah data yang bersifat mutatif di luar ruang lingkup baca.
+
+## Epik: Operasi acara, kotak masuk pendaftaran, dan pelaporan
+
+### US-EVT-01 — Membuat dan mengedit acara
+
+- **Sebagai** operator acara, **saya ingin** membuat acara baru dan mengubah pengaturannya (jadwal registrasi, harga, penanggung jawab keuangan, rekening tujuan, konfigurasi menu), **agar** pendaftar melihat informasi yang benar.
+- **Kriteria penerimaan:**
+  - Perubahan tersimpan dan tercermin di halaman publik sesuai aturan visibilitas.
+  - Slug atau identitas acara stabil dan unik sehingga tidak bentrok dengan acara lain.
+
+### US-EVT-02 — Melihat daftar pendaftaran per acara (kotak masuk)
+
+- **Sebagai** admin, **saya ingin** melihat semua registrasi untuk satu acara dalam satu daftar, **agar** saya dapat memprioritaskan peninjauan.
+- **Kriteria penerimaan:**
+  - Daftar menampilkan status registrasi dan filter/urut yang memadai untuk operasional harian.
+
+### US-EVT-03 — Membuka detail satu registrasi
+
+- **Sebagai** verifier, **saya ingin** melihat profil pendaftar, bukti bayar, snapshot harga, dan riwayat keputusan, **agar** saya mengambil keputusan yang dapat dipertanggungjawabkan.
+- **Kriteria penerimaan:**
+  - Semua lampiran yang diunggah pendaftar dapat dibuka dari detail registrasi.
+
+### US-EVT-04 — Menyetujui, menolak, atau menandai kendala pembayaran
+
+- **Sebagai** verifier, **saya ingin** mengubah status registrasi ke disetujui, ditolak, atau menandai masalah pembayaran, **agar** komunikasi ke pendaftar selaras dengan keputusan klub.
+- **Kriteria penerimaan:**
+  - Perubahan status tercatat dan memicu template pesan yang relevan bila digunakan operasional (misalnya WhatsApp salin-tempel).
+  - Tidak ada persetujuan ganda untuk kombinasi acara + nomor anggota yang melanggar aturan booking.
+
+### US-EVT-05 — Mencatat kehadiran peserta
+
+- **Sebagai** operator lapangan atau admin, **saya ingin** memperbarui status kehadiran setelah disetujui, **agar** laporan kehadiran akurat.
+- **Kriteria penerimaan:**
+  - Kehadiran tidak mengubah status persetujuan keuangan secara diam-diam; perubahan kehadiran terlihat di laporan.
+
+### US-EVT-06 — Menu voucher — pencatatan penukaran
+
+- **Sebagai** admin acara dengan mode voucher, **saya ingin** mencatat penukaran voucher peserta, **agar** stok/nilai voucher tercatat sesuai kebijakan acara.
+- **Kriteria penerimaan:**
+  - Penukaran mengikuti aturan event; duplikasi atau penyalahgunaan dicegah sesuai implementasi bisnis.
+
+### US-EVT-07 — Penyesuaian invoice jika underpayment
+
+- **Sebagai** admin keuangan, **saya ingin** mencatat penyesuaian tagihan dan bukti tambahan jika diperlukan, **agar** piutang tercatat dengan benar.
+- **Kriteria penerimaan:**
+  - Jumlah penyesuaian dan alasan dapat diaudit dari detail registrasi atau laporan terkait.
+
+### US-EVT-08 — Pembatalan dan refund
+
+- **Sebagai** admin, **saya ingin** menandai pembatalan atau refund sesuai kebijakan, **agar** status akhir registrasi jelas bagi pelaporan.
+- **Kriteria penerimaan:**
+  - Status terminal (batal/refund) tidak dapat ditindaklanjuti seperti registrasi aktif biasa tanpa alur koreksi khusus.
+
+### US-EVT-09 — Validasi data anggota pada registrasi
+
+- **Sebagai** verifier, **saya ingin** menandai validasi terhadap data keanggotaan ketika diperlukan, **agar** keputusan persetujuan konsisten dengan direktori.
+- **Kriteria penerimaan:**
+  - Tindakan validasi terlihat di riwayat registrasi dan mendukung alur persetujuan.
+
+### US-EVT-10 — Laporan agregat dan ekspor CSV
+
+- **Sebagai** ketua acara atau bendahara, **saya ingin** melihat ringkasan kehadiran, keuangan, agregasi menu/voucher, dan mengekspor CSV, **agar** rapat penutupan acara berjalan lancar.
+- **Kriteria penerimaan:**
+  - CSV mengikuti format standar yang dibagikan stakeholder (misalnya kolom tetap) dan dapat dibuka di spreadsheet umum.
+  - Angka di layar laporan selaras dengan detail registrasi untuk sampel acak yang diuji manual.
