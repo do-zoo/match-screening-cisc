@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { CommitteeAdminSettingsPanel } from "@/components/admin/committee-admin-settings-panel";
 import { loadCommitteeAdminDirectory } from "@/lib/admin/load-committee-admin-directory";
 import { loadPendingAdminInvitationsForCommittee } from "@/lib/admin/load-pending-admin-invitations";
+import { requireAdminSession } from "@/lib/auth/session";
+import { getAdminContext } from "@/lib/auth/admin-context";
 
 export const metadata: Metadata = { title: "Komite" };
 
 export default async function CommitteeSettingsPage() {
+  const session = await requireAdminSession();
+  const viewerCtx = await getAdminContext(session.user.id);
+  if (!viewerCtx) notFound();
+
   const [directory, pendingInvitations] = await Promise.all([
     loadCommitteeAdminDirectory(),
     loadPendingAdminInvitationsForCommittee(),
@@ -60,6 +67,8 @@ export default async function CommitteeSettingsPage() {
       </div>
 
       <CommitteeAdminSettingsPanel
+        viewerProfileId={viewerCtx.profileId}
+        viewerRole={viewerCtx.role}
         directory={directory}
         pendingInvitations={pendingInvitations}
       />

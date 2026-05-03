@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/db/prisma";
 
+export type CommitteeAdminDirectoryPicBankVm = {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  isActive: boolean;
+};
+
 export type CommitteeAdminDirectoryRowVm = {
   adminProfileId: string;
   authUserId: string;
@@ -12,6 +20,7 @@ export type CommitteeAdminDirectoryRowVm = {
   lastSessionActivityAtIso: string | null;
   eventPicCount: number;
   picBankAccountOwnedCount: number;
+  picBankAccounts: CommitteeAdminDirectoryPicBankVm[];
 };
 
 export type CommitteeAdminDirectoryVm = {
@@ -77,6 +86,31 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
     select: { userId: true, updatedAt: true },
   });
 
+  const bankRows = await prisma.picBankAccount.findMany({
+    orderBy: [{ ownerAdminProfileId: "asc" }, { bankName: "asc" }],
+    select: {
+      id: true,
+      ownerAdminProfileId: true,
+      bankName: true,
+      accountNumber: true,
+      accountName: true,
+      isActive: true,
+    },
+  });
+
+  const banksByOwner = new Map<string, CommitteeAdminDirectoryPicBankVm[]>();
+  for (const b of bankRows) {
+    const prev = banksByOwner.get(b.ownerAdminProfileId) ?? [];
+    prev.push({
+      id: b.id,
+      bankName: b.bankName,
+      accountNumber: b.accountNumber,
+      accountName: b.accountName,
+      isActive: b.isActive,
+    });
+    banksByOwner.set(b.ownerAdminProfileId, prev);
+  }
+
   const lastSessionByUser = new Map<string, Date>();
   for (const s of sessions) {
     const prev = lastSessionByUser.get(s.userId);
@@ -102,6 +136,7 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
       lastSessionActivityAtIso: last ? last.toISOString() : null,
       eventPicCount: eventPicByProfile.get(p.id) ?? 0,
       picBankAccountOwnedCount: bankOwnedByProfile.get(p.id) ?? 0,
+      picBankAccounts: banksByOwner.get(p.id) ?? [],
     };
   });
 

@@ -27,6 +27,10 @@ export const CLUB_AUDIT_ACTION = {
   BOARD_ASSIGNMENT_CREATED: "board_assignment.created",
   BOARD_ASSIGNMENT_UPDATED: "board_assignment.updated",
   BOARD_ASSIGNMENT_REMOVED: "board_assignment.removed",
+  PIC_BANK_CREATED: "pic_bank.created",
+  PIC_BANK_UPDATED: "pic_bank.updated",
+  PIC_BANK_DEACTIVATED: "pic_bank.deactivated",
+  PIC_BANK_DELETED: "pic_bank.deleted",
 } as const;
 
 export type ClubAuditAction =

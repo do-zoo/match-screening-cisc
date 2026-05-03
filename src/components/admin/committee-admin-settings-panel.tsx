@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useActionState,
   useCallback,
   useEffect,
@@ -9,7 +10,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { Loader2, MoreVerticalIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, MoreVerticalIcon } from "lucide-react";
 import { AdminRole } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -18,7 +19,9 @@ import type {
   CommitteeAdminDirectoryRowVm,
   CommitteeAdminDirectoryVm,
 } from "@/lib/admin/load-committee-admin-directory";
+import { viewerMayUseOwnerOnlyCommitteeControls } from "@/lib/admin/pic-bank-account-permissions";
 import type { PendingAdminInvitationRowVm } from "@/lib/admin/load-pending-admin-invitations";
+import { AdminPicBankAccountsInline } from "@/components/admin/admin-pic-bank-accounts-inline";
 import {
   createAdminInvitation,
   revokeAdminInvitation,
@@ -632,16 +635,25 @@ function ManageAdminDialogs(props: ManageFormsProps) {
 }
 
 export function CommitteeAdminSettingsPanel(props: {
+  viewerProfileId: string;
+  viewerRole: AdminRole;
   directory: CommitteeAdminDirectoryVm;
   pendingInvitations: PendingAdminInvitationRowVm[];
 }) {
+  const router = useRouter();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteFormKey, setInviteFormKey] = useState(0);
   const [manageKey, setManageKey] = useState(0);
+  const [expandedPicProfileId, setExpandedPicProfileId] = useState<string | null>(
+    null,
+  );
+
+  const canInvite = viewerMayUseOwnerOnlyCommitteeControls(props.viewerRole);
 
   const onManageSuccess = useCallback(() => {
     setManageKey((k) => k + 1);
-  }, []);
+    router.refresh();
+  }, [router]);
 
   const closeInviteDialog = useCallback(() => {
     setInviteOpen(false);
@@ -651,84 +663,91 @@ export function CommitteeAdminSettingsPanel(props: {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-medium">Admin terdaftar</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/admin/settings/committee/export"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Unduh CSV
-          </Link>
-          <Dialog
-            open={inviteOpen}
-            onOpenChange={(o) => {
-              setInviteOpen(o);
-              if (o) setInviteFormKey((k) => k + 1);
-            }}
-          >
-            <DialogTrigger render={<Button variant="default" />}>Undang admin baru…</DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Undang admin baru</DialogTitle>
-                <DialogDescription>
-                  Untuk email yang belum punya akun pengguna. Penerima mendapat taut untuk menetapkan nama
-                  dan kata sandi lewat halaman onboarding.
-                </DialogDescription>
-              </DialogHeader>
-              <InviteAdminForm key={inviteFormKey} onCloseDialog={closeInviteDialog} />
-            </DialogContent>
-          </Dialog>
-        </div>
+        {canInvite ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/settings/committee/export"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Unduh CSV
+            </Link>
+            <Dialog
+              open={inviteOpen}
+              onOpenChange={(o) => {
+                setInviteOpen(o);
+                if (o) setInviteFormKey((k) => k + 1);
+              }}
+            >
+              <DialogTrigger render={<Button variant="default" />}>Undang admin baru…</DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Undang admin baru</DialogTitle>
+                  <DialogDescription>
+                    Untuk email yang belum punya akun pengguna. Penerima mendapat taut untuk menetapkan nama
+                    dan kata sandi lewat halaman onboarding.
+                  </DialogDescription>
+                </DialogHeader>
+                <InviteAdminForm key={inviteFormKey} onCloseDialog={closeInviteDialog} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        ) : null}
       </div>
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Undangan tertunda</h3>
-        {props.pendingInvitations.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Tidak ada undangan yang menunggu.</p>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Peran</TableHead>
-                  <TableHead>Status / kedaluwarsa</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {props.pendingInvitations.map((row) => {
-                  const expired = row.isExpired;
-                  return (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-mono text-xs sm:text-sm">
-                        {row.emailNormalized}
-                      </TableCell>
-                      <TableCell>{ROLE_LABELS[row.role] ?? row.role}</TableCell>
-                      <TableCell className="text-sm">
-                        {expired ? (
-                          <span className="text-destructive">Kedaluwarsa</span>
-                        ) : (
-                          <span className="text-muted-foreground">
-                            Aktif sampai {formatInviteExpiry(row.expiresAtIso)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <RevokeInvitationForm key={row.id} invitationId={row.id} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+      {canInvite ? (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Undangan tertunda</h3>
+          {props.pendingInvitations.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Tidak ada undangan yang menunggu.</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Peran</TableHead>
+                    <TableHead>Status / kedaluwarsa</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {props.pendingInvitations.map((row) => {
+                    const expired = row.isExpired;
+                    return (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-mono text-xs sm:text-sm">
+                          {row.emailNormalized}
+                        </TableCell>
+                        <TableCell>{ROLE_LABELS[row.role] ?? row.role}</TableCell>
+                        <TableCell className="text-sm">
+                          {expired ? (
+                            <span className="text-destructive">Kedaluwarsa</span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Aktif sampai {formatInviteExpiry(row.expiresAtIso)}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <RevokeInvitationForm key={row.id} invitationId={row.id} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="text-muted-foreground w-14">
+                <span className="sr-only">Expand rekening</span>
+              </TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead>Peran</TableHead>
@@ -747,13 +766,36 @@ export function CommitteeAdminSettingsPanel(props: {
           <TableBody>
             {props.directory.rows.length === 0 ? (
               <TableRow>
-                <TableCell className="text-muted-foreground" colSpan={9}>
+                <TableCell className="text-muted-foreground" colSpan={10}>
                   Belum ada AdminProfile.
                 </TableCell>
               </TableRow>
             ) : (
               props.directory.rows.map((row) => (
-                <TableRow key={row.adminProfileId}>
+                <Fragment key={row.adminProfileId}>
+                  <TableRow>
+                    <TableCell className="w-14 align-middle">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="-ms-2"
+                        aria-expanded={expandedPicProfileId === row.adminProfileId}
+                        aria-controls={`committee-pic-banks-${row.adminProfileId}`}
+                        aria-label={`Rekening PIC untuk ${row.email}`}
+                        onClick={() => {
+                          setExpandedPicProfileId((cur) =>
+                            cur === row.adminProfileId ? null : row.adminProfileId,
+                          );
+                        }}
+                      >
+                        {expandedPicProfileId === row.adminProfileId ? (
+                          <ChevronDown />
+                        ) : (
+                          <ChevronRight />
+                        )}
+                      </Button>
+                    </TableCell>
                   <TableCell className="font-mono text-xs sm:text-sm">
                     {row.email}
                   </TableCell>
@@ -771,14 +813,38 @@ export function CommitteeAdminSettingsPanel(props: {
                     {row.picBankAccountOwnedCount}
                   </TableCell>
                   <TableCell className="text-right">
-                    <ManageAdminDialogs
-                      row={row}
-                      memberOptions={props.directory.memberOptions}
-                      manageKey={manageKey}
-                      onAnySuccess={onManageSuccess}
-                    />
+                    {canInvite ? (
+                      <ManageAdminDialogs
+                        row={row}
+                        memberOptions={props.directory.memberOptions}
+                        manageKey={manageKey}
+                        onAnySuccess={onManageSuccess}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
+                  {expandedPicProfileId === row.adminProfileId ? (
+                    <TableRow key={`${row.adminProfileId}-pic`}>
+                      <TableCell className="bg-muted/20 p-0" colSpan={10}>
+                        <div
+                          className="px-4 pb-4"
+                          id={`committee-pic-banks-${row.adminProfileId}`}
+                        >
+                          <AdminPicBankAccountsInline
+                            key={`banks-${manageKey}-${row.adminProfileId}`}
+                            ownerAdminProfileId={row.adminProfileId}
+                            viewerProfileId={props.viewerProfileId}
+                            viewerRole={props.viewerRole}
+                            accounts={row.picBankAccounts}
+                            onMutationSuccess={onManageSuccess}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
               ))
             )}
           </TableBody>
