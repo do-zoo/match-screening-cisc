@@ -73,3 +73,26 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 - **Sebagai** pendaftar, **saya ingin** diarahkan ke halaman konfirmasi berisi identitas pengajuan saya, **agar** saya punya bukti bahwa pendaftaran masuk ke sistem.
 - **Kriteria penerimaan:**
   - URL konfirmasi unik per registrasi dan menampilkan status awal yang sesuai proses bisnis (misalnya menunggu tinjauan).
+
+## Epik: Admin — masuk akun dan kontrol akses
+
+### US-ADM-01 — Masuk dengan magic link atau email dan kata sandi
+
+- **Sebagai** admin, **saya ingin** masuk ke konsol admin dengan metode yang disediakan (tautan ajaib atau email+kata sandi), **agar** saya dapat mengakses data acara dengan aman.
+- **Kriteria penerimaan:**
+  - Alur gagal login menampilkan pesan yang tidak membocorkan detail sensitif akun.
+  - Setelah sukses, sesi admin terbentuk dan dashboard dapat diakses.
+
+### US-ADM-02 — Verifikasi dua langkah bila kebijakan mengaktifkannya
+
+- **Sebagai** admin, **saya ingin** menyelesaikan langkah kedua autentikasi setelah kredensial pertama, **agar** akun yang memerlukan 2FA memenuhi standar keamanan klub.
+- **Kriteria penerimaan:**
+  - Admin yang wajib 2FA tidak dapat melewati konsol tanpa menyelesaikan langkah tersebut.
+  - Alur 2FA memberi petunjuk jelas bila kode salah atau kadaluarsa.
+
+### US-ADM-03 — Pembatasan peran operasional
+
+- **Sebagai** pemilik atau pengelola komite, **saya ingin** peran **Owner, Admin, Verifier, Viewer** memiliki batasan yang jelas, **agar** tugas verifikasi terpisah dari pengaturan tingkat klub yang sensitif.
+- **Kriteria penerimaan:**
+  - Verifier dapat menjalankan tugas tinjauan sesuai izin tanpa mengubah konfigurasi yang hanya untuk Owner/Admin tingkat lanjut.
+  - Viewer tidak dapat mengubah data yang bersifat mutatif di luar ruang lingkup baca.
