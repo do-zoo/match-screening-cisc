@@ -289,7 +289,7 @@ function ManagementPeriodFormDialogBody({
           </Field>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           {mode === "edit" && !showDeleteConfirm ? (
             <Button
               type="button"

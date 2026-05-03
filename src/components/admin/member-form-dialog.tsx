@@ -144,7 +144,10 @@ export function MemberFormDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(submit)}
+        >
           {rootMessage ? (
             <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {rootMessage}
@@ -200,7 +203,7 @@ export function MemberFormDialog({
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"

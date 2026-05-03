@@ -33,7 +33,11 @@ import {
   adminManagementMemberUpdateSchema,
 } from "@/lib/forms/admin-management-member-schema";
 
-type MasterMemberOption = { id: string; memberNumber: string; fullName: string };
+type MasterMemberOption = {
+  id: string;
+  memberNumber: string;
+  fullName: string;
+};
 
 type MemberRow = {
   id: string;
@@ -73,7 +77,10 @@ const INITIAL_EXTRAS: DialogExtras = {
   showDeleteConfirm: false,
 };
 
-function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
+function extrasReducer(
+  state: DialogExtras,
+  action: ExtrasAction,
+): DialogExtras {
   switch (action.type) {
     case "opened":
       return {
@@ -237,14 +244,21 @@ export function ManagementMemberFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(submit)}
+        >
           {rootMessage ? (
             <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {rootMessage}
             </p>
           ) : null}
 
-          <Field label="Nama lengkap" htmlFor="mm-full-name" error={form.formState.errors.fullName?.message}>
+          <Field
+            label="Nama lengkap"
+            htmlFor="mm-full-name"
+            error={form.formState.errors.fullName?.message}
+          >
             <Input
               id="mm-full-name"
               aria-invalid={Boolean(form.formState.errors.fullName)}
@@ -253,7 +267,11 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <Field label="Kode publik" htmlFor="mm-public-code" error={form.formState.errors.publicCode?.message}>
+          <Field
+            label="Kode publik"
+            htmlFor="mm-public-code"
+            error={form.formState.errors.publicCode?.message}
+          >
             <Input
               id="mm-public-code"
               aria-invalid={Boolean(form.formState.errors.publicCode)}
@@ -264,7 +282,11 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <Field label="WhatsApp (opsional)" htmlFor="mm-whatsapp" error={form.formState.errors.whatsapp?.message}>
+          <Field
+            label="WhatsApp (opsional)"
+            htmlFor="mm-whatsapp"
+            error={form.formState.errors.whatsapp?.message}
+          >
             <Input
               id="mm-whatsapp"
               aria-invalid={Boolean(form.formState.errors.whatsapp)}
@@ -274,7 +296,11 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <Field label="Tautan anggota (opsional)" htmlFor="mm-master-member" error={form.formState.errors.masterMemberId?.message}>
+          <Field
+            label="Tautan anggota (opsional)"
+            htmlFor="mm-master-member"
+            error={form.formState.errors.masterMemberId?.message}
+          >
             <Controller
               control={form.control}
               name="masterMemberId"
@@ -300,7 +326,7 @@ export function ManagementMemberFormDialog({
             />
           </Field>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             {mode === "edit" && !showDeleteConfirm ? (
               <Button
                 type="button"
@@ -315,8 +341,18 @@ export function ManagementMemberFormDialog({
             {mode === "edit" && showDeleteConfirm ? (
               <div className="mr-auto flex flex-wrap items-center gap-2">
                 <span className="text-sm text-destructive">Yakin hapus?</span>
-                <Button type="button" variant="destructive" size="sm" disabled={isDeleting} onClick={handleDelete}>
-                  {isDeleting ? <Loader2 className="size-4 animate-spin" /> : "Ya, hapus"}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Ya, hapus"
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -329,10 +365,17 @@ export function ManagementMemberFormDialog({
                 >
                   Batal
                 </Button>
-                {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
+                {deleteError ? (
+                  <p className="text-sm text-destructive">{deleteError}</p>
+                ) : null}
               </div>
             ) : null}
-            <Button type="button" variant="outline" disabled={isPending || isDeleting} onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending || isDeleting}
+              onClick={() => onOpenChange(false)}
+            >
               Batal
             </Button>
             <Button type="submit" disabled={isPending || isDeleting}>
@@ -345,8 +388,16 @@ export function ManagementMemberFormDialog({
   );
 }
 
-function Field({ label, htmlFor, error, children }: {
-  label: string; htmlFor: string; error?: string; children: React.ReactNode;
+function Field({
+  label,
+  htmlFor,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">

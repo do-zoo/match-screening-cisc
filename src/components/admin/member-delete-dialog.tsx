@@ -61,8 +61,8 @@ export function MemberDeleteDialog({
         <DialogHeader>
           <DialogTitle>Hapus anggota</DialogTitle>
           <DialogDescription>
-            Hapus <strong>{name}</strong> secara permanen? Tindakan ini tidak bisa
-            dibatalkan.
+            Hapus <strong>{name}</strong> secara permanen? Tindakan ini tidak
+            bisa dibatalkan.
           </DialogDescription>
         </DialogHeader>
         {error ? (
@@ -70,7 +70,7 @@ export function MemberDeleteDialog({
             {error}
           </p>
         ) : null}
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button
             type="button"
             variant="outline"

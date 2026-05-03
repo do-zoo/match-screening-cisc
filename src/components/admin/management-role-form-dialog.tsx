@@ -51,7 +51,8 @@ type FormValues = {
   title: string;
   sortOrder: string;
   isUnique: boolean;
-  parentRoleId: string;
+  /** Zod preprocessor normalizes "__none__" / empty to `null` before submit. */
+  parentRoleId: string | null;
 };
 
 type Props = {
@@ -85,7 +86,10 @@ const INITIAL_EXTRAS: DialogExtras = {
   showDeactivateConfirm: false,
 };
 
-function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
+function extrasReducer(
+  state: DialogExtras,
+  action: ExtrasAction,
+): DialogExtras {
   switch (action.type) {
     case "opened":
       return {
@@ -162,10 +166,13 @@ export function ManagementRoleFormDialog({
     dispatchExtras({ type: "set-root-message", message: null });
     startTransition(async () => {
       const fd = new FormData();
+      const rawParent = values.parentRoleId;
       const parentNorm =
-        values.parentRoleId === ROLE_PARENT_NONE
+        rawParent == null || rawParent === ROLE_PARENT_NONE
           ? null
-          : values.parentRoleId.trim() || null;
+          : typeof rawParent === "string"
+            ? rawParent.trim() || null
+            : null;
       const payload =
         mode === "create"
           ? {
@@ -243,14 +250,21 @@ export function ManagementRoleFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(submit)}
+        >
           {rootMessage ? (
             <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {rootMessage}
             </p>
           ) : null}
 
-          <Field label="Nama jabatan" htmlFor="role-title" error={form.formState.errors.title?.message}>
+          <Field
+            label="Nama jabatan"
+            htmlFor="role-title"
+            error={form.formState.errors.title?.message}
+          >
             <Input
               id="role-title"
               aria-invalid={Boolean(form.formState.errors.title)}
@@ -259,7 +273,11 @@ export function ManagementRoleFormDialog({
             />
           </Field>
 
-          <Field label="Urutan tampil" htmlFor="role-sort-order" error={form.formState.errors.sortOrder?.message}>
+          <Field
+            label="Urutan tampil"
+            htmlFor="role-sort-order"
+            error={form.formState.errors.sortOrder?.message}
+          >
             <Input
               id="role-sort-order"
               type="number"
@@ -275,15 +293,21 @@ export function ManagementRoleFormDialog({
               name="parentRoleId"
               render={({ field }) => (
                 <Select
-                  value={field.value}
+                  value={field.value ?? ROLE_PARENT_NONE}
                   onValueChange={field.onChange}
                   disabled={isPending}
                 >
-                  <SelectTrigger id="role-parent" size="default" className="h-10 w-full">
+                  <SelectTrigger
+                    id="role-parent"
+                    size="default"
+                    className="h-10 w-full"
+                  >
                     <SelectValue placeholder="— Tidak ada induk —" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ROLE_PARENT_NONE}>— Tidak ada induk —</SelectItem>
+                    <SelectItem value={ROLE_PARENT_NONE}>
+                      — Tidak ada induk —
+                    </SelectItem>
                     {allRoles
                       .filter((r) => r.id !== role?.id)
                       .map((r) => (
@@ -307,7 +331,11 @@ export function ManagementRoleFormDialog({
                   onValueChange={(v) => field.onChange(v === "1")}
                   disabled={isPending}
                 >
-                  <SelectTrigger id="role-unique" size="default" className="h-10 w-full">
+                  <SelectTrigger
+                    id="role-unique"
+                    size="default"
+                    className="h-10 w-full"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -319,7 +347,7 @@ export function ManagementRoleFormDialog({
             />
           </Field>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             {canDeactivate && !showDeactivateConfirm ? (
               <Button
                 type="button"
@@ -335,9 +363,21 @@ export function ManagementRoleFormDialog({
             ) : null}
             {canDeactivate && showDeactivateConfirm ? (
               <div className="mr-auto flex flex-wrap items-center gap-2">
-                <span className="text-sm text-destructive">Yakin nonaktifkan?</span>
-                <Button type="button" variant="destructive" size="sm" disabled={isDeactivating} onClick={handleDeactivate}>
-                  {isDeactivating ? <Loader2 className="size-4 animate-spin" /> : "Ya"}
+                <span className="text-sm text-destructive">
+                  Yakin nonaktifkan?
+                </span>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeactivating}
+                  onClick={handleDeactivate}
+                >
+                  {isDeactivating ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Ya"
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -350,10 +390,17 @@ export function ManagementRoleFormDialog({
                 >
                   Batal
                 </Button>
-                {deactivateError ? <p className="text-sm text-destructive">{deactivateError}</p> : null}
+                {deactivateError ? (
+                  <p className="text-sm text-destructive">{deactivateError}</p>
+                ) : null}
               </div>
             ) : null}
-            <Button type="button" variant="outline" disabled={isPending || isDeactivating} onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending || isDeactivating}
+              onClick={() => onOpenChange(false)}
+            >
               Batal
             </Button>
             <Button type="submit" disabled={isPending || isDeactivating}>
@@ -366,8 +413,16 @@ export function ManagementRoleFormDialog({
   );
 }
 
-function Field({ label, htmlFor, error, children }: {
-  label: string; htmlFor: string; error?: string; children: React.ReactNode;
+function Field({
+  label,
+  htmlFor,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">

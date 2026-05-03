@@ -401,8 +401,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
           </div>
           <p className="text-muted-foreground text-xs">
             Jika memilih default komite, nilai disimpan dari{" "}
-            <strong>Pengaturan → Harga default</strong> (basis data bila sudah pernah disimpan), lalu
-            env <code>MATCH_DEFAULT_TICKET_*_IDR</code>, lalu fallback bawaan aplikasi.
+            <strong>Pengaturan → Harga default</strong> (basis data bila sudah
+            pernah disimpan), lalu env <code>MATCH_DEFAULT_TICKET_*_IDR</code>,
+            lalu fallback bawaan aplikasi.
           </p>
         </section>
 
@@ -414,9 +415,13 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 value={menuMode}
                 onValueChange={(v) => {
                   if (v == null) return;
-                  form.setValue("menuMode", v as AdminEventUpsertInput["menuMode"], {
-                    shouldDirty: true,
-                  });
+                  form.setValue(
+                    "menuMode",
+                    v as AdminEventUpsertInput["menuMode"],
+                    {
+                      shouldDirty: true,
+                    },
+                  );
                 }}
                 disabled={pending || lockedMenuKeys.includes("menuMode")}
               >
@@ -629,9 +634,13 @@ export function EventAdminForm(props: EventAdminFormProps) {
                         const prev: string[] =
                           form.getValues("helperAdminProfileIds") ?? [];
                         if (e.target.checked) {
-                          form.setValue("helperAdminProfileIds", [...prev, p.id], {
-                            shouldDirty: true,
-                          });
+                          form.setValue(
+                            "helperAdminProfileIds",
+                            [...prev, p.id],
+                            {
+                              shouldDirty: true,
+                            },
+                          );
                         } else {
                           form.setValue(
                             "helperAdminProfileIds",
@@ -687,7 +696,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
               rekening. Pastikan ini disengaja sebelum melanjutkan.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
