@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CommitteeAdminSettingsPanel } from "@/components/admin/committee-admin-settings-panel";
+import { loadCommitteeAdminDirectory } from "@/lib/admin/load-committee-admin-directory";
+import { loadPendingAdminInvitationsForCommittee } from "@/lib/admin/load-pending-admin-invitations";
 
 export const metadata: Metadata = { title: "Komite" };
-import { loadCommitteeAdminDirectory } from "@/lib/admin/load-committee-admin-directory";
 
 export default async function CommitteeSettingsPage() {
-  const directory = await loadCommitteeAdminDirectory();
+  const [directory, pendingInvitations] = await Promise.all([
+    loadCommitteeAdminDirectory(),
+    loadPendingAdminInvitationsForCommittee(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -37,9 +41,15 @@ export default async function CommitteeSettingsPage() {
         <div className="border-border rounded-lg border bg-muted/40 p-4 text-sm leading-relaxed">
           <p className="font-medium text-foreground">Langkah biasa</p>
           <ol className="text-muted-foreground mt-2 list-decimal space-y-1 ps-5">
-            <li>Pastikan direktori anggota dan (bila perlu) rekening PIC di profil admin sudah siap.</li>
-            <li>Buat atau pastikan pengguna sudah bisa masuk (akun Better Auth).</li>
-            <li>Tambahkan email tersebut sebagai admin di panel di bawah; set peran atau tautkan anggota bila perlu.</li>
+            <li>
+              Untuk admin baru, gunakan <strong className="text-foreground">Undang admin baru</strong> —
+              orang tersebut menerima taut onboarding (email bisa dikirim otomatis bila SMTP aktif).
+            </li>
+            <li>
+              Untuk orang yang sudah punya akun pengguna tetapi belum ada profil admin, pakai{" "}
+              <strong className="text-foreground">Tautkan akun ada</strong> dengan email tersebut.
+            </li>
+            <li>Pastikan direktori anggota dan (bila perlu) rekening PIC di profil admin sudah siap sebelum PIC acara.</li>
             <li>Gunakan{" "}
               <Link href="/admin/settings/security" className="underline underline-offset-4">
                 Keamanan
@@ -49,7 +59,10 @@ export default async function CommitteeSettingsPage() {
         </div>
       </div>
 
-      <CommitteeAdminSettingsPanel directory={directory} />
+      <CommitteeAdminSettingsPanel
+        directory={directory}
+        pendingInvitations={pendingInvitations}
+      />
     </div>
   );
 }

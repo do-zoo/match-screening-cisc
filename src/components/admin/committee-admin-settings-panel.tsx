@@ -1,13 +1,22 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Loader2, MoreVerticalIcon } from "lucide-react";
+import { AdminRole } from "@prisma/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import type {
   CommitteeAdminDirectoryRowVm,
   CommitteeAdminDirectoryVm,
 } from "@/lib/admin/load-committee-admin-directory";
+import type { PendingAdminInvitationRowVm } from "@/lib/admin/load-pending-admin-invitations";
+import {
+  createAdminInvitation,
+  revokeAdminInvitation,
+  type CreateAdminInvitationResult,
+} from "@/lib/actions/admin-admin-invitations";
 import {
   addCommitteeAdminByEmail,
   deleteCommitteeAdmin,
@@ -74,6 +83,147 @@ function fieldErrorsLines(fieldErrors?: Record<string, string>) {
   return Object.entries(fieldErrors)
     .map(([k, v]) => `${k}: ${v}`)
     .join("\n");
+}
+
+function formatInviteExpiry(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("id-ID", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function InviteAdminForm({ onCloseDialog }: { onCloseDialog: () => void }) {
+  const emailedSentRef = useRef(false);
+
+  const [inviteState, inviteDispatch, invitePending] = useActionState(
+    createAdminInvitation,
+    null as ActionResult<CreateAdminInvitationResult> | null,
+  );
+
+  useEffect(() => {
+    if (!inviteState?.ok) return;
+    if (inviteState.data.inviteUrl) return;
+    if (emailedSentRef.current) return;
+    emailedSentRef.current = true;
+    toastCudSuccess("create", "Undangan dibuat — email undangan telah dikirim.");
+    onCloseDialog();
+  }, [inviteState, onCloseDialog]);
+
+  const inviteFieldLines = fieldErrorsLines(
+    inviteState?.ok === false ? inviteState.fieldErrors : undefined,
+  );
+
+  if (inviteState?.ok === true && inviteState.data.inviteUrl) {
+    const url = inviteState.data.inviteUrl;
+    return (
+      <div className="space-y-4">
+        <Alert>
+          <AlertTitle>Salin taut undangan</AlertTitle>
+          <AlertDescription>
+            Email pengiriman tidak digunakan atau gagal — berikan taut ini secara langsung kepada
+            penerima (rahasia, satu orang).
+          </AlertDescription>
+        </Alert>
+        <Input readOnly value={url} className="font-mono text-xs" />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(url).then(
+                () => toast.success("Taut disalin."),
+                () => toast.error("Salin gagal — pilih manual."),
+              );
+            }}
+          >
+            Salin taut
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onCloseDialog()}>
+            Tutup
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form action={inviteDispatch} className="space-y-4">
+      {inviteState?.ok === false && inviteState.rootError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Gagal</AlertTitle>
+          <AlertDescription>{inviteState.rootError}</AlertDescription>
+        </Alert>
+      ) : null}
+      {inviteFieldLines ? (
+        <Alert variant="destructive">
+          <AlertTitle>Periksa isian</AlertTitle>
+          <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
+            {inviteFieldLines}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      <div className="space-y-2">
+        <Label htmlFor="invite-admin-email">Email</Label>
+        <Input
+          id="invite-admin-email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          disabled={invitePending}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="invite-admin-role">Peran pertama</Label>
+        <select
+          id="invite-admin-role"
+          name="role"
+          className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+          defaultValue={AdminRole.Viewer}
+          disabled={invitePending}
+          required
+        >
+          <option value={AdminRole.Admin}>Admin</option>
+          <option value={AdminRole.Verifier}>Verifier</option>
+          <option value={AdminRole.Viewer}>Viewer</option>
+        </select>
+      </div>
+      <DialogFooter>
+        <Button type="submit" disabled={invitePending}>
+          {invitePending ? <Loader2 className="size-4 animate-spin" /> : "Kirim undangan"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function RevokeInvitationForm(props: { invitationId: string }) {
+  const router = useRouter();
+  const revokedRef = useRef(false);
+
+  const [revokeInvState, revokeInvDispatch, revokeInvPending] = useActionState(
+    revokeAdminInvitation,
+    null as ActionResult<{ revoked: true }> | null,
+  );
+
+  useEffect(() => {
+    if (!revokeInvState?.ok || revokedRef.current) return;
+    revokedRef.current = true;
+    toast.success("Undangan dibatalkan.");
+    router.refresh();
+  }, [revokeInvState, router]);
+
+  return (
+    <form action={revokeInvDispatch} className="inline">
+      <input type="hidden" name="invitationId" value={props.invitationId} />
+      <Button type="submit" variant="outline" size="sm" disabled={revokeInvPending}>
+        Batalkan
+      </Button>
+    </form>
+  );
 }
 
 type ManageDialogId = "role" | "member" | "revoke" | "delete";
@@ -396,13 +546,20 @@ function ManageAdminDialogs(props: ManageFormsProps) {
 
 export function CommitteeAdminSettingsPanel(props: {
   directory: CommitteeAdminDirectoryVm;
+  pendingInvitations: PendingAdminInvitationRowVm[];
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [addKey, setAddKey] = useState(0);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteFormKey, setInviteFormKey] = useState(0);
   const [manageKey, setManageKey] = useState(0);
 
   const onManageSuccess = useCallback(() => {
     setManageKey((k) => k + 1);
+  }, []);
+
+  const closeInviteDialog = useCallback(() => {
+    setInviteOpen(false);
   }, []);
 
   const [addState, addDispatch, addPending] = useActionState(
@@ -434,53 +591,117 @@ export function CommitteeAdminSettingsPanel(props: {
           >
             Unduh CSV
           </Link>
+          <Dialog
+            open={inviteOpen}
+            onOpenChange={(o) => {
+              setInviteOpen(o);
+              if (o) setInviteFormKey((k) => k + 1);
+            }}
+          >
+            <DialogTrigger render={<Button variant="default" />}>Undang admin baru…</DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Undang admin baru</DialogTitle>
+                <DialogDescription>
+                  Untuk email yang belum punya akun pengguna. Penerima mendapat taut untuk menetapkan nama
+                  dan kata sandi lewat halaman onboarding.
+                </DialogDescription>
+              </DialogHeader>
+              <InviteAdminForm key={inviteFormKey} onCloseDialog={closeInviteDialog} />
+            </DialogContent>
+          </Dialog>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger disabled={addPending} render={<Button />}>
-            Tambah admin…
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Tambah admin dari email</DialogTitle>
-              <DialogDescription>
-                Pengguna harus sudah punya akun (pernah masuk atau mendaftar). Peran default:
-                Viewer — ubah melalui &ldquo;Ubah peran&rdquo;.
-              </DialogDescription>
-            </DialogHeader>
-            <form action={addDispatch} className="space-y-4" key={`add-${addKey}`}>
-              {addState?.ok === false && addState.rootError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Gagal</AlertTitle>
-                  <AlertDescription>{addState.rootError}</AlertDescription>
-                </Alert>
-              ) : null}
-              {addFieldLines ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Periksa isian</AlertTitle>
-                  <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
-                    {addFieldLines}
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              <div className="space-y-2">
-                <Label htmlFor="committee-admin-email">Email</Label>
-                <Input
-                  id="committee-admin-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  disabled={addPending}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={addPending}>
-                  {addPending ? <Loader2 className="size-4 animate-spin" /> : "Tambahkan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
+            <DialogTrigger disabled={addPending} render={<Button variant="outline" />}>
+              Tautkan akun ada…
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Tautkan akun yang sudah ada</DialogTitle>
+                <DialogDescription>
+                  Email harus sudah punya akun Better Auth (misalnya pernah masuk). Peran default Viewer —
+                  ubah lewat &ldquo;Ubah peran&rdquo; di tabel.
+                </DialogDescription>
+              </DialogHeader>
+              <form action={addDispatch} className="space-y-4" key={`add-${addKey}`}>
+                {addState?.ok === false && addState.rootError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Gagal</AlertTitle>
+                    <AlertDescription>{addState.rootError}</AlertDescription>
+                  </Alert>
+                ) : null}
+                {addFieldLines ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Periksa isian</AlertTitle>
+                    <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
+                      {addFieldLines}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="committee-admin-email">Email</Label>
+                  <Input
+                    id="committee-admin-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    disabled={addPending}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={addPending}>
+                    {addPending ? <Loader2 className="size-4 animate-spin" /> : "Tambahkan"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">Undangan tertunda</h3>
+        {props.pendingInvitations.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Tidak ada undangan yang menunggu.</p>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Peran</TableHead>
+                  <TableHead>Status / kedaluwarsa</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {props.pendingInvitations.map((row) => {
+                  const expired = row.isExpired;
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-mono text-xs sm:text-sm">
+                        {row.emailNormalized}
+                      </TableCell>
+                      <TableCell>{ROLE_LABELS[row.role] ?? row.role}</TableCell>
+                      <TableCell className="text-sm">
+                        {expired ? (
+                          <span className="text-destructive">Kedaluwarsa</span>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Aktif sampai {formatInviteExpiry(row.expiresAtIso)}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <RevokeInvitationForm key={row.id} invitationId={row.id} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-md border">
