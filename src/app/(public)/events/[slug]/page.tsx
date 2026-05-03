@@ -5,7 +5,6 @@ import {
   getActiveEventRegistrationPageData,
   getSerializedEventForPublicRegistration,
 } from "@/lib/events/event-registration-page";
-import { PublicSiteLogoLink } from "@/components/branding/public-site-logo-link";
 import { cn } from "@/lib/utils";
 import { SITE_BRAND_SHORT } from "@/lib/site-metadata";
 import type { Metadata } from "next";
@@ -47,17 +46,14 @@ export default async function EventDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
-        <header className="flex flex-col gap-6">
-          <PublicSiteLogoLink height={44} />
-          <nav>
-            <Link
-              href="/events"
-              className="text-sm text-[hsl(var(--muted-foreground))] underline-offset-4 hover:text-[hsl(var(--foreground))] hover:underline"
-            >
-              ← Daftar acara
-            </Link>
-          </nav>
-        </header>
+        <nav>
+          <Link
+            href="/events"
+            className="text-sm text-[hsl(var(--muted-foreground))] underline-offset-4 hover:text-[hsl(var(--foreground))] hover:underline"
+          >
+            ← Daftar acara
+          </Link>
+        </nav>
         <EventSummary event={event} />
 
         <div className="flex flex-col gap-3 border-t border-[hsl(var(--border))] pt-6">

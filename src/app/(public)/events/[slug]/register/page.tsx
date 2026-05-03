@@ -1,4 +1,3 @@
-import { PublicSiteLogoLink } from "@/components/branding/public-site-logo-link";
 import { RegistrationFormClientOnly } from "@/components/public/registration-form-client-only";
 import {
   getActiveEventRegistrationPageData,
@@ -37,17 +36,14 @@ export default async function EventRegistrationPage({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-6">
-          <PublicSiteLogoLink height={44} />
-          <nav>
-            <Link
-              href={`/events/${event.slug}`}
-              className="text-sm text-[hsl(var(--muted-foreground))] underline-offset-4 hover:text-[hsl(var(--foreground))] hover:underline"
-            >
-              ← Kembali ke detail acara
-            </Link>
-          </nav>
-        </header>
+        <nav>
+          <Link
+            href={`/events/${event.slug}`}
+            className="text-sm text-[hsl(var(--muted-foreground))] underline-offset-4 hover:text-[hsl(var(--foreground))] hover:underline"
+          >
+            ← Kembali ke detail acara
+          </Link>
+        </nav>
         <header className="flex flex-col gap-1">
           <h1 className="font-semibold text-xl tracking-tight md:text-2xl">
             Pendaftaran: {event.title}
