@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Resolver } from "react-hook-form";
 import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,21 @@ function toDateInputValue(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function addCalendarYears(from: Date, years: number): Date {
+  const d = new Date(from);
+  d.setFullYear(d.getFullYear() + years);
+  return d;
+}
+
+function subCalendarYears(from: Date, years: number): Date {
+  const d = new Date(from);
+  d.setFullYear(d.getFullYear() - years);
+  return d;
+}
+
+const BOARD_PERIOD_START_MIN_YEARS_BEFORE = 10;
+const BOARD_PERIOD_END_MAX_YEARS_AHEAD = 10;
+
 export function ManagementPeriodFormDialog({
   mode,
   open,
@@ -61,10 +77,44 @@ export function ManagementPeriodFormDialog({
   onSaved,
   defaultShowDeleteConfirm = false,
 }: Props) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        {open ? (
+          <ManagementPeriodFormDialogBody
+            mode={mode}
+            period={period}
+            defaultShowDeleteConfirm={defaultShowDeleteConfirm}
+            onOpenChange={onOpenChange}
+            onSaved={onSaved}
+          />
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type InnerProps = {
+  mode: "create" | "edit";
+  period?: PeriodRow | null;
+  defaultShowDeleteConfirm: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+};
+
+function ManagementPeriodFormDialogBody({
+  mode,
+  period,
+  defaultShowDeleteConfirm,
+  onOpenChange,
+  onSaved,
+}: InnerProps) {
   const [isPending, startTransition] = useTransition();
   const [rootMessage, setRootMessage] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(
+    defaultShowDeleteConfirm,
+  );
   const [isDeleting, startDeleteTransition] = useTransition();
 
   const defaultValues = useMemo<FormValues>(
@@ -77,6 +127,16 @@ export function ManagementPeriodFormDialog({
     [period],
   );
 
+  const startsAtMinCalendarDate = useMemo(
+    () => subCalendarYears(new Date(), BOARD_PERIOD_START_MIN_YEARS_BEFORE),
+    [],
+  );
+
+  const endsAtMaxCalendarDate = useMemo(
+    () => addCalendarYears(new Date(), BOARD_PERIOD_END_MAX_YEARS_AHEAD),
+    [],
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(
       (mode === "create"
@@ -87,13 +147,8 @@ export function ManagementPeriodFormDialog({
   });
 
   useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-      setRootMessage(null);
-      setDeleteError(null);
-      setShowDeleteConfirm(defaultShowDeleteConfirm);
-    }
-  }, [open, defaultValues, form, defaultShowDeleteConfirm]);
+    form.reset(defaultValues);
+  }, [defaultValues, form]);
 
   function submit(values: FormValues) {
     setRootMessage(null);
@@ -101,8 +156,17 @@ export function ManagementPeriodFormDialog({
       const fd = new FormData();
       const payload =
         mode === "create"
-          ? { label: values.label, startsAt: values.startsAt, endsAt: values.endsAt }
-          : { id: period?.id ?? "", label: values.label, startsAt: values.startsAt, endsAt: values.endsAt };
+          ? {
+              label: values.label,
+              startsAt: values.startsAt,
+              endsAt: values.endsAt,
+            }
+          : {
+              id: period?.id ?? "",
+              label: values.label,
+              startsAt: values.startsAt,
+              endsAt: values.endsAt,
+            };
       fd.set("payload", JSON.stringify(payload));
       const result =
         mode === "create"
@@ -136,96 +200,167 @@ export function ManagementPeriodFormDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) { setRootMessage(null); setDeleteError(null); setShowDeleteConfirm(false); }
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === "create" ? "Tambah periode" : "Edit periode"}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === "create"
-              ? "Buat periode kabinet baru."
-              : "Perbarui data periode kabinet."}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>
+          {mode === "create" ? "Tambah periode" : "Edit periode"}
+        </DialogTitle>
+        <DialogDescription>
+          {mode === "create"
+            ? "Buat periode kabinet baru."
+            : "Perbarui data periode kabinet."}
+        </DialogDescription>
+      </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
-          {rootMessage ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-              {rootMessage}
-            </p>
-          ) : null}
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={form.handleSubmit(submit)}
+      >
+        {rootMessage ? (
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {rootMessage}
+          </p>
+        ) : null}
 
-          <Field label="Label periode" htmlFor="period-label" error={form.formState.errors.label?.message}>
-            <Input id="period-label" aria-invalid={Boolean(form.formState.errors.label)} disabled={isPending} {...form.register("label")} />
+        <Field
+          label="Label periode"
+          htmlFor="period-label"
+          error={form.formState.errors.label?.message}
+        >
+          <Input
+            id="period-label"
+            aria-invalid={Boolean(form.formState.errors.label)}
+            disabled={isPending}
+            {...form.register("label")}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="Tanggal mulai"
+            htmlFor="period-starts-at"
+            error={form.formState.errors.startsAt?.message}
+          >
+            <Controller
+              name="startsAt"
+              control={form.control}
+              render={({ field }) => (
+                <DatePicker
+                  id="period-starts-at"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  onBlur={field.onBlur}
+                  aria-invalid={Boolean(form.formState.errors.startsAt)}
+                  disabled={isPending}
+                  disabledModifiers={{
+                    after: new Date(),
+                  }}
+                  endMonth={new Date()}
+                  startMonth={startsAtMinCalendarDate}
+                />
+              )}
+            />
           </Field>
+          <Field
+            label="Tanggal akhir"
+            htmlFor="period-ends-at"
+            error={form.formState.errors.endsAt?.message}
+          >
+            <Controller
+              name="endsAt"
+              control={form.control}
+              render={({ field }) => (
+                <DatePicker
+                  id="period-ends-at"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  onBlur={field.onBlur}
+                  aria-invalid={Boolean(form.formState.errors.endsAt)}
+                  disabled={isPending}
+                  disabledModifiers={{
+                    after: endsAtMaxCalendarDate,
+                    before: new Date(),
+                  }}
+                  endMonth={endsAtMaxCalendarDate}
+                  startMonth={new Date()}
+                />
+              )}
+            />
+          </Field>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Tanggal mulai" htmlFor="period-starts-at" error={form.formState.errors.startsAt?.message}>
-              <Input id="period-starts-at" type="date" aria-invalid={Boolean(form.formState.errors.startsAt)} disabled={isPending} {...form.register("startsAt")} />
-            </Field>
-            <Field label="Tanggal akhir" htmlFor="period-ends-at" error={form.formState.errors.endsAt?.message}>
-              <Input id="period-ends-at" type="date" aria-invalid={Boolean(form.formState.errors.endsAt)} disabled={isPending} {...form.register("endsAt")} />
-            </Field>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            {mode === "edit" && !showDeleteConfirm ? (
+        <DialogFooter className="gap-2 sm:gap-0">
+          {mode === "edit" && !showDeleteConfirm ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mr-auto text-destructive hover:text-destructive"
+              disabled={isPending || isDeleting}
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Hapus
+            </Button>
+          ) : null}
+          {mode === "edit" && showDeleteConfirm ? (
+            <div className="mr-auto flex flex-wrap items-center gap-2">
+              <span className="text-sm text-destructive">Yakin hapus?</span>
               <Button
                 type="button"
-                variant="ghost"
-                className="mr-auto text-destructive hover:text-destructive"
-                disabled={isPending || isDeleting}
-                onClick={() => setShowDeleteConfirm(true)}
+                variant="destructive"
+                size="sm"
+                disabled={isDeleting}
+                onClick={handleDelete}
               >
-                Hapus
+                {isDeleting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Ya, hapus"
+                )}
               </Button>
-            ) : null}
-            {mode === "edit" && showDeleteConfirm ? (
-              <div className="mr-auto flex items-center gap-2">
-                <span className="text-sm text-destructive">Yakin hapus?</span>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? <Loader2 className="size-4 animate-spin" /> : "Ya, hapus"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }}
-                >
-                  Batal
-                </Button>
-                {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
-              </div>
-            ) : null}
-            <Button type="button" variant="outline" disabled={isPending} onClick={() => onOpenChange(false)}>
-              Batal
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Menyimpan..." : "Simpan"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isDeleting}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError(null);
+                }}
+              >
+                Batal
+              </Button>
+              {deleteError ? (
+                <p className="w-full text-sm text-destructive">{deleteError}</p>
+              ) : null}
+            </div>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Batal
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Menyimpan..." : "Simpan"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </>
   );
 }
 
-function Field({ label, htmlFor, error, children }: {
-  label: string; htmlFor: string; error?: string; children: React.ReactNode;
+function Field({
+  label,
+  htmlFor,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">
