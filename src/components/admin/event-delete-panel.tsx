@@ -50,7 +50,9 @@ export function EventDeletePanel({
   return (
     <section className="rounded-lg border border-destructive/40 p-6 flex flex-col gap-4">
       <div>
-        <h2 className="text-base font-semibold text-destructive">Zona berbahaya</h2>
+        <h2 className="text-base font-semibold text-destructive">
+          Zona berbahaya
+        </h2>
         <p className="text-sm text-muted-foreground mt-1">
           Tindakan di bawah ini bersifat permanen dan tidak bisa dibatalkan.
         </p>
@@ -59,8 +61,8 @@ export function EventDeletePanel({
       {registrationCount > 0 ? (
         <p className="text-sm text-muted-foreground">
           Acara tidak bisa dihapus karena memiliki{" "}
-          <strong>{registrationCount} registrasi</strong>. Hapus atau batalkan semua
-          registrasi terlebih dahulu jika ingin menghapus acara ini.
+          <strong>{registrationCount} registrasi</strong>. Hapus atau batalkan
+          semua registrasi terlebih dahulu jika ingin menghapus acara ini.
         </p>
       ) : (
         <Dialog>
@@ -74,8 +76,8 @@ export function EventDeletePanel({
             <DialogHeader>
               <DialogTitle>Hapus acara</DialogTitle>
               <DialogDescription>
-                Menghapus <strong>{eventTitle}</strong> secara permanen beserta semua
-                konfigurasinya. Tindakan ini tidak bisa dibatalkan.
+                Menghapus <strong>{eventTitle}</strong> secara permanen beserta
+                semua konfigurasinya. Tindakan ini tidak bisa dibatalkan.
               </DialogDescription>
             </DialogHeader>
             {state?.ok === false && state.rootError ? (
@@ -87,7 +89,11 @@ export function EventDeletePanel({
             <form action={dispatch}>
               <input type="hidden" name="eventId" value={eventId} />
               <DialogFooter>
-                <Button type="submit" variant="destructive" disabled={isPending}>
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  disabled={isPending}
+                >
                   {isPending ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
