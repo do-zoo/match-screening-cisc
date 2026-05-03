@@ -78,4 +78,33 @@ Gunakan mode **penyamaran / Incognito** pada browser agar tidak tercampur cookie
 
 Catatan bisnis **duplikasi kursi anggota** (US-PUB-03 kriteria kedua): hanya boleh diuji jika tim IT menyediakan skenario dua pendaftar dengan nomor member sama—jadikan skenario sekunder **prioritas B** dan minta panduan konkret mereka; jangan menebak.
 
+## 7. Skenario UAT — Admin masuk dan peran (prioritas A untuk ADM-01; B untuk pembatasan rinci)
+
+Lakukan di jendela browser **biasa** (bukan penyamaran) setelah keluar dari sesi penyamaran publik atau gunakan browser lain.
+
+### UAT-ADM-01 — Login berhasil *(US-ADM-01)* **A**
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Buka `BASE_URL/admin/sign-in` (atau path masuk yang diberikan operator). | Form login terlihat. |
+| 2 | Masuk dengan kredensial admin UAT Owner/Admin sesuai tabel §2 (password atau tautan dari email). | Setelah langkah otentikasi, dashboard admin utama atau redirect ke halaman pertama admin muncul. |
+| 3 | Sengaja gagal kata sandi pada akun tes sekali (**jangan sampai terkunci**). | Pesannya tidak menyebut “user tidak ada” vs “password salah” secara bocor secara berlebihan seperti produk buruk klasik (_terima perilaku konkret aplikasi Anda_; catat jika sensitivitas tidak memadai sebagai temuan.). |
+
+### UAT-ADM-02 — 2FA aktif ketika ada *(US-ADM-02)* **B**
+
+Hanya jalankan jika tim IT menyatakan 2FA wajib pada akun uji Anda.
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Setelah kata sandi, ikuti arahan **verifikasi kedua**. | Tidak bisa melewati tanpa OTP/TOTP sah; gagal OTP memberi kesempatan mencoba ulang. |
+
+### UAT-ADM-03 — Verifier tidak mengubah setting klub *(US-ADM-03)* **B**
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Login sebagai Verifier pada akun terpisah. | Dapat membuka kotak masuk event yang Anda punya akses. |
+| 2 | Coba akses submenu pengaturan klub sensitif tingkat Pemilik seperti **Pengaturan komite lanjutan** (_nama menu persis bisa berbeda_). | Jika tidak bisa mengubah / tidak bisa mengakses, catat sebagai lulus pembatasan. Jika bisa mengubah parameter yang seharusnya terlarang untuk Verifier → **Gagal** dokumentasikan apa yang berhasil diubah. |
+
+Viewer: tes singkat sama—**Viewer** boleh melihat tetapi tidak mengubah aksi kritikal sama seperti di atas (**B**).
+
 ---
