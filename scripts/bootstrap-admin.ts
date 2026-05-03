@@ -1,4 +1,4 @@
-import { applyEnvProfile } from "./load-env-profile";
+import "dotenv/config";
 
 type Args = {
   email: string;
@@ -26,15 +26,14 @@ function usage() {
 }
 
 async function main() {
-  applyEnvProfile();
-
   const [{ auth }, { prisma }] = await Promise.all([
     import("@/lib/auth/auth"),
     import("@/lib/db/prisma"),
   ]);
 
   const email = readArg("--email") ?? process.env.BOOTSTRAP_ADMIN_EMAIL ?? "";
-  const password = readArg("--password") ?? process.env.BOOTSTRAP_ADMIN_PASSWORD ?? "";
+  const password =
+    readArg("--password") ?? process.env.BOOTSTRAP_ADMIN_PASSWORD ?? "";
   const name = readArg("--name") ?? process.env.BOOTSTRAP_ADMIN_NAME ?? "Admin";
   const role = (readArg("--role") ??
     process.env.BOOTSTRAP_ADMIN_ROLE ??
@@ -59,7 +58,10 @@ async function main() {
   } catch (e: unknown) {
     if (typeof e === "object" && e !== null) {
       const err = e as { code?: string; message?: string };
-      if (err.code === "42P01" && err.message?.includes('relation "user" does not exist')) {
+      if (
+        err.code === "42P01" &&
+        err.message?.includes('relation "user" does not exist')
+      ) {
         console.error(
           [
             'Better Auth tables are missing (relation "user" does not exist).',
@@ -103,9 +105,8 @@ async function main() {
     create: { authUserId: userId, role },
   });
 
-  const { appendClubAuditLog } = await import(
-    "@/lib/audit/append-club-audit-log"
-  );
+  const { appendClubAuditLog } =
+    await import("@/lib/audit/append-club-audit-log");
   const { CLUB_AUDIT_ACTION } = await import("@/lib/audit/club-audit-actions");
 
   await appendClubAuditLog(prisma, {
@@ -129,4 +130,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
