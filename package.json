@@ -7,8 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/vercel-migrate.mjs && prisma generate && next build",
-    "postinstall": "prisma generate",
+    "build": "prisma generate && next build",
+    "postinstall": "node scripts/vercel-migrate.mjs && prisma generate",
     "start": "next start",
     "bootstrap:admin": "MATCH_DB_PROFILE=development npx tsx scripts/bootstrap-admin.ts",
     "bootstrap:admin:prod": "MATCH_DB_PROFILE=production npx tsx scripts/bootstrap-admin.ts",
