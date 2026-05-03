@@ -1,7 +1,7 @@
 "use client";
 
 import { createAuthClient } from "better-auth/react";
-import { twoFactorClient } from "better-auth/client/plugins";
+import { magicLinkClient, twoFactorClient } from "better-auth/client/plugins";
 
 function redirectToTwoFactorStep(): void {
   if (typeof window === "undefined") return;
@@ -15,5 +15,6 @@ export const adminAuthClient = createAuthClient({
     twoFactorClient({
       onTwoFactorRedirect: redirectToTwoFactorStep,
     }),
+    magicLinkClient(),
   ],
 });
