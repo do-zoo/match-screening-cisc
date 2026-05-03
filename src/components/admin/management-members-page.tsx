@@ -32,10 +32,12 @@ type Props = {
   availableMasterMembers: MasterMemberOption[];
 };
 
+type EditDialogState = { member: MemberRow; mode: "edit" | "delete" } | null;
+
 export function ManagementMembersPage({ members, availableMasterMembers }: Props) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<MemberRow | null>(null);
+  const [editDialog, setEditDialog] = useState<EditDialogState>(null);
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
@@ -101,13 +103,13 @@ export function ManagementMembersPage({ members, availableMasterMembers }: Props
                         <MoreVerticalIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingMember(m)}>
+                        <DropdownMenuItem onClick={() => setEditDialog({ member: m, mode: "edit" })}>
                           Edit pengurus
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => setEditingMember(m)}
+                          onClick={() => setEditDialog({ member: m, mode: "delete" })}
                         >
                           Hapus pengurus
                         </DropdownMenuItem>
@@ -128,14 +130,15 @@ export function ManagementMembersPage({ members, availableMasterMembers }: Props
         availableMasterMembers={availableMasterMembers}
         onSaved={router.refresh}
       />
-      {editingMember ? (
+      {editDialog ? (
         <ManagementMemberFormDialog
           mode="edit"
           open
-          onOpenChange={(open) => { if (!open) setEditingMember(null); }}
-          member={editingMember}
+          onOpenChange={(open) => { if (!open) setEditDialog(null); }}
+          member={editDialog.member}
           availableMasterMembers={availableMasterMembers}
           onSaved={router.refresh}
+          defaultShowDeleteConfirm={editDialog.mode === "delete"}
         />
       ) : null}
     </main>

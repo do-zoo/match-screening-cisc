@@ -60,6 +60,7 @@ type Props = {
   member?: MemberRow | null;
   availableMasterMembers: MasterMemberOption[];
   onSaved: () => void;
+  defaultShowDeleteConfirm?: boolean;
 };
 
 export function ManagementMemberFormDialog({
@@ -69,6 +70,7 @@ export function ManagementMemberFormDialog({
   member,
   availableMasterMembers,
   onSaved,
+  defaultShowDeleteConfirm = false,
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [rootMessage, setRootMessage] = useState<string | null>(null);
@@ -100,10 +102,10 @@ export function ManagementMemberFormDialog({
     if (open) {
       form.reset(defaultValues);
       setRootMessage(null);
-      setShowDeleteConfirm(false);
+      setShowDeleteConfirm(defaultShowDeleteConfirm);
       setDeleteError(null);
     }
-  }, [open, defaultValues, form]);
+  }, [open, defaultValues, form, defaultShowDeleteConfirm]);
 
   function submit(values: FormValues) {
     if (mode === "edit" && !member) {
@@ -272,7 +274,7 @@ export function ManagementMemberFormDialog({
             <Button type="button" variant="outline" disabled={isPending || isDeleting} onClick={() => onOpenChange(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isDeleting}>
               {isPending ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
