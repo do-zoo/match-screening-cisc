@@ -107,4 +107,53 @@ Hanya jalankan jika tim IT menyatakan 2FA wajib pada akun uji Anda.
 
 Viewer: tes singkat sama—**Viewer** boleh melihat tetapi tidak mengubah aksi kritikal sama seperti di atas (**B**).
 
+## 8. Skenario UAT — Operasi acara, inbox, aksi reviewer, laporan
+
+### UAT-EVT-01 — Membuat/edit acara pendek *(US-EVT-01)* **B**
+
+Hanya bagi pengguna dengan peran bisa mengedit event. Minimum: buka editor acara tunjukkan perubahan judul internal disimpan.
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Dari admin, buka daftar acara → pilih acara uji → **Edit** (_atau buat acara baru jika kebijakan UAT memungkinkan_). | Form editor memuat field harga, jadwal, menu. |
+| 2 | Ubah satu field teks non-kritis (misalnya catatan internal / deskripsi singkat) → **Simpan**. | Notifikasi sukses atau tidak ada error; reload halaman memuat nilai baru. |
+
+### UAT-EVT-02 & 03 — Inbox dan detail registrasi dari UAT-PUB *(US-EVT-02, US-EVT-03)* **A**
+
+**Prasyarat:** Registrasi dari UAT-PUB-06 tercipta dengan ID/URL dikenal.
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Buka inbox acara tersebut. | Registrasi uji (**Nama Depan UjiUAT2026**) muncul. |
+| 2 | Buka detail registrasi tersebut. | Terlihat unggahan bukti pembayaran; dapat dibuka (preview/tab baru). Snapshot harga terlihat. |
+
+### UAT-EVT-04 — Ubah status ke menyetujui *(US-EVT-04)* **A**
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Di detail registrasi uji pilih aksi **Setujui** (_label persis mengikuti UI Indonesia saat ini_). | Status berubah menjadi disetujui; tidak ada error teknis. |
+
+### UAT-EVT-04b — Tolak satu registrasi khusus uji kedua (**B**) — jalankan **hanya** jika Anda dapat membuat pendaftar uji kedua
+
+Alur paralel sama seperti PUB kemudian **Tolak**. Ekspektasi: status **ditolak** jelas pada daftar dan detail.
+
+### UAT-EVT-05 — Kehadiran *(US-EVT-05)* **B**
+
+**Prasyarat:** Registrasi uji telah disetujui.
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Ubah status kehadiran menurut pilihan UI (misal hadir/tidak hadir/alasan). | Tersimpan tanpa menghapus status keuangan; cek lagi setelah reload. |
+
+### UAT-EVT-06 sampai US-EVT-09 — Voucher / invoice tambahan / batal / refund / validasi anggota **B**
+
+Jalankan **hanya** bila acara uji mendukung mode tersebut; jika tidak, tulis `Blok` dengan alasan “Event uji tidak mode voucher / tidak ada underpayment / tidak menjalankan batal”.
+
+Contoh **UAT-EVT-10** **A** (laporan ringkas):
+
+| Langkah | Aksi penguji | Ekspektasi |
+| --- | --- | --- |
+| 1 | Buka halaman laporan acara tempat registrasi uji berada. | Angka ringkasan kasar selaras: minimal **1** registrasi disetujui jika Anda menyetujui satu. |
+| 2 | Unduh ekspor CSV jika tersedia. | File terbuka di Excel/Numbers; baris contoh berisi **UjiUAT2026** atau ID registrasi uji. |
+
 ---
