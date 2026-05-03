@@ -161,3 +161,50 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 - **Kriteria penerimaan:**
   - CSV mengikuti format standar yang dibagikan stakeholder (misalnya kolom tetap) dan dapat dibuka di spreadsheet umum.
   - Angka di layar laporan selaras dengan detail registrasi untuk sampel acak yang diuji manual.
+
+## Epik: Direktori anggota (master)
+
+### US-DIR-01 — Mengelola direktori dan impor/ekspor CSV
+
+- **Sebagai** pengurus data anggota, **saya ingin** menambah, mengubah, dan mengimpor/mengekspor anggota dalam skala massal, **agar** validasi registrasi mengacu pada data terkini.
+- **Kriteria penerimaan:**
+  - Impor CSV menolak baris yang tidak valid dengan pesan yang dapat ditindaklanjuti.
+  - Ekspor mencerminkan isi basis data pada saat permintaan (dengan toleransi cache tampilan jika ada di UI).
+
+## Epik: Kepengurusan dan periode dewan
+
+### US-MGT-01 — Mengatur periode kepengurusan dan penugasan jabatan
+
+- **Sebagai** sekretaris atau admin struktural, **saya ingin** mendefinisikan periode dewan dan siapa menjabat apa, **agar** aturan kelayakan terkait pengurus di direktori tetap akurat.
+- **Kriteria penerimaan:**
+  - Perubahan struktur memperbarui indikator terkait di direktori sesuai aturan bisnis klub (misalnya status pengurus untuk periode aktif).
+
+## Epik: Venue
+
+### US-VEN-01 — Mengelola venue dan subset menu terkait acara
+
+- **Sebagai** operator fasilitas, **saya ingin** mengelola daftar venue dan paket menu yang dapat dipakai acara, **agar** editor acara hanya menawarkan pilihan yang sah.
+- **Kriteria penerimaan:**
+  - Acara tidak dapat mereferensikan item menu di luar subset yang diperbolehkan untuk venue yang dipilih (sesuai aturan integritas data).
+
+## Epik: Pengaturan klub dan komunikasi
+
+### US-SET-01 — Branding dan identitas tampilan
+
+- **Sebagai** pemilik, **saya ingin** mengatur elemen branding yang ditampilkan pengguna, **agar** tampilan publik konsisten dengan identitas klub.
+
+### US-SET-02 — Template pesan WhatsApp
+
+- **Sebagai** admin komunikasi, **saya ingin** mengelola template pesan untuk skenario persetujuan, penolakan, kendala bayar, pembatalan, refund, dan penagihan kekurangan, **agar** tim lapangan menyalin pesan yang konsisten.
+
+### US-SET-03 — Preferensi notifikasi
+
+- **Sebagai** admin, **saya ingin** mengatur preferensi notifikasi keluar, **agar** channel komunikasi selaras dengan kebijakan privasi dan operasional.
+
+### US-SET-04 — Harga khusus komite dan pengaturan operasional
+
+- **Sebagai** pemilik, **saya ingin** mengatur parameter harga komite dan kebijakan operasional klub, **agar** perhitungan di form publik dan keputusan admin tidak bertentangan dengan kebijakan tertulis.
+
+### US-SET-05 — Keamanan akun dan profil admin
+
+- **Sebagai** admin, **saya ingin** memperbarui informasi profil dan preferensi keamanan yang disediakan UI, **agar** akun pengelola tetap aman dan terkini.
