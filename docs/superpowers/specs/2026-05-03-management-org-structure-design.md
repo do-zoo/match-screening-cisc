@@ -184,9 +184,55 @@ model ManagementMember {
 
 ### Catatan
 
-- `EventPicHelper` tetap pada `MasterMember` — jalur `AdminProfile → ManagementMember → masterMember → eventsAsHelper` tetap berfungsi (2-hop)
-- `ManagementMember` yang tidak punya `masterMemberId` otomatis tidak bisa jadi helper event — ini perilaku yang benar
 - Admin yang sebelumnya punya `memberId` perlu di-migrate: jika MasterMember tersebut punya `managementMemberRecord`, set `managementMemberId` ke record tersebut; jika tidak, set null (data migration di migration script)
+
+---
+
+## Bagian 6 — EventPicHelper: MasterMember → AdminProfile
+
+### Perubahan schema
+
+`EventPicHelper` diubah dari `Event ↔ MasterMember` menjadi `Event ↔ AdminProfile`:
+
+```prisma
+model EventPicHelper {
+  eventId        String
+  adminProfileId String   // BARU (ganti memberId)
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  adminProfile AdminProfile @relation(fields: [adminProfileId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([eventId, adminProfileId])
+  @@index([adminProfileId])
+}
+
+model AdminProfile {
+  // ... existing + managementMember ...
+  eventsAsHelper EventPicHelper[]  // back-relation (sudah ada, path berubah)
+}
+```
+
+`MasterMember.eventsAsHelper` dihapus.
+
+### Dampak ke kode
+
+| File | Perubahan |
+|------|-----------|
+| `src/lib/auth/admin-context.ts` | `profile.member.eventsAsHelper` → `profile.eventsAsHelper` langsung (1-hop, lebih simpel) |
+| `src/lib/admin/pic-options-for-event.ts` | Helper exclusion: tidak perlu lagi map `memberId`; exclude by `adminProfileId` langsung |
+| `src/lib/actions/admin-events.ts` | `helperMasterMemberIds` → `helperAdminProfileIds`; `uniqueHelperMemberIdsExcludingPicLinkedMember` diupdate exclude by `picAdminProfileId`; DB write: `{ eventId, memberId }` → `{ eventId, adminProfileId }` |
+| `src/lib/forms/admin-event-form-schema.ts` | `helperMasterMemberIds` → `helperAdminProfileIds` |
+| `src/app/admin/events/[eventId]/edit/page.tsx` | `helpers.map(h => h.memberId)` → `helpers.map(h => h.adminProfileId)` |
+| `src/app/admin/events/new/page.tsx` | Init `helperAdminProfileIds: []` |
+| `src/components/admin/forms/event-admin-form.tsx` | UI picker helper: dari daftar MasterMember → daftar AdminProfile |
+
+### Catatan
+
+- `getAdminContext` menjadi jauh lebih simpel — tidak perlu traverse ManagementMember atau MasterMember lagi
+- Data migration: untuk setiap `EventPicHelper` yang ada, cari `AdminProfile` yang memiliki `memberId === EventPicHelper.memberId` (menggunakan kolom `memberId` lama sebelum dihapus); jika tidak ada AdminProfile dengan memberId tersebut, hapus record EventPicHelper tersebut
+- Migration harus dijalankan dalam urutan: (1) migrate EventPicHelper data, (2) migrate AdminProfile.memberId → managementMemberId, (3) hapus kolom lama
 
 ---
 
@@ -194,7 +240,7 @@ model ManagementMember {
 
 | File | Perubahan |
 |------|-----------|
-| `prisma/schema.prisma` | Tambah `isUnique`, `parentRoleId`, `parent`, `children` ke `BoardRole`; hapus dua `@@unique` dari `BoardAssignment`; hapus `AdminProfile.memberId → MasterMember`, tambah `AdminProfile.managementMemberId → ManagementMember` |
+| `prisma/schema.prisma` | Tambah `isUnique`, `parentRoleId`, `parent`, `children` ke `BoardRole`; hapus dua `@@unique` dari `BoardAssignment`; hapus `AdminProfile.memberId → MasterMember`, tambah `AdminProfile.managementMemberId → ManagementMember`; ubah `EventPicHelper` dari `Event ↔ MasterMember` ke `Event ↔ AdminProfile` |
 | `prisma/migrations/...` | Migration baru |
 | `src/lib/forms/admin-board-role-schema.ts` | Tambah `isUnique`, `parentRoleId` ke schema Zod |
 | `src/lib/forms/admin-board-assignment-schema.ts` | Tidak ada perubahan schema; enforcement pindah ke server action |
