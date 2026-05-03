@@ -9,15 +9,6 @@ const adminRoleEnum = z.enum([
   AdminRole.Viewer,
 ]);
 
-export const addCommitteeAdminByEmailSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "Email wajib diisi.")
-    .email("Format email tidak valid.")
-    .transform((s) => s.toLowerCase()),
-});
-
 export const updateCommitteeAdminRoleSchema = z.object({
   adminProfileId: z.string().trim().min(1, "Profil admin wajib."),
   role: adminRoleEnum,

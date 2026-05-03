@@ -46,15 +46,15 @@ export default async function CommitteeSettingsPage() {
               orang tersebut menerima taut onboarding (email bisa dikirim otomatis bila SMTP aktif).
             </li>
             <li>
-              Untuk orang yang sudah punya akun pengguna tetapi belum ada profil admin, pakai{" "}
-              <strong className="text-foreground">Tautkan akun ada</strong> dengan email tersebut.
+              Pastikan direktori anggota dan (bila perlu) rekening PIC di profil admin sudah siap sebelum PIC acara.
             </li>
-            <li>Pastikan direktori anggota dan (bila perlu) rekening PIC di profil admin sudah siap sebelum PIC acara.</li>
-            <li>Gunakan{" "}
+            <li>
+              Gunakan{" "}
               <Link href="/admin/settings/security" className="underline underline-offset-4">
                 Keamanan
               </Link>{" "}
-              untuk log audit konfigurasi.</li>
+              untuk log audit konfigurasi.
+            </li>
           </ol>
         </div>
       </div>

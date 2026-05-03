@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 
 import { acceptAdminInvitation } from "@/lib/actions/accept-admin-invitation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,18 +10,10 @@ import { Input } from "@/components/ui/input";
 import type { ActionResult } from "@/lib/forms/action-result";
 
 export function AdminInviteAcceptForm(props: { token: string }) {
-  const router = useRouter();
-  const bumped = useRef(false);
   const [state, dispatch, pending] = useActionState(
     acceptAdminInvitation,
-    null as ActionResult<{ redirectTo: string }> | null,
+    null as ActionResult<unknown> | null,
   );
-
-  useEffect(() => {
-    if (!state?.ok || bumped.current) return;
-    bumped.current = true;
-    router.push(state.data.redirectTo);
-  }, [state, router]);
 
   return (
     <form action={dispatch} className="mt-8 space-y-4">

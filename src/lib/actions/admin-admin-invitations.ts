@@ -81,7 +81,7 @@ export async function createAdminInvitation(
       return rootError("Email ini sudah terdaftar sebagai admin.");
     }
     return rootError(
-      "Email ini sudah punya akun pengguna. Gunakan Tautkan admin (email sudah ada), bukan undangan.",
+      "Email ini sudah punya akun aplikasi tetapi belum punya profil admin. Tidak bisa membuat undangan — gunakan email lain atau hubungi operator.",
     );
   }
 

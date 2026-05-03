@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { Loader2, MoreVerticalIcon } from "lucide-react";
 import { AdminRole } from "@prisma/client";
@@ -18,7 +25,6 @@ import {
   type CreateAdminInvitationResult,
 } from "@/lib/actions/admin-admin-invitations";
 import {
-  addCommitteeAdminByEmail,
   deleteCommitteeAdmin,
   revokeCommitteeAdminMeaningfulAccess,
   updateCommitteeAdminMemberLink,
@@ -46,8 +52,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -94,6 +108,104 @@ function formatInviteExpiry(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+/** Peran undangan — daftar pendek → Select (bukan Combobox). */
+function InviteInviteeRoleSelect({ disabled }: { disabled: boolean }) {
+  const [role, setRole] = useState<AdminRole>(AdminRole.Viewer);
+
+  return (
+    <>
+      <input type="hidden" name="role" value={role} />
+      <Select
+        value={role}
+        onValueChange={(v) => {
+          if (v != null) setRole(v as AdminRole);
+        }}
+        disabled={disabled}
+      >
+        <SelectTrigger id="invite-admin-role" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={AdminRole.Admin}>Admin</SelectItem>
+          <SelectItem value={AdminRole.Verifier}>Verifier</SelectItem>
+          <SelectItem value={AdminRole.Viewer}>Viewer</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+}
+
+/** Ubah peran — enum tetap → Select. */
+function CommitteeRoleSelectField(props: {
+  htmlId: string;
+  initialRole: string;
+  disabled: boolean;
+}) {
+  const [role, setRole] = useState(props.initialRole);
+
+  return (
+    <>
+      <input type="hidden" name="role" value={role} />
+      <Select
+        value={role}
+        onValueChange={(v) => {
+          if (v != null) setRole(v);
+        }}
+        disabled={props.disabled}
+      >
+        <SelectTrigger id={props.htmlId} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Owner">Owner</SelectItem>
+          <SelectItem value="Admin">Admin</SelectItem>
+          <SelectItem value="Verifier">Verifier</SelectItem>
+          <SelectItem value="Viewer">Viewer</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+}
+
+/** Banyak pengurus → EntityCombobox (cari/filter). */
+function CommitteeManagementMemberCombobox(props: {
+  htmlId: string;
+  initialManagementMemberId: string | null;
+  memberOptions: CommitteeAdminDirectoryVm["memberOptions"];
+  disabled: boolean;
+}) {
+  const comboOptions = useMemo(
+    () =>
+      props.memberOptions.map((o) => ({
+        value: o.id,
+        label: o.label,
+      })),
+    [props.memberOptions],
+  );
+
+  const [managementMemberId, setManagementMemberId] = useState<string | null>(
+    props.initialManagementMemberId ?? null,
+  );
+
+  return (
+    <>
+      <input
+        type="hidden"
+        name="managementMemberId"
+        value={managementMemberId ?? ""}
+      />
+      <EntityCombobox
+        id={props.htmlId}
+        placeholder="— Tidak dikaitkan"
+        value={managementMemberId}
+        onValueChange={setManagementMemberId}
+        options={comboOptions}
+        disabled={props.disabled}
+      />
+    </>
+  );
 }
 
 function InviteAdminForm({ onCloseDialog }: { onCloseDialog: () => void }) {
@@ -178,18 +290,7 @@ function InviteAdminForm({ onCloseDialog }: { onCloseDialog: () => void }) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="invite-admin-role">Peran pertama</Label>
-        <select
-          id="invite-admin-role"
-          name="role"
-          className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-          defaultValue={AdminRole.Viewer}
-          disabled={invitePending}
-          required
-        >
-          <option value={AdminRole.Admin}>Admin</option>
-          <option value={AdminRole.Verifier}>Verifier</option>
-          <option value={AdminRole.Viewer}>Viewer</option>
-        </select>
+        <InviteInviteeRoleSelect disabled={invitePending} />
       </div>
       <DialogFooter>
         <Button type="submit" disabled={invitePending}>
@@ -370,19 +471,11 @@ function ManageAdminDialogs(props: ManageFormsProps) {
             ) : null}
             <div className="space-y-2">
               <Label htmlFor={`role-${row.adminProfileId}`}>Peran</Label>
-              <select
-                id={`role-${row.adminProfileId}`}
-                name="role"
-                className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-                defaultValue={row.role}
+              <CommitteeRoleSelectField
+                htmlId={`role-${row.adminProfileId}`}
+                initialRole={row.role}
                 disabled={rolePending}
-                required
-              >
-                <option value="Owner">Owner</option>
-                <option value="Admin">Admin</option>
-                <option value="Verifier">Verifier</option>
-                <option value="Viewer">Viewer</option>
-              </select>
+              />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={rolePending}>
@@ -429,20 +522,12 @@ function ManageAdminDialogs(props: ManageFormsProps) {
             ) : null}
             <div className="space-y-2">
               <Label htmlFor={`member-${row.adminProfileId}`}>Pengurus</Label>
-              <select
-                id={`member-${row.adminProfileId}`}
-                name="managementMemberId"
-                className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-                defaultValue={row.managementMemberId ?? ""}
+              <CommitteeManagementMemberCombobox
+                htmlId={`member-${row.adminProfileId}`}
+                initialManagementMemberId={row.managementMemberId ?? null}
+                memberOptions={props.memberOptions}
                 disabled={memberPending}
-              >
-                <option value="">— Tidak dikaitkan</option>
-                {props.memberOptions.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={memberPending}>
@@ -513,8 +598,10 @@ function ManageAdminDialogs(props: ManageFormsProps) {
           <DialogHeader>
             <DialogTitle>Hapus profil admin</DialogTitle>
             <DialogDescription>
-              Menghapus profil admin untuk <strong>{row.email}</strong> secara permanen.
-              Akun masuk tidak dihapus, tetapi semua akses admin dicabut. Tindakan ini tidak bisa dibatalkan.
+              Menghapus profil dan akun masuk untuk <strong>{row.email}</strong>{" "}
+              secara permanen. Alamat email itu tidak lagi bisa digunakan untuk
+              masuk admin sampai Owner mengundang lagi sebagai admin baru. Tidak bisa
+              dibatalkan.
             </DialogDescription>
           </DialogHeader>
           {deleteState?.ok === false && deleteState.rootError ? (
@@ -533,7 +620,7 @@ function ManageAdminDialogs(props: ManageFormsProps) {
                 {deletePending ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  "Ya, hapus profil"
+                  "Ya, hapus profil & akun"
                 )}
               </Button>
             </DialogFooter>
@@ -548,8 +635,6 @@ export function CommitteeAdminSettingsPanel(props: {
   directory: CommitteeAdminDirectoryVm;
   pendingInvitations: PendingAdminInvitationRowVm[];
 }) {
-  const [addOpen, setAddOpen] = useState(false);
-  const [addKey, setAddKey] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteFormKey, setInviteFormKey] = useState(0);
   const [manageKey, setManageKey] = useState(0);
@@ -561,24 +646,6 @@ export function CommitteeAdminSettingsPanel(props: {
   const closeInviteDialog = useCallback(() => {
     setInviteOpen(false);
   }, []);
-
-  const [addState, addDispatch, addPending] = useActionState(
-    addCommitteeAdminByEmail,
-    null as ActionResult<{ created: true }> | null,
-  );
-
-  useEffect(() => {
-    if (!addState?.ok) return;
-    toastCudSuccess("create", "Admin komite ditambahkan.");
-    // useActionState has no imperative reset; close + key bump so reopen shows a fresh shell.
-    /* eslint-disable-next-line react-hooks/set-state-in-effect -- post-mutation UI sync only */
-    setAddOpen(false);
-    setAddKey((k) => k + 1);
-  }, [addState?.ok]);
-
-  const addFieldLines = fieldErrorsLines(
-    addState?.ok === false ? addState.fieldErrors : undefined,
-  );
 
   return (
     <div className="space-y-6">
@@ -608,52 +675,6 @@ export function CommitteeAdminSettingsPanel(props: {
                 </DialogDescription>
               </DialogHeader>
               <InviteAdminForm key={inviteFormKey} onCloseDialog={closeInviteDialog} />
-            </DialogContent>
-          </Dialog>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger disabled={addPending} render={<Button variant="outline" />}>
-              Tautkan akun ada…
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Tautkan akun yang sudah ada</DialogTitle>
-                <DialogDescription>
-                  Email harus sudah punya akun Better Auth (misalnya pernah masuk). Peran default Viewer —
-                  ubah lewat &ldquo;Ubah peran&rdquo; di tabel.
-                </DialogDescription>
-              </DialogHeader>
-              <form action={addDispatch} className="space-y-4" key={`add-${addKey}`}>
-                {addState?.ok === false && addState.rootError ? (
-                  <Alert variant="destructive">
-                    <AlertTitle>Gagal</AlertTitle>
-                    <AlertDescription>{addState.rootError}</AlertDescription>
-                  </Alert>
-                ) : null}
-                {addFieldLines ? (
-                  <Alert variant="destructive">
-                    <AlertTitle>Periksa isian</AlertTitle>
-                    <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
-                      {addFieldLines}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-                <div className="space-y-2">
-                  <Label htmlFor="committee-admin-email">Email</Label>
-                  <Input
-                    id="committee-admin-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    disabled={addPending}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={addPending}>
-                    {addPending ? <Loader2 className="size-4 animate-spin" /> : "Tambahkan"}
-                  </Button>
-                </DialogFooter>
-              </form>
             </DialogContent>
           </Dialog>
         </div>

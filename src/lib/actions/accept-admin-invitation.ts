@@ -1,25 +1,22 @@
 "use server";
 
+import { redirect } from "next/navigation";
+
 import { auth } from "@/lib/auth/auth";
 import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { acceptAdminInvitationSchema } from "@/lib/forms/admin-invitation-schema";
-import {
-  fieldError,
-  ok,
-  rootError,
-  type ActionResult,
-} from "@/lib/forms/action-result";
+import { fieldError, rootError, type ActionResult } from "@/lib/forms/action-result";
 import { zodToFieldErrors } from "@/lib/forms/zod";
 import { prisma } from "@/lib/db/prisma";
 import { hashAdminInviteToken } from "@/lib/admin/admin-invite-crypto";
 import { normalizeAdminInvitationEmail } from "@/lib/admin/admin-invite-email";
 
-/** Setelah sukses, pengguna diarahkan ke halaman masuk admin. */
+/** Setelah sukses, pengguna dialihkan ke halaman masuk admin (dan ke dashboard jika sesi signup sudah aktif). */
 export async function acceptAdminInvitation(
   _prev: unknown,
   formData: FormData,
-): Promise<ActionResult<{ redirectTo: string }>> {
+): Promise<ActionResult<unknown>> {
   const parsed = acceptAdminInvitationSchema.safeParse({
     token: formData.get("token"),
     name: formData.get("name"),
@@ -112,12 +109,12 @@ export async function acceptAdminInvitation(
       targetId: invite.id,
       metadata: { email, role: invite.role },
     });
-
-    return ok({ redirectTo: "/admin/sign-in" });
   } catch (e) {
     console.error("[acceptAdminInvitation] profile/invite finalize", e);
     return rootError(
       "Akun auth terbentuk tetapi profil admin gagal disimpan — hubungi Owner.",
     );
   }
+
+  redirect("/admin/sign-in");
 }

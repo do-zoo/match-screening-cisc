@@ -1,8 +1,11 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { Loader2 } from "lucide-react";
+
+import type { NotificationOutboundMode } from "@prisma/client";
+
 import { saveClubNotificationPreferences } from "@/lib/actions/admin-club-notification-preferences";
 import {
   Alert,
@@ -12,10 +15,55 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ActionResult } from "@/lib/forms/action-result";
 import { toastCudSuccess } from "@/lib/client/cud-notify";
 
-import type { NotificationOutboundMode } from "@prisma/client";
+const OUTBOUND_MODE_OPTIONS: Array<{
+  value: NotificationOutboundMode;
+  label: string;
+}> = [
+  { value: "off", label: "Mati — tidak log jalur outbound" },
+  { value: "log_only", label: "Log saja — catat di konsol (disarankan dev)" },
+  { value: "live", label: "Live — log + jalur penyedia (wire-up terpisah)" },
+];
+
+function OutboundModeSelectField(props: {
+  initialMode: NotificationOutboundMode;
+  pending: boolean;
+}) {
+  const [mode, setMode] = useState(props.initialMode);
+
+  return (
+    <>
+      <input type="hidden" name="outboundMode" value={mode} />
+      <Select
+        value={mode}
+        onValueChange={(v) => {
+          if (v != null) setMode(v as NotificationOutboundMode);
+        }}
+        disabled={props.pending}
+      >
+        <SelectTrigger id="outboundMode" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {OUTBOUND_MODE_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  );
+}
 
 export function ClubNotificationPreferencesForm(props: {
   initialMode: NotificationOutboundMode;
@@ -61,19 +109,11 @@ export function ClubNotificationPreferencesForm(props: {
       <form action={dispatch} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="outboundMode">Mode saluran keluar (stub / siap kirim)</Label>
-          <select
-            id="outboundMode"
-            name="outboundMode"
-            defaultValue={props.initialMode}
-            disabled={pending}
-            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full max-w-md rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="off">Mati — tidak log jalur outbound</option>
-            <option value="log_only">Log saja — catat di konsol (disarankan dev)</option>
-            <option value="live">
-              Live — log + jalur penyedia (wire-up terpisah)
-            </option>
-          </select>
+          <OutboundModeSelectField
+            key={props.initialMode}
+            initialMode={props.initialMode}
+            pending={pending}
+          />
           <ul className="text-muted-foreground list-inside list-disc text-xs space-y-1">
             <li>
               <span className="font-mono">off</span> — tidak log jalur outbound stub.

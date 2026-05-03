@@ -66,7 +66,7 @@ describe("createAdminInvitation", () => {
     } as never);
   });
 
-  it("rejects when user exists without admin profile (tautkan path)", async () => {
+  it("rejects when user exists without admin profile", async () => {
     vi.mocked(prisma.user.findFirst).mockResolvedValueOnce({ id: "u1" } as never);
     vi.mocked(prisma.adminProfile.findUnique).mockResolvedValueOnce(null);
 
@@ -75,7 +75,7 @@ describe("createAdminInvitation", () => {
     fd.set("role", AdminRole.Verifier);
     const r = await createAdminInvitation(undefined, fd);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.rootError ?? "").toContain("Tautkan admin");
+    if (!r.ok) expect(r.rootError ?? "").toMatch(/gunakan email lain|operator/i);
     expect(prisma.adminInvitation.create).not.toHaveBeenCalled();
   });
 
