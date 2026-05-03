@@ -52,6 +52,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 
 const SENSITIVE_ACK_MESSAGE =
   "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.";
@@ -154,6 +155,36 @@ export function EventAdminForm(props: EventAdminFormProps) {
   const bankChoices = useMemo(() => {
     return props.banksByPic[picId] ?? [];
   }, [props.banksByPic, picId]);
+
+  const venueComboboxOptions = useMemo(
+    () =>
+      venueOptions.map((v) => ({
+        value: v.id,
+        label: v.name,
+        keywords: v.name,
+      })),
+    [venueOptions],
+  );
+
+  const picComboboxOptions = useMemo(
+    () =>
+      props.picOptions.map((p) => ({
+        value: p.id,
+        label: p.label,
+        keywords: p.label,
+      })),
+    [props.picOptions],
+  );
+
+  const bankComboboxOptions = useMemo(
+    () =>
+      bankChoices.map((b) => ({
+        value: b.id,
+        label: b.label,
+        keywords: b.label,
+      })),
+    [bankChoices],
+  );
 
   const lockedMenuKeys = useMemo(() => {
     return findLockedViolations({
@@ -376,29 +407,17 @@ export function EventAdminForm(props: EventAdminFormProps) {
               control={form.control}
               name="venueId"
               render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onValueChange={(v) => {
-                    if (v != null) {
-                      field.onChange(v);
-                      setLinkedVenueMenusFromVenueSelection(v);
-                    }
+                <EntityCombobox
+                  placeholder="Pilih venue"
+                  value={field.value === "" ? null : field.value}
+                  onValueChange={(next) => {
+                    if (next === null) return;
+                    field.onChange(next);
+                    setLinkedVenueMenusFromVenueSelection(next);
                   }}
-                  disabled={
-                    pending || lockedMenuKeys.includes("venueId")
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih venue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {venueOptions.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={venueComboboxOptions}
+                  disabled={pending || lockedMenuKeys.includes("venueId")}
+                />
               )}
             />
             {lockedMenuKeys.includes("venueId") ? (
@@ -650,48 +669,30 @@ export function EventAdminForm(props: EventAdminFormProps) {
         <section className="space-y-4">
           <h2 className="text-lg font-medium">PIC & rekening</h2>
           <Field label="PIC utama">
-            <Select
-              value={picId}
+            <EntityCombobox
+              placeholder="Pilih PIC"
+              value={picId === "" ? null : picId}
               onValueChange={(next) => {
-                if (next == null) return;
+                if (next === null) return;
                 form.setValue("picAdminProfileId", next, { shouldDirty: true });
                 const first = props.banksByPic[next]?.[0]?.id ?? "";
                 form.setValue("bankAccountId", first, { shouldDirty: true });
               }}
+              options={picComboboxOptions}
               disabled={pending}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {props.picOptions.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </Field>
           <Field label="Rekening pembayaran">
-            <Select
-              value={bankAccountId}
+            <EntityCombobox
+              placeholder="Pilih rekening"
+              value={bankAccountId === "" ? null : bankAccountId}
               onValueChange={(v) => {
-                if (v == null) return;
+                if (v === null) return;
                 form.setValue("bankAccountId", v, { shouldDirty: true });
               }}
               disabled={pending || bankChoices.length === 0}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {bankChoices.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={bankComboboxOptions}
+            />
             {bankChoices.length === 0 ? (
               <Muted>
                 Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan
