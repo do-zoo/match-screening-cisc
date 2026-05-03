@@ -85,7 +85,8 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
 
         {periods.length === 0 ? (
           <p className="rounded-lg border px-4 py-6 text-sm text-muted-foreground">
-            Belum ada periode. Klik "Tambah Periode" untuk membuat yang pertama.
+            Belum ada periode. Klik &quot;Tambah Periode&quot; untuk membuat yang
+            pertama.
           </p>
         ) : (
           <ul className="divide-y rounded-lg border">

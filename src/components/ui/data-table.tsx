@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -28,6 +29,8 @@ type DataTableProps<TData, TValue> = {
    * would only reorder the current page).
    */
   enableSorting?: boolean;
+  /** Optional per-row class on `<tr>` (e.g. muted styling for inactive rows). */
+  getRowClassName?: (row: TData) => string | undefined;
 };
 
 export function DataTable<TData, TValue>({
@@ -35,9 +38,12 @@ export function DataTable<TData, TValue>({
   data,
   emptyMessage = "No results.",
   enableSorting = true,
+  getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
+  /* TanStack Table: React Compiler skips memoizing subtree that uses unstable function refs */
+  /* eslint-disable-next-line react-hooks/incompatible-library -- useReactTable is the supported API */
   const table = useReactTable({
     data,
     columns,
@@ -73,7 +79,10 @@ export function DataTable<TData, TValue>({
       <TableBody>
         {table.getRowModel().rows.length ? (
           table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow
+              key={row.id}
+              className={cn(getRowClassName?.(row.original))}
+            >
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}

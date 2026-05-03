@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useReducer, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { Loader2 } from "lucide-react";
@@ -53,6 +53,49 @@ type FormValues = {
 
 const NO_LINK = "__none__";
 
+type DialogExtras = {
+  rootMessage: string | null;
+  deleteError: string | null;
+  showDeleteConfirm: boolean;
+};
+
+type ExtrasAction =
+  | { type: "opened"; showDeleteConfirm: boolean }
+  | { type: "closed" }
+  | { type: "set-root-message"; message: string | null }
+  | { type: "set-delete-error"; message: string | null }
+  | { type: "show-delete-prompt" }
+  | { type: "cancel-delete-prompt" };
+
+const INITIAL_EXTRAS: DialogExtras = {
+  rootMessage: null,
+  deleteError: null,
+  showDeleteConfirm: false,
+};
+
+function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
+  switch (action.type) {
+    case "opened":
+      return {
+        rootMessage: null,
+        deleteError: null,
+        showDeleteConfirm: action.showDeleteConfirm,
+      };
+    case "closed":
+      return INITIAL_EXTRAS;
+    case "set-root-message":
+      return { ...state, rootMessage: action.message };
+    case "set-delete-error":
+      return { ...state, deleteError: action.message };
+    case "show-delete-prompt":
+      return { ...state, showDeleteConfirm: true };
+    case "cancel-delete-prompt":
+      return { ...state, showDeleteConfirm: false, deleteError: null };
+    default:
+      return state;
+  }
+}
+
 type Props = {
   mode: "create" | "edit";
   open: boolean;
@@ -73,9 +116,8 @@ export function ManagementMemberFormDialog({
   defaultShowDeleteConfirm = false,
 }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [rootMessage, setRootMessage] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [extras, dispatchExtras] = useReducer(extrasReducer, INITIAL_EXTRAS);
+  const { rootMessage, showDeleteConfirm, deleteError } = extras;
   const [isDeleting, startDeleteTransition] = useTransition();
 
   const defaultValues = useMemo<FormValues>(
@@ -99,20 +141,23 @@ export function ManagementMemberFormDialog({
   });
 
   useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-      setRootMessage(null);
-      setShowDeleteConfirm(defaultShowDeleteConfirm);
-      setDeleteError(null);
-    }
+    if (!open) return;
+    dispatchExtras({
+      type: "opened",
+      showDeleteConfirm: defaultShowDeleteConfirm,
+    });
+    form.reset(defaultValues);
   }, [open, defaultValues, form, defaultShowDeleteConfirm]);
 
   function submit(values: FormValues) {
     if (mode === "edit" && !member) {
-      setRootMessage("Data pengurus tidak ditemukan.");
+      dispatchExtras({
+        type: "set-root-message",
+        message: "Data pengurus tidak ditemukan.",
+      });
       return;
     }
-    setRootMessage(null);
+    dispatchExtras({ type: "set-root-message", message: null });
     startTransition(async () => {
       const fd = new FormData();
       const masterMemberId =
@@ -140,7 +185,10 @@ export function ManagementMemberFormDialog({
       if (!result.ok) {
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
           form.setError(f as keyof FormValues, { message: m });
-        setRootMessage(result.rootError ?? "Terjadi kesalahan.");
+        dispatchExtras({
+          type: "set-root-message",
+          message: result.rootError ?? "Terjadi kesalahan.",
+        });
         return;
       }
       onOpenChange(false);
@@ -150,13 +198,16 @@ export function ManagementMemberFormDialog({
 
   function handleDelete() {
     if (!member) return;
-    setDeleteError(null);
+    dispatchExtras({ type: "set-delete-error", message: null });
     startDeleteTransition(async () => {
       const fd = new FormData();
       fd.set("payload", JSON.stringify({ id: member.id }));
       const result = await deleteManagementMember(undefined, fd);
       if (!result.ok) {
-        setDeleteError(result.rootError ?? "Gagal menghapus pengurus.");
+        dispatchExtras({
+          type: "set-delete-error",
+          message: result.rootError ?? "Gagal menghapus pengurus.",
+        });
         return;
       }
       onOpenChange(false);
@@ -168,7 +219,9 @@ export function ManagementMemberFormDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) { setRootMessage(null); setDeleteError(null); setShowDeleteConfirm(false); }
+        if (!next) {
+          dispatchExtras({ type: "closed" });
+        }
         onOpenChange(next);
       }}
     >
@@ -254,7 +307,7 @@ export function ManagementMemberFormDialog({
                 variant="ghost"
                 className="mr-auto text-destructive hover:text-destructive"
                 disabled={isPending || isDeleting}
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={() => dispatchExtras({ type: "show-delete-prompt" })}
               >
                 Hapus
               </Button>
@@ -265,7 +318,15 @@ export function ManagementMemberFormDialog({
                 <Button type="button" variant="destructive" size="sm" disabled={isDeleting} onClick={handleDelete}>
                   {isDeleting ? <Loader2 className="size-4 animate-spin" /> : "Ya, hapus"}
                 </Button>
-                <Button type="button" variant="outline" size="sm" disabled={isDeleting} onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={() =>
+                    dispatchExtras({ type: "cancel-delete-prompt" })
+                  }
+                >
                   Batal
                 </Button>
                 {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}

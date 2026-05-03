@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useReducer, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { Loader2 } from "lucide-react";
@@ -48,6 +48,49 @@ type Props = {
   defaultShowDeactivateConfirm?: boolean;
 };
 
+type DialogExtras = {
+  rootMessage: string | null;
+  deactivateError: string | null;
+  showDeactivateConfirm: boolean;
+};
+
+type ExtrasAction =
+  | { type: "opened"; showDeactivateConfirm: boolean }
+  | { type: "closed" }
+  | { type: "set-root-message"; message: string | null }
+  | { type: "set-deactivate-error"; message: string | null }
+  | { type: "show-deactivate-prompt" }
+  | { type: "cancel-deactivate-prompt" };
+
+const INITIAL_EXTRAS: DialogExtras = {
+  rootMessage: null,
+  deactivateError: null,
+  showDeactivateConfirm: false,
+};
+
+function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
+  switch (action.type) {
+    case "opened":
+      return {
+        rootMessage: null,
+        deactivateError: null,
+        showDeactivateConfirm: action.showDeactivateConfirm,
+      };
+    case "closed":
+      return INITIAL_EXTRAS;
+    case "set-root-message":
+      return { ...state, rootMessage: action.message };
+    case "set-deactivate-error":
+      return { ...state, deactivateError: action.message };
+    case "show-deactivate-prompt":
+      return { ...state, showDeactivateConfirm: true };
+    case "cancel-deactivate-prompt":
+      return { ...state, showDeactivateConfirm: false, deactivateError: null };
+    default:
+      return state;
+  }
+}
+
 export function ManagementRoleFormDialog({
   mode,
   open,
@@ -57,9 +100,8 @@ export function ManagementRoleFormDialog({
   defaultShowDeactivateConfirm = false,
 }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [rootMessage, setRootMessage] = useState<string | null>(null);
-  const [deactivateError, setDeactivateError] = useState<string | null>(null);
-  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [extras, dispatchExtras] = useReducer(extrasReducer, INITIAL_EXTRAS);
+  const { rootMessage, deactivateError, showDeactivateConfirm } = extras;
   const [isDeactivating, startDeactivateTransition] = useTransition();
 
   const defaultValues = useMemo<FormValues>(
@@ -81,20 +123,23 @@ export function ManagementRoleFormDialog({
   });
 
   useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-      setRootMessage(null);
-      setDeactivateError(null);
-      setShowDeactivateConfirm(defaultShowDeactivateConfirm);
-    }
+    if (!open) return;
+    dispatchExtras({
+      type: "opened",
+      showDeactivateConfirm: defaultShowDeactivateConfirm,
+    });
+    form.reset(defaultValues);
   }, [open, defaultValues, form, defaultShowDeactivateConfirm]);
 
   function submit(values: FormValues) {
     if (mode === "edit" && !role) {
-      setRootMessage("Data jabatan tidak ditemukan.");
+      dispatchExtras({
+        type: "set-root-message",
+        message: "Data jabatan tidak ditemukan.",
+      });
       return;
     }
-    setRootMessage(null);
+    dispatchExtras({ type: "set-root-message", message: null });
     startTransition(async () => {
       const fd = new FormData();
       const payload =
@@ -109,7 +154,10 @@ export function ManagementRoleFormDialog({
       if (!result.ok) {
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
           form.setError(f as keyof FormValues, { message: m });
-        setRootMessage(result.rootError ?? "Terjadi kesalahan.");
+        dispatchExtras({
+          type: "set-root-message",
+          message: result.rootError ?? "Terjadi kesalahan.",
+        });
         return;
       }
       onOpenChange(false);
@@ -119,13 +167,16 @@ export function ManagementRoleFormDialog({
 
   function handleDeactivate() {
     if (!role) return;
-    setDeactivateError(null);
+    dispatchExtras({ type: "set-deactivate-error", message: null });
     startDeactivateTransition(async () => {
       const fd = new FormData();
       fd.set("payload", JSON.stringify({ id: role.id }));
       const result = await deactivateBoardRole(undefined, fd);
       if (!result.ok) {
-        setDeactivateError(result.rootError ?? "Gagal menonaktifkan jabatan.");
+        dispatchExtras({
+          type: "set-deactivate-error",
+          message: result.rootError ?? "Gagal menonaktifkan jabatan.",
+        });
         return;
       }
       onOpenChange(false);
@@ -139,7 +190,9 @@ export function ManagementRoleFormDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) { setRootMessage(null); setDeactivateError(null); setShowDeactivateConfirm(false); }
+        if (!next) {
+          dispatchExtras({ type: "closed" });
+        }
         onOpenChange(next);
       }}
     >
@@ -188,7 +241,9 @@ export function ManagementRoleFormDialog({
                 variant="ghost"
                 className="mr-auto text-destructive hover:text-destructive"
                 disabled={isPending || isDeactivating}
-                onClick={() => setShowDeactivateConfirm(true)}
+                onClick={() =>
+                  dispatchExtras({ type: "show-deactivate-prompt" })
+                }
               >
                 Nonaktifkan
               </Button>
@@ -199,7 +254,15 @@ export function ManagementRoleFormDialog({
                 <Button type="button" variant="destructive" size="sm" disabled={isDeactivating} onClick={handleDeactivate}>
                   {isDeactivating ? <Loader2 className="size-4 animate-spin" /> : "Ya"}
                 </Button>
-                <Button type="button" variant="outline" size="sm" disabled={isDeactivating} onClick={() => { setShowDeactivateConfirm(false); setDeactivateError(null); }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeactivating}
+                  onClick={() =>
+                    dispatchExtras({ type: "cancel-deactivate-prompt" })
+                  }
+                >
                   Batal
                 </Button>
                 {deactivateError ? <p className="text-sm text-destructive">{deactivateError}</p> : null}
