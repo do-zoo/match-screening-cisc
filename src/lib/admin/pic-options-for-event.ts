@@ -31,7 +31,9 @@ export async function loadPicAdminProfileOptionsForEvents(): Promise<
     const suffix = p.managementMember?.publicCode
       ? ` · ${p.managementMember.publicCode}`
       : "";
-    return { id: p.id, label: `${base}${suffix}` };
+    const email = u?.email?.trim();
+    const emailFrag = email ? ` (${email})` : "";
+    return { id: p.id, label: `${base}${suffix}${emailFrag}` };
   });
 
   options.sort((a, b) => a.label.localeCompare(b.label, "id"));
