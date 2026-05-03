@@ -8,17 +8,12 @@ export async function getAdminContext(
   const profile = await prisma.adminProfile.findUnique({
     where: { authUserId },
     include: {
-      member: {
-        include: {
-          eventsAsHelper: { select: { eventId: true } },
-        },
-      },
+      eventsAsHelper: { select: { eventId: true } },
     },
   });
   if (!profile) return null;
 
-  const helperEventIds =
-    profile.member?.eventsAsHelper.map((event) => event.eventId) ?? [];
+  const helperEventIds = profile.eventsAsHelper.map((e) => e.eventId);
 
   return {
     profileId: profile.id,

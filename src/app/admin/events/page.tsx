@@ -71,12 +71,12 @@ export default async function AdminEventsIndexPage({
       status: true,
       startAt: true,
       endAt: true,
-      picAdminProfile: {
-        select: {
-          authUserId: true,
-          member: { select: { fullName: true } },
+        picAdminProfile: {
+          select: {
+            authUserId: true,
+            managementMember: { select: { fullName: true } },
+          },
         },
-      },
       _count: {
         select: {
           registrations: true,
@@ -100,7 +100,7 @@ export default async function AdminEventsIndexPage({
   const eventRows = events.map((event) => {
     const u = userById.get(event.picAdminProfile.authUserId);
     const picFullName =
-      event.picAdminProfile.member?.fullName?.trim() ||
+      event.picAdminProfile.managementMember?.fullName?.trim() ||
       u?.name?.trim() ||
       u?.email ||
       null;

@@ -6,7 +6,7 @@ export type CommitteeAdminDirectoryRowVm = {
   email: string;
   displayName: string;
   role: string;
-  memberId: string | null;
+  managementMemberId: string | null;
   memberSummary: string | null;
   twoFactorEnabled: boolean;
   lastSessionActivityAtIso: string | null;
@@ -27,15 +27,15 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
         id: true,
         authUserId: true,
         role: true,
-        memberId: true,
-        member: {
-          select: { memberNumber: true, fullName: true },
+        managementMemberId: true,
+        managementMember: {
+          select: { publicCode: true, fullName: true },
         },
       },
     }),
-    prisma.masterMember.findMany({
-      orderBy: { memberNumber: "asc" },
-      select: { id: true, memberNumber: true, fullName: true },
+    prisma.managementMember.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, publicCode: true, fullName: true },
     }),
   ]);
 
@@ -76,9 +76,9 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
       email: u?.email ?? p.authUserId,
       displayName: u?.name ?? "—",
       role: p.role,
-      memberId: p.memberId,
-      memberSummary: p.member
-        ? `${p.member.memberNumber} — ${p.member.fullName}`
+      managementMemberId: p.managementMemberId,
+      memberSummary: p.managementMember
+        ? `${p.managementMember.publicCode} — ${p.managementMember.fullName}`
         : null,
       twoFactorEnabled: Boolean(u?.twoFactorEnabled),
       lastSessionActivityAtIso: last ? last.toISOString() : null,
@@ -87,7 +87,7 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
 
   const memberOptions = memberOptionsRaw.map((m) => ({
     id: m.id,
-    label: `${m.memberNumber} — ${m.fullName}`,
+    label: `${m.publicCode} — ${m.fullName}`,
   }));
 
   return { rows, memberOptions };

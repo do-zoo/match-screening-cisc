@@ -42,7 +42,7 @@ export const adminEventUpsertSchema = z
     ticketNonMemberPrice: idrSchema,
     picAdminProfileId: z.string().min(1),
     bankAccountId: z.string().min(1),
-    helperMasterMemberIds: z.array(z.string().min(1)),
+    helperAdminProfileIds: z.array(z.string().min(1)),
     menuItems: z.array(menuItemDraftSchema).min(1),
     acknowledgeSensitiveChanges: z.boolean().optional(),
   })

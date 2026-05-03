@@ -260,12 +260,12 @@ function ManageAdminDialogs(props: ManageFormsProps) {
               </Alert>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor={`member-${row.adminProfileId}`}>Anggota</Label>
+              <Label htmlFor={`member-${row.adminProfileId}`}>Pengurus</Label>
               <select
                 id={`member-${row.adminProfileId}`}
-                name="memberId"
+                name="managementMemberId"
                 className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-                defaultValue={row.memberId ?? ""}
+                defaultValue={row.managementMemberId ?? ""}
                 disabled={memberPending}
               >
                 <option value="">— Tidak dikaitkan</option>
