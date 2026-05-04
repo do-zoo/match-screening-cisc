@@ -1,20 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { CommitteeAdminSettingsPanel } from "@/components/admin/committee-admin-settings-panel";
 import { loadCommitteeAdminDirectory } from "@/lib/admin/load-committee-admin-directory";
 import { loadPendingAdminInvitationsForCommittee } from "@/lib/admin/load-pending-admin-invitations";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
 
 export const metadata: Metadata = { title: "Komite" };
 
 export default async function CommitteeSettingsPage() {
-  const session = await requireAdminSession();
-  const viewerCtx = await getAdminContext(session.user.id);
-  if (!viewerCtx) notFound();
-
   const [directory, pendingInvitations] = await Promise.all([
     loadCommitteeAdminDirectory(),
     loadPendingAdminInvitationsForCommittee(),
@@ -40,8 +33,8 @@ export default async function CommitteeSettingsPage() {
           </Link>
           . <strong className="text-foreground">PIC utama acara</strong> adalah{" "}
           <strong className="text-foreground">profil admin</strong> (bukan flag di direktori);{" "}
-          <strong className="text-foreground">rekening pembayaran</strong> dipasangkan ke profil admin di bawah.
-          Di halaman ini yang diatur adalah{" "}
+          <strong className="text-foreground">rekening pembayaran</strong> dipasangkan ke profil
+          admin di bawah. Di halaman ini yang diatur adalah{" "}
           <strong className="text-foreground">identitas akses aplikasi</strong>: peran
           Owner/Admin/Verifier/Viewer dan tautan opsional ke baris direktori anggota.
         </p>
@@ -49,11 +42,13 @@ export default async function CommitteeSettingsPage() {
           <p className="font-medium text-foreground">Langkah biasa</p>
           <ol className="text-muted-foreground mt-2 list-decimal space-y-1 ps-5">
             <li>
-              Untuk admin baru, gunakan <strong className="text-foreground">Undang admin baru</strong> —
-              orang tersebut menerima taut onboarding (email bisa dikirim otomatis bila SMTP aktif).
+              Untuk admin baru, gunakan{" "}
+              <strong className="text-foreground">Undang admin baru</strong> — orang tersebut
+              menerima taut onboarding (email bisa dikirim otomatis bila SMTP aktif).
             </li>
             <li>
-              Pastikan direktori anggota dan (bila perlu) rekening PIC di profil admin sudah siap sebelum PIC acara.
+              Pastikan direktori anggota dan (bila perlu) rekening PIC di profil admin sudah siap
+              sebelum PIC acara.
             </li>
             <li>
               Gunakan{" "}
@@ -67,8 +62,6 @@ export default async function CommitteeSettingsPage() {
       </div>
 
       <CommitteeAdminSettingsPanel
-        viewerProfileId={viewerCtx.profileId}
-        viewerRole={viewerCtx.role}
         directory={directory}
         pendingInvitations={pendingInvitations}
       />
