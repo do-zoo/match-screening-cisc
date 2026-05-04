@@ -167,6 +167,113 @@ Form state tidak pernah reset saat pindah step — user bisa bebas kembali ke st
 
 ---
 
+## Draft & Resume (Server-Side)
+
+### Status Flow Baru
+
+```
+draft (incomplete) → ready (semua step selesai) → active (tayang) → finished
+```
+
+| Status   | Arti                                             | Siapa yang bisa set            |
+|----------|--------------------------------------------------|--------------------------------|
+| `draft`  | Event belum lengkap (masih dalam stepper)        | Sistem otomatis saat step 1 ✓  |
+| `ready`  | Semua step selesai, menunggu dipublish           | Sistem otomatis saat step 4 ✓  |
+| `active` | Event sudah tayang / publik                      | Owner atau Admin               |
+| `finished` | Event selesai                                  | Owner atau Admin               |
+
+`ready` adalah nilai baru di `EventStatus` enum — butuh **satu Prisma migration** yang juga mencakup perubahan berikut (lihat bagian Schema Changes).
+
+### Kapan Event Dibuat di DB
+
+Event dibuat pertama kali saat user menekan "Lanjut" di **step 1** dan validasi lolos (title, summary, descriptionHtml valid + coverFile tidak null). Setelah ini:
+
+- URL berubah dari `/admin/events/new` ke `/admin/events/[eventId]/edit`
+- Halaman edit mendeteksi event belum lengkap → tetap tampilkan **stepper** (bukan tabs)
+- Step 2–4 masing-masing menjalankan PATCH/update pada event yang sudah ada
+
+Saat step 4 submit berhasil:
+- Status berubah dari `draft` → `ready`
+- Halaman edit berganti tampilan ke **tabs** (mode edit normal)
+
+### Schema Changes (Prisma Migration)
+
+Satu migration mencakup semua perubahan berikut:
+
+1. **Tambah `ready` ke `EventStatus` enum**
+2. **`picAdminProfileId String` → `String?` (nullable)** — field ini adalah FK ke `AdminProfile`. Saat event dibuat di step 1, PIC belum diisi sehingga harus nullable. `bankAccountId` juga sama: `String` → `String?`.
+3. **Tambah `createdByAdminProfileId String?`** — FK ke `AdminProfile`, untuk tracking siapa yang memulai create (dipakai untuk banner di `/admin/events/new`). Nullable agar event lama tidak terpengaruh.
+
+Relasi yang perlu diupdate di schema:
+```prisma
+picAdminProfileId   String?
+picAdminProfile     AdminProfile? @relation(...)
+bankAccountId       String?
+bankAccount         PicBankAccount? @relation(...)
+createdByAdminProfileId String?
+createdByAdmin      AdminProfile? @relation(...)
+```
+
+### Deteksi "Belum Selesai"
+
+Event dianggap **incomplete** jika:
+```
+event.status === 'draft' && event.picAdminProfileId === null
+```
+
+`picAdminProfileId` hanya terisi (non-null) setelah step 4 selesai. Event `draft` yang dibuat dari form lama tidak terpengaruh karena mereka sudah memiliki `picAdminProfileId` non-null.
+
+### Edit Page — Deteksi Mode
+
+`/admin/events/[eventId]/edit` menentukan tampilan berdasarkan kelengkapan event:
+
+```
+isIncomplete = event.status === 'draft' && event.picAdminProfileId === null
+
+isIncomplete → tampilkan Stepper (resume create flow)
+!isIncomplete → tampilkan Tabs (edit normal)
+```
+
+Saat resume stepper, form diisi dari data event yang sudah ada (`defaults` dari DB). User bisa navigasi mundur ke step sebelumnya (step ✓ bisa diklik) dan melanjutkan dari step yang belum selesai.
+
+Menentukan step awal saat resume: validasi semua step secara silent saat load — step pertama yang gagal validasi adalah step awal yang ditampilkan.
+
+### Publish
+
+Tombol "Publish" mengubah status `ready` → `active`. Tersedia di:
+- Halaman daftar acara (`/admin/events`) — di baris event dengan status `ready`
+- Edit page (tab ④ PIC & Rekening, atau header edit page)
+
+Hanya Owner dan Admin yang bisa publish (sama dengan permission buat acara).
+
+### Resume di Events List (`/admin/events`)
+
+Event dengan `status === 'draft' && picAdminProfileId === null` ditampilkan dengan:
+- Badge **"Belum selesai"** (warna kuning/warning)
+- Tombol/link **"Lanjutkan"** → menuju `/admin/events/[eventId]/edit` dalam mode stepper
+
+### Banner di Halaman New (`/admin/events/new`)
+
+Saat admin membuka halaman buat acara baru, sistem mengecek apakah ada event `draft` incomplete yang **dibuat oleh admin ini** (berdasarkan session). Jika ada:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ ⚠️  Ada draft belum selesai: "Gala Dinner CISC 2026"    │
+│  [Lanjutkan draft]          [Mulai baru]                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+"Lanjutkan draft" → redirect ke `/admin/events/[eventId]/edit` (stepper mode).  
+"Mulai baru" → tutup banner, lanjut ke stepper baru. Draft lama **tidak dihapus** — tetap ada di daftar acara sebagai "Belum selesai" dan bisa dilanjutkan dari sana.
+
+Banner hanya muncul untuk **satu draft terbaru** (berdasarkan `createdAt` desc). Jika ada multiple incomplete draft, hanya yang terbaru ditampilkan.
+
+Untuk tracking "siapa yang membuat event", gunakan field yang sudah ada atau tambahkan `createdByAdminProfileId` ke Event. Ini diperlukan agar banner hanya muncul untuk draft milik admin yang sedang login.
+
+> **Catatan:** `createdByAdminProfileId` ditambahkan di migration yang sama. Lihat bagian Schema Changes.
+
+---
+
 ## Hal yang Tidak Berubah
 
 - Logika server action `createAdminEvent` dan `updateAdminEvent` — tidak ada perubahan
