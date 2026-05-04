@@ -24,6 +24,8 @@ export type ClubAuditListFilters = {
   to?: string;
   /** Exact match ke kolom `action` */
   action?: string;
+  /** Cocokkan awalan `action` (mis. `admin_profile.`) — digabung AND dengan filter lainnya. */
+  actionPrefix?: string;
   /** Substring pada `actorAuthUserId` (tanpa membedakan huruf besar/kecil) */
   userId?: string;
 };
@@ -68,6 +70,9 @@ export function buildClubAuditWhere(
 
   const action = filters.action?.trim();
   if (action) clauses.push({ action });
+
+  const actionPrefix = filters.actionPrefix?.trim();
+  if (actionPrefix) clauses.push({ action: { startsWith: actionPrefix } });
 
   const userId = filters.userId?.trim();
   if (userId) {

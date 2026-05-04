@@ -2,15 +2,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    $transaction: vi.fn(),
     adminProfile: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
-      delete: vi.fn(),
     },
-    user: { findFirst: vi.fn() },
+    user: { findFirst: vi.fn(), delete: vi.fn() },
     masterMember: { findUnique: vi.fn() },
+    event: { count: vi.fn() },
+    picBankAccount: { count: vi.fn() },
   },
 }));
 
@@ -33,40 +35,10 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { prisma } from "@/lib/db/prisma";
 import { AdminRole } from "@prisma/client";
 import {
-  addCommitteeAdminByEmail,
   deleteCommitteeAdmin,
   revokeCommitteeAdminMeaningfulAccess,
   updateCommitteeAdminRole,
 } from "@/lib/actions/admin-committee-profiles";
-
-describe("addCommitteeAdminByEmail", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.user.findFirst).mockReset();
-    vi.mocked(prisma.adminProfile.findUnique).mockReset();
-    vi.mocked(prisma.adminProfile.create).mockReset();
-  });
-
-  it("returns root error when user missing", async () => {
-    vi.mocked(prisma.user.findFirst).mockResolvedValueOnce(null);
-    const fd = new FormData();
-    fd.set("email", "nobody@example.com");
-    const r = await addCommitteeAdminByEmail(undefined, fd);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.rootError).toContain("email");
-  });
-
-  it("creates Viewer profile when user exists without profile", async () => {
-    vi.mocked(prisma.user.findFirst).mockResolvedValueOnce({ id: "u_new" } as never);
-    vi.mocked(prisma.adminProfile.findUnique).mockResolvedValueOnce(null);
-    vi.mocked(prisma.adminProfile.create).mockResolvedValueOnce({
-      id: "prof_new",
-    } as never);
-    const fd = new FormData();
-    fd.set("email", "new@example.com");
-    const r = await addCommitteeAdminByEmail(undefined, fd);
-    expect(r.ok).toBe(true);
-  });
-});
 
 describe("updateCommitteeAdminRole / revoke", () => {
   beforeEach(() => {
@@ -132,7 +104,18 @@ describe("deleteCommitteeAdmin", () => {
   beforeEach(() => {
     vi.mocked(prisma.adminProfile.findMany).mockReset();
     vi.mocked(prisma.adminProfile.findUnique).mockReset();
-    vi.mocked(prisma.adminProfile.delete).mockReset();
+    vi.mocked(prisma.$transaction).mockReset();
+    vi.mocked(prisma.event.count).mockReset();
+    vi.mocked(prisma.picBankAccount.count).mockReset();
+    vi.mocked(prisma.event.count).mockResolvedValue(0);
+    vi.mocked(prisma.picBankAccount.count).mockResolvedValue(0);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+      const txStub = {
+        adminProfile: { delete: vi.fn().mockResolvedValue({}) },
+        user: { delete: vi.fn().mockResolvedValue({}) },
+      };
+      return fn(txStub as never);
+    });
   });
 
   it("returns root error when profile not found", async () => {
@@ -158,6 +141,26 @@ describe("deleteCommitteeAdmin", () => {
     if (!r.ok) expect(r.rootError).toContain("sendiri");
   });
 
+  it("blocks delete when profile is primary PIC on events", async () => {
+    vi.mocked(prisma.adminProfile.findUnique).mockResolvedValueOnce({
+      id: "p_pic",
+      authUserId: "u_pic",
+      role: AdminRole.Admin,
+    } as never);
+    vi.mocked(prisma.adminProfile.findMany).mockResolvedValueOnce([
+      { authUserId: "actor_user" },
+    ] as never);
+    vi.mocked(prisma.event.count).mockResolvedValueOnce(1);
+    vi.mocked(prisma.picBankAccount.count).mockResolvedValueOnce(0);
+
+    const fd = new FormData();
+    fd.set("adminProfileId", "p_pic");
+    const r = await deleteCommitteeAdmin(undefined, fd);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.rootError).toContain("PIC");
+    expect(vi.mocked(prisma.$transaction)).not.toHaveBeenCalled();
+  });
+
   it("blocks deleting sole Owner", async () => {
     vi.mocked(prisma.adminProfile.findUnique).mockResolvedValueOnce({
       id: "p_owner",
@@ -175,6 +178,15 @@ describe("deleteCommitteeAdmin", () => {
   });
 
   it("deletes profile when target is non-Owner non-self", async () => {
+    const txProfDelete = vi.fn().mockResolvedValue({});
+    const txUserDelete = vi.fn().mockResolvedValue({});
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) =>
+      fn({
+        adminProfile: { delete: txProfDelete },
+        user: { delete: txUserDelete },
+      } as never),
+    );
+
     vi.mocked(prisma.adminProfile.findUnique).mockResolvedValueOnce({
       id: "p_viewer",
       authUserId: "other_viewer",
@@ -183,13 +195,15 @@ describe("deleteCommitteeAdmin", () => {
     vi.mocked(prisma.adminProfile.findMany).mockResolvedValueOnce([
       { authUserId: "actor_user" },
     ] as never);
-    vi.mocked(prisma.adminProfile.delete).mockResolvedValueOnce({} as never);
     const fd = new FormData();
     fd.set("adminProfileId", "p_viewer");
     const r = await deleteCommitteeAdmin(undefined, fd);
     expect(r.ok).toBe(true);
-    expect(vi.mocked(prisma.adminProfile.delete)).toHaveBeenCalledWith({
+    expect(txProfDelete).toHaveBeenCalledWith({
       where: { id: "p_viewer" },
+    });
+    expect(txUserDelete).toHaveBeenCalledWith({
+      where: { id: "other_viewer" },
     });
   });
 
@@ -203,7 +217,6 @@ describe("deleteCommitteeAdmin", () => {
       { authUserId: "actor_user" },
       { authUserId: "second_owner" },
     ] as never);
-    vi.mocked(prisma.adminProfile.delete).mockResolvedValueOnce({} as never);
     const fd = new FormData();
     fd.set("adminProfileId", "p_owner2");
     const r = await deleteCommitteeAdmin(undefined, fd);

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import {
   Card,
@@ -7,10 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { requireAdminSession } from "@/lib/auth/session";
+import { getAdminContext } from "@/lib/auth/admin-context";
+import { canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 
-export default function AdminSettingsHubPage() {
+export default async function AdminSettingsHubPage() {
+  const session = await requireAdminSession();
+  const ctx = await getAdminContext(session.user.id);
+  if (!ctx || !canManageCommitteeAdvancedSettings(ctx.role)) {
+    notFound();
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-2">

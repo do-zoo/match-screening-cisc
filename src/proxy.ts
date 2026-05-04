@@ -24,6 +24,11 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (!pathname.startsWith("/admin")) return NextResponse.next();
 
+  /** Onboarding dari undangan Owner — tidak perlu sesi Better Auth lebih dulu. */
+  if (pathname.startsWith("/admin/invite/")) {
+    return NextResponse.next();
+  }
+
   const session = await auth.api.getSession({
     headers: req.headers,
   });

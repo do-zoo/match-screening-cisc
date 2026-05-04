@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  formatAdminProfileDeleteBlockedMessage,
+  loadAdminProfileDeletionBlockers,
+} from "@/lib/admin/admin-profile-delete-guard";
 import { roleChangePreservesAtLeastOneOwner } from "@/lib/admin/committee-owner-invariants";
 import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
@@ -12,7 +16,6 @@ import {
 } from "@/lib/actions/guard";
 import { prisma } from "@/lib/db/prisma";
 import {
-  addCommitteeAdminByEmailSchema,
   deleteCommitteeAdminSchema,
   revokeCommitteeAdminAccessSchema,
   updateCommitteeAdminMemberLinkSchema,
@@ -45,59 +48,6 @@ async function listOwnerAuthUserIds(): Promise<string[]> {
     select: { authUserId: true },
   });
   return owners.map((o) => o.authUserId);
-}
-
-export async function addCommitteeAdminByEmail(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ created: true }>> {
-  const gate = await requireOwner();
-  if (!("owner" in gate)) return gate;
-
-  const parsed = addCommitteeAdminByEmailSchema.safeParse({
-    email: formData.get("email"),
-  });
-  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
-
-  const user = await prisma.user.findFirst({
-    where: {
-      email: { equals: parsed.data.email, mode: "insensitive" },
-    },
-    select: { id: true },
-  });
-  if (!user) {
-    return rootError(
-      "Tidak ada pengguna dengan email tersebut. Pengguna harus sudah punya akun masuk.",
-    );
-  }
-
-  const existing = await prisma.adminProfile.findUnique({
-    where: { authUserId: user.id },
-    select: { id: true },
-  });
-  if (existing) {
-    return rootError("Akun ini sudah terdaftar sebagai admin.");
-  }
-
-  const created = await prisma.adminProfile.create({
-    data: {
-      authUserId: user.id,
-      role: AdminRole.Viewer,
-    },
-    select: { id: true },
-  });
-
-  await appendClubAuditLog(prisma, {
-    actorProfileId: gate.owner.profileId,
-    actorAuthUserId: gate.owner.authUserId,
-    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_CREATED_UI,
-    targetType: "admin_profile",
-    targetId: created.id,
-    metadata: { targetAuthUserId: user.id, email: parsed.data.email },
-  });
-
-  revalidatePath("/admin/settings/committee");
-  return ok({ created: true });
 }
 
 export async function updateCommitteeAdminRole(
@@ -268,7 +218,7 @@ export async function revokeCommitteeAdminMeaningfulAccess(
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.owner.profileId,
     actorAuthUserId: gate.owner.authUserId,
-    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_ROLE_CHANGED,
+    action: CLUB_AUDIT_ACTION.ADMIN_PROFILE_ACCESS_REVOKED,
     targetType: "admin_profile",
     targetId: target.id,
     metadata: {
@@ -319,7 +269,31 @@ export async function deleteCommitteeAdmin(
     );
   }
 
-  await prisma.adminProfile.delete({ where: { id: target.id } });
+  const blockers = await loadAdminProfileDeletionBlockers(target.id);
+  const blockedMessage = formatAdminProfileDeleteBlockedMessage(blockers);
+  if (blockedMessage) {
+    return rootError(blockedMessage);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.adminProfile.delete({ where: { id: target.id } });
+      await tx.user.delete({ where: { id: target.authUserId } });
+    });
+  } catch (e) {
+    console.error("[deleteCommitteeAdmin]", e);
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      (e.code === "P2003" || e.code === "P2014")
+    ) {
+      return rootError(
+        "Tidak bisa menghapus — masih ada data yang bergantung pada profil ini (mis. undangan yang dibuat). Sesuaikan data terlebih dahulu.",
+      );
+    }
+    return rootError(
+      "Gagal menghapus profil atau akun masuk. Coba lagi atau hubungi operator.",
+    );
+  }
 
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.owner.profileId,

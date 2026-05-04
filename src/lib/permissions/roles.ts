@@ -7,7 +7,7 @@ export function hasGlobalVerifierAccess(role: AdminRole): boolean {
   return GLOBAL_VERIFIER_ROLES.has(role);
 }
 
-/** Owner-only surfaces: manage admins, PIC bank accounts, global pricing defaults, WhatsApp templates (“Pengaturan lanjutan”). */
+/** Owner-only advanced settings surfaces (pricing, WhatsApp templates, branding, notifications, ops, security). Direktori Komite boleh diakses lebih luas pada layout utama; mutasi tertentu (undang/peran/admin) tetap Owner-only pada server actions. */
 export function canManageCommitteeAdvancedSettings(role: AdminRole): boolean {
   return role === "Owner";
 }

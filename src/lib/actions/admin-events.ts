@@ -564,6 +564,7 @@ export async function deleteAdminEvent(
   formData: FormData,
 ): Promise<ActionResult<{ deleted: true }>> {
   const gate = await requireOwner();
+
   if (!("owner" in gate)) return gate;
 
   const eventId = formData.get("eventId");
@@ -580,6 +581,7 @@ export async function deleteAdminEvent(
       _count: { select: { registrations: true } },
     },
   });
+
   if (!event) return rootError("Acara tidak ditemukan.");
 
   if (event._count.registrations > 0) {

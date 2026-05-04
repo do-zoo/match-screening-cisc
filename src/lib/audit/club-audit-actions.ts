@@ -6,8 +6,12 @@ export const CLUB_AUDIT_ACTION = {
   CLUB_BRANDING_SAVED: "club_branding.saved",
   NOTIFICATION_PREFS_SAVED: "notification_preferences.saved",
   ADMIN_PROFILE_BOOTSTRAP_UPSERT: "admin_profile.bootstrap_upsert",
+  ADMIN_INVITATION_CONSUMED: "admin_invitation.consumed",
+  ADMIN_INVITATION_CREATED: "admin_invitation.created",
+  ADMIN_INVITATION_REVOKED: "admin_invitation.revoked",
   ADMIN_PROFILE_CREATED_UI: "admin_profile.created_ui",
   ADMIN_PROFILE_ROLE_CHANGED: "admin_profile.role_changed",
+  ADMIN_PROFILE_ACCESS_REVOKED: "admin_profile.access_revoked",
   ADMIN_PROFILE_MEMBER_LINK_CHANGED: "admin_profile.member_link_changed",
   ADMIN_PROFILE_DELETED_UI: "admin_profile.deleted_ui",
   EVENT_DELETED_UI: "event.deleted_ui",
@@ -23,6 +27,10 @@ export const CLUB_AUDIT_ACTION = {
   BOARD_ASSIGNMENT_CREATED: "board_assignment.created",
   BOARD_ASSIGNMENT_UPDATED: "board_assignment.updated",
   BOARD_ASSIGNMENT_REMOVED: "board_assignment.removed",
+  PIC_BANK_CREATED: "pic_bank.created",
+  PIC_BANK_UPDATED: "pic_bank.updated",
+  PIC_BANK_DEACTIVATED: "pic_bank.deactivated",
+  PIC_BANK_DELETED: "pic_bank.deleted",
 } as const;
 
 export type ClubAuditAction =

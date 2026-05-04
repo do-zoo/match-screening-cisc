@@ -213,6 +213,22 @@ async function main() {
     },
   });
 
+  // Venue menu rows are recreated below; dependents use onDelete Restrict, so strip them first
+  // (e.g. EventVenueMenuItem from seeded voucher event, TicketMenuSelection from test regs).
+  const seededVenueMenuIds = await prisma.venueMenuItem.findMany({
+    where: { venueId: { in: [demoVenue.id, catalogVenue.id] } },
+    select: { id: true },
+  });
+  const seededMenuIds = seededVenueMenuIds.map((r) => r.id);
+  if (seededMenuIds.length > 0) {
+    await prisma.ticketMenuSelection.deleteMany({
+      where: { menuItemId: { in: seededMenuIds } },
+    });
+    await prisma.eventVenueMenuItem.deleteMany({
+      where: { venueMenuItemId: { in: seededMenuIds } },
+    });
+  }
+
   await prisma.venueMenuItem.deleteMany({
     where: { venueId: demoVenue.id },
   });
@@ -336,13 +352,88 @@ async function main() {
     ],
   });
 
+  const catalogVenueItems = await prisma.venueMenuItem.findMany({
+    where: { venueId: catalogVenue.id },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  const voucherSummary =
+    "Kopdar santai dengan sistem voucher menu — tiket dan voucher dibayar saat daftar; pilihan hidangan ditukar di lokasi oleh panitia.";
+  const voucherDescription =
+    "<p>Acara seed kedua untuk menguji mode <strong>VOUCHER</strong> (tanpa pemilihan menu pada formulir).</p><p>Menu yang bisa ditukar dengan voucher sama dengan daftar voucher-eligible di venue katalog.</p>";
+
+  const voucherEvent = await prisma.event.upsert({
+    where: { slug: "demo-kopdar-voucher-2026" },
+    update: {
+      title: "Demo — Kopdar Voucher Juni",
+      bankAccountId: bank.id,
+      picAdminProfileId: ownerProfile.id,
+      venueId: catalogVenue.id,
+      summary: voucherSummary,
+      description: voucherDescription,
+      startAt: new Date("2026-06-14T17:00:00+07:00"),
+      endAt: new Date("2026-06-14T21:30:00+07:00"),
+      registrationManualClosed: false,
+      registrationCapacity: 40,
+      status: EventStatus.active,
+      ticketMemberPrice: 100_000,
+      ticketNonMemberPrice: 150_000,
+      pricingSource: PricingSource.global_default,
+      menuMode: MenuMode.VOUCHER,
+      menuSelection: MenuSelection.SINGLE,
+      voucherPrice: 85_000,
+      coverBlobUrl:
+        "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Voucher",
+      coverBlobPath: "__seed__/demo-kopdar-voucher-2026/cover.webp",
+    },
+    create: {
+      slug: "demo-kopdar-voucher-2026",
+      title: "Demo — Kopdar Voucher Juni",
+      summary: voucherSummary,
+      description: voucherDescription,
+      startAt: new Date("2026-06-14T17:00:00+07:00"),
+      endAt: new Date("2026-06-14T21:30:00+07:00"),
+      coverBlobUrl:
+        "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Voucher",
+      coverBlobPath: "__seed__/demo-kopdar-voucher-2026/cover.webp",
+      registrationManualClosed: false,
+      registrationCapacity: 40,
+      venueId: catalogVenue.id,
+      status: EventStatus.active,
+      ticketMemberPrice: 100_000,
+      ticketNonMemberPrice: 150_000,
+      pricingSource: PricingSource.global_default,
+      menuMode: MenuMode.VOUCHER,
+      menuSelection: MenuSelection.SINGLE,
+      voucherPrice: 85_000,
+      picAdminProfileId: ownerProfile.id,
+      bankAccountId: bank.id,
+    },
+  });
+
+  await prisma.eventVenueMenuItem.deleteMany({
+    where: { eventId: voucherEvent.id },
+  });
+  const voucherMenuRows = catalogVenueItems
+    .filter((m) => m.voucherEligible)
+    .map((m, i) => ({
+      eventId: voucherEvent.id,
+      venueMenuItemId: m.id,
+      sortOrder: i + 1,
+    }));
+  if (voucherMenuRows.length > 0) {
+    await prisma.eventVenueMenuItem.createMany({ data: voucherMenuRows });
+  }
+
   const mgmtCount = MASTER_MEMBER_SEEDS.filter(
     (r) => r.managementPublicCode,
   ).length;
   console.log(
     "Seed OK:",
     event.slug,
-    `· venue acara=${demoVenue.id} · venue katalog tambahan=${catalogVenue.id} (${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
+    "+",
+    voucherEvent.slug,
+    `· venue nobar=${demoVenue.id} · venue voucher=${catalogVenue.id} (${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
   );
 }
 
