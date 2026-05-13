@@ -89,7 +89,7 @@ function syntheticTicketRows(opts: {
   return out;
 }
 
-export default async function AdminEventInboxDetailPage({
+export default async function AdminEventRegistrantsDetailPage({
   params,
 }: {
   params: Promise<{ eventId: string; registrationId: string }>;

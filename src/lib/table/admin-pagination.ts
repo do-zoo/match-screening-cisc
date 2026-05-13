@@ -1,5 +1,3 @@
-/** Baris per halaman indeks acara admin (tampilan kartu dan tabel), inbox, anggota. */
-
 export const ADMIN_TABLE_PAGE_SIZE = 10;
 
 function firstString(param: string | string[] | undefined): string | undefined {

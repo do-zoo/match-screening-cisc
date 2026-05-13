@@ -33,6 +33,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
+import { eventRegistrationDetailPath } from "@/lib/admin/event-registrants-paths";
 import { waMeLink } from "@/lib/wa-templates/encode";
 import type { ClubWaBodies } from "@/lib/wa-templates/render-wa-from-db";
 import {
@@ -496,7 +497,10 @@ export function RegistrationDetail({
                           —{" "}
                         </span>
                         <Link
-                          href={`/admin/events/${eventId}/inbox/${c.registrationId}`}
+                          href={eventRegistrationDetailPath(
+                            eventId,
+                            c.registrationId,
+                          )}
                           className="font-medium underline-offset-4 hover:underline"
                         >
                           buka detail

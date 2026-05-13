@@ -162,6 +162,13 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
   - CSV mengikuti format standar yang dibagikan stakeholder (misalnya kolom tetap) dan dapat dibuka di spreadsheet umum.
   - Angka di layar laporan selaras dengan detail registrasi untuk sampel acak yang diuji manual.
 
+### US-EVT-11 — Bukti rekapitulasi penutupan (venue & bendahara)
+
+- **Sebagai** PIC acara atau Owner/Admin operasional, **saya ingin** mengunggah bukti transfer ke venue, nota/bukti terima venue, dan bukti transfer margin ke bendahara dengan riwayat beberapa versi, **agar** penutupan keuangan acara terdokumentasi dan nominal dapat dibandingkan dengan angka laporan (dengan alasan jika selisih).
+- **Kriteria penerimaan:**
+  - Verifier non-PIC dapat membaca riwayat di halaman laporan tetapi tidak menambah bukti baru.
+  - Selisih nominal di luar toleransi yang ditetapkan aplikasi hanya tersimpan setelah konfirmasi dan alasan teks.
+
 ## Epik: Direktori anggota (master)
 
 ### US-DIR-01 — Mengelola direktori dan impor/ekspor CSV

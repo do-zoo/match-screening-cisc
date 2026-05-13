@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+import { eventRegistrationDetailPath, eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
 
 async function guard(eventId: string) {
@@ -67,8 +68,8 @@ export async function approveRegistration(
     throw e;
   }
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
+revalidatePath(eventRegistrantsListPath(eventId));
+    revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
   return ok({ ok: true });
 }
 
@@ -113,8 +114,8 @@ export async function rejectRegistration(
     },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
+revalidatePath(eventRegistrantsListPath(eventId));
+    revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
   return ok({ ok: true });
 }
 
@@ -159,7 +160,7 @@ export async function markPaymentIssue(
     },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
+revalidatePath(eventRegistrantsListPath(eventId));
+    revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
   return ok({ ok: true });
 }

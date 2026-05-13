@@ -5,6 +5,8 @@ export function flattenedMenuRowsFromEventVenueLinks<
     venueMenuItem: {
       id: string;
       name: string;
+      description: string | null;
+      imageBlobUrl: string | null;
       price: number;
       sortOrder: number;
     };
@@ -14,6 +16,8 @@ export function flattenedMenuRowsFromEventVenueLinks<
 ): Array<{
   id: string;
   name: string;
+  description: string | null;
+  imageBlobUrl: string | null;
   price: number;
 }> {
   return [...links]
@@ -25,6 +29,8 @@ export function flattenedMenuRowsFromEventVenueLinks<
     .map((x) => ({
       id: x.venueMenuItem.id,
       name: x.venueMenuItem.name,
+      description: x.venueMenuItem.description,
+      imageBlobUrl: x.venueMenuItem.imageBlobUrl,
       price: x.venueMenuItem.price,
     }));
 }

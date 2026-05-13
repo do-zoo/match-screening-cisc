@@ -6,6 +6,7 @@ import type {
 } from "@/lib/admin/events-index-view-model";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import type { VariantProps } from "class-variance-authority";
@@ -118,10 +119,10 @@ function EventSummaryCard({
         </CardHeader>
         <CardFooter className="mt-auto flex flex-wrap gap-3 border-t pt-4">
           <Link
-            href={`/admin/events/${card.id}/inbox`}
+            href={eventRegistrantsListPath(card.id)}
             className={buttonVariants({ className: "inline-flex" })}
           >
-            Buka inbox
+            Buka peserta
           </Link>
           <Link
             href={`/admin/events/${card.id}/report`}

@@ -28,7 +28,11 @@ export const adminEventUpsertSchema = z
     mandatoryMenuItemIds: z
       .array(z.string().min(1))
       .min(1, "Pilih min 1 menu wajib."),
-    registrationCapacity: z.union([idrSchema, z.literal(null)]).optional(),
+    /** 0 atau kosong = tak terbatas; nilai negatif ditolak. */
+    registrationCapacity: z.preprocess(
+      (v) => (v === 0 || v === "0" ? null : v),
+      z.union([z.coerce.number().int().positive(), z.literal(null)]).optional(),
+    ),
     registrationManualClosed: z.boolean(),
     status: z.nativeEnum(EventStatus),
     ticketMemberPrice: idrSchema,

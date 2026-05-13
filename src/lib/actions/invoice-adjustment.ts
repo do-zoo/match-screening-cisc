@@ -5,6 +5,7 @@ import { InvoiceAdjustmentType, InvoiceAdjustmentStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { guardEvent, isAuthError } from "@/lib/actions/guard";
+import { eventRegistrationDetailPath } from "@/lib/admin/event-registrants-paths";
 import { ok, rootError, fieldError, type ActionResult } from "@/lib/forms/action-result";
 
 const createSchema = z.object({
@@ -51,7 +52,7 @@ export async function createInvoiceAdjustment(
     },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox/${parsed.data.registrationId}`);
+  revalidatePath(eventRegistrationDetailPath(eventId, parsed.data.registrationId));
   return ok({ adjustmentId: adj.id });
 }
 
@@ -79,7 +80,7 @@ export async function markAdjustmentPaid(
     data: { status: InvoiceAdjustmentStatus.paid, paidAt: new Date() },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox/${adj.registration.id}`);
+  revalidatePath(eventRegistrationDetailPath(eventId, adj.registration.id));
   return ok({ ok: true });
 }
 
@@ -107,6 +108,6 @@ export async function markAdjustmentUnpaid(
     data: { status: InvoiceAdjustmentStatus.unpaid, paidAt: null },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox/${adj.registration.id}`);
+  revalidatePath(eventRegistrationDetailPath(eventId, adj.registration.id));
   return ok({ ok: true });
 }

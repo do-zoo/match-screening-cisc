@@ -193,7 +193,7 @@ export function ManagementMembersPage({
         };
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
       <div className="text-sm text-muted-foreground">
         <Link href="/admin/management" className="hover:text-foreground">
           ← Kepengurusan

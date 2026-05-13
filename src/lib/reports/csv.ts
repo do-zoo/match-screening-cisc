@@ -1,5 +1,6 @@
-import { TicketRole } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { TicketRole } from "@prisma/client";
+import { formatIdr } from "../utils/format-idr";
 
 function escapeCsv(v: string): string {
   if (
@@ -13,14 +14,10 @@ function escapeCsv(v: string): string {
   return v;
 }
 
-const idr = (n: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "decimal",
-    maximumFractionDigits: 0,
-  }).format(n);
-
 /** CSV UTF-8: satu baris per `Registration` (utama atau partner). */
-export async function generateRegistrationsCsv(eventId: string): Promise<string> {
+export async function generateRegistrationsCsv(
+  eventId: string,
+): Promise<string> {
   const rows = await prisma.registration.findMany({
     where: { eventId },
     orderBy: { createdAt: "asc" },
@@ -68,8 +65,7 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
 
   const body = rows.map((r) => {
     const adjustmentTotal = r.adjustments.reduce((s, a) => s + a.amount, 0);
-    const roleLabel =
-      r.ticketRole === TicketRole.primary ? "Utama" : "Partner";
+    const roleLabel = r.ticketRole === TicketRole.primary ? "Utama" : "Partner";
     const primaryBuyer =
       r.ticketRole === TicketRole.partner && r.primaryRegistration
         ? r.primaryRegistration.contactName
@@ -86,11 +82,11 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       r.memberValidation,
       r.status,
       r.attendanceStatus,
-      idr(r.ticketPriceApplied),
+      formatIdr(r.ticketPriceApplied),
       r.mandatoryMenuItem.name,
-      idr(r.mandatoryMenuPriceApplied),
-      idr(r.computedTotalAtSubmit),
-      adjustmentTotal > 0 ? idr(adjustmentTotal) : "",
+      formatIdr(r.mandatoryMenuPriceApplied),
+      formatIdr(r.computedTotalAtSubmit),
+      adjustmentTotal > 0 ? formatIdr(adjustmentTotal) : "",
     ]
       .map(String)
       .map(escapeCsv)

@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { VenueCatalogEditor } from "@/components/admin/venues/venue-catalog-editor";
-import { buttonVariants } from "@/components/ui/button";
+import { VenueBasicsForm } from "@/components/admin/venues/venue-basics-form";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import type { VenueCatalogUiPayload } from "@/lib/forms/venue-catalog-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
-import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -21,10 +17,10 @@ export async function generateMetadata({
     where: { id: venueId },
     select: { name: true },
   });
-  return { title: v ? `Edit · ${v.name}` : "Edit venue" };
+  return { title: v ? `Info dasar · ${v.name}` : "Info dasar venue" };
 }
 
-export default async function AdminEditVenuePage({
+export default async function AdminVenueEditBasicsPage({
   params,
 }: {
   params: Promise<{ venueId: string }>;
@@ -40,47 +36,31 @@ export default async function AdminEditVenuePage({
       id: true,
       name: true,
       address: true,
-      menuItems: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          sortOrder: true,
-        },
-      },
+      mapUrl: true,
+      updatedAt: true,
     },
   });
 
   if (!venue) notFound();
 
-  const initial: VenueCatalogUiPayload = {
-    name: venue.name,
-    address: venue.address,
-    items: venue.menuItems.map((m) => ({
-      id: m.id,
-      name: m.name,
-      price: m.price,
-      sortOrder: m.sortOrder,
-    })),
-  };
-
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
-      <div className="flex flex-col gap-2">
-        <Link
-          href="/admin/venues"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
-        >
-          ← Daftar venue
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Kelola venue</h1>
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Info dasar venue
+        </h1>
         <p className="text-muted-foreground text-sm">
-          Perbarui lokasi beserta menu kanonik. Perubahan harga/nama item yang dikunci akan ditolak bila ada pendaftar.
+          Harga dan gambar menu diatur di halaman Menu kanonik.
         </p>
-      </div>
+      </header>
 
-      <VenueCatalogEditor venueId={venue.id} initial={initial} />
+      <VenueBasicsForm
+        key={`${venue.id}:${venue.updatedAt.toISOString()}`}
+        venueId={venue.id}
+        initialName={venue.name}
+        initialAddress={venue.address}
+        initialMapUrl={venue.mapUrl}
+      />
     </main>
   );
 }

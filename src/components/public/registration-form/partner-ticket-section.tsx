@@ -64,7 +64,6 @@ function DirectoryContactProfileCard({
         <Button
           type="button"
           variant="outline"
-          size="lg"
           className="min-h-11 touch-manipulation gap-2"
           onClick={onEdit}
         >
@@ -393,7 +392,9 @@ export function PartnerTicketSection({
                       effectivePartnerMemberGate.found &&
                       effectivePartnerMemberGate.seatForEvent === "taken" ? (
                         <Alert variant="destructive" className="mt-2">
-                          <span>{MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE}</span>
+                          <span>
+                            {MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE}
+                          </span>
                         </Alert>
                       ) : fieldState.invalid ? (
                         <FieldError errors={[fieldState.error]} />
@@ -463,7 +464,6 @@ export function PartnerTicketSection({
                           <Button
                             type="button"
                             variant="secondary"
-                            size="lg"
                             className="min-h-11 shrink-0 touch-manipulation"
                             onClick={() => setPartnerContactsShowInputs(false)}
                           >

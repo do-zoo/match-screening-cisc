@@ -17,6 +17,18 @@ const REGISTRATION_STATUS_EXCLUDED_FROM_QUOTA: readonly RegistrationStatus[] = [
   "refunded",
 ];
 
+/**
+ * Batas kuota hanya berlaku jika kapasitas positif.
+ * `null`, `undefined`, atau nilai ≤ 0 diperlakukan sama seperti tak terbatas (selaras dengan form admin: kosong = tak terbatas).
+ */
+function registrationCapacityLimit(
+  registrationCapacity: number | null | undefined,
+): number | null {
+  if (registrationCapacity == null) return null;
+  if (registrationCapacity <= 0) return null;
+  return registrationCapacity;
+}
+
 /** Fields needed to evaluate whether new registrations are allowed. */
 export type EventRegistrationGatePick = Pick<
   Event,
@@ -58,9 +70,10 @@ export function isRegistrationOpenForEvent(args: {
   if (!isRegistrationTimeWindowOpen(event, now)) {
     return false;
   }
+  const capacityLimit = registrationCapacityLimit(event.registrationCapacity);
   if (
-    event.registrationCapacity != null &&
-    registrationsTowardQuota >= event.registrationCapacity
+    capacityLimit != null &&
+    registrationsTowardQuota >= capacityLimit
   ) {
     return false;
   }
@@ -104,10 +117,8 @@ export function registrationBlockMessageForPublic(args: {
       return "Pendaftaran untuk acara ini sudah ditutup.";
     }
   }
-  if (
-    registrationCapacity != null &&
-    registrationsTowardQuota >= registrationCapacity
-  ) {
+  const capacityLimit = registrationCapacityLimit(registrationCapacity);
+  if (capacityLimit != null && registrationsTowardQuota >= capacityLimit) {
     return "Kuota pendaftaran untuk acara ini sudah habis.";
   }
   return null;

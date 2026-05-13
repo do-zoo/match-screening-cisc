@@ -23,6 +23,16 @@ const nextConfig: NextConfig = {
         destination: "/admin/members/:path*",
         permanent: true,
       },
+      {
+        source: "/admin/events/:eventId/inbox",
+        destination: "/admin/events/:eventId/registrants",
+        permanent: true,
+      },
+      {
+        source: "/admin/events/:eventId/inbox/:registrationId",
+        destination: "/admin/events/:eventId/registrants/:registrationId",
+        permanent: true,
+      },
     ];
   },
   images: {

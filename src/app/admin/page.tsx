@@ -1,12 +1,17 @@
+import { CalendarDays, MapPin, Users, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, MapPin, Users, UsersRound } from "lucide-react";
 
 export const metadata: Metadata = { title: "Beranda" };
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { deriveGlobalSidebarNav } from "@/lib/admin/global-nav-flags";
 import { getPendingReviewTotalForAdminContext } from "@/lib/admin/pending-review-total-for-context";
 import { getAdminContext } from "@/lib/auth/admin-context";
@@ -28,7 +33,8 @@ export default async function AdminHomePage() {
         <Alert variant="destructive">
           <AlertTitle>Profil admin belum ada</AlertTitle>
           <AlertDescription>
-            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk aktivasi akses PIC.
+            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk
+            aktivasi akses PIC.
           </AlertDescription>
         </Alert>
       </main>
@@ -80,27 +86,28 @@ export default async function AdminHomePage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Beranda</h1>
         <p className="text-sm text-muted-foreground">
-          Pratinjau backoffice <span className="font-medium text-foreground">{branding.clubNameNav}</span>
+          Pratinjau backoffice{" "}
+          <span className="font-medium text-foreground">
+            {branding.clubNameNav}
+          </span>
           — anggota, acara, venue, dan kepengurusan dalam satu tempat.
         </p>
-        {session.user.email ? (
-          <p className="text-sm text-muted-foreground">
-            Anda masuk sebagai{" "}
-            <span className="font-medium text-foreground">{session.user.email}</span>.
-          </p>
-        ) : null}
       </header>
 
       <Alert className="border-primary/40 bg-muted/40">
         <AlertTitle>Registrasi menunggu tinjauan</AlertTitle>
         <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <span>
-            {fmtNum.format(pendingTotal)} registrasi berstatus menunggu tindakan di acara yang Anda
-            akses.
+            {fmtNum.format(pendingTotal)} registrasi berstatus menunggu tindakan
+            di acara yang Anda akses.
           </span>
           <Link
             href="/admin/events?tab=active"
-            className={buttonVariants({ variant: "secondary", size: "sm", className: "shrink-0" })}
+            className={buttonVariants({
+              variant: "secondary",
+              size: "sm",
+              className: "shrink-0",
+            })}
           >
             Buka daftar acara
           </Link>
@@ -116,7 +123,10 @@ export default async function AdminHomePage() {
             .filter((s) => s.enabled)
             .map(({ href, title, description, Icon }) => (
               <li key={href}>
-                <Link href={href} className="block h-full rounded-lg focus-visible:outline-none">
+                <Link
+                  href={href}
+                  className="block h-full rounded-lg focus-visible:outline-none"
+                >
                   <Card
                     className={cn(
                       "h-full transition-colors hover:border-primary/30 hover:bg-muted/30",
@@ -128,7 +138,9 @@ export default async function AdminHomePage() {
                           <Icon className="size-5" aria-hidden />
                         </span>
                         <div className="min-w-0 space-y-1">
-                          <CardTitle className="text-lg leading-snug">{title}</CardTitle>
+                          <CardTitle className="text-lg leading-snug">
+                            {title}
+                          </CardTitle>
                           <CardDescription>{description}</CardDescription>
                         </div>
                       </div>
@@ -142,8 +154,12 @@ export default async function AdminHomePage() {
 
       {nav.settings ? (
         <p className="text-sm text-muted-foreground">
-          Pengaturan komite (branding, notifikasi, keamanan) tetap di menu samping:{" "}
-          <Link href="/admin/settings" className="font-medium text-foreground underline-offset-4 hover:underline">
+          Pengaturan komite (branding, notifikasi, keamanan) tetap di menu
+          samping:{" "}
+          <Link
+            href="/admin/settings"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Pengaturan
           </Link>
           .

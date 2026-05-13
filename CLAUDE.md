@@ -80,19 +80,19 @@ An event registration system for a members-only social club (CISC). Members and 
 - `admin/` — authenticated admin area (all routes require a session; redirect enforced in `src/proxy.ts` + `admin/layout.tsx`)
   - `admin/` (root) — hub ringkas komunitas (pintasan ke modul + agregat registrasi menunggu tinjauan); bukan daftar acara utama
   - `admin/events/` — indeks acara: header (judul + Buat acara untuk Owner/Admin), toolbar filter (`?tab=`, `?q=` judul/slug/venue, pencarian debounce) + toggle kartu/tabel (`?view=tabel`) + ringkasan menunggu tinjauan; paginasi (`?page=`); tabel memakai filter status + teks yang sama; Verifier/Viewer hanya kartu; `tab` kosong → redirect ke `tab=active` (pertahankan `q` bila ada)
-  - `admin/events/[eventId]/inbox` — registrations list
-  - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + action panels
-  - `admin/events/[eventId]/report` — aggregated report + CSV export
+  - `admin/events/[eventId]/registrants` — daftar peserta (toolbar: `?q=`, `?tab=` status pendaftaran, `?view=tabel` vs kartu, `?page=`); label nav **Peserta Acara**; URL lama `/admin/events/[eventId]/inbox` dialihkan permanen lewat `next.config.ts`
+  - `admin/events/[eventId]/registrants/[registrationId]` — detail registrasi + panel aksi
+  - `admin/events/[eventId]/report` — aggregated report + CSV export; panel **bukti rekapitulasi penutupan** (transfer venue, nota venue, margin bendahara) untuk PIC acara / Owner / Admin dengan riwayat append-only
   - `admin/events/[eventId]/edit` — event editor (venue, menu, pricing, hero cover)
   - `admin/members/` — master member directory (CSV import/export)
   - `admin/management/` — kepengurusan hub
   - `admin/management/[periodId]` — board period detail (roles, assignments, PDF/CSV export)
-  - `admin/venues/` — venue list; `admin/venues/[venueId]/edit`, `admin/venues/new`
+  - `admin/venues/` — indeks venue (toolbar mirip acara: `?tab=all|active|inactive`, `?q=` nama/alamat, `?view=tabel` vs kartu, `?page=`); `admin/venues/new`; cabang `admin/venues/[venueId]/` memakai layout breadcrumb + sub-nav (mobile) dan blok sidebar (desktop) seperti acara: `edit` (info dasar), `menu` (menu kanonik: judul + **Tambah item** di `admin-venue-menu-panel`; query `?q=` teks, `?view=tabel` untuk tabel vs kartu, `?page=` paginasi, `?filter=locked|unlocked` status kunci nama/harga — pola mirip indeks acara)
   - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, security, whatsapp-templates)
   - `admin/account/` — personal account page (display name, 2FA)
 - `api/auth/[...all]` — Better Auth catch-all handler
 - `api/admin/events/[eventId]/title` — judul acara + `canManageEventSettings` untuk breadcrumb/sidebar
-- `api/admin/pic-banks/[adminProfileId]` — PIC bank accounts for the event form
+- `api/admin/venues/[venueId]/label` — nama venue untuk breadcrumb/sidebar cabang venue (Owner/Admin operasional)
 
 ### Role permission model
 
@@ -113,9 +113,10 @@ Key entities:
 
 - **`MasterMember`** — the club member directory; `isManagementMember` gates partner ticket eligibility and is **derived from kepengurusan** (`BoardAssignment` for the active `BoardPeriod` when the pengurus row links via `ManagementMember.masterMemberId`), not edited manually in the directory UI
 - **`Event`** — slug, harga tiket per acara (`ticketMemberPrice`, `ticketNonMemberPrice` dalam IDR), timeline **`openRegistrationAt` / `closeRegistrationAt` / `openGateAt` / `kickOffAt`**, **`mandatoryMenuItemIds`** (subset of the event’s **`EventVenueMenuItem`** rows), linked menu via **`EventVenueMenuItem`**; financial PIC is **`picAdminProfileId`** (`AdminProfile`); pembayaran via **`bankAccountId`** → **`PicBankAccount`**
-- **`Venue`** / **`VenueMenuItem`** — venues carry a reusable menu item catalogue (`name`, `price` IDR, `sortOrder`); **`EventVenueMenuItem`** snapshots which catalogue rows an event uses (with **no** registrations the admin editor links **all** venue items; after the first registration, join rows and order are frozen — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`)
+- **`Venue`** / **`VenueMenuItem`** — venues carry `name`, `address`, optional `mapUrl` (tautan peta), plus a reusable menu item catalogue (`name`, `price` IDR, `sortOrder`, optional public `description` + `imageBlobUrl`/`imageBlobPath`); **`EventVenueMenuItem`** snapshots which catalogue rows an event uses (with **no** registrations the admin editor links **all** venue items; after the first registration, join rows and order are frozen — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`). Menu `description`/image metadata stays editable even when name/price are locked, because it only affects presentation.
 - **`Registration`** — **satu baris per tiket** (utama dan/atau partner sebagai baris terpisah); partner menaut ke pembeli utama lewat **`primaryRegistrationId`**; **`ticketRole`**, **`ticketPriceType`**, **`mandatoryMenuItemId`**, **`ticketPriceApplied`**, **`mandatoryMenuPriceApplied`**, **`computedTotalAtSubmit`**; status flows: `submitted → pending_review → approved / rejected / payment_issue` (sumber kebenaran tiket; tidak ada tabel `Ticket` terpisah)
-- **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage
+- **`Upload`** — Vercel Blob metadata for transfer proofs, member card photos, invoice adjustment proofs, and **event settlement** proofs (`UploadPurpose.event_settlement_*`); converted to WebP before storage
+- **`EventSettlementArtifact`** — append-only bukti penutupan keuangan per acara (`venue_transfer`, `venue_receipt`, `treasurer_margin`); satu baris per unggahan dengan snapshot acuan nominal + selisih; diunggah oleh PIC acara (`Event.picAdminProfileId`) atau Owner/Admin operasional (`hasOperationalOwnerParity`)
 - **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
 - **`BoardPeriod`** / **`BoardRole`** / **`ManagementMember`** / **`BoardAssignment`** — kepengurusan (committee) structure; `recompute-directory-flags.ts` syncs `MasterMember.isManagementMember` from `BoardAssignment`
@@ -141,7 +142,12 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
 - `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
-- `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance (`baselineTotal`, agregat tiket/menu approved, penyesuaian, refund), dan agregasi menu wajib per item (`MenuStats.byItem`)
+- `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance (`baselineTotal`, pendapatan tiket approved, alokasi menu wajib ke venue `menuVenuePayoutApproved`, penyesuaian, refund), dan agregasi menu wajib per item (`MenuStats.byItem`)
+- `lib/reports/settlement-expected-amounts.ts` — acuan nominal bukti penutupan vs `getEventReport.finance` (venue menu payout, margin bendahara v1 = tiket approved + penyesuaian lunas) + toleransi selisih
+- `lib/actions/guard-event-settlement.ts` — `assertCanManageEventSettlement` (PIC acara atau Owner/Admin) dipanggil setelah `guardEvent` pada unggah bukti penutupan
+- `lib/maps/map-embed-preview.ts` — `resolveMapEmbedSearchQuery`, `buildGoogleMapsEmbedSrc`, `mapEmbedPreviewCaption` untuk iframe Google Maps (`output=embed`); dipakai `components/map-embed-preview.tsx` (admin venue + halaman publik)
+- `lib/actions/admin-venues.ts` — `saveVenueBasics` / `saveVenueMenu` / `saveVenueCatalog` (payload penuh, dipakai uji); unggah gambar menu venue; item terkunci pendaftar mengikuti `venueMenuItemIdsFrozenByExistingRegistrations`
+- `lib/uploads/upload-venue-menu-image.ts` — helper unggah gambar menu venue ke Blob (`venues/{venueId}/menu/{menuItemId}.webp`) untuk metadata katalog menu; tidak memakai tabel `Upload`
 - `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — CSV UTF-8 satu baris per `Registration` (peran, pembeli utama untuk partner, menu wajib, harga snapshot, kolom legacy tiket, penyesuaian)
 - `lib/events/event-timing.ts` — helper fase/waktu pendaftaran dan gate (`isRegistrationTimeWindowOpen`, `isRegistrationOpen`, `canEditEventBeforeRegistrationClose`, `canEditEvent`, `getEventPhase`, dll.)
 - `lib/events/event-registration-window.ts` — re-export dari `registration-window.ts` (nama modul selaras dokumen rencana)
@@ -149,10 +155,16 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
-- `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses
+- `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses; kapasitas `null` atau ≤ 0 = tak terbatas (sama seperti form admin kosong)
 - `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
 - `lib/admin/events-index-view.ts` — parse mode kartu vs tabel (`view`), parse `q`, dan `buildAdminEventsIndexUrl` untuk query indeks acara
+- `lib/admin/event-registrants-paths.ts` — `eventRegistrantsListPath` / `eventRegistrationDetailPath` untuk URL daftar & detail peserta acara
+- `lib/admin/event-registrants-list-url.ts` — parse/build query daftar peserta (`tab`, `view`, `q`, `page`) + `registrationListWhere` untuk Prisma
+- `lib/admin/event-registration-detail-path.ts` — `pathsMatchRegistrationDetail` untuk breadcrumb (bukan path daftar)
+- `lib/admin/admin-venues-index.ts` — parse `tab` / `q` / `view` / `page` indeks venue dan `buildAdminVenuesIndexUrl`
+- `lib/admin/admin-venue-menu-list.ts` — parse `searchParams` menu venue (`q`, `view`, `page`, `filter`) dan `buildAdminVenueMenuListUrl`
+- `lib/admin/filter-venue-menu-list.ts` — `venueMenuRowMatchesSearch` / `venueMenuRowMatchesLockFilter` untuk penyaringan klien daftar item menu
 - `lib/admin/events-index-view-model.ts` — tab status (`?tab=`), sort/filter agregat registrasi per acara untuk indeks admin
 - `lib/admin/load-admin-events-index.ts` — `loadAdminEventsIndex` memuat acara yang boleh diverifikasi + KPI + paginasi tampilan kartu
 - `lib/admin/pending-review-total-for-context.ts` — agregat registrasi `pending_review` pada acara yang boleh diverifikasi konteks admin (halaman beranda)
@@ -160,9 +172,11 @@ Registration status flows: `submitted → pending_review → approved / rejected
 
 ### UI components
 
-- `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `dropzone.tsx`, `image-upload-dropzone.tsx` (sampul acara admin), `idr-amount-input.tsx` (harga IDR terformat)
+- **Header halaman admin (aksi di samping judul)** — baris pertama `flex` dengan `h1` + satu kontrol utama (`shrink-0 sm:self-center`); deskripsi di baris berikutnya. Contoh: `admin-events-index-header.tsx` (Buat acara), `venues/admin-venue-menu-panel.tsx` (Tambah item di samping "Menu kanonik"). Toolbar daftar (`admin-list-toolbar`) memuat cari/filter/toggle bentuk daftar, bukan menggandakan aksi utama header kecuali memang khusus konteks toolbar.
+- `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `file-field.tsx` (pemilih berkas seragam: registrasi publik, sampul acara admin, CSV anggota, bukti admin, logo komite), `idr-amount-input.tsx` (harga IDR terformat)
+- `src/components/map-embed-preview.tsx` — pratinjau embed Google Maps (`output=embed`); dipakai bersama `lib/maps/map-embed-preview.ts` di admin venue dan halaman publik
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`; `admin-events-index-header.tsx` — judul indeks acara + tautan Buat acara; `admin-events-index-toolbar.tsx` — cari (debounce) + status + toggle kartu/tabel untuk `/admin/events`; `admin-events-pending-review-alert.tsx` — ringkasan registrasi menunggu tinjauan (kartu & tabel); `admin-events-cards-view.tsx` — grid kartu ringkasan acara + paginasi
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`; `event-settlement-proofs-panel.tsx` — bukti rekapitulasi penutupan di halaman laporan acara; `admin-list-toolbar.tsx` — toolbar daftar generik (cari debounce ke URL, toggle tabel/kartu, slot filter, opsional `endSlot`); `admin-event-registrants-toolbar.tsx` + `event-registrants-table.tsx` + `admin-event-registrants-cards-view.tsx` — daftar peserta per acara (`/admin/events/[eventId]/registrants`); `venues/admin-venue-menu-panel.tsx` — menu kanonik venue: header judul + **Tambah item**, dialog CRUD, toolbar + paginasi URL; `admin-events-index-header.tsx` — judul indeks acara + tautan Buat acara; `admin-events-index-toolbar.tsx` — cari (debounce) + status + toggle kartu/tabel untuk `/admin/events`; `admin-events-pending-review-alert.tsx` — ringkasan registrasi menunggu tinjauan (kartu & tabel); `admin-events-cards-view.tsx` — grid kartu ringkasan acara + paginasi; `admin-venues-index-header.tsx` / `admin-venues-index-toolbar.tsx` / `admin-venues-cards-view.tsx` / `admin-venues-table.tsx` — indeks `/admin/venues` (pola mirip indeks acara)
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 
@@ -195,7 +209,7 @@ All monetary values are stored as integers in IDR smallest unit (i.e., whole rup
 
 ### Uploads
 
-Images are converted to WebP (max 1600px, quality 80) via Sharp before being put to Vercel Blob with **`access: "public"`** so the CDN can serve them directly (`next/image` and browser fetches bill mostly to Blob storage, not through app functions). Anyone with the full blob URL can download the object—treat URLs as confidential. Paths are deterministic (e.g. `registrations/{registrationId}/{purpose}.webp`; event cover under `events/{eventId}/cover.webp`). DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup. Objects uploaded earlier as **private** stay private until re-upload or a deliberate migration replaces them.
+Images are converted to WebP (max 1600px for most uploads; menu images use max 1200px, quality 80) via Sharp before being put to Vercel Blob with **`access: "public"`** so the CDN can serve them directly (`next/image` and browser fetches bill mostly to Blob storage, not through app functions). Anyone with the full blob URL can download the object—treat URLs as confidential. Paths are deterministic (e.g. `registrations/{registrationId}/{purpose}.webp`; event cover under `events/{eventId}/cover.webp`; venue menu image under `venues/{venueId}/menu/{menuItemId}.webp`). DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup. Objects uploaded earlier as **private** stay private until re-upload or a deliberate migration replaces them.
 
 ### Testing
 

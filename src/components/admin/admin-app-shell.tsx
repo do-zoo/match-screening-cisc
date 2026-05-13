@@ -16,6 +16,7 @@ import {
 import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
 import { AdminBrandMark } from "@/components/admin/admin-brand-mark";
 import { AdminEventSidebarBlock } from "@/components/admin/admin-event-sidebar-block";
+import { AdminVenueSidebarBlock } from "@/components/admin/admin-venue-sidebar-block";
 import {
   adminShellNavIconClass,
   adminShellNavLinkClass,
@@ -160,6 +161,7 @@ export function AdminAppShell({
             <div className="flex flex-col gap-2">
               <AdminNavLinks navFlags={navFlags} className="shrink-0" />
               <AdminEventSidebarBlock />
+              <AdminVenueSidebarBlock />
             </div>
           </div>
           <div className="shrink-0 border-t border-sidebar-border/60 pt-4">

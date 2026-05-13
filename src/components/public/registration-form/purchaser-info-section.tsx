@@ -76,7 +76,6 @@ function DirectoryContactProfileCard({
         <Button
           type="button"
           variant="outline"
-          size="lg"
           className="min-h-11 touch-manipulation gap-2"
           onClick={onEdit}
         >
@@ -330,11 +329,13 @@ export function PurchaserInfoSection({
                   />
                   <FieldDescription className="text-foreground/80">
                     {MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE} {""}
-                    Nama, WhatsApp, dan pengunggahan foto kartu muncul hanya {""}
+                    Nama, WhatsApp, dan pengunggahan foto kartu muncul hanya{" "}
+                    {""}
                     <span className="font-medium text-foreground">
                       setelah nomor dikenali sebagai member aktif
                     </span>{" "}
-                    di direktori. Data kontak bisa diisi otomatis dari direktori;
+                    di direktori. Data kontak bisa diisi otomatis dari
+                    direktori;
                     {""}
                     <span className="font-medium text-foreground">
                       foto kartu
@@ -422,7 +423,6 @@ export function PurchaserInfoSection({
                   <Button
                     type="button"
                     variant="secondary"
-                    size="lg"
                     className="min-h-11 shrink-0 touch-manipulation"
                     onClick={() => setContactsShowInputs(false)}
                   >

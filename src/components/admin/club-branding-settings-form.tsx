@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
 import { saveClubBranding } from "@/lib/actions/admin-club-branding";
@@ -11,6 +10,7 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { FileField } from "@/components/ui/file-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,30 +78,21 @@ export function ClubBrandingSettingsForm(props: {
             menyembunyikan footer.
           </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="logo">Logo klub (opsional, gambar raster)</Label>
-          <Input
-            id="logo"
-            name="logo"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            disabled={pending}
-          />
-          {props.logoUrl ? (
-            <div className="flex items-center gap-3 rounded-md border p-3">
-              <Image
-                src={props.logoUrl}
-                alt="Pratinjau logo saat ini"
-                width={48}
-                height={48}
-                className="rounded-sm object-contain"
-              />
-              <span className="text-muted-foreground text-xs">
-                Unggah berkas baru untuk mengganti. Lewati jika hanya mengubah teks.
-              </span>
-            </div>
-          ) : null}
-        </div>
+        <FileField
+          id="logo"
+          name="logo"
+          label="Logo klub (opsional, gambar raster)"
+          description={
+            props.logoUrl
+              ? "Unggah berkas baru untuk mengganti. Lewati jika hanya mengubah teks."
+              : "Format JPG, PNG, atau WebP."
+          }
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          disabled={pending}
+          existingPreviewUrl={props.logoUrl}
+          pickPrompt="Ketuk untuk memilih logo"
+          replacePrompt="Ganti logo"
+        />
         <Button type="submit" disabled={pending}>
           {pending ? (
             <>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { InvoiceAdjustmentStatus, InvoiceAdjustmentType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileField } from "@/components/ui/file-field";
 import { IdrAmountInput } from "@/components/ui/idr-amount-input";
 import { Separator } from "@/components/ui/separator";
 import { formatIdr } from "@/lib/utils/format-idr";
@@ -37,7 +38,9 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
   const [amount, setAmount] = useState(0);
   const [createError, setCreateError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [proofFieldKeyByAdjustment, setProofFieldKeyByAdjustment] = useState<
+    Record<string, number>
+  >({});
 
   function handleCreate() {
     setCreateError(null);
@@ -88,12 +91,11 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
     });
   }
 
-  function handleUploadProof(adjustmentId: string) {
-    const input = fileRefs.current[adjustmentId];
-    if (!input?.files?.[0]) return;
+  function handleUploadProof(adjustmentId: string, file: File | undefined) {
+    if (!file) return;
     const formData = new FormData();
     formData.set("adjustmentId", adjustmentId);
-    formData.set("file", input.files[0]);
+    formData.set("file", file);
     setActionError(null);
     startTransition(async () => {
       const result = await uploadAdjustmentProof(eventId, formData);
@@ -102,6 +104,10 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
         setActionError(result.rootError ?? Object.values(result.fieldErrors ?? {}).join(", "));
       } else {
         toastCudSuccess("update", "Bukti penyesuaian diunggah.");
+        setProofFieldKeyByAdjustment((prev) => ({
+          ...prev,
+          [adjustmentId]: (prev[adjustmentId] ?? 0) + 1,
+        }));
       }
     });
   }
@@ -145,14 +151,20 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
                   Batalkan lunas
                 </Button>
               )}
-              <div className="flex items-center gap-1">
-                <input type="file" accept="image/*" className="hidden"
-                  ref={(el) => { fileRefs.current[adj.id] = el; }}
-                  onChange={() => handleUploadProof(adj.id)} />
-                <Button size="sm" variant="ghost" disabled={isPending}
-                  onClick={() => fileRefs.current[adj.id]?.click()}>
-                  Unggah bukti
-                </Button>
+              <div className="mt-1 max-w-md">
+                <FileField
+                  key={`adj-proof-${adj.id}-${proofFieldKeyByAdjustment[adj.id] ?? 0}`}
+                  id={`invoice-adj-proof-${adj.id}`}
+                  label="Bukti penyesuaian"
+                  description="Unggah foto bukti pembayaran tambahan (opsional, dapat beberapa kali)."
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  disabled={isPending}
+                  pickPrompt="Ketuk untuk memilih bukti"
+                  replacePrompt="Ganti bukti"
+                  onChange={(f) => {
+                    if (f) handleUploadProof(adj.id, f);
+                  }}
+                />
               </div>
             </div>
           </div>

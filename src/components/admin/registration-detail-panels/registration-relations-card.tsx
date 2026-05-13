@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { eventRegistrationDetailPath } from "@/lib/admin/event-registrants-paths";
 
 function formatIdr(n: number): string {
   const formatted = new Intl.NumberFormat("id-ID", {
@@ -59,7 +60,7 @@ export function RegistrationRelationsCard({
           <p>
             <span className="text-muted-foreground">Pembeli utama: </span>
             <Link
-              href={`/admin/events/${eventId}/inbox/${primaryRegistration.id}`}
+              href={eventRegistrationDetailPath(eventId, primaryRegistration.id)}
               className="font-medium underline-offset-4 hover:underline"
             >
               {primaryRegistration.contactName}
@@ -73,7 +74,7 @@ export function RegistrationRelationsCard({
               {partnerRegistrations.map((p) => (
                 <li key={p.id}>
                   <Link
-                    href={`/admin/events/${eventId}/inbox/${p.id}`}
+                    href={eventRegistrationDetailPath(eventId, p.id)}
                     className="font-medium underline-offset-4 hover:underline"
                   >
                     {p.contactName}

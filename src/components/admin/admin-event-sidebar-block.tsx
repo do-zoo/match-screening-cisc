@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { InboxIcon, Settings, Table2Icon } from "lucide-react";
+import { Settings, Table2Icon, Users } from "lucide-react";
 
 import {
   adminShellNavIconClass,
@@ -11,7 +11,7 @@ import {
 } from "@/components/admin/admin-shell-nav-styles";
 
 const EVENT_BRANCH_RE =
-  /^\/admin\/events\/([^/]+)\/(?:inbox|report|edit)(?:\/|$)/;
+  /^\/admin\/events\/([^/]+)\/(?:registrants|report|edit)(?:\/|$)/;
 
 function AdminEventSidebarBlockLoaded({
   eventId,
@@ -26,10 +26,10 @@ function AdminEventSidebarBlockLoaded({
     !!pathname &&
     (pathname === `/admin/events/${eventId}/report` ||
       pathname.startsWith(`/admin/events/${eventId}/report/`));
-  const isInboxBranch =
+  const listPath = `/admin/events/${eventId}/registrants`;
+  const isRegistrantsBranch =
     !!pathname &&
-    (pathname === `/admin/events/${eventId}/inbox` ||
-      pathname.startsWith(`/admin/events/${eventId}/inbox/`));
+    (pathname === listPath || pathname.startsWith(`${listPath}/`));
 
   const [title, setTitle] = useState<string | null>(null);
   const [canManageEventSettings, setCanManageEventSettings] = useState(false);
@@ -76,22 +76,22 @@ function AdminEventSidebarBlockLoaded({
           <p className="mt-2 text-xs text-sidebar-foreground/45">Memuat judul…</p>
         )}
         <nav
-          aria-label="Inbox, laporan, dan pengaturan"
+          aria-label="Peserta acara, laporan, dan pengaturan"
           className="mt-3 flex flex-col gap-0.5"
         >
           <Link
-            href={`/admin/events/${eventId}/inbox`}
+            href={listPath}
             className={adminShellNavLinkClass(
-              isInboxBranch && !isReportBranch && !isEditBranch,
+              isRegistrantsBranch && !isReportBranch && !isEditBranch,
             )}
           >
-            <InboxIcon
+            <Users
               className={adminShellNavIconClass(
-                isInboxBranch && !isReportBranch && !isEditBranch,
+                isRegistrantsBranch && !isReportBranch && !isEditBranch,
               )}
               aria-hidden
             />
-            Inbox
+            Peserta Acara
           </Link>
           <Link
             href={`/admin/events/${eventId}/report`}

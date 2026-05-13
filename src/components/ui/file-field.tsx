@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus } from "lucide-react";
+import { FileUp, ImagePlus } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -23,7 +23,8 @@ export type FileFieldProps = {
   id: string;
   label: ReactNode;
   description?: ReactNode;
-  name: string;
+  /** Untuk unggahan yang dirakit manual ke `FormData`; jika dihilangkan, input tanpa atribut `name`. */
+  name?: string;
   onBlur?: () => void;
   /** Selected file (`undefined` if cleared or none). Typical RHF wiring: field.onChange */
   onChange?: (file: File | undefined) => void;
@@ -37,6 +38,9 @@ export type FileFieldProps = {
   emptySubtitle?: string;
   disabled?: boolean;
   required?: boolean;
+  existingPreviewUrl?: string | null;
+  pickerVariant?: "image" | "document";
+  maxSizeBytes?: number;
 };
 
 export function FileField({
@@ -55,19 +59,28 @@ export function FileField({
   emptySubtitle = "Belum ada file dipilih",
   disabled,
   required,
+  existingPreviewUrl,
+  pickerVariant = "image",
+  maxSizeBytes,
 }: FileFieldProps) {
   const hintId = useId();
   const [fileLabel, setFileLabel] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
-    if (!selectedFile?.type.startsWith("image/")) return null;
-    return URL.createObjectURL(selectedFile);
-  }, [selectedFile]);
+    if (selectedFile?.type.startsWith("image/")) {
+      return URL.createObjectURL(selectedFile);
+    }
+    if (selectedFile) return null;
+    const trimmed = existingPreviewUrl?.trim();
+    if (trimmed) return trimmed;
+    return null;
+  }, [selectedFile, existingPreviewUrl]);
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
 
@@ -94,7 +107,7 @@ export function FileField({
           ref={ref}
           id={id}
           type="file"
-          name={name}
+          {...(name !== undefined ? { name } : {})}
           accept={accept}
           className="sr-only"
           aria-invalid={invalid}
@@ -104,15 +117,36 @@ export function FileField({
           onBlur={onBlur}
           onChange={(e) => {
             const f = e.target.files?.[0];
+            setSizeError(null);
+            if (f && maxSizeBytes != null && f.size > maxSizeBytes) {
+              const mb = maxSizeBytes / (1024 * 1024);
+              const limitLabel =
+                mb >= 1
+                  ? `${Math.round(mb)} MB`
+                  : `${Math.max(1, Math.round(maxSizeBytes / 1024))} KB`;
+              setSizeError(`File terlalu besar. Maksimal ${limitLabel}.`);
+              setSelectedFile(null);
+              setFileLabel(null);
+              onChange?.(undefined);
+              e.target.value = "";
+              return;
+            }
             onChange?.(f);
             setSelectedFile(f ?? null);
             setFileLabel(f?.name ?? null);
           }}
         />
-        <ImagePlus
-          className="size-5 shrink-0 text-muted-foreground"
-          aria-hidden
-        />
+        {pickerVariant === "document" ? (
+          <FileUp
+            className="size-5 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+        ) : (
+          <ImagePlus
+            className="size-5 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">
             {fileLabel ? replacePrompt : pickPrompt}
@@ -124,19 +158,24 @@ export function FileField({
       </label>
       {previewUrl ? (
         <div className="mt-3 overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-muted/20">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview; not a remote LCP candidate */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- pratinjau blob lokal atau URL tersimpan */}
           <img
             src={previewUrl}
             alt={
-              fileLabel ? `Pratinjau berkas yang dipilih: ${fileLabel}` : ""
+              fileLabel
+                ? `Pratinjau berkas yang dipilih: ${fileLabel}`
+                : "Pratinjau gambar saat ini"
             }
             className="mx-auto block max-h-[400px] w-full object-contain"
           />
         </div>
       ) : null}
-      {invalid && errors?.length ? (
-        <FieldError errors={errors} />
+      {sizeError ? (
+        <p className="text-destructive mt-2 text-sm" role="alert">
+          {sizeError}
+        </p>
       ) : null}
+      {invalid && errors?.length ? <FieldError errors={errors} /> : null}
     </Field>
   );
 }

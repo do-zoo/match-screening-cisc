@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { FileField } from "@/components/ui/file-field";
 import { importMasterMembersCsv } from "@/lib/actions/admin-master-members";
 import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 
@@ -31,6 +31,7 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
   const [isPending, startTransition] = useTransition();
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [csvFieldKey, setCsvFieldKey] = useState(0);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -64,7 +65,7 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
         `Import CSV selesai: ${result.data.successCount} berhasil${result.data.failureCount > 0 ? `, ${result.data.failureCount} gagal` : ""}.`,
       );
       setSummary(result.data);
-      if (fileRef.current) fileRef.current.value = "";
+      setCsvFieldKey((k) => k + 1);
       onImported();
     });
   }
@@ -97,15 +98,22 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
           </Button>
         </div>
 
-        <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
-          <Input
+        <form className="flex flex-col gap-3" onSubmit={submit}>
+          <FileField
+            key={csvFieldKey}
             ref={fileRef}
-            type="file"
+            id="master-member-csv"
+            name="file"
+            label="Berkas CSV"
+            description="Pilih berkas .csv yang sudah diisi."
             accept=".csv,text/csv"
             disabled={isPending}
-            className="sm:max-w-md"
+            pickerVariant="document"
+            pickPrompt="Ketuk untuk memilih CSV"
+            replacePrompt="Ganti berkas CSV"
+            emptySubtitle="Belum ada CSV dipilih"
           />
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
             <UploadIcon data-icon="inline-start" />
             {isPending ? "Mengimpor..." : "Import CSV"}
           </Button>

@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { MoreVerticalIcon, PlusIcon, UsersRoundIcon, TagIcon } from "lucide-react";
+import {
+  MoreVerticalIcon,
+  PlusIcon,
+  UsersRoundIcon,
+  TagIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +42,7 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
   const [editDialog, setEditDialog] = useState<EditDialogState>(null);
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Kepengurusan</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -85,15 +90,18 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
 
         {periods.length === 0 ? (
           <p className="rounded-lg border px-4 py-6 text-sm text-muted-foreground">
-            Belum ada periode. Klik &quot;Tambah Periode&quot; untuk membuat yang
-            pertama.
+            Belum ada periode. Klik &quot;Tambah Periode&quot; untuk membuat
+            yang pertama.
           </p>
         ) : (
           <ul className="divide-y rounded-lg border">
             {periods.map((p) => {
               const isActive = p.id === activePeriodId;
               return (
-                <li key={p.id} className="flex items-center justify-between px-4 py-3">
+                <li
+                  key={p.id}
+                  className="flex items-center justify-between px-4 py-3"
+                >
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{p.label}</span>
                     {isActive ? (
@@ -105,7 +113,8 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span>
                       {p.startsAt.toISOString().slice(0, 10)} →{" "}
-                      {p.endsAt.toISOString().slice(0, 10)} · {p.assignmentCount} penugasan
+                      {p.endsAt.toISOString().slice(0, 10)} ·{" "}
+                      {p.assignmentCount} penugasan
                     </span>
                     <Link
                       href={`/admin/management/${p.id}`}
@@ -116,18 +125,30 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         aria-label={`Aksi untuk ${p.label}`}
-                        render={<Button type="button" variant="ghost" size="icon-sm" />}
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                          />
+                        }
                       >
                         <MoreVerticalIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditDialog({ period: p, mode: "edit" })}>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            setEditDialog({ period: p, mode: "edit" })
+                          }
+                        >
                           Edit periode
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => setEditDialog({ period: p, mode: "delete" })}
+                          onClick={() =>
+                            setEditDialog({ period: p, mode: "delete" })
+                          }
                         >
                           Hapus periode
                         </DropdownMenuItem>
@@ -151,7 +172,9 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
         <ManagementPeriodFormDialog
           mode="edit"
           open
-          onOpenChange={(open) => { if (!open) setEditDialog(null); }}
+          onOpenChange={(open) => {
+            if (!open) setEditDialog(null);
+          }}
           period={editDialog.period}
           onSaved={router.refresh}
           defaultShowDeleteConfirm={editDialog.mode === "delete"}

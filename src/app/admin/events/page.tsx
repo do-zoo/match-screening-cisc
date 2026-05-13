@@ -33,9 +33,7 @@ function firstString(param: string | string[] | undefined): string | undefined {
   return param;
 }
 
-function tabParamMissing(
-  tabParam: string | string[] | undefined,
-): boolean {
+function tabParamMissing(tabParam: string | string[] | undefined): boolean {
   return (
     tabParam === undefined ||
     tabParam === "" ||
@@ -58,7 +56,8 @@ export default async function AdminEventsIndexPage({
         <Alert variant="destructive">
           <AlertTitle>Profil admin belum ada</AlertTitle>
           <AlertDescription>
-            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk aktivasi akses PIC.
+            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk
+            aktivasi akses PIC.
           </AlertDescription>
         </Alert>
       </main>
@@ -168,7 +167,7 @@ export default async function AdminEventsIndexPage({
 
     return (
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
-        <AdminEventsIndexHeader sessionEmail={session.user.email} isOps />
+        <AdminEventsIndexHeader isOps />
 
         <AdminEventsIndexToolbar
           key={`events-idx-toolbar-${tab}-table`}
@@ -178,12 +177,14 @@ export default async function AdminEventsIndexPage({
           searchQuery={q}
         />
 
-        <AdminEventsPendingReviewAlert pendingReviewRecapTotal={pendingReviewRecapTotal} />
+        <AdminEventsPendingReviewAlert
+          pendingReviewRecapTotal={pendingReviewRecapTotal}
+        />
 
         {totalItems === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Belum ada acara untuk filter ini. Mulai dengan membuat acara baru untuk membuka
-            pendaftaran dan inbox verifikasi.
+            Belum ada acara untuk filter ini. Mulai dengan membuat acara baru
+            untuk membuka pendaftaran dan daftar peserta untuk verifikasi.
           </p>
         ) : (
           <AdminEventsTable
@@ -214,7 +215,7 @@ export default async function AdminEventsIndexPage({
   if (!loaded.ok) {
     return (
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-        <AdminEventsIndexHeader sessionEmail={session.user.email} isOps={isOps} />
+        <AdminEventsIndexHeader isOps={isOps} />
         <AdminEventsIndexToolbar
           key={`events-idx-toolbar-${tab}-cards`}
           tab={tab}
@@ -225,25 +226,20 @@ export default async function AdminEventsIndexPage({
         <Alert variant="destructive">
           <AlertTitle>Gagal memuat data</AlertTitle>
           <AlertDescription>
-            Terjadi kesalahan saat memuat acara dari basis data. Silakan muat ulang halaman beberapa
-            saat lagi.
+            Terjadi kesalahan saat memuat acara dari basis data. Silakan muat
+            ulang halaman beberapa saat lagi.
           </AlertDescription>
         </Alert>
       </main>
     );
   }
 
-  const {
-    events,
-    pendingReviewRecapTotal,
-    page,
-    pageSize,
-    totalItems,
-  } = loaded;
+  const { events, pendingReviewRecapTotal, page, pageSize, totalItems } =
+    loaded;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
-      <AdminEventsIndexHeader sessionEmail={session.user.email} isOps={isOps} />
+      <AdminEventsIndexHeader isOps={isOps} />
 
       <AdminEventsIndexToolbar
         key={`events-idx-toolbar-${tab}-cards`}
@@ -253,7 +249,9 @@ export default async function AdminEventsIndexPage({
         searchQuery={q}
       />
 
-      <AdminEventsPendingReviewAlert pendingReviewRecapTotal={pendingReviewRecapTotal} />
+      <AdminEventsPendingReviewAlert
+        pendingReviewRecapTotal={pendingReviewRecapTotal}
+      />
 
       <AdminEventsCardsView
         tab={tab}

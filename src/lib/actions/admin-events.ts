@@ -16,6 +16,7 @@ import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
 import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
+import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import {
   findLockedViolations,
   findMandatoryMenuLockedViolation,
@@ -531,7 +532,7 @@ export async function updateAdminEvent(
   revalidatePath("/");
   revalidatePath("/events");
   revalidatePath(`/events/${publicSlug}`);
-  revalidatePath(`/admin/events/${eventId}/inbox`);
+  revalidatePath(eventRegistrantsListPath(eventId));
   revalidatePath(`/admin/events/${eventId}/edit`);
 
   return ok({ eventId });

@@ -1,6 +1,8 @@
 export type SerializedEventMenuItem = {
   id: string;
   name: string;
+  description: string | null;
+  imageBlobUrl: string | null;
   price: number;
 };
 

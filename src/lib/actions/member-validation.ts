@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { guardEvent, isAuthError } from "@/lib/actions/guard";
+import { eventRegistrationDetailPath, eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
 
 export async function overrideMemberValidation(
@@ -94,7 +95,7 @@ export async function overrideMemberValidation(
     }
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
+  revalidatePath(eventRegistrantsListPath(eventId));
+  revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
   return ok({ adjustmentCreated });
 }

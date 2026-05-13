@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
@@ -148,10 +149,10 @@ export function AdminEventsTable({
         cell: ({ row }) => (
           <div className="text-right">
             <Link
-              href={`/admin/events/${row.original.id}/inbox`}
+              href={eventRegistrantsListPath(row.original.id)}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              Inbox
+              Peserta
             </Link>
           </div>
         ),

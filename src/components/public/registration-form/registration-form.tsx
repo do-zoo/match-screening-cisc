@@ -41,9 +41,9 @@ import {
   resolveActiveStepAfterStepsChange,
 } from "./registration-steps";
 import type { RegistrationFormProps } from "./types";
-import { usePrimaryPurchaserIdentityGate } from "./use-primary-purchaser-identity-gate";
 import { usePartnerMemberNumberValidation } from "./use-partner-member-number-validation";
 import { usePricingPreview } from "./use-pricing-preview";
+import { usePrimaryPurchaserIdentityGate } from "./use-primary-purchaser-identity-gate";
 
 function serverFieldErrorsToStepHint(
   fe: Record<string, string>,
@@ -108,9 +108,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   const watched = useWatch({ control: form.control });
   const primaryMenuId = String(watched.primaryMandatoryMenuItemId ?? "").trim();
-  const partnerMenuId = String(
-    watched.partnerMandatoryMenuItemId ?? "",
-  ).trim();
+  const partnerMenuId = String(watched.partnerMandatoryMenuItemId ?? "").trim();
   const claimedMemberTrim = String(watched.claimedMemberNumber ?? "").trim();
   const managementCodeTrim = String(watched.managementPublicCode ?? "").trim();
   const primaryIdentityTrim =
@@ -610,7 +608,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
             {!isLastStep ? (
               <Button
                 type="button"
-                size="lg"
                 className="order-1 min-h-12 w-full sm:order-2 sm:justify-center"
                 disabled={!event.registrationOpen}
                 onClick={() => void goNext()}
@@ -620,7 +617,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
             ) : (
               <Button
                 type="submit"
-                size="lg"
                 className="order-1 min-h-12 w-full sm:order-2 sm:justify-center"
                 disabled={
                   !event.registrationOpen || form.formState.isSubmitting
@@ -634,7 +630,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
             <Button
               type="button"
               variant="outline"
-              size="lg"
               className="order-2 min-h-12 w-full sm:order-1 sm:justify-center"
               disabled={!event.registrationOpen || activeIndex === 0}
               onClick={goBack}

@@ -45,6 +45,18 @@ export default async function AdminNewVenuePage() {
           <Label htmlFor="address">Alamat</Label>
           <Textarea id="address" name="address" rows={3} required />
         </div>
+        <div className="grid gap-2">
+          <Label htmlFor="mapUrl">Tautan peta (opsional)</Label>
+          <Input
+            id="mapUrl"
+            name="mapUrl"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://maps.app.goo.gl/…"
+          />
+          <p className="text-muted-foreground text-xs">URL https ke Google Maps atau layanan peta lain.</p>
+        </div>
         <button
           type="submit"
           className={cn(buttonVariants(), "w-fit")}

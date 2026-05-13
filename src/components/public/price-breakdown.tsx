@@ -14,8 +14,8 @@ const formatIdr = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-function linesForRole(lines: PricingLine[], role: PricingLine["role"]) {
-  return lines.filter((l) => l.role === role);
+function ticketLinesForRole(lines: PricingLine[], role: PricingLine["role"]) {
+  return lines.filter((l) => l.role === role && l.kind === "ticket");
 }
 
 function subtotalForRole(roleLines: PricingLine[]) {
@@ -27,7 +27,7 @@ function sectionHeading(
   roleLines: PricingLine[],
 ): string {
   if (role === "partner") return "Tiket pasangan (Pengurus)";
-  const ticket = roleLines.find((l) => l.kind === "ticket");
+  const ticket = roleLines[0];
   if (!ticket) return "Tiket utama";
   if (ticket.label === "Tiket Member") return "Tiket utama (Member)";
   if (ticket.label === "Tiket Non-member") return "Tiket utama (Non-member)";
@@ -38,7 +38,9 @@ function LineRow({ line }: { line: PricingLine }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <span className="text-muted-foreground">{line.label}</span>
-      <span className="shrink-0 font-mono tabular-nums">{formatIdr(line.amount)}</span>
+      <span className="shrink-0 font-mono tabular-nums">
+        {formatIdr(line.amount)}
+      </span>
     </div>
   );
 }
@@ -47,7 +49,9 @@ export function PriceBreakdown({ pricing }: Props) {
   if (!pricing) {
     return (
       <div className="rounded-lg border bg-card p-4 text-muted-foreground">
-        <div className="mb-3 text-sm font-medium text-foreground">Ringkasan biaya</div>
+        <div className="mb-3 text-sm font-medium text-foreground">
+          Ringkasan biaya
+        </div>
         <div className="space-y-2" aria-hidden>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex justify-between gap-4">
@@ -63,12 +67,14 @@ export function PriceBreakdown({ pricing }: Props) {
     );
   }
 
-  const primaryLines = linesForRole(pricing.lines, "primary");
-  const partnerLines = linesForRole(pricing.lines, "partner");
+  const primaryLines = ticketLinesForRole(pricing.lines, "primary");
+  const partnerLines = ticketLinesForRole(pricing.lines, "partner");
 
   return (
     <div className="rounded-lg border bg-card p-4">
-      <div className="mb-3 text-sm font-medium text-foreground">Ringkasan biaya</div>
+      <div className="mb-3 text-sm font-medium text-foreground">
+        Ringkasan biaya
+      </div>
 
       <div className="space-y-4">
         {primaryLines.length > 0 ? (
@@ -118,10 +124,6 @@ export function PriceBreakdown({ pricing }: Props) {
           </span>
         </div>
       </div>
-
-      <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        Total final dikunci server saat pengiriman.
-      </p>
     </div>
   );
 }

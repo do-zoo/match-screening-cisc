@@ -1,20 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { pathsMatchRegistrationDetail } from "@/lib/admin/event-inbox-detail-path";
+import { pathsMatchRegistrationDetail } from "@/lib/admin/event-registration-detail-path";
 
 describe("pathsMatchRegistrationDetail", () => {
   const eventId = "evt_123";
 
-  it("returns false for exact inbox list path", () => {
+  it("returns false for exact registrants list path", () => {
     expect(
-      pathsMatchRegistrationDetail(`/admin/events/${eventId}/inbox`, eventId),
+      pathsMatchRegistrationDetail(
+        `/admin/events/${eventId}/registrants`,
+        eventId,
+      ),
     ).toBe(false);
   });
 
-  it("returns true for registration detail under inbox", () => {
+  it("returns true for registration detail under registrants", () => {
     expect(
       pathsMatchRegistrationDetail(
-        `/admin/events/${eventId}/inbox/reg_abc`,
+        `/admin/events/${eventId}/registrants/reg_abc`,
         eventId,
       ),
     ).toBe(true);

@@ -17,7 +17,8 @@ export type ParticipantStats = {
 export type FinanceStats = {
   baselineTotal: number;
   ticketRevenueApproved: number;
-  menuRevenueApproved: number;
+  /** Agregat harga menu wajib (approved): dana yang disetor ke venue, bukan pendapatan retensi komite. */
+  menuVenuePayoutApproved: number;
   adjustmentsPaidTotal: number;
   adjustmentsUnpaidTotal: number;
   refundCount: number;
@@ -145,7 +146,7 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     finance: {
       baselineTotal: financeAgg._sum.computedTotalAtSubmit ?? 0,
       ticketRevenueApproved: ticketRevAgg._sum.ticketPriceApplied ?? 0,
-      menuRevenueApproved: menuRevAgg._sum.mandatoryMenuPriceApplied ?? 0,
+      menuVenuePayoutApproved: menuRevAgg._sum.mandatoryMenuPriceApplied ?? 0,
       adjustmentsPaidTotal: adjustmentPaidRow?._sum.amount ?? 0,
       adjustmentsUnpaidTotal: adjustmentUnpaidRow?._sum.amount ?? 0,
       refundCount,

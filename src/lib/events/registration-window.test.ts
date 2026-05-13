@@ -48,6 +48,27 @@ describe("registration-window", () => {
     ).toMatch(/ditutup/i);
   });
 
+  it("treats non-positive capacity as unlimited (no false quota-full)", () => {
+    expect(
+      isRegistrationOpenForEvent({
+        event: { ...activeBase, registrationCapacity: 0 },
+        registrationsTowardQuota: 0,
+        now: new Date("2025-06-01T00:00:00.000Z"),
+      }),
+    ).toBe(true);
+    expect(
+      registrationBlockMessageForPublic({
+        eventStatus: "active",
+        registrationManualClosed: false,
+        registrationCapacity: 0,
+        registrationsTowardQuota: 0,
+        openRegistrationAt: open,
+        closeRegistrationAt: close,
+        now: new Date("2025-06-01T00:00:00.000Z"),
+      }),
+    ).toBeNull();
+  });
+
   it("closes at capacity boundary", () => {
     expect(
       isRegistrationOpenForEvent({

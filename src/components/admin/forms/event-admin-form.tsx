@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/select";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { EntityCombobox } from "@/components/ui/entity-combobox";
-import { ImageUploadDropzone } from "@/components/ui/image-upload-dropzone";
+import { FileField } from "@/components/ui/file-field";
 import { FieldGroup } from "@/components/ui/field";
 
 const SENSITIVE_ACK_MESSAGE =
@@ -293,18 +293,25 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-lg font-medium">Sampul</h2>
-          <p className="text-muted-foreground text-sm">
-            {props.mode === "create"
-              ? "Unggah gambar sampul — wajib untuk acara baru."
-              : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}{" "}
-            Rasio yang direkomendasikan 1200×630 (sama dengan og:image); area di
-            luar rasio ini akan dipangkas saat ditampilkan.
-          </p>
-          <ImageUploadDropzone
-            value={props.persistedCoverUrl ?? undefined}
-            onChange={(file) => setCoverFile(file)}
+          <FileField
+            id="event-hero-cover"
+            label={<h2 className="text-lg font-medium">Sampul</h2>}
+            description={
+              <span className="text-muted-foreground text-sm">
+                {props.mode === "create"
+                  ? "Unggah gambar sampul — wajib untuk acara baru."
+                  : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}{" "}
+                Rasio yang direkomendasikan 1200×630, area di luar rasio ini
+                akan dipangkas saat ditampilkan.
+              </span>
+            }
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
             disabled={pending}
+            existingPreviewUrl={props.persistedCoverUrl ?? null}
+            maxSizeBytes={5 * 1024 * 1024}
+            pickPrompt="Ketuk untuk memilih sampul"
+            replacePrompt="Ganti sampul"
+            onChange={(f) => setCoverFile(f ?? null)}
           />
         </section>
 
@@ -508,7 +515,8 @@ export function EventAdminForm(props: EventAdminFormProps) {
         <section className="space-y-4">
           <h2 className="text-lg font-medium">Harga tiket</h2>
           <p className="text-muted-foreground text-xs">
-            Harga disimpan per acara sebagai bilangan bulat Rupiah (tanpa desimal).
+            Harga disimpan per acara sebagai bilangan bulat Rupiah (tanpa
+            desimal).
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Tiket member">
@@ -576,7 +584,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 render={({ field }) => (
                   <Input
                     type="number"
-                    min={0}
+                    min={1}
                     disabled={pending}
                     placeholder="Opsional"
                     value={
@@ -586,8 +594,12 @@ export function EventAdminForm(props: EventAdminFormProps) {
                     }
                     onChange={(e) => {
                       const raw = e.target.value;
-                      if (raw === "") field.onChange(null);
-                      else field.onChange(Number.parseInt(raw, 10));
+                      if (raw === "") {
+                        field.onChange(null);
+                        return;
+                      }
+                      const n = Number.parseInt(raw, 10);
+                      field.onChange(Number.isNaN(n) || n <= 0 ? null : n);
                     }}
                   />
                 )}
@@ -692,16 +704,16 @@ export function EventAdminForm(props: EventAdminFormProps) {
           </Field>
         </section>
 
-        <div className="flex flex-wrap gap-3 pb-16">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Menyimpan…" : "Simpan"}
-          </Button>
+        <div className="flex flex-wrap gap-3 justify-end pb-16">
           <Link
             href="/admin/events"
             className={buttonVariants({ variant: "outline" })}
           >
             Batal
           </Link>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Menyimpan…" : "Simpan"}
+          </Button>
         </div>
       </form>
 
