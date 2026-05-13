@@ -12,7 +12,13 @@ import {
 
 const VENUE_BRANCH_RE = /^\/admin\/venues\/([^/]+)\/(?:edit|menu)(?:\/|$)/;
 
-function AdminVenueSidebarBlockLoaded({ venueId }: { venueId: string }) {
+function AdminVenueSidebarBlockLoaded({
+  venueId,
+  onNavigate,
+}: {
+  venueId: string;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const isEdit = !!pathname && pathname === `/admin/venues/${venueId}/edit`;
   const isMenu = !!pathname && pathname === `/admin/venues/${venueId}/menu`;
@@ -21,23 +27,16 @@ function AdminVenueSidebarBlockLoaded({ venueId }: { venueId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-
     async function load() {
       const res = await fetch(`/api/admin/venues/${venueId}/label`, {
         credentials: "include",
       });
       if (!res.ok) return;
       const data = (await res.json()) as { name?: string };
-      if (!cancelled) {
-        setName(data.name ?? null);
-      }
+      if (!cancelled) setName(data.name ?? null);
     }
-
     void load();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [venueId]);
 
   return (
@@ -59,16 +58,15 @@ function AdminVenueSidebarBlockLoaded({ venueId }: { venueId: string }) {
         <nav aria-label="Info venue dan menu" className="mt-3 flex flex-col gap-0.5">
           <Link
             href={`/admin/venues/${venueId}/edit`}
+            onClick={onNavigate}
             className={adminShellNavLinkClass(isEdit && !isMenu)}
           >
-            <MapPin
-              className={adminShellNavIconClass(isEdit && !isMenu)}
-              aria-hidden
-            />
+            <MapPin className={adminShellNavIconClass(isEdit && !isMenu)} aria-hidden />
             Info dasar
           </Link>
           <Link
             href={`/admin/venues/${venueId}/menu`}
+            onClick={onNavigate}
             className={adminShellNavLinkClass(isMenu)}
           >
             <UtensilsCrossed className={adminShellNavIconClass(isMenu)} aria-hidden />
@@ -80,12 +78,16 @@ function AdminVenueSidebarBlockLoaded({ venueId }: { venueId: string }) {
   );
 }
 
-export function AdminVenueSidebarBlock() {
+export function AdminVenueSidebarBlock({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
   const branchMatch = pathname ? pathname.match(VENUE_BRANCH_RE) : null;
   const venueId = branchMatch?.[1] ?? null;
 
   if (!venueId) return null;
 
-  return <AdminVenueSidebarBlockLoaded venueId={venueId} />;
+  return <AdminVenueSidebarBlockLoaded venueId={venueId} onNavigate={onNavigate} />;
 }
