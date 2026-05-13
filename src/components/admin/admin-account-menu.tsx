@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
@@ -12,7 +13,50 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { adminAuthClient } from "@/lib/auth/admin-auth-client";
+import { getAdminInitials } from "@/lib/admin/admin-initials";
 import { cn } from "@/lib/utils";
+
+function AdminAvatarCircle({
+  avatarUrl,
+  displayName,
+  userEmail,
+  size,
+}: {
+  avatarUrl: string | null | undefined;
+  displayName: string | null | undefined;
+  userEmail: string | null | undefined;
+  size: "sm" | "md";
+}) {
+  const dim = size === "sm" ? 28 : 36;
+  const cls = size === "sm" ? "size-7 text-[11px]" : "size-9 text-[13px]";
+
+  if (avatarUrl) {
+    return (
+      <span
+        className={`${cls} relative shrink-0 overflow-hidden rounded-full border border-sidebar-border/60`}
+        aria-hidden
+      >
+        <Image
+          src={avatarUrl}
+          alt=""
+          width={dim}
+          height={dim}
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
+  const initials = getAdminInitials(displayName, userEmail);
+  return (
+    <span
+      className={`${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-sidebar-accent font-semibold text-sidebar-foreground`}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  );
+}
 
 type AdminAccountMenuProps = {
   userEmail: string | null;
@@ -56,6 +100,12 @@ export function AdminAccountMenu({
           />
         }
       >
+        <AdminAvatarCircle
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+          userEmail={userEmail ?? ""}
+          size={variant === "sidebar" ? "md" : "sm"}
+        />
         <span className="min-w-0 flex-1 text-left">
           <span className="block truncate text-sm font-medium leading-snug">
             {primary}
@@ -89,11 +139,19 @@ export function AdminAccountMenu({
         side={variant === "sidebar" ? "top" : "bottom"}
         sideOffset={variant === "sidebar" ? 8 : 4}
       >
-        <PopoverHeader className="px-1">
-          <PopoverTitle className="truncate text-base">{primary}</PopoverTitle>
-          {email ? (
-            <p className="truncate text-xs text-muted-foreground">{email}</p>
-          ) : null}
+        <PopoverHeader className="flex items-center gap-3 px-1">
+          <AdminAvatarCircle
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            userEmail={userEmail ?? ""}
+            size="md"
+          />
+          <div className="min-w-0">
+            <PopoverTitle className="truncate text-base">{primary}</PopoverTitle>
+            {email ? (
+              <p className="truncate text-xs text-muted-foreground">{email}</p>
+            ) : null}
+          </div>
         </PopoverHeader>
         <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
           <Link
