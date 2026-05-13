@@ -40,7 +40,7 @@ export function PhoneInput({
 }: PhoneInputProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
-  const searchRef = React.useRef<HTMLInputElement>(null)
+  const listRef = React.useRef<HTMLDivElement>(null)
 
   const selected: CountryEntry =
     COUNTRIES.find((c) => c.iso === value?.countryIso) ?? DEFAULT_COUNTRY
@@ -75,7 +75,7 @@ export function PhoneInput({
   }
 
   return (
-    <InputGroup aria-invalid={ariaInvalid}>
+    <InputGroup>
       <InputGroupAddon align="inline-start" className="p-0">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger
@@ -91,7 +91,7 @@ export function PhoneInput({
           >
             <span>{selected.flag}</span>
             <span>{selected.dialCode}</span>
-            <ChevronDownIcon className="size-3 opacity-50" />
+            <ChevronDownIcon className="size-3 opacity-50" aria-hidden="true" />
           </PopoverTrigger>
           <PopoverContent
             align="start"
@@ -100,28 +100,63 @@ export function PhoneInput({
           >
             <div className="border-b p-2">
               <input
-                ref={searchRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari negara atau kode..."
+                aria-label="Cari negara"
                 className="w-full rounded-md bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground"
                 autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault()
+                    const first = listRef.current?.querySelector<HTMLElement>('[role="option"]')
+                    first?.focus()
+                  }
+                }}
               />
             </div>
-            <div className="max-h-60 overflow-y-auto">
+            <div
+              ref={listRef}
+              role="listbox"
+              aria-label="Pilih negara"
+              className="max-h-60 overflow-y-auto"
+            >
               {filtered.length === 0 ? (
                 <div className="px-3 py-6 text-center text-sm text-muted-foreground">
                   Negara tidak ditemukan
                 </div>
               ) : (
                 filtered.map((country) => (
-                  <button
+                  <div
                     key={country.iso}
-                    type="button"
+                    role="option"
+                    aria-selected={selected.iso === country.iso}
+                    tabIndex={0}
                     onClick={() => handleCountrySelect(country)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleCountrySelect(country)
+                      } else if (e.key === "ArrowDown") {
+                        e.preventDefault()
+                        const next = e.currentTarget.nextElementSibling as HTMLElement | null
+                        next?.focus()
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault()
+                        const prev = e.currentTarget.previousElementSibling as HTMLElement | null
+                        if (prev && prev.getAttribute("role") === "option") {
+                          prev.focus()
+                        } else {
+                          // Back to search input when ArrowUp on first item
+                          listRef.current?.closest("[data-slot=popover-content]")
+                            ?.querySelector<HTMLElement>("input")
+                            ?.focus()
+                        }
+                      }
+                    }}
                     className={cn(
-                      "flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted",
+                      "flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted focus:bg-muted focus:outline-none",
                       selected.iso === country.iso && "bg-muted font-medium"
                     )}
                   >
@@ -132,7 +167,7 @@ export function PhoneInput({
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">
                       {country.dialCode}
                     </span>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
