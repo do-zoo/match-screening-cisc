@@ -1,17 +1,11 @@
-import type {
-  MenuMode,
-  MenuSelection,
-  PricingSource,
-} from "@prisma/client";
+import type { PricingSource } from "@prisma/client";
 
 export type EventIntegritySnapshot = {
   slug: string;
   venueId: string;
-  menuMode: MenuMode;
-  menuSelection: MenuSelection;
+  mandatoryMenuItemIds: string[];
   ticketMemberPrice: number;
   ticketNonMemberPrice: number;
-  voucherPrice: number | null;
   pricingSource: PricingSource;
   picAdminProfileId: string;
   bankAccountId: string;
@@ -19,19 +13,18 @@ export type EventIntegritySnapshot = {
 
 export type EventIntegrityPatch = Partial<EventIntegritySnapshot>;
 
+function sortedMenuKey(ids: string[]): string {
+  return [...ids].sort().join("|");
+}
+
 export function findLockedViolations(opts: {
   registrationCount: number;
   persisted: EventIntegritySnapshot;
   candidate: EventIntegrityPatch;
-}): Array<
-  keyof Pick<
-    EventIntegritySnapshot,
-    "slug" | "venueId" | "menuMode" | "menuSelection"
-  >
-> {
+}): Array<keyof Pick<EventIntegritySnapshot, "slug" | "venueId">> {
   if (opts.registrationCount === 0) return [];
 
-  const out: Array<"slug" | "venueId" | "menuMode" | "menuSelection"> = [];
+  const out: Array<"slug" | "venueId"> = [];
 
   const nextSlug = opts.candidate.slug ?? opts.persisted.slug;
   if (nextSlug !== opts.persisted.slug) out.push("slug");
@@ -39,14 +32,20 @@ export function findLockedViolations(opts: {
   const nextVenue = opts.candidate.venueId ?? opts.persisted.venueId;
   if (nextVenue !== opts.persisted.venueId) out.push("venueId");
 
-  const nextMode = opts.candidate.menuMode ?? opts.persisted.menuMode;
-  if (nextMode !== opts.persisted.menuMode) out.push("menuMode");
-
-  const nextSel =
-    opts.candidate.menuSelection ?? opts.persisted.menuSelection;
-  if (nextSel !== opts.persisted.menuSelection) out.push("menuSelection");
-
   return out;
+}
+
+export function findMandatoryMenuLockedViolation(opts: {
+  registrationCount: number;
+  persisted: EventIntegritySnapshot;
+  candidateMandatoryMenuItemIds: string[] | undefined;
+}): boolean {
+  if (opts.registrationCount === 0) return false;
+  if (opts.candidateMandatoryMenuItemIds === undefined) return false;
+  return (
+    sortedMenuKey(opts.candidateMandatoryMenuItemIds) !==
+    sortedMenuKey(opts.persisted.mandatoryMenuItemIds)
+  );
 }
 
 export function needsSensitiveAcknowledgement(opts: {
@@ -58,7 +57,6 @@ export function needsSensitiveAcknowledgement(opts: {
   const pricingChanged =
     merged.ticketMemberPrice !== opts.persisted.ticketMemberPrice ||
     merged.ticketNonMemberPrice !== opts.persisted.ticketNonMemberPrice ||
-    merged.voucherPrice !== opts.persisted.voucherPrice ||
     merged.pricingSource !== opts.persisted.pricingSource;
 
   const financeActorChanged =

@@ -55,7 +55,7 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { EntityCombobox } from "@/components/ui/entity-combobox";
 
 const SENSITIVE_ACK_MESSAGE =
-  "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.";
+  "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.";
 
 export type EventAdminPicOption = { id: string; label: string };
 
@@ -106,11 +106,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
     ({
       slug: "",
       venueId: props.defaults.venueId,
-      menuMode: props.defaults.menuMode,
-      menuSelection: props.defaults.menuSelection,
+      mandatoryMenuItemIds: props.defaults.mandatoryMenuItemIds,
       ticketMemberPrice: props.defaults.ticketMemberPrice,
       ticketNonMemberPrice: props.defaults.ticketNonMemberPrice,
-      voucherPrice: props.defaults.voucherPriceIdr,
       pricingSource: props.defaults.pricingSource,
       picAdminProfileId: props.defaults.picAdminProfileId,
       bankAccountId: props.defaults.bankAccountId,
@@ -131,11 +129,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
     return venueOptions.find((v) => v.id === venueId) ?? null;
   }, [venueOptions, venueId]);
 
-  const menuMode = useWatch({ control: form.control, name: "menuMode" });
-  const menuSelection = useWatch({
-    control: form.control,
-    name: "menuSelection",
-  });
   const pricingSource = useWatch({
     control: form.control,
     name: "pricingSource",
@@ -186,23 +179,17 @@ export function EventAdminForm(props: EventAdminFormProps) {
     [bankChoices],
   );
 
-  const lockedMenuKeys = useMemo(() => {
+  const lockedIntegrityKeys = useMemo(() => {
     return findLockedViolations({
       registrationCount,
       persisted: persistedIntegrity,
       candidate: {
         venueId,
-        menuMode,
-        menuSelection,
       },
     });
-  }, [
-    registrationCount,
-    persistedIntegrity,
-    venueId,
-    menuMode,
-    menuSelection,
-  ]);
+  }, [registrationCount, persistedIntegrity, venueId]);
+
+  const mandatoryMenuLocked = registrationCount > 0;
 
   const setLinkedVenueMenusFromVenueSelection = React.useCallback(
     (vid: string) => {
@@ -234,6 +221,24 @@ export function EventAdminForm(props: EventAdminFormProps) {
     () => new Set(linkedVenueMenus.map((x) => x.venueMenuItemId)),
     [linkedVenueMenus],
   );
+
+  const mandatoryMenuItemIds =
+    useWatch({ control: form.control, name: "mandatoryMenuItemIds" }) ?? [];
+
+  useEffect(() => {
+    const linkedIds = linkedVenueMenus.map((x) => x.venueMenuItemId);
+    const cur = form.getValues("mandatoryMenuItemIds") ?? [];
+    const filtered = cur.filter((id) => linkedIds.includes(id));
+    const next =
+      filtered.length > 0
+        ? filtered
+        : linkedIds.length > 0
+          ? [linkedIds[0]!]
+          : [];
+    if (JSON.stringify(cur) !== JSON.stringify(next)) {
+      form.setValue("mandatoryMenuItemIds", next, { shouldDirty: true });
+    }
+  }, [linkedVenueMenus, form]);
 
   const toggleVenueMenuItemForEvent = React.useCallback(
     (menuItemId: string, checked: boolean) => {
@@ -276,12 +281,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed committee prices once on mount for new events
   }, []);
-
-  useEffect(() => {
-    if (menuMode === "PRESELECT") {
-      form.setValue("voucherPriceIdr", null, { shouldDirty: true });
-    }
-  }, [form, menuMode]);
 
   const submitPayload = useCallback(
     (withAck: boolean) => {
@@ -374,10 +373,10 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
         <section className="grid gap-4 sm:grid-cols-2">
           <h2 className="text-lg font-medium sm:col-span-2">Jadwal & lokasi</h2>
-          <Field label="Waktu mulai">
+          <Field label="Buka registrasi">
             <Controller
               control={form.control}
-              name="startAtIso"
+              name="openRegistrationAtIso"
               render={({ field, fieldState }) => (
                 <DateTimePicker
                   value={field.value}
@@ -388,10 +387,38 @@ export function EventAdminForm(props: EventAdminFormProps) {
               )}
             />
           </Field>
-          <Field label="Waktu selesai">
+          <Field label="Tutup registrasi">
             <Controller
               control={form.control}
-              name="endAtIso"
+              name="closeRegistrationAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Buka gate">
+            <Controller
+              control={form.control}
+              name="openGateAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Kick-off acara">
+            <Controller
+              control={form.control}
+              name="kickOffAtIso"
               render={({ field, fieldState }) => (
                 <DateTimePicker
                   value={field.value}
@@ -416,11 +443,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
                     setLinkedVenueMenusFromVenueSelection(next);
                   }}
                   options={venueComboboxOptions}
-                  disabled={pending || lockedMenuKeys.includes("venueId")}
+                  disabled={pending || lockedIntegrityKeys.includes("venueId")}
                 />
               )}
             />
-            {lockedMenuKeys.includes("venueId") ? (
+            {lockedIntegrityKeys.includes("venueId") ? (
               <Muted>Terhubung pada pendaftar — venue tidak dapat diubah.</Muted>
             ) : (
               <p className="text-muted-foreground text-xs">
@@ -535,86 +562,10 @@ export function EventAdminForm(props: EventAdminFormProps) {
             </Field>
           </div>
           <p className="text-muted-foreground text-xs">
-            Jika memilih default komite, nilai disimpan dari{" "}
-            <strong>Pengaturan → Harga default</strong> (basis data bila sudah
-            pernah disimpan), lalu env <code>MATCH_DEFAULT_TICKET_*_IDR</code>,
-            lalu fallback bawaan aplikasi.
+            Jika memilih default komite, nilai mengikuti env{" "}
+            <code>MATCH_DEFAULT_TICKET_*_IDR</code> lalu fallback bawaan aplikasi
+            (lihat Pengaturan → Harga default).
           </p>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-medium">Konfigurasi menu</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Mode menu">
-              <Select
-                value={menuMode}
-                onValueChange={(v) => {
-                  if (v == null) return;
-                  form.setValue(
-                    "menuMode",
-                    v as AdminEventUpsertInput["menuMode"],
-                    {
-                      shouldDirty: true,
-                    },
-                  );
-                }}
-                disabled={pending || lockedMenuKeys.includes("menuMode")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PRESELECT">Pilih menu di form</SelectItem>
-                  <SelectItem value="VOUCHER">Voucher</SelectItem>
-                </SelectContent>
-              </Select>
-              {lockedMenuKeys.includes("menuMode") ? (
-                <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
-              ) : null}
-            </Field>
-            <Field label="Pilihan menu">
-              <Select
-                value={menuSelection}
-                onValueChange={(v) => {
-                  if (v == null) return;
-                  form.setValue(
-                    "menuSelection",
-                    v as AdminEventUpsertInput["menuSelection"],
-                    { shouldDirty: true },
-                  );
-                }}
-                disabled={pending || lockedMenuKeys.includes("menuSelection")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SINGLE">Satu opsi per tiket</SelectItem>
-                  <SelectItem value="MULTI">Multi pilih per tiket</SelectItem>
-                </SelectContent>
-              </Select>
-              {lockedMenuKeys.includes("menuSelection") ? (
-                <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
-              ) : null}
-            </Field>
-          </div>
-
-          <Field label="Harga voucher (IDR)">
-            <Input
-              type="number"
-              min={0}
-              disabled={pending || menuMode !== "VOUCHER"}
-              placeholder={
-                menuMode === "VOUCHER" ? "Wajib" : "Hanya mode Voucher"
-              }
-              {...form.register("voucherPriceIdr", {
-                setValueAs: (v) =>
-                  v === "" || v === undefined || Number.isNaN(Number(v))
-                    ? null
-                    : Number(v),
-              })}
-            />
-          </Field>
         </section>
 
         <section className="space-y-4">
@@ -661,6 +612,74 @@ export function EventAdminForm(props: EventAdminFormProps) {
               </div>
               {registrationCount > 0 ? (
                 <Muted>Subset menu dikunci untuk acara dengan pendaftar.</Muted>
+              ) : null}
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Menu wajib (per tiket)</h2>
+          <p className="text-muted-foreground text-xs">
+            Pengunjung memilih satu item berikut untuk setiap tiket (utama dan
+            partner). Hanya item yang sudah diaktifkan pada subset menu acara.
+          </p>
+          {linkedVenueMenus.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              Centang subset menu acara terlebih dahulu.
+            </p>
+          ) : (
+            <div className="border-muted bg-card space-y-2 rounded-lg border p-4">
+              <div className="flex flex-col gap-2">
+                {linkedVenueMenus.flatMap((row) => {
+                  const meta = currentVenue?.menuItems.find(
+                    (mi) => mi.id === row.venueMenuItemId,
+                  );
+                  if (!meta) return [];
+                  const mid = row.venueMenuItemId;
+                  const checked = mandatoryMenuItemIds.includes(mid);
+                  return [
+                    <label
+                      key={mid}
+                      className="hover:bg-accent/60 flex cursor-pointer items-start gap-2 rounded px-2 py-1 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1 shrink-0"
+                        checked={checked}
+                        disabled={pending || mandatoryMenuLocked}
+                        onChange={(e) => {
+                          const cur = new Set(
+                            form.getValues("mandatoryMenuItemIds") ?? [],
+                          );
+                          if (e.target.checked) {
+                            cur.add(mid);
+                          } else {
+                            cur.delete(mid);
+                          }
+                          let next = [...cur];
+                          if (next.length === 0 && linkedVenueMenus[0]) {
+                            next = [linkedVenueMenus[0]!.venueMenuItemId];
+                          }
+                          form.setValue("mandatoryMenuItemIds", next, {
+                            shouldDirty: true,
+                          });
+                        }}
+                      />
+                      <span>
+                        <span className="font-medium">{meta.name}</span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {meta.price.toLocaleString("id-ID")}
+                        </span>
+                      </span>
+                    </label>,
+                  ];
+                })}
+              </div>
+              {mandatoryMenuLocked ? (
+                <Muted>
+                  Terhubung pada pendaftar — set menu wajib tidak dapat diubah.
+                </Muted>
               ) : null}
             </div>
           )}
@@ -784,8 +803,8 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <DialogHeader>
             <DialogTitle>Konfirmasi perubahan sensitif</DialogTitle>
             <DialogDescription>
-              Anda mengubah harga tiket/voucher, sumber harga, PIC utama, atau
-              rekening. Pastikan ini disengaja sebelum melanjutkan.
+              Anda mengubah harga tiket, sumber harga, PIC utama, atau rekening.
+              Pastikan ini disengaja sebelum melanjutkan.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

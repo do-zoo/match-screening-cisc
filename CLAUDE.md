@@ -111,15 +111,14 @@ An event registration system for a members-only social club (CISC). Members and 
 Key entities:
 
 - **`MasterMember`** — the club member directory; `isManagementMember` gates partner ticket eligibility and is **derived from kepengurusan** (`BoardAssignment` for the active `BoardPeriod` when the pengurus row links via `ManagementMember.masterMemberId`), not edited manually in the directory UI
-- **`Event`** — slug, pricing, menu config (`MenuMode`: `PRESELECT` | `VOUCHER`); financial PIC is **`picAdminProfileId`** (`AdminProfile`), not a directory flag; **`PicBankAccount`** is owned by **`ownerAdminProfileId`**
+- **`Event`** — slug, per-event ticket pricing, timeline **`openRegistrationAt` / `closeRegistrationAt` / `openGateAt` / `kickOffAt`**, **`mandatoryMenuItemIds`** (subset of linked venue menu items), linked menu via **`EventVenueMenuItem`**; financial PIC is **`picAdminProfileId`** (`AdminProfile`); pembayaran via **`bankAccountId`** → **`PicBankAccount`**
 - **`Venue`** / **`VenueMenuItem`** — venues carry a reusable menu item catalogue; when creating/editing an event the selected venue menu items are copied into **`EventVenueMenuItem`** rows (snapshotted at event creation; frozen after first registration — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`)
-- **`Registration`** — one per submission; prices are snapshotted at submit time (`*Applied` fields); status flows: `submitted → pending_review → approved / rejected / payment_issue`
-- **`Ticket`** — one `primary` + optional `partner` per registration; unique constraint on `(eventId, memberNumber)` prevents double-booking
+- **`Registration`** — **satu baris per tiket** (utama dan/atau partner sebagai baris terpisah); partner menaut ke pembeli utama lewat **`primaryRegistrationId`**; **`ticketRole`**, **`ticketPriceType`**, **`mandatoryMenuItemId`**, **`ticketPriceApplied`**, **`mandatoryMenuPriceApplied`**, **`computedTotalAtSubmit`**; status flows: `submitted → pending_review → approved / rejected / payment_issue`
+- **`Ticket`** — **legacy** (deprecated); pendaftaran baru tidak membuat baris `Ticket`; unik `(eventId, memberNumber)` tetap relevan untuk data lama / migrasi
 - **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage
 - **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
 - **`BoardPeriod`** / **`BoardRole`** / **`ManagementMember`** / **`BoardAssignment`** — kepengurusan (committee) structure; `recompute-directory-flags.ts` syncs `MasterMember.isManagementMember` from `BoardAssignment`
-- **`CommitteeTicketDefaults`** — global default pricing per ticket type (used when an event does not override)
 - **`ClubWaTemplate`** — per-`WaTemplateKey` body overrides stored in DB; loaded by `lib/wa-templates/load-club-wa-templates.ts` and merged with hardcoded defaults in `lib/wa-templates/render-wa-from-db.ts`
 - **`ClubBranding`** / **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton rows (always `singletonKey = "default"`); read via `lib/public/load-club-*.ts` helpers; mutations are Owner-only and append to `ClubAuditLog`
 - **`ClubAuditLog`** — append-only log of sensitive Owner-level mutations; written via `lib/audit/append-club-audit-log.ts` using action constants from `lib/audit/club-audit-actions.ts`
@@ -141,12 +140,13 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
 - `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
-- `lib/reports/queries.ts` — `getEventReport(eventId)` — 10 parallel queries for attendance, finance, menu/voucher aggregations
+- `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance, aggregasi menu wajib per `Registration`
 - `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — 14-column RFC 4180 CSV
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses
+- `lib/events/event-admin-defaults.ts` — saran harga tiket dari env `MATCH_DEFAULT_TICKET_*_IDR` (`resolveCommitteeTicketDefaults()` tanpa query DB; tabel komite lama dihapus)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
 - `lib/admin/` — admin-domain helpers: invite crypto, email, dashboard view model, committee invariants, nav flags, PIC bank permissions, path helpers
 

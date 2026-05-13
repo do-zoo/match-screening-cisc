@@ -38,7 +38,7 @@ export default async function AdminNewEventPage() {
     notFound();
   }
 
-  const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
+  const committeeDefaults = await resolveCommitteeTicketDefaults();
 
   const venuesRaw = await prisma.venue.findMany({
     where: { isActive: true },
@@ -112,20 +112,27 @@ export default async function AdminNewEventPage() {
           }))
       : [];
 
+  const defaultMandatory =
+    defaultLinked.length > 0 ? [defaultLinked[0]!.venueMenuItemId] : [];
+
+  const openReg = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const closeReg = new Date(inOneWeek.getTime() - 60 * 60 * 1000);
+  const openGate = new Date(inOneWeek.getTime() - 30 * 60 * 1000);
+
   const defaults: AdminEventUpsertInput = {
     title: "",
     summary: "",
     descriptionHtml: "<p></p>",
     venueId: firstVenue?.id ?? "",
     linkedVenueMenuItems: defaultLinked,
-    startAtIso: now.toISOString(),
-    endAtIso: inOneWeek.toISOString(),
+    openRegistrationAtIso: openReg.toISOString(),
+    closeRegistrationAtIso: closeReg.toISOString(),
+    openGateAtIso: openGate.toISOString(),
+    kickOffAtIso: inOneWeek.toISOString(),
+    mandatoryMenuItemIds: defaultMandatory,
     registrationCapacity: null,
     registrationManualClosed: false,
     status: "draft",
-    menuMode: "PRESELECT",
-    menuSelection: "SINGLE",
-    voucherPriceIdr: null,
     pricingSource: "global_default",
     ticketMemberPrice: committeeDefaults.ticketMemberPrice,
     ticketNonMemberPrice: committeeDefaults.ticketNonMemberPrice,

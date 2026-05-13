@@ -1,4 +1,3 @@
-import { MenuMode, MenuSelection } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,10 +7,8 @@ import {
   MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
 } from "./submit-registration-schema";
 
-const voucherMenuCtx = {
-  menuMode: MenuMode.VOUCHER,
-  menuSelection: MenuSelection.SINGLE,
-  menuItems: [] as { id: string }[],
+const mandatoryCtx = {
+  mandatoryMenuItemIds: ["m1", "m2"],
 };
 
 function transferProofFile() {
@@ -20,9 +17,7 @@ function transferProofFile() {
   });
 }
 
-function minimalVoucherPayload(
-  overrides: Record<string, unknown> = {},
-): Record<string, unknown> {
+function minimalPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     slug: "demo",
     purchaserIsMember: false,
@@ -34,7 +29,7 @@ function minimalVoucherPayload(
     partnerName: "",
     partnerWhatsapp: "",
     partnerMemberNumber: "",
-    selectedMenuItemIds: [] as string[],
+    primaryMandatoryMenuItemId: "m1",
     transferProof: transferProofFile(),
     ...overrides,
   };
@@ -142,11 +137,11 @@ describe("isMemberNumberMissingWhenMember", () => {
 });
 
 describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
-  const schema = createSubmitRegistrationFormSchema(voucherMenuCtx);
+  const schema = createSubmitRegistrationFormSchema(mandatoryCtx);
 
   it("rejects member status without claimed member number", () => {
     const r = schema.safeParse(
-      minimalVoucherPayload({ purchaserIsMember: true }),
+      minimalPayload({ purchaserIsMember: true }),
     );
     expect(r.success).toBe(false);
     if (r.success) return;
@@ -160,7 +155,7 @@ describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
 
   it("rejects claimed number when not member", () => {
     const r = schema.safeParse(
-      minimalVoucherPayload({
+      minimalPayload({
         claimedMemberNumber: "CISC-TEST",
       }),
     );
@@ -172,7 +167,7 @@ describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
 
   it("rejects member card upload when not member", () => {
     const r = schema.safeParse(
-      minimalVoucherPayload({
+      minimalPayload({
         memberCardPhoto: transferProofFile(),
       }),
     );
@@ -184,7 +179,7 @@ describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
 
   it("accepts member with claimed number and card photo", () => {
     const r = schema.safeParse(
-      minimalVoucherPayload({
+      minimalPayload({
         purchaserIsMember: true,
         claimedMemberNumber: "CISC-OK",
         memberCardPhoto: transferProofFile(),

@@ -19,6 +19,7 @@ import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
 import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import {
   findLockedViolations,
+  findMandatoryMenuLockedViolation,
   needsSensitiveAcknowledgement,
   type EventIntegritySnapshot,
 } from "@/lib/events/event-edit-guards";
@@ -66,7 +67,7 @@ async function ticketPricesForWrite(opts: {
   parsedNonMember: number;
 }): Promise<{ ticketMemberPrice: number; ticketNonMemberPrice: number }> {
   if (opts.pricingSource === "global_default") {
-    const d = await resolveCommitteeTicketDefaults(prisma);
+    const d = await resolveCommitteeTicketDefaults();
     return {
       ticketMemberPrice: d.ticketMemberPrice,
       ticketNonMemberPrice: d.ticketNonMemberPrice,
@@ -246,8 +247,10 @@ export async function createAdminEvent(
   }
 
   const description = sanitizePublicEventDescriptionHtml(data.descriptionHtml);
-  const voucherPrice =
-    data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
+  const openReg = new Date(data.openRegistrationAtIso);
+  const closeReg = new Date(data.closeRegistrationAtIso);
+  const openGate = new Date(data.openGateAtIso);
+  const kickOff = new Date(data.kickOffAtIso);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -258,8 +261,11 @@ export async function createAdminEvent(
           title: data.title,
           summary: data.summary,
           description,
-          startAt: new Date(data.startAtIso),
-          endAt: new Date(data.endAtIso),
+          openRegistrationAt: openReg,
+          closeRegistrationAt: closeReg,
+          openGateAt: openGate,
+          kickOffAt: kickOff,
+          mandatoryMenuItemIds: data.mandatoryMenuItemIds,
           venueId: data.venueId,
           coverBlobUrl: coverPut.url,
           coverBlobPath: coverPut.pathname,
@@ -272,9 +278,6 @@ export async function createAdminEvent(
           ticketMemberPrice,
           ticketNonMemberPrice,
           pricingSource: data.pricingSource,
-          menuMode: data.menuMode,
-          menuSelection: data.menuSelection,
-          voucherPrice,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -342,11 +345,9 @@ export async function updateAdminEvent(
       slug: true,
       venueId: true,
       coverBlobUrl: true,
-      menuMode: true,
-      menuSelection: true,
+      mandatoryMenuItemIds: true,
       ticketMemberPrice: true,
       ticketNonMemberPrice: true,
-      voucherPrice: true,
       pricingSource: true,
       picAdminProfileId: true,
       bankAccountId: true,
@@ -367,11 +368,9 @@ export async function updateAdminEvent(
   const persistedIntegrity: EventIntegritySnapshot = {
     slug: existing.slug,
     venueId: existing.venueId,
-    menuMode: existing.menuMode,
-    menuSelection: existing.menuSelection,
+    mandatoryMenuItemIds: [...existing.mandatoryMenuItemIds],
     ticketMemberPrice: existing.ticketMemberPrice,
     ticketNonMemberPrice: existing.ticketNonMemberPrice,
-    voucherPrice: existing.voucherPrice,
     pricingSource: existing.pricingSource,
     picAdminProfileId: existing.picAdminProfileId,
     bankAccountId: existing.bankAccountId,
@@ -382,13 +381,23 @@ export async function updateAdminEvent(
     persisted: persistedIntegrity,
     candidate: {
       venueId: data.venueId,
-      menuMode: data.menuMode,
-      menuSelection: data.menuSelection,
     },
   });
   if (locked.length > 0) {
     return rootError(
       `Bidang tidak dapat diubah karena sudah ada pendaftaran: ${locked.join(", ")}.`,
+    );
+  }
+
+  if (
+    findMandatoryMenuLockedViolation({
+      registrationCount: existing._count.registrations,
+      persisted: persistedIntegrity,
+      candidateMandatoryMenuItemIds: data.mandatoryMenuItemIds,
+    })
+  ) {
+    return rootError(
+      "Menu wajib tidak dapat diubah karena sudah ada pendaftaran.",
     );
   }
 
@@ -420,7 +429,6 @@ export async function updateAdminEvent(
   const candidateSensitivity: Partial<EventIntegritySnapshot> = {
     ticketMemberPrice,
     ticketNonMemberPrice,
-    voucherPrice: data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null,
     pricingSource: data.pricingSource,
     picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
@@ -432,7 +440,7 @@ export async function updateAdminEvent(
   });
   if (sens && !data.acknowledgeSensitiveChanges) {
     return rootError(
-      "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.",
+      "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.",
     );
   }
 
@@ -466,8 +474,10 @@ export async function updateAdminEvent(
   }
 
   const description = sanitizePublicEventDescriptionHtml(data.descriptionHtml);
-  const voucherPrice =
-    data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
+  const openReg = new Date(data.openRegistrationAtIso);
+  const closeReg = new Date(data.closeRegistrationAtIso);
+  const openGate = new Date(data.openGateAtIso);
+  const kickOff = new Date(data.kickOffAtIso);
 
   const prevCoverUrl = existing.coverBlobUrl;
 
@@ -501,8 +511,11 @@ export async function updateAdminEvent(
           title: data.title,
           summary: data.summary,
           description,
-          startAt: new Date(data.startAtIso),
-          endAt: new Date(data.endAtIso),
+          openRegistrationAt: openReg,
+          closeRegistrationAt: closeReg,
+          openGateAt: openGate,
+          kickOffAt: kickOff,
+          mandatoryMenuItemIds: data.mandatoryMenuItemIds,
           venueId: data.venueId,
           ...(coverPut
             ? {
@@ -519,9 +532,6 @@ export async function updateAdminEvent(
           ticketMemberPrice,
           ticketNonMemberPrice,
           pricingSource: data.pricingSource,
-          menuMode: data.menuMode,
-          menuSelection: data.menuSelection,
-          voucherPrice,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },

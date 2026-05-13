@@ -35,11 +35,12 @@ export async function overrideMemberValidation(
     select: {
       eventId: true,
       memberValidation: true,
-      ticketMemberPriceApplied: true,
-      ticketNonMemberPriceApplied: true,
-      tickets: {
-        where: { role: TicketRole.primary },
-        select: { id: true, ticketPriceType: true },
+      ticketRole: true,
+      ticketPriceType: true,
+      ticketPriceApplied: true,
+      mandatoryMenuPriceApplied: true,
+      event: {
+        select: { ticketMemberPrice: true, ticketNonMemberPrice: true },
       },
     },
   });
@@ -48,40 +49,37 @@ export async function overrideMemberValidation(
     return rootError("Pendaftaran tidak ditemukan.");
   }
 
-  const primaryTicket = reg.tickets[0];
-  if (!primaryTicket) {
-    return rootError("Tiket utama tidak ditemukan.");
+  if (reg.ticketRole !== TicketRole.primary) {
+    return rootError("Hanya tiket utama yang dapat di-override di sini.");
   }
 
   let adjustmentCreated = false;
 
   await prisma.$transaction(async (tx) => {
-    // Update registration memberValidation
     await tx.registration.update({
       where: { id: registrationId },
       data: { memberValidation: validation },
     });
 
-    // If price type is being changed, update ticket and create adjustment if underpayment
     if (
       newPrimaryPriceType &&
-      newPrimaryPriceType !== primaryTicket.ticketPriceType
+      newPrimaryPriceType !== reg.ticketPriceType &&
+      (newPrimaryPriceType === "member" || newPrimaryPriceType === "non_member")
     ) {
-      await tx.ticket.update({
-        where: { id: primaryTicket.id },
-        data: { ticketPriceType: newPrimaryPriceType },
-      });
-
-      // Compute delta: positive = underpayment
-      const oldPrice =
-        primaryTicket.ticketPriceType === "member"
-          ? reg.ticketMemberPriceApplied
-          : reg.ticketNonMemberPriceApplied;
-      const newPrice =
+      const newTicketPrice =
         newPrimaryPriceType === "member"
-          ? reg.ticketMemberPriceApplied
-          : reg.ticketNonMemberPriceApplied;
-      const delta = newPrice - oldPrice;
+          ? reg.event.ticketMemberPrice
+          : reg.event.ticketNonMemberPrice;
+      const delta = newTicketPrice - reg.ticketPriceApplied;
+
+      await tx.registration.update({
+        where: { id: registrationId },
+        data: {
+          ticketPriceType: newPrimaryPriceType,
+          ticketPriceApplied: newTicketPrice,
+          computedTotalAtSubmit: newTicketPrice + reg.mandatoryMenuPriceApplied,
+        },
+      });
 
       if (delta > 0) {
         await tx.invoiceAdjustment.create({

@@ -2,20 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CommitteeDefaultPricingForm } from "@/components/admin/committee-default-pricing-form";
+import { getCommitteeTicketDefaultsFromEnvOnly } from "@/lib/events/event-admin-defaults";
 
 export const metadata: Metadata = { title: "Harga" };
-import { prisma } from "@/lib/db/prisma";
-import {
-  COMMITTEE_TICKET_DEFAULTS_KEY,
-  pickCommitteeTicketDefaults,
-} from "@/lib/events/event-admin-defaults";
 
 export default async function CommitteePricingSettingsPage() {
-  const row = await prisma.committeeTicketDefaults.findUnique({
-    where: { singletonKey: COMMITTEE_TICKET_DEFAULTS_KEY },
-    select: { ticketMemberPrice: true, ticketNonMemberPrice: true },
-  });
-  const display = pickCommitteeTicketDefaults(row);
+  const display = getCommitteeTicketDefaultsFromEnvOnly();
 
   return (
     <div className="space-y-6">
@@ -32,9 +24,7 @@ export default async function CommitteePricingSettingsPage() {
           Dipakai saat acara memilih sumber harga Default komite (<code>global_default</code>).
         </p>
       </div>
-      <CommitteeDefaultPricingForm
-        initial={{ ...display, persisted: row != null }}
-      />
+      <CommitteeDefaultPricingForm initial={display} />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import { MenuMode } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -9,19 +8,18 @@ import {
 } from "./registration-steps";
 
 describe("buildRegistrationSteps", () => {
-  it("orders purchaser, optional partner and menu, then payment last", () => {
-    expect(
-      buildRegistrationSteps(MenuMode.VOUCHER, false),
-    ).toEqual(["purchaser", "payment"]);
-    expect(
-      buildRegistrationSteps(MenuMode.PRESELECT, false),
-    ).toEqual(["purchaser", "menu", "payment"]);
-    expect(
-      buildRegistrationSteps(MenuMode.VOUCHER, true),
-    ).toEqual(["purchaser", "partner", "payment"]);
-    expect(
-      buildRegistrationSteps(MenuMode.PRESELECT, true),
-    ).toEqual(["purchaser", "partner", "menu", "payment"]);
+  it("orders purchaser, optional partner, menu, then payment", () => {
+    expect(buildRegistrationSteps(false)).toEqual([
+      "purchaser",
+      "menu",
+      "payment",
+    ]);
+    expect(buildRegistrationSteps(true)).toEqual([
+      "purchaser",
+      "partner",
+      "menu",
+      "payment",
+    ]);
   });
 });
 

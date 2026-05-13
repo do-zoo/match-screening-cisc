@@ -99,6 +99,13 @@ export function usePartnerMemberNumberValidation(
             }
 
             form.clearErrors("partnerMemberNumber");
+            form.setValue("partnerName", r.fullName.trim(), {
+              shouldValidate: true,
+            });
+            const w = r.whatsapp?.trim();
+            if (w) {
+              form.setValue("partnerWhatsapp", w, { shouldValidate: true });
+            }
             setPartnerMemberGate({
               status: "ready",
               forTrim: canon,

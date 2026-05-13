@@ -9,11 +9,19 @@ type Props = {
 };
 
 export function EventSummary({ event }: Props) {
-  const start = new Date(event.startAtIso).toLocaleString("id-ID", {
+  const openReg = new Date(event.openRegistrationAtIso).toLocaleString("id-ID", {
     dateStyle: "long",
     timeStyle: "short",
   });
-  const end = new Date(event.endAtIso).toLocaleString("id-ID", {
+  const closeReg = new Date(event.closeRegistrationAtIso).toLocaleString("id-ID", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+  const gate = new Date(event.openGateAtIso).toLocaleString("id-ID", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+  const kickOff = new Date(event.kickOffAtIso).toLocaleString("id-ID", {
     dateStyle: "long",
     timeStyle: "short",
   });
@@ -33,7 +41,8 @@ export function EventSummary({ event }: Props) {
         <h1 className="font-semibold text-lg tracking-tight">{event.title}</h1>
         <p className="text-sm text-[hsl(var(--muted-foreground))]">{event.summary}</p>
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          {event.venueName} · {start} — {end}
+          {event.venueName} · Registrasi {openReg} — {closeReg} · Gate {gate} ·
+          Mulai {kickOff}
         </p>
       </div>
       <div

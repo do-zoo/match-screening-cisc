@@ -5,7 +5,7 @@ const publicActiveEventSelect = {
   title: true,
   summary: true,
   coverBlobUrl: true,
-  startAt: true,
+  kickOffAt: true,
   venue: { select: { name: true } },
 } as const;
 
@@ -14,6 +14,7 @@ export type PublicActiveEventRow = {
   title: string;
   summary: string;
   coverBlobUrl: string;
+  /** Waktu mulai acara (kick-off), untuk tampilan publik. */
   startAtIso: string;
   venueName: string;
 };
@@ -21,7 +22,7 @@ export type PublicActiveEventRow = {
 export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
   const rows = await prisma.event.findMany({
     where: { status: "active" },
-    orderBy: { startAt: "asc" },
+    orderBy: { kickOffAt: "asc" },
     select: publicActiveEventSelect,
   });
 
@@ -31,6 +32,6 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
     summary: e.summary,
     coverBlobUrl: e.coverBlobUrl,
     venueName: e.venue.name,
-    startAtIso: e.startAt.toISOString(),
+    startAtIso: e.kickOffAt.toISOString(),
   }));
 }

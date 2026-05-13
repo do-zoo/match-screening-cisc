@@ -57,7 +57,7 @@ export function PriceBreakdown({ pricing }: Props) {
           ))}
         </div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          Lengkapi pilihan menu untuk melihat estimasi.
+          Lengkapi pilihan menu wajib untuk melihat estimasi.
         </p>
       </div>
     );
@@ -114,7 +114,7 @@ export function PriceBreakdown({ pricing }: Props) {
         <div className="flex items-center justify-between gap-4">
           <span className="font-medium text-foreground">Total dibayar</span>
           <span className="font-mono text-base font-semibold tabular-nums text-foreground">
-            {formatIdr(pricing.computedTotalAtSubmit)}
+            {formatIdr(pricing.grandTotal)}
           </span>
         </div>
       </div>

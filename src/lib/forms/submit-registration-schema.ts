@@ -1,4 +1,3 @@
-import { MenuMode, MenuSelection } from "@prisma/client";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { z } from "zod";
 
@@ -6,9 +5,7 @@ import { toE164PlusForValidation } from "@/lib/forms/phone-value-string";
 
 /** Shared between client serialization and server Prisma payload. */
 export type EventValidationContext = {
-  menuMode: MenuMode;
-  menuSelection: MenuSelection;
-  menuItems: { id: string }[];
+  mandatoryMenuItemIds: string[];
 };
 
 const contactWhatsappSchema = z.string().trim().superRefine((val, ctx) => {
@@ -154,82 +151,38 @@ export function createSubmitRegistrationFormSchema(
       partnerWhatsapp: partnerWhatsappSchema,
       partnerMemberNumber: z.string().trim().optional(),
       partnerMemberCardPhoto: z.instanceof(File).optional(),
-      selectedMenuItemIds: z.array(z.string()).optional(),
+      primaryMandatoryMenuItemId: z.string().trim().min(1),
+      partnerMandatoryMenuItemId: z.string().trim().optional(),
       transferProof: uploadFileRequired,
       memberCardPhoto: z.instanceof(File).optional(),
     })
     .superRefine((data, ctxZod) => {
-      const allowedIds = new Set(ctx.menuItems.map((m) => m.id));
-      const selectedIds = data.selectedMenuItemIds ?? [];
+      const allowedMandatory = new Set(ctx.mandatoryMenuItemIds);
 
-      if (ctx.menuMode === MenuMode.VOUCHER) {
-        if (selectedIds.length > 0) {
-          ctxZod.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Menu tidak boleh dipilih untuk mode VOUCHER.",
-            path: ["selectedMenuItemIds"],
-          });
-        }
-      } else if (ctx.menuMode === MenuMode.PRESELECT) {
-        if (ctx.menuSelection === MenuSelection.SINGLE) {
-          if (selectedIds.length !== 1) {
-            ctxZod.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Pilih tepat satu menu.",
-              path: ["selectedMenuItemIds"],
-            });
-          } else if (!allowedIds.has(selectedIds[0])) {
-            ctxZod.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Menu tidak valid untuk acara ini.",
-              path: ["selectedMenuItemIds"],
-            });
-          }
-        } else if (ctx.menuSelection === MenuSelection.MULTI) {
-          if (selectedIds.length < 1) {
-            ctxZod.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Pilih minimal satu menu.",
-              path: ["selectedMenuItemIds"],
-            });
-          } else {
-            const uniqueIds = new Set(selectedIds);
-            if (uniqueIds.size !== selectedIds.length) {
-              ctxZod.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Terdapat duplikasi pilihan menu.",
-                path: ["selectedMenuItemIds"],
-              });
-            } else {
-              for (const id of selectedIds) {
-                if (!allowedIds.has(id)) {
-                  ctxZod.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "Menu tidak valid untuk acara ini.",
-                    path: ["selectedMenuItemIds"],
-                  });
-                  break;
-                }
-              }
-            }
-          }
-        } else {
-          ctxZod.addIssue({
-            code: z.ZodIssueCode.custom,
-            message:
-              "Konfigurasi jenis pemilihan menu tidak dikenali. Hubungi panitia.",
-            path: ["selectedMenuItemIds"],
-          });
-        }
-      } else {
+      if (!allowedMandatory.has(data.primaryMandatoryMenuItemId)) {
         ctxZod.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Konfigurasi menu acara tidak dikenali. Hubungi panitia.",
-          path: ["selectedMenuItemIds"],
+          message: "Menu wajib utama tidak valid untuk acara ini.",
+          path: ["primaryMandatoryMenuItemId"],
         });
       }
 
       if (data.qtyPartner === 1) {
+        const pid = data.partnerMandatoryMenuItemId?.trim();
+        if (!pid) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Pilih 1 menu wajib untuk partner.",
+            path: ["partnerMandatoryMenuItemId"],
+          });
+        } else if (!allowedMandatory.has(pid)) {
+          ctxZod.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Menu wajib partner tidak valid untuk acara ini.",
+            path: ["partnerMandatoryMenuItemId"],
+          });
+        }
+
         if (!data.partnerName || data.partnerName.trim().length < 2) {
           ctxZod.addIssue({
             code: z.ZodIssueCode.custom,
@@ -277,7 +230,6 @@ export function createSubmitRegistrationFormSchema(
           });
         }
       }
-
       const numTrim = data.claimedMemberNumber?.trim() ?? "";
       const codeTrim = data.managementPublicCode?.trim() ?? "";
 

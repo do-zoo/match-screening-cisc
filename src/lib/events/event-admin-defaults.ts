@@ -1,4 +1,13 @@
-import type { PrismaClient } from "@prisma/client";
+export const COMMITTEE_TICKET_FALLBACK_MEMBER_IDR = 125_000;
+export const COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR = 175_000;
+
+/** @deprecated Baris DB komite dihapus; kunci ini hanya untuk kompatibilitas impor lama. */
+export const COMMITTEE_TICKET_DEFAULTS_KEY = "default" as const;
+
+export type CommitteeTicketDefaultPrices = {
+  ticketMemberPrice: number;
+  ticketNonMemberPrice: number;
+};
 
 function parseIdr(raw: string | undefined, fallback: number): number {
   if (raw === undefined || raw.trim() === "") return fallback;
@@ -6,17 +15,6 @@ function parseIdr(raw: string | undefined, fallback: number): number {
   if (!Number.isFinite(n) || n < 0) return fallback;
   return n;
 }
-
-export const COMMITTEE_TICKET_FALLBACK_MEMBER_IDR = 125_000;
-export const COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR = 175_000;
-
-/** Prisma `@id`; upsert/find use this literal. */
-export const COMMITTEE_TICKET_DEFAULTS_KEY = "default" as const;
-
-export type CommitteeTicketDefaultPrices = {
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
-};
 
 /** Nilai dari env `MATCH_DEFAULT_TICKET_*` lalu fallback numerik seed. */
 export function getCommitteeTicketDefaultsFromEnvOnly(): CommitteeTicketDefaultPrices {
@@ -33,7 +31,8 @@ export function getCommitteeTicketDefaultsFromEnvOnly(): CommitteeTicketDefaultP
 }
 
 /**
- * Spesifikasi produk: baris DB menang penuh bila tidak null; jika belum ada baris, gunakan env+fallback.
+ * Spesifikasi produk: sumber harga saran untuk form admin hanya dari env+fallback
+ * (tidak ada lagi tabel `CommitteeTicketDefaults`).
  */
 export function pickCommitteeTicketDefaults(
   row: CommitteeTicketDefaultPrices | null,
@@ -42,12 +41,6 @@ export function pickCommitteeTicketDefaults(
   return getCommitteeTicketDefaultsFromEnvOnly();
 }
 
-export async function resolveCommitteeTicketDefaults(
-  db: Pick<PrismaClient, "committeeTicketDefaults">,
-): Promise<CommitteeTicketDefaultPrices> {
-  const row = await db.committeeTicketDefaults.findUnique({
-    where: { singletonKey: COMMITTEE_TICKET_DEFAULTS_KEY },
-    select: { ticketMemberPrice: true, ticketNonMemberPrice: true },
-  });
-  return pickCommitteeTicketDefaults(row);
+export async function resolveCommitteeTicketDefaults(): Promise<CommitteeTicketDefaultPrices> {
+  return getCommitteeTicketDefaultsFromEnvOnly();
 }

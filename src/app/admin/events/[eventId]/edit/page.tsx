@@ -138,14 +138,14 @@ export default async function AdminEditEventPage({
       venueMenuItemId: x.venueMenuItemId,
       sortOrder: x.sortOrder ?? idx,
     })),
-    startAtIso: event.startAt.toISOString(),
-    endAtIso: event.endAt.toISOString(),
+    openRegistrationAtIso: event.openRegistrationAt.toISOString(),
+    closeRegistrationAtIso: event.closeRegistrationAt.toISOString(),
+    openGateAtIso: event.openGateAt.toISOString(),
+    kickOffAtIso: event.kickOffAt.toISOString(),
+    mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
     registrationCapacity: event.registrationCapacity,
     registrationManualClosed: event.registrationManualClosed,
     status: event.status,
-    menuMode: event.menuMode,
-    menuSelection: event.menuSelection,
-    voucherPriceIdr: event.voucherPrice,
     pricingSource: event.pricingSource,
     ticketMemberPrice: event.ticketMemberPrice,
     ticketNonMemberPrice: event.ticketNonMemberPrice,
@@ -158,17 +158,15 @@ export default async function AdminEditEventPage({
   const persistedIntegrity: EventIntegritySnapshot = {
     slug: event.slug,
     venueId: event.venueId,
-    menuMode: event.menuMode,
-    menuSelection: event.menuSelection,
+    mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
     ticketMemberPrice: event.ticketMemberPrice,
     ticketNonMemberPrice: event.ticketNonMemberPrice,
-    voucherPrice: event.voucherPrice,
     pricingSource: event.pricingSource,
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
   };
 
-  const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
+  const committeeDefaults = await resolveCommitteeTicketDefaults();
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pb-16 pt-8 lg:pt-6">
@@ -183,7 +181,7 @@ export default async function AdminEditEventPage({
         <p className="text-muted-foreground text-sm font-mono">slug · {event.slug}</p>
         {event._count.registrations > 0 ? (
           <p className="text-amber-800 text-sm dark:text-amber-200">
-            Ada {event._count.registrations} registrasi — mode menu dan slug dikunci oleh sistem.
+            Ada {event._count.registrations} registrasi — slug, venue, dan set menu wajib dikunci oleh sistem.
           </p>
         ) : null}
       </header>

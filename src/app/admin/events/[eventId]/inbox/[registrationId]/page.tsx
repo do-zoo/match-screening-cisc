@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TicketRole, type TicketPriceType } from "@prisma/client";
 
-import { RegistrationDetail } from "@/components/admin/registration-detail";
+import {
+  RegistrationDetail,
+  type DetailRegistration,
+} from "@/components/admin/registration-detail";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { prisma } from "@/lib/db/prisma";
 import { flattenedMenuRowsFromEventVenueLinks } from "@/lib/events/flatten-event-venue-menu";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
+import { loadTicketContextVm } from "@/lib/registrations/load-admin-ticket-context";
+import { loadClubWaTemplateBodies } from "@/lib/wa-templates/load-club-wa-templates";
 
 export async function generateMetadata({
   params,
@@ -21,9 +28,48 @@ export async function generateMetadata({
   });
   return { title: event ? `Registrasi · ${event.title}` : "Registrasi" };
 }
-import type { TicketContextVm } from "@/lib/registrations/admin-ticket-context";
-import { loadTicketContextVm } from "@/lib/registrations/load-admin-ticket-context";
-import { loadClubWaTemplateBodies } from "@/lib/wa-templates/load-club-wa-templates";
+
+type MenuSnap = { name: string; price: number };
+
+function syntheticTicketRows(opts: {
+  primary: {
+    id: string;
+    contactName: string;
+    contactWhatsapp: string;
+    claimedMemberNumber: string | null;
+    ticketPriceType: TicketPriceType;
+    menu: MenuSnap;
+  };
+  partner: {
+    id: string;
+    contactName: string;
+    contactWhatsapp: string;
+    claimedMemberNumber: string | null;
+    ticketPriceType: TicketPriceType;
+    menu: MenuSnap;
+  } | null;
+}): DetailRegistration["tickets"] {
+  const { primary, partner } = opts;
+  const base = (id: string, role: TicketRole, row: typeof primary) => ({
+    id,
+    role,
+    fullName: row.contactName,
+    whatsapp: row.contactWhatsapp,
+    memberNumber: row.claimedMemberNumber,
+    ticketPriceType: row.ticketPriceType,
+    voucherRedeemedMenuItemId: null as string | null,
+    voucherRedeemedAt: null as Date | null,
+    menuSelections: [
+      { menuItem: { name: row.menu.name, price: row.menu.price } },
+    ],
+  });
+
+  const out = [base(primary.id, TicketRole.primary, primary)];
+  if (partner) {
+    out.push(base(partner.id, TicketRole.partner, partner));
+  }
+  return out;
+}
 
 export default async function AdminEventInboxDetailPage({
   params,
@@ -61,18 +107,43 @@ export default async function AdminEventInboxDetailPage({
       primaryManagementMemberId: true,
       claimedManagementPublicCode: true,
       computedTotalAtSubmit: true,
-      ticketMemberPriceApplied: true,
-      ticketNonMemberPriceApplied: true,
       status: true,
       attendanceStatus: true,
       memberValidation: true,
       rejectionReason: true,
       paymentIssueReason: true,
+      ticketRole: true,
+      ticketPriceType: true,
+      primaryRegistrationId: true,
+      primaryRegistration: {
+        select: {
+          id: true,
+          contactName: true,
+          contactWhatsapp: true,
+          claimedMemberNumber: true,
+          ticketPriceType: true,
+          mandatoryMenuItem: { select: { name: true, price: true } },
+        },
+      },
+      partnerRegistrations: {
+        take: 1,
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          contactName: true,
+          contactWhatsapp: true,
+          claimedMemberNumber: true,
+          ticketPriceType: true,
+          mandatoryMenuItem: { select: { name: true, price: true } },
+        },
+      },
+      mandatoryMenuItem: { select: { name: true, price: true } },
       event: {
         select: {
           title: true,
-          startAt: true,
-          menuMode: true,
+          kickOffAt: true,
+          ticketMemberPrice: true,
+          ticketNonMemberPrice: true,
           venue: { select: { name: true } },
           eventVenueMenuItems: {
             include: { venueMenuItem: true },
@@ -104,22 +175,98 @@ export default async function AdminEventInboxDetailPage({
 
   if (!registration) notFound();
 
+  const menuSnap = (m: { name: string; price: number }): MenuSnap => ({
+    name: m.name,
+    price: m.price,
+  });
+
+  let ticketsForDetail: DetailRegistration["tickets"] = registration.tickets;
+  if (ticketsForDetail.length === 0) {
+    if (registration.ticketRole === TicketRole.primary) {
+      const pr = registration.partnerRegistrations[0];
+      ticketsForDetail = syntheticTicketRows({
+        primary: {
+          id: registration.id,
+          contactName: registration.contactName,
+          contactWhatsapp: registration.contactWhatsapp,
+          claimedMemberNumber: registration.claimedMemberNumber,
+          ticketPriceType: registration.ticketPriceType,
+          menu: menuSnap(registration.mandatoryMenuItem),
+        },
+        partner: pr
+          ? {
+              id: pr.id,
+              contactName: pr.contactName,
+              contactWhatsapp: pr.contactWhatsapp,
+              claimedMemberNumber: pr.claimedMemberNumber,
+              ticketPriceType: pr.ticketPriceType,
+              menu: menuSnap(pr.mandatoryMenuItem),
+            }
+          : null,
+      });
+    } else {
+      const p = registration.primaryRegistration;
+      if (!p) {
+        ticketsForDetail = syntheticTicketRows({
+          primary: {
+            id: registration.id,
+            contactName: registration.contactName,
+            contactWhatsapp: registration.contactWhatsapp,
+            claimedMemberNumber: registration.claimedMemberNumber,
+            ticketPriceType: registration.ticketPriceType,
+            menu: menuSnap(registration.mandatoryMenuItem),
+          },
+          partner: null,
+        });
+      } else {
+        ticketsForDetail = syntheticTicketRows({
+          primary: {
+            id: p.id,
+            contactName: p.contactName,
+            contactWhatsapp: p.contactWhatsapp,
+            claimedMemberNumber: p.claimedMemberNumber,
+            ticketPriceType: p.ticketPriceType,
+            menu: menuSnap(p.mandatoryMenuItem),
+          },
+          partner: {
+            id: registration.id,
+            contactName: registration.contactName,
+            contactWhatsapp: registration.contactWhatsapp,
+            claimedMemberNumber: registration.claimedMemberNumber,
+            ticketPriceType: registration.ticketPriceType,
+            menu: menuSnap(registration.mandatoryMenuItem),
+          },
+        });
+      }
+    }
+  }
+
   const registrationForDetail = {
     ...registration,
     event: {
       title: registration.event.title,
       venueName: registration.event.venue.name,
-      startAt: registration.event.startAt,
-      menuMode: registration.event.menuMode,
+      kickOffAt: registration.event.kickOffAt,
+      ticketMemberPrice: registration.event.ticketMemberPrice,
+      ticketNonMemberPrice: registration.event.ticketNonMemberPrice,
       menuItems: flattenedMenuRowsFromEventVenueLinks(
         registration.event.eventVenueMenuItems,
       ),
       bankAccount: registration.event.bankAccount,
     },
+    tickets: ticketsForDetail,
   };
 
   let ticketContext: TicketContextVm;
   try {
+    const ctxTickets = ticketsForDetail.map((t) => ({
+      role: t.role,
+      fullName: t.fullName,
+      whatsapp: t.whatsapp,
+      memberNumber: t.memberNumber,
+      ticketPriceType: t.ticketPriceType,
+    }));
+
     ticketContext = await loadTicketContextVm({
       eventId,
       registration: {
@@ -128,13 +275,7 @@ export default async function AdminEventInboxDetailPage({
         primaryManagementMemberId: registration.primaryManagementMemberId,
         claimedManagementPublicCode:
           registration.claimedManagementPublicCode,
-        tickets: registration.tickets.map((t) => ({
-          role: t.role,
-          fullName: t.fullName,
-          whatsapp: t.whatsapp,
-          memberNumber: t.memberNumber,
-          ticketPriceType: t.ticketPriceType,
-        })),
+        tickets: ctxTickets,
       },
     });
   } catch {
@@ -153,7 +294,9 @@ export default async function AdminEventInboxDetailPage({
           <h1 className="text-2xl font-semibold tracking-tight">
             Detail pendaftar
           </h1>
-          <p className="text-sm text-muted-foreground">{registrationForDetail.event.title}</p>
+          <p className="text-sm text-muted-foreground">
+            {registrationForDetail.event.title}
+          </p>
         </div>
         <Link
           href={`/admin/events/${eventId}/inbox`}
@@ -172,4 +315,3 @@ export default async function AdminEventInboxDetailPage({
     </main>
   );
 }
-

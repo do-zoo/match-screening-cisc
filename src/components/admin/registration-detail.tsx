@@ -7,7 +7,6 @@ import {
 import type {
   AttendanceStatus,
   InvoiceAdjustmentType,
-  MenuMode,
   MemberValidation,
   RegistrationStatus,
   TicketPriceType,
@@ -21,7 +20,6 @@ import { AttendancePanel } from "@/components/admin/attendance-panel";
 import { CancelRefundPanel } from "@/components/admin/cancel-refund-panel";
 import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
 import { InvoiceAdjustmentPanel } from "@/components/admin/invoice-adjustment-panel";
-import { VoucherRedemptionPanel } from "@/components/admin/voucher-redemption-panel";
 import {
   RegistrationTicketsTable,
   type RegistrationTicketRow,
@@ -63,15 +61,14 @@ export function formatUploadPurpose(purpose: UploadPurpose): string {
   return "Bukti penyesuaian invoice";
 }
 
-type DetailRegistration = {
+export type DetailRegistration = {
   id: string;
   createdAt: Date;
   contactName: string;
   contactWhatsapp: string;
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
-  ticketMemberPriceApplied: number;
-  ticketNonMemberPriceApplied: number;
+  ticketRole: TicketRole;
   status: RegistrationStatus;
   attendanceStatus: AttendanceStatus;
   memberValidation: MemberValidation;
@@ -80,8 +77,9 @@ type DetailRegistration = {
   event: {
     title: string;
     venueName: string;
-    startAt: Date;
-    menuMode: MenuMode;
+    kickOffAt: Date;
+    ticketMemberPrice: number;
+    ticketNonMemberPrice: number;
     menuItems: Array<{ id: string; name: string; price: number; voucherEligible: boolean }>;
     bankAccount: { bankName: string; accountNumber: string; accountName: string } | null;
   };
@@ -160,7 +158,7 @@ export function RegistrationDetail({
           wb[WaTemplateKey.approved] ?? null,
           registration.event.title,
           registration.event.venueName,
-          registration.event.startAt.toISOString(),
+          registration.event.kickOffAt.toISOString(),
         ),
       ),
       show: registration.status === "approved",
@@ -511,28 +509,30 @@ export function RegistrationDetail({
         registrationStatus={registration.status}
       />
 
-      <MemberValidationPanel
-        eventId={eventId}
-        registrationId={registration.id}
-        current={registration.memberValidation}
-        primaryTicket={registration.tickets.find(t => t.role === "primary") ?? null}
-        ticketMemberPriceApplied={registration.ticketMemberPriceApplied}
-        ticketNonMemberPriceApplied={registration.ticketNonMemberPriceApplied}
-      />
+      {registration.ticketRole === "primary" ? (
+        <MemberValidationPanel
+          eventId={eventId}
+          registrationId={registration.id}
+          current={registration.memberValidation}
+          primaryTicket={(() => {
+            const t = registration.tickets.find((x) => x.role === "primary");
+            if (!t) return null;
+            return {
+              id: t.id,
+              role: "primary" as const,
+              ticketPriceType: t.ticketPriceType,
+            };
+          })()}
+          eventTicketMemberPrice={registration.event.ticketMemberPrice}
+          eventTicketNonMemberPrice={registration.event.ticketNonMemberPrice}
+        />
+      ) : null}
 
       <InvoiceAdjustmentPanel
         eventId={eventId}
         registrationId={registration.id}
         adjustments={registration.adjustments}
       />
-
-      {registration.event.menuMode === "VOUCHER" && (
-        <VoucherRedemptionPanel
-          eventId={eventId}
-          tickets={registration.tickets}
-          menuItems={registration.event.menuItems.filter(m => m.voucherEligible)}
-        />
-      )}
 
       <CancelRefundPanel
         eventId={eventId}

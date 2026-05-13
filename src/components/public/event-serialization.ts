@@ -1,5 +1,3 @@
-import type { MenuMode, MenuSelection } from "@prisma/client";
-
 export type SerializedEventMenuItem = {
   id: string;
   name: string;
@@ -20,15 +18,18 @@ export type SerializedEventForRegistration = {
   descriptionHtml: string;
   coverBlobUrl: string;
   venueName: string;
-  startAtIso: string;
-  endAtIso: string;
+  openRegistrationAtIso: string;
+  closeRegistrationAtIso: string;
+  openGateAtIso: string;
+  kickOffAtIso: string;
   registrationOpen: boolean;
   registrationClosedMessage: string | null;
-  menuMode: MenuMode;
-  menuSelection: MenuSelection;
-  voucherPrice: number | null;
+  mandatoryMenuItemIds: string[];
   ticketMemberPrice: number;
   ticketNonMemberPrice: number;
   bankAccount: SerializedBankAccount;
+  /** Semua item menu acara (dari `EventVenueMenuItem`). */
   menuItems: SerializedEventMenuItem[];
+  /** Subset `menuItems` yang menjadi pilihan menu wajib. */
+  mandatoryMenuItems: SerializedEventMenuItem[];
 };

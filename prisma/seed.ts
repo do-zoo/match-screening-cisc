@@ -3,13 +3,26 @@ import "dotenv/config";
 import {
   AdminRole,
   EventStatus,
-  MenuMode,
-  MenuSelection,
   PricingSource,
 } from "@prisma/client";
 
 /** Same Neon + `db.localtest.me` proxy setup as the app (`scripts/bootstrap-admin` pattern). */
 import { prisma } from "@/lib/db/prisma";
+
+/** Jendela registrasi vs gate vs kick-off untuk seed acara. */
+function eventTiming(start: Date, end: Date) {
+  const openRegistrationAt = new Date(
+    start.getTime() - 14 * 24 * 60 * 60 * 1000,
+  );
+  const closeRegistrationAt = new Date(start.getTime() - 60 * 60 * 1000);
+  const openGateAt = new Date(start.getTime() - 30 * 60 * 1000);
+  return {
+    openRegistrationAt,
+    closeRegistrationAt,
+    openGateAt,
+    kickOffAt: end,
+  };
+}
 
 /** Kombinasi isActive × isManagementMember — untuk variasi direktori (tanpa PIC di member). */
 type MasterMemberSeed = {
@@ -291,9 +304,13 @@ async function main() {
   });
 
   const eventSummary =
-    "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu, unggah bukti transfer.";
+    "Nobar final bersama komunitas Chelsea FC Indonesia — daftar, pilih menu wajib, unggah bukti transfer.";
   const eventDescription =
     "<p>Acara demo untuk alur pendaftaran. <strong>Perbarui deskripsi ini</strong> lewat admin ketika editor WYSIWYG tersedia.</p><p>Pastikan pembayaran menggunakan rekening yang tertera di formulir.</p>";
+
+  const demoStart = new Date("2026-05-20T18:30:00+07:00");
+  const demoEnd = new Date("2026-05-20T23:00:00+07:00");
+  const demoTiming = eventTiming(demoStart, demoEnd);
 
   const event = await prisma.event.upsert({
     where: { slug: "demo-final-ucl-2026" },
@@ -304,17 +321,14 @@ async function main() {
       venueId: demoVenue.id,
       summary: eventSummary,
       description: eventDescription,
-      startAt: new Date("2026-05-20T18:30:00+07:00"),
-      endAt: new Date("2026-05-20T23:00:00+07:00"),
+      ...demoTiming,
+      mandatoryMenuItemIds: [vmBurger.id, vmNasi.id],
       registrationManualClosed: false,
       registrationCapacity: null,
       status: EventStatus.active,
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
       pricingSource: PricingSource.global_default,
-      menuMode: MenuMode.PRESELECT,
-      menuSelection: MenuSelection.SINGLE,
-      voucherPrice: null,
       coverBlobUrl:
         "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
       coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
@@ -324,8 +338,8 @@ async function main() {
       title: "Demo — Final Watch Party",
       summary: eventSummary,
       description: eventDescription,
-      startAt: new Date("2026-05-20T18:30:00+07:00"),
-      endAt: new Date("2026-05-20T23:00:00+07:00"),
+      ...demoTiming,
+      mandatoryMenuItemIds: [vmBurger.id, vmNasi.id],
       coverBlobUrl:
         "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
       coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
@@ -336,9 +350,6 @@ async function main() {
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
       pricingSource: PricingSource.global_default,
-      menuMode: MenuMode.PRESELECT,
-      menuSelection: MenuSelection.SINGLE,
-      voucherPrice: null,
       picAdminProfileId: ownerProfile.id,
       bankAccountId: bank.id,
     },
@@ -357,10 +368,18 @@ async function main() {
     orderBy: { sortOrder: "asc" },
   });
 
+  const catalogMandatoryIds = catalogVenueItems
+    .slice(0, 2)
+    .map((m) => m.id);
+
   const voucherSummary =
-    "Kopdar santai dengan sistem voucher menu — tiket dan voucher dibayar saat daftar; pilihan hidangan ditukar di lokasi oleh panitia.";
+    "Kopdar santai — tiket dan menu wajib dibayar saat daftar.";
   const voucherDescription =
-    "<p>Acara seed kedua untuk menguji mode <strong>VOUCHER</strong> (tanpa pemilihan menu pada formulir).</p><p>Menu yang bisa ditukar dengan voucher sama dengan daftar voucher-eligible di venue katalog.</p>";
+    "<p>Acara seed kedua untuk menguji subset menu katalog.</p>";
+
+  const kopdarStart = new Date("2026-06-14T17:00:00+07:00");
+  const kopdarEnd = new Date("2026-06-14T21:30:00+07:00");
+  const kopdarTiming = eventTiming(kopdarStart, kopdarEnd);
 
   const voucherEvent = await prisma.event.upsert({
     where: { slug: "demo-kopdar-voucher-2026" },
@@ -371,17 +390,14 @@ async function main() {
       venueId: catalogVenue.id,
       summary: voucherSummary,
       description: voucherDescription,
-      startAt: new Date("2026-06-14T17:00:00+07:00"),
-      endAt: new Date("2026-06-14T21:30:00+07:00"),
+      ...kopdarTiming,
+      mandatoryMenuItemIds: catalogMandatoryIds,
       registrationManualClosed: false,
       registrationCapacity: 40,
       status: EventStatus.active,
       ticketMemberPrice: 100_000,
       ticketNonMemberPrice: 150_000,
       pricingSource: PricingSource.global_default,
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.SINGLE,
-      voucherPrice: 85_000,
       coverBlobUrl:
         "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Voucher",
       coverBlobPath: "__seed__/demo-kopdar-voucher-2026/cover.webp",
@@ -391,8 +407,8 @@ async function main() {
       title: "Demo — Kopdar Voucher Juni",
       summary: voucherSummary,
       description: voucherDescription,
-      startAt: new Date("2026-06-14T17:00:00+07:00"),
-      endAt: new Date("2026-06-14T21:30:00+07:00"),
+      ...kopdarTiming,
+      mandatoryMenuItemIds: catalogMandatoryIds,
       coverBlobUrl:
         "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Voucher",
       coverBlobPath: "__seed__/demo-kopdar-voucher-2026/cover.webp",
@@ -403,9 +419,6 @@ async function main() {
       ticketMemberPrice: 100_000,
       ticketNonMemberPrice: 150_000,
       pricingSource: PricingSource.global_default,
-      menuMode: MenuMode.VOUCHER,
-      menuSelection: MenuSelection.SINGLE,
-      voucherPrice: 85_000,
       picAdminProfileId: ownerProfile.id,
       bankAccountId: bank.id,
     },

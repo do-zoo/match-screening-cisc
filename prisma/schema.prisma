@@ -20,16 +20,6 @@ enum PricingSource {
   overridden
 }
 
-enum MenuMode {
-  PRESELECT
-  VOUCHER
-}
-
-enum MenuSelection {
-  SINGLE
-  MULTI
-}
-
 enum RegistrationStatus {
   submitted
   pending_review
@@ -234,6 +224,7 @@ model VenueMenuItem {
   eventVenueLinks    EventVenueMenuItem[]
   ticketSelections   TicketMenuSelection[]
   voucherRedemptions Ticket[]              @relation("VoucherRedemption")
+  registrationsMandatoryMenu Registration[] @relation("RegistrationMandatoryMenu")
 
   @@index([venueId])
 }
@@ -257,8 +248,6 @@ model Event {
   summary     String
   /// Konten WYSIWYG (HTML). Sanitasi di server saat admin menyimpan; publik memakai helper `sanitizePublicEventDescriptionHtml`.
   description String   @db.Text
-  startAt     DateTime
-  endAt       DateTime
 
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
@@ -266,18 +255,23 @@ model Event {
   coverBlobUrl  String
   coverBlobPath String
 
+  // NEW: Timeline fields (replaces startAt, endAt)
+  openRegistrationAt  DateTime
+  closeRegistrationAt DateTime
+  openGateAt          DateTime
+  kickOffAt           DateTime
+
   registrationManualClosed Boolean @default(false)
   registrationCapacity     Int?
+  status                   EventStatus @default(draft)
 
-  status EventStatus @default(draft)
-
+  // Updated: pricing is required (no global defaults)
   ticketMemberPrice    Int
   ticketNonMemberPrice Int
-  pricingSource        PricingSource @default(global_default)
+  pricingSource        PricingSource @default(overridden)
 
-  menuMode      MenuMode
-  menuSelection MenuSelection
-  voucherPrice  Int?
+  // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
+  mandatoryMenuItemIds String[] @default([])
 
   picAdminProfileId String
   picAdminProfile   AdminProfile @relation(fields: [picAdminProfileId], references: [id], onDelete: Restrict)
@@ -292,7 +286,7 @@ model Event {
   registrations         Registration[]
   eventVenueMenuItems   EventVenueMenuItem[]
 
-  @@index([status, startAt])
+  @@index([status, kickOffAt])
   @@index([venueId])
   @@index([picAdminProfileId])
   @@index([bankAccountId])
@@ -325,13 +319,20 @@ model Registration {
   claimedMemberNumber String?
   memberValidation    MemberValidation @default(unknown)
   memberId            String?
-  member              MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member              MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
-  // Snapshot pricing (locked at submission)
-  ticketMemberPriceApplied    Int
-  ticketNonMemberPriceApplied Int
-  voucherPriceApplied         Int?
-  computedTotalAtSubmit       Int
+  primaryRegistrationId String?
+  primaryRegistration     Registration?  @relation("PartnerLink", fields: [primaryRegistrationId], references: [id], onDelete: Cascade)
+  partnerRegistrations    Registration[] @relation("PartnerLink")
+
+  ticketRole          TicketRole
+  ticketPriceType     TicketPriceType
+  mandatoryMenuItemId String
+  mandatoryMenuItem   VenueMenuItem @relation("RegistrationMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
+
+  ticketPriceApplied        Int
+  mandatoryMenuPriceApplied Int
+  computedTotalAtSubmit     Int
 
   status           RegistrationStatus @default(submitted)
   attendanceStatus AttendanceStatus   @default(unknown)
@@ -339,9 +340,11 @@ model Registration {
   rejectionReason    String?
   paymentIssueReason String?
 
-  tickets     Ticket[]
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
+
+  /// Legacy `Ticket` rows (deprecated); new submissions do not create tickets.
+  tickets Ticket[]
 
   primaryManagementMemberId   String?
   primaryManagementMember     ManagementMember? @relation(fields: [primaryManagementMemberId], references: [id], onDelete: SetNull)
@@ -349,9 +352,12 @@ model Registration {
 
   @@index([eventId, createdAt])
   @@index([status])
+  @@index([primaryRegistrationId])
   @@index([attendanceStatus])
 }
 
+/// DEPRECATED: Tiket per-orang kini disimpan di `Registration` (`ticketRole`, `ticketPriceType`, dll.).
+/// Tabel dipertahankan sementara untuk migrasi data; alur baru tidak membuat baris `Ticket`.
 model Ticket {
   id             String       @id @default(cuid())
   registrationId String
@@ -444,15 +450,6 @@ model Upload {
   @@index([purpose, createdAt])
   @@index([registrationId])
   @@index([invoiceAdjustmentId])
-}
-
-/// Singleton committee default ticket prices (`singletonKey` = `default`). App read order: row → env → built-in fallbacks.
-model CommitteeTicketDefaults {
-  singletonKey         String   @id @default("default")
-  ticketMemberPrice      Int
-  ticketNonMemberPrice   Int
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
 }
 
 model ClubWaTemplate {

@@ -25,8 +25,8 @@ type Props = {
   registrationId: string;
   current: MemberValidation;
   primaryTicket: Ticket | null;
-  ticketMemberPriceApplied: number;
-  ticketNonMemberPriceApplied: number;
+  eventTicketMemberPrice: number;
+  eventTicketNonMemberPrice: number;
 };
 
 const VALIDATION_LABELS: Record<MemberValidation, string> = {
@@ -41,8 +41,8 @@ export function MemberValidationPanel({
   registrationId,
   current,
   primaryTicket,
-  ticketMemberPriceApplied,
-  ticketNonMemberPriceApplied,
+  eventTicketMemberPrice,
+  eventTicketNonMemberPrice,
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [validation, setValidation] = useState<MemberValidation>(current);
@@ -74,8 +74,9 @@ export function MemberValidationPanel({
   }
 
   const delta =
-    newPriceType === TicketPriceType.non_member && primaryTicket?.ticketPriceType === TicketPriceType.member
-      ? ticketNonMemberPriceApplied - ticketMemberPriceApplied
+    newPriceType === TicketPriceType.non_member &&
+    primaryTicket?.ticketPriceType === TicketPriceType.member
+      ? eventTicketNonMemberPrice - eventTicketMemberPrice
       : 0;
 
   return (

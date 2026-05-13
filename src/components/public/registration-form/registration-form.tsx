@@ -28,7 +28,7 @@ import {
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
 
-import { MenuSelectionSection } from "./menu-selection-section";
+import { MandatoryMenuSelection } from "./mandatory-menu-selection";
 import { PartnerTicketSection } from "./partner-ticket-section";
 import { PaymentSection } from "./payment-section";
 import { PurchaserInfoSection } from "./purchaser-info-section";
@@ -49,7 +49,8 @@ function serverFieldErrorsToStepHint(
   fe: Record<string, string>,
 ): RegistrationStepId {
   if (fe.transferProof) return "payment";
-  if (fe.selectedMenuItemIds) return "menu";
+  if (fe.primaryMandatoryMenuItemId || fe.partnerMandatoryMenuItemId)
+    return "menu";
   if (
     fe.partnerMemberCardPhoto ||
     fe.partnerMemberNumber ||
@@ -75,8 +76,11 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   const router = useRouter();
 
   const schema = useMemo(
-    () => createSubmitRegistrationFormSchema(event),
-    [event],
+    () =>
+      createSubmitRegistrationFormSchema({
+        mandatoryMenuItemIds: event.mandatoryMenuItemIds,
+      }),
+    [event.mandatoryMenuItemIds],
   );
 
   const form = useForm<SubmitRegistrationInput>({
@@ -94,12 +98,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       partnerWhatsapp: "",
       partnerMemberNumber: "",
       partnerMemberCardPhoto: undefined,
-      selectedMenuItemIds:
-        event.menuSelection === "SINGLE"
-          ? event.menuItems[0]
-            ? [event.menuItems[0].id]
-            : []
-          : [],
+      primaryMandatoryMenuItemId: event.mandatoryMenuItems[0]?.id ?? "",
+      partnerMandatoryMenuItemId: "",
       transferProof: undefined,
       memberCardPhoto: undefined,
     },
@@ -107,10 +107,10 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   });
 
   const watched = useWatch({ control: form.control });
-  const selectedMenuIds = useMemo(
-    () => (watched.selectedMenuItemIds ?? []).filter(Boolean),
-    [watched.selectedMenuItemIds],
-  );
+  const primaryMenuId = String(watched.primaryMandatoryMenuItemId ?? "").trim();
+  const partnerMenuId = String(
+    watched.partnerMandatoryMenuItemId ?? "",
+  ).trim();
   const claimedMemberTrim = String(watched.claimedMemberNumber ?? "").trim();
   const managementCodeTrim = String(watched.managementPublicCode ?? "").trim();
   const primaryIdentityTrim =
@@ -132,8 +132,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   );
 
   const steps = useMemo(
-    () => buildRegistrationSteps(event.menuMode, showPartnerSection),
-    [event.menuMode, showPartnerSection],
+    () => buildRegistrationSteps(showPartnerSection),
+    [showPartnerSection],
   );
 
   const [userStepId, setUserStepId] = useState<RegistrationStepId>("purchaser");
@@ -184,7 +184,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   const pricingPreview = usePricingPreview(
     event,
-    selectedMenuIds,
+    primaryMenuId || undefined,
+    partnerMenuId || undefined,
     watched.claimedMemberNumber,
     watched.qtyPartner,
     watched.partnerIsMember,
@@ -422,8 +423,12 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     );
     fd.set("partnerMemberNumber", values.partnerMemberNumber?.trim() ?? "");
 
-    for (const id of values.selectedMenuItemIds ?? []) {
-      if (id) fd.append("selectedMenuItemIds", id);
+    fd.set("primaryMandatoryMenuItemId", values.primaryMandatoryMenuItemId);
+    if (values.qtyPartner === 1 && values.partnerMandatoryMenuItemId) {
+      fd.set(
+        "partnerMandatoryMenuItemId",
+        values.partnerMandatoryMenuItemId.trim(),
+      );
     }
 
     fd.set("transferProof", values.transferProof);
@@ -460,7 +465,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       "partnerWhatsapp",
       "partnerMemberNumber",
       "partnerMemberCardPhoto",
-      "selectedMenuItemIds",
+      "primaryMandatoryMenuItemId",
+      "partnerMandatoryMenuItemId",
     ]);
 
     if (result.rootError) {
@@ -568,7 +574,22 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
                   />
                 ) : null}
                 {stepId === "menu" ? (
-                  <MenuSelectionSection control={form.control} event={event} />
+                  <div className="space-y-8">
+                    <MandatoryMenuSelection
+                      control={form.control}
+                      event={event}
+                      fieldName="primaryMandatoryMenuItemId"
+                      label="Menu wajib — pemesan utama"
+                    />
+                    {showPartnerSection && watched.qtyPartner === 1 ? (
+                      <MandatoryMenuSelection
+                        control={form.control}
+                        event={event}
+                        fieldName="partnerMandatoryMenuItemId"
+                        label="Menu wajib — tiket partner"
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
                 {stepId === "payment" ? (
                   <PaymentSection

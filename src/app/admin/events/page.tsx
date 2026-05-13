@@ -61,7 +61,7 @@ export default async function AdminEventsIndexPage({
   const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
 
   const events = await prisma.event.findMany({
-    orderBy: [{ startAt: "desc" }],
+    orderBy: [{ kickOffAt: "desc" }],
     skip,
     take: ADMIN_TABLE_PAGE_SIZE,
     select: {
@@ -69,14 +69,13 @@ export default async function AdminEventsIndexPage({
       slug: true,
       title: true,
       status: true,
-      startAt: true,
-      endAt: true,
-        picAdminProfile: {
-          select: {
-            authUserId: true,
-            managementMember: { select: { fullName: true } },
-          },
+      kickOffAt: true,
+      picAdminProfile: {
+        select: {
+          authUserId: true,
+          managementMember: { select: { fullName: true } },
         },
+      },
       _count: {
         select: {
           registrations: true,
@@ -109,7 +108,7 @@ export default async function AdminEventsIndexPage({
       slug: event.slug,
       title: event.title,
       status: event.status,
-      startAtIso: event.startAt.toISOString(),
+      startAtIso: event.kickOffAt.toISOString(),
       picFullName,
       registrationCount: event._count.registrations,
     };
