@@ -44,31 +44,6 @@ export function computeBadgeStatus(args: {
   return "open";
 }
 
-const publicActiveEventSelect = {
-  slug: true,
-  title: true,
-  summary: true,
-  coverBlobUrl: true,
-  kickOffAt: true,
-  openRegistrationAt: true,
-  closeRegistrationAt: true,
-  registrationManualClosed: true,
-  registrationCapacity: true,
-  ticketMemberPrice: true,
-  ticketNonMemberPrice: true,
-  venue: { select: { name: true } },
-  _count: {
-    select: {
-      registrations: {
-        where: {
-          // matches REGISTRATION_STATUS_EXCLUDED_FROM_QUOTA in registration-window.ts
-          status: { notIn: ["rejected", "cancelled", "refunded"] },
-        },
-      },
-    },
-  },
-};
-
 export type PublicActiveEventRow = {
   slug: string;
   title: string;
@@ -87,10 +62,34 @@ export type PublicActiveEventRow = {
 
 export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
   const now = new Date();
+  // Select inlined so Prisma can infer generic types for _count filtered relation
   const rows = await prisma.event.findMany({
     where: { status: "active" },
     orderBy: { kickOffAt: "asc" },
-    select: publicActiveEventSelect,
+    select: {
+      slug: true,
+      title: true,
+      summary: true,
+      coverBlobUrl: true,
+      kickOffAt: true,
+      openRegistrationAt: true,
+      closeRegistrationAt: true,
+      registrationManualClosed: true,
+      registrationCapacity: true,
+      ticketMemberPrice: true,
+      ticketNonMemberPrice: true,
+      venue: { select: { name: true } },
+      _count: {
+        select: {
+          registrations: {
+            where: {
+              // matches REGISTRATION_STATUS_EXCLUDED_FROM_QUOTA in registration-window.ts
+              status: { notIn: ["rejected", "cancelled", "refunded"] },
+            },
+          },
+        },
+      },
+    },
   });
 
   return rows.map((e) => ({
