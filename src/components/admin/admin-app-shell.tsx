@@ -181,7 +181,7 @@ export function AdminAppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col" data-admin-content>
-        <header className="flex items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 py-3 text-sidebar-foreground lg:hidden">
+        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 py-3 text-sidebar-foreground lg:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
               render={
