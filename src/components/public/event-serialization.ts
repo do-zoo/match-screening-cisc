@@ -29,6 +29,6 @@ export type SerializedEventForRegistration = {
   bankAccount: SerializedBankAccount;
   /** Semua item menu acara (dari `EventVenueMenuItem`). */
   menuItems: SerializedEventMenuItem[];
-  /** Subset `menuItems` yang menjadi pilihan menu wajib. */
+  /** Item menu acara (`EventVenueMenuItem`) yang menjadi pilihan menu wajib. */
   mandatoryMenuItems: SerializedEventMenuItem[];
 };

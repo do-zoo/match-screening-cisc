@@ -35,7 +35,7 @@ export default async function AdminVenuesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Venue</h1>
           <p className="text-muted-foreground text-sm">
-            Katalog lokasi beserta menu kanonik. Tiap acara memilih subset menu dari venue.
+            Katalog lokasi beserta menu kanonik.
           </p>
         </div>
         <Link

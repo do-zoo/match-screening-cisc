@@ -85,7 +85,7 @@ export type EventAdminFormProps = {
   banksByPic: Record<string, Array<{ id: string; label: string }>>;
   /** Admin profiles eligible as PIC pembantu (same pool as PIC; PIC excluded in form). */
   helperAdminOptions: EventAdminPicOption[];
-  /** Venue aktif + katalog menu kanonik (subsenua acara). */
+  /** Venue aktif + katalog menu kanonik (semua item dihubungkan ke acara bila belum ada pendaftar). */
   venueOptions: VenueOptionForEventAdmin[];
   /** Pratinjau sampul yang sudah tersimpan (mode edit). */
   persistedCoverUrl?: string | null;
@@ -209,11 +209,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
     useWatch({ control: form.control, name: "linkedVenueMenuItems" }) ??
     FALLBACK_LINKED_VENUE_MENU_ITEMS;
 
-  const linkedVenueMenuIdSet = useMemo(
-    () => new Set(linkedVenueMenus.map((x) => x.venueMenuItemId)),
-    [linkedVenueMenus],
-  );
-
   const mandatoryMenuItemIds =
     useWatch({ control: form.control, name: "mandatoryMenuItemIds" }) ?? [];
 
@@ -231,27 +226,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
       form.setValue("mandatoryMenuItemIds", next, { shouldDirty: true });
     }
   }, [linkedVenueMenus, form]);
-
-  const toggleVenueMenuItemForEvent = React.useCallback(
-    (menuItemId: string, checked: boolean) => {
-      if (!currentVenue || registrationCount > 0) return;
-      const sortedMaster = [...currentVenue.menuItems].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
-      const cur = form.getValues("linkedVenueMenuItems") ?? [];
-      const idSet = new Set(cur.map((c) => c.venueMenuItemId));
-      if (checked) idSet.add(menuItemId);
-      else idSet.delete(menuItemId);
-      const nextRows = sortedMaster
-        .filter((m) => idSet.has(m.id))
-        .map((m, idx) => ({
-          venueMenuItemId: m.id,
-          sortOrder: idx,
-        }));
-      form.setValue("linkedVenueMenuItems", nextRows, { shouldDirty: true });
-    },
-    [currentVenue, form, registrationCount],
-  );
 
   const submitPayload = useCallback(
     (withAck: boolean) => {
@@ -396,64 +370,16 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Subset menu untuk acara ini</h2>
-          {!currentVenue ? (
-            <p className="text-muted-foreground text-sm">
-              Pilih venue untuk menampilkan item menu yang bisa diaktifkan di
-              acara ini.
-            </p>
-          ) : (
-            <div className="border-muted bg-card space-y-2 rounded-lg border p-4">
-              <p className="text-muted-foreground text-xs">
-                Minimal satu item. Urutan diturunkan dari daftar venue (atas ke
-                bawah pada item yang dicentang).
-              </p>
-              <div className="flex flex-col gap-2">
-                {[...currentVenue.menuItems]
-                  .sort((a, b) => a.sortOrder - b.sortOrder)
-                  .map((m) => {
-                    const checked = linkedVenueMenuIdSet.has(m.id);
-                    return (
-                      <label
-                        key={m.id}
-                        className="hover:bg-accent/60 flex cursor-pointer items-start gap-2 rounded px-2 py-1 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1 shrink-0"
-                          checked={checked}
-                          disabled={pending || registrationCount > 0}
-                          onChange={(e) =>
-                            toggleVenueMenuItemForEvent(m.id, e.target.checked)
-                          }
-                        />
-                        <span>
-                          <span className="font-medium">{m.name}</span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {m.price.toLocaleString("id-ID")} IDR
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
-              </div>
-              {registrationCount > 0 ? (
-                <Muted>Subset menu dikunci untuk acara dengan pendaftar.</Muted>
-              ) : null}
-            </div>
-          )}
-        </section>
-
-        <section className="space-y-4">
           <h2 className="text-lg font-medium">Menu wajib (per tiket)</h2>
           <p className="text-muted-foreground text-xs">
             Pengunjung memilih satu item berikut untuk setiap tiket (utama dan
-            partner). Hanya item yang sudah diaktifkan pada subset menu acara.
+            partner). Daftar mengikuti menu kanonik venue (semua item di acara
+            bila belum ada pendaftar; setelah ada pendaftar, snapshot menu
+            acara dikunci).
           </p>
           {linkedVenueMenus.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              Centang subset menu acara terlebih dahulu.
+              Pilih venue yang memiliki setidaknya satu item menu kanonik.
             </p>
           ) : (
             <div className="border-muted bg-card space-y-2 rounded-lg border p-4">

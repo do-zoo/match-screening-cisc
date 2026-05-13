@@ -127,15 +127,33 @@ export default async function AdminEditEventPage({
       (b.sortOrder ?? b.venueMenuItem.sortOrder),
   );
 
+  const persistedLinkedDraft = sortedEventLinks.map((x, idx) => ({
+    venueMenuItemId: x.venueMenuItemId,
+    sortOrder: x.sortOrder ?? idx,
+  }));
+
+  const venueForEvent = venueOptions.find((v) => v.id === event.venueId);
+  const fullCatalogLinked =
+    venueForEvent != null
+      ? [...venueForEvent.menuItems]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((m, idx) => ({
+            venueMenuItemId: m.id,
+            sortOrder: idx,
+          }))
+      : [];
+
+  const linkedVenueMenuItems =
+    event._count.registrations === 0 && fullCatalogLinked.length > 0
+      ? fullCatalogLinked
+      : persistedLinkedDraft;
+
   const defaults: AdminEventUpsertInput = {
     title: event.title,
     summary: event.summary,
     descriptionHtml: event.description,
     venueId: event.venueId,
-    linkedVenueMenuItems: sortedEventLinks.map((x, idx) => ({
-      venueMenuItemId: x.venueMenuItemId,
-      sortOrder: x.sortOrder ?? idx,
-    })),
+    linkedVenueMenuItems,
     openRegistrationAtIso: event.openRegistrationAt.toISOString(),
     closeRegistrationAtIso: event.closeRegistrationAt.toISOString(),
     openGateAtIso: event.openGateAt.toISOString(),
