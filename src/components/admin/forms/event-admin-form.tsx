@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -14,6 +15,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 
+import { abandonDraftEventDescriptionImages } from "@/lib/actions/abandon-draft-event-description-images";
 import { createAdminEvent, updateAdminEvent } from "@/lib/actions/admin-events";
 import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
@@ -97,6 +99,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
   const [rootMessage, setRootMessage] = useState<string | null>(null);
   const [pendingAcknowledge, setPendingAcknowledge] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  /** Set true tepat sebelum navigasi sukses Buat acara agar pembersihan draf blob tidak jalan. */
+  const createSavedRef = useRef(false);
+  const abandonDraftEffectGen = useRef(0);
 
   const registrationCount = props.registrationCount ?? 0;
   const persistedIntegrity =
@@ -225,6 +230,25 @@ export function EventAdminForm(props: EventAdminFormProps) {
     }
   }, [linkedVenueMenus, form]);
 
+  useEffect(() => {
+    if (props.mode !== "create" || !props.descriptionAssetContext) return;
+    const { eventId, assetToken } = props.descriptionAssetContext;
+    abandonDraftEffectGen.current += 1;
+    const genAtRun = abandonDraftEffectGen.current;
+    return () => {
+      queueMicrotask(() => {
+        if (abandonDraftEffectGen.current !== genAtRun) return;
+        if (createSavedRef.current) return;
+        void abandonDraftEventDescriptionImages(eventId, assetToken).catch(
+          () => {},
+        );
+      });
+    };
+  }, [
+    props.mode,
+    props.descriptionAssetContext,
+  ]);
+
   const submitPayload = useCallback(
     (withAck: boolean) => {
       setRootMessage(null);
@@ -276,6 +300,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         }
 
         if (props.mode === "create") {
+          createSavedRef.current = true;
           toastCudSuccess("create", "Acara berhasil dibuat.");
           router.push(`/admin/events/${result.data.eventId}/edit`);
         } else {
@@ -291,6 +316,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
     <>
       <form
         className="space-y-10"
+        // eslint-disable-next-line react-hooks/refs -- callback dipanggil saat submit form, bukan saat render
         onSubmit={form.handleSubmit(() => submitPayload(false))}
       >
         {rootMessage ? (
