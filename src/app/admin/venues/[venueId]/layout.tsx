@@ -1,5 +1,4 @@
 import { AdminVenueBreadcrumbs } from "@/components/admin/admin-venue-breadcrumbs";
-import { AdminVenueSubnav } from "@/components/admin/admin-venue-subnav";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -32,7 +31,6 @@ export default async function AdminVenueBranchLayout({
         <div className="border-border/60 bg-muted/20 w-full shrink-0 border-b">
           <div className="mx-auto w-full max-w-6xl px-6 pb-3 pt-6 lg:pt-10">
             <AdminVenueBreadcrumbs venueId={venueId} name={breadcrumbName} />
-            <AdminVenueSubnav venueId={venueId} />
           </div>
         </div>
       ) : null}
