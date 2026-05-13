@@ -15,15 +15,18 @@ export type ParticipantStats = {
 };
 
 export type FinanceStats = {
-  baselineTotal: number; // sum of computedTotalAtSubmit for approved registrations
+  baselineTotal: number;
+  ticketRevenueApproved: number;
+  /** Agregat harga menu wajib (approved): dana yang disetor ke venue, bukan pendapatan retensi komite. */
+  menuVenuePayoutApproved: number;
   adjustmentsPaidTotal: number;
   adjustmentsUnpaidTotal: number;
   refundCount: number;
 };
 
-export type MenuStats =
-  | { mode: "PRESELECT"; byItem: { name: string; count: number }[] }
-  | { mode: "VOUCHER"; redeemed: number; notRedeemed: number };
+export type MenuStats = {
+  byItem: { name: string; count: number }[];
+};
 
 export type AttendanceStats = {
   attended: number;
@@ -45,12 +48,12 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     memberCount,
     partnerCount,
     financeAgg,
+    ticketRevAgg,
+    menuRevAgg,
     adjustmentGroups,
     refundCount,
     attendanceGroups,
-    event,
-    menuSelections,
-    ticketVoucherCounts,
+    regMenuGroups,
   ] = await Promise.all([
     prisma.registration.groupBy({
       by: ["status"],
@@ -60,14 +63,20 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     prisma.registration.count({
       where: { eventId, claimedMemberNumber: { not: null } },
     }),
-    prisma.ticket.count({
-      where: { eventId, role: TicketRole.partner },
+    prisma.registration.count({
+      where: { eventId, ticketRole: TicketRole.partner },
     }),
-    // "attended" is not a RegistrationStatus — attendance is tracked separately
-    // via attendanceStatus. Finance baseline covers all approved registrations.
     prisma.registration.aggregate({
       where: { eventId, status: RegistrationStatus.approved },
       _sum: { computedTotalAtSubmit: true },
+    }),
+    prisma.registration.aggregate({
+      where: { eventId, status: RegistrationStatus.approved },
+      _sum: { ticketPriceApplied: true },
+    }),
+    prisma.registration.aggregate({
+      where: { eventId, status: RegistrationStatus.approved },
+      _sum: { mandatoryMenuPriceApplied: true },
     }),
     prisma.invoiceAdjustment.groupBy({
       by: ["status"],
@@ -82,17 +91,10 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
       where: { eventId },
       _count: { id: true },
     }),
-    prisma.event.findUnique({
-      where: { id: eventId },
-      select: { menuMode: true },
-    }),
-    prisma.ticketMenuSelection.groupBy({
-      by: ["menuItemId"],
-      where: { ticket: { eventId } },
-      _count: { ticketId: true },
-    }),
-    prisma.ticket.count({
-      where: { eventId, voucherRedeemedMenuItemId: { not: null } },
+    prisma.registration.groupBy({
+      by: ["mandatoryMenuItemId"],
+      where: { eventId },
+      _count: { id: true },
     }),
   ]);
 
@@ -116,33 +118,21 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     attendanceMap[g.attendanceStatus] = g._count.id;
   }
 
-  // Build menu stats
-  let menu: MenuStats;
-  if (event?.menuMode === "VOUCHER") {
-    const totalTickets = await prisma.ticket.count({ where: { eventId } });
-    menu = {
-      mode: "VOUCHER",
-      redeemed: ticketVoucherCounts,
-      notRedeemed: totalTickets - ticketVoucherCounts,
-    };
-  } else {
-    // Fetch menu item names for PRESELECT
-    const itemIds = menuSelections.map((s) => s.menuItemId);
-    const items = itemIds.length
-      ? await prisma.venueMenuItem.findMany({
-          where: { id: { in: itemIds } },
-          select: { id: true, name: true },
-        })
-      : [];
-    const nameById = Object.fromEntries(items.map((i) => [i.id, i.name]));
-    menu = {
-      mode: "PRESELECT",
-      byItem: menuSelections.map((s) => ({
-        name: nameById[s.menuItemId] ?? s.menuItemId,
-        count: s._count.ticketId,
-      })),
-    };
-  }
+  const menuItemIds = regMenuGroups.map((s) => s.mandatoryMenuItemId);
+  const menuItems = menuItemIds.length
+    ? await prisma.venueMenuItem.findMany({
+        where: { id: { in: menuItemIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const menuNameById = Object.fromEntries(menuItems.map((i) => [i.id, i.name]));
+
+  const menu: MenuStats = {
+    byItem: regMenuGroups.map((s) => ({
+      name: menuNameById[s.mandatoryMenuItemId] ?? s.mandatoryMenuItemId,
+      count: s._count.id,
+    })),
+  };
 
   return {
     eventId,
@@ -155,6 +145,8 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     },
     finance: {
       baselineTotal: financeAgg._sum.computedTotalAtSubmit ?? 0,
+      ticketRevenueApproved: ticketRevAgg._sum.ticketPriceApplied ?? 0,
+      menuVenuePayoutApproved: menuRevAgg._sum.mandatoryMenuPriceApplied ?? 0,
       adjustmentsPaidTotal: adjustmentPaidRow?._sum.amount ?? 0,
       adjustmentsUnpaidTotal: adjustmentUnpaidRow?._sum.amount ?? 0,
       refundCount,

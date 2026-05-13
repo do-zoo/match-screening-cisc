@@ -20,11 +20,14 @@ export default async function AdminNewVenuePage() {
   if (!ctx || !hasOperationalOwnerParity(ctx.role)) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
       <div className="flex flex-col gap-2">
         <Link
           href="/admin/venues"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "w-fit px-0",
+          )}
         >
           ← Daftar venue
         </Link>
@@ -45,10 +48,21 @@ export default async function AdminNewVenuePage() {
           <Label htmlFor="address">Alamat</Label>
           <Textarea id="address" name="address" rows={3} required />
         </div>
-        <button
-          type="submit"
-          className={cn(buttonVariants(), "w-fit")}
-        >
+        <div className="grid gap-2">
+          <Label htmlFor="mapUrl">Tautan peta (opsional)</Label>
+          <Input
+            id="mapUrl"
+            name="mapUrl"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://maps.app.goo.gl/…"
+          />
+          <p className="text-muted-foreground text-xs">
+            URL https ke Google Maps atau layanan peta lain.
+          </p>
+        </div>
+        <button type="submit" className={cn(buttonVariants(), "w-fit")}>
           Simpan
         </button>
       </form>

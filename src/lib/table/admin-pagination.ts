@@ -1,5 +1,3 @@
-/** Rows per admin data table page (events index, inbox, members). */
-
 export const ADMIN_TABLE_PAGE_SIZE = 10;
 
 function firstString(param: string | string[] | undefined): string | undefined {

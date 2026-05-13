@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { RegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { guardEvent, isAuthError } from "@/lib/actions/guard";
+import { eventRegistrationDetailPath, eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
 
 const CANCEL_BLOCKED_FROM: RegistrationStatus[] = [
@@ -45,8 +46,8 @@ export async function cancelRegistration(
     data: { status: RegistrationStatus.cancelled },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
+  revalidatePath(eventRegistrantsListPath(eventId));
+  revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
   return ok({ ok: true });
 }
 
@@ -78,7 +79,7 @@ export async function refundRegistration(
     data: { status: RegistrationStatus.refunded },
   });
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
+  revalidatePath(eventRegistrantsListPath(eventId));
+  revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
   return ok({ ok: true });
 }

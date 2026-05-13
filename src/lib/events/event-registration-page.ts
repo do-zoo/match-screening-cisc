@@ -48,6 +48,8 @@ export const getSerializedEventForPublicRegistration = cache(
           registrationManualClosed: event.registrationManualClosed,
           registrationCapacity: event.registrationCapacity,
           registrationsTowardQuota,
+          openRegistrationAt: event.openRegistrationAt,
+          closeRegistrationAt: event.closeRegistrationAt,
         });
 
     const ops = await loadClubOperationalSettings();
@@ -67,13 +69,15 @@ export const getSerializedEventForPublicRegistration = cache(
       descriptionHtml: sanitizePublicEventDescriptionHtml(event.description),
       coverBlobUrl: event.coverBlobUrl,
       venueName: event.venue.name,
-      startAtIso: event.startAt.toISOString(),
-      endAtIso: event.endAt.toISOString(),
+      venueAddress: event.venue.address,
+      venueMapUrl: event.venue.mapUrl ?? null,
+      openRegistrationAtIso: event.openRegistrationAt.toISOString(),
+      closeRegistrationAtIso: event.closeRegistrationAt.toISOString(),
+      openGateAtIso: event.openGateAt.toISOString(),
+      kickOffAtIso: event.kickOffAt.toISOString(),
       registrationOpen,
       registrationClosedMessage,
-      menuMode: event.menuMode,
-      menuSelection: event.menuSelection,
-      voucherPrice: event.voucherPrice,
+      mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
       ticketMemberPrice: event.ticketMemberPrice,
       ticketNonMemberPrice: event.ticketNonMemberPrice,
       bankAccount: {
@@ -82,6 +86,9 @@ export const getSerializedEventForPublicRegistration = cache(
         accountName: event.bankAccount.accountName,
       },
       menuItems: flattenedMenuRowsFromEventVenueLinks(event.eventVenueMenuItems),
+      mandatoryMenuItems: flattenedMenuRowsFromEventVenueLinks(
+        event.eventVenueMenuItems,
+      ).filter((row) => event.mandatoryMenuItemIds.includes(row.id)),
     };
   },
 );

@@ -1,7 +1,7 @@
 "use server";
 
 import { del } from "@vercel/blob";
-import { MenuMode, Prisma, RegistrationStatus } from "@prisma/client";
+import { RegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   fieldError,
@@ -66,26 +66,6 @@ function optionalFile(entry: FormDataEntryValue | null): File | undefined {
   return entry instanceof File ? entry : undefined;
 }
 
-function isTicketMemberUniqueConstraintError(err: unknown): boolean {
-  if (
-    !(err instanceof Prisma.PrismaClientKnownRequestError) ||
-    err.code !== "P2002"
-  ) {
-    return false;
-  }
-
-  const target = err.meta?.target;
-  if (Array.isArray(target)) {
-    return target.includes("eventId") && target.includes("memberNumber");
-  }
-
-  return (
-    typeof target === "string" &&
-    target.includes("eventId") &&
-    target.includes("memberNumber")
-  );
-}
-
 export async function submitRegistration(
   _prev: unknown,
   formData: FormData
@@ -115,7 +95,6 @@ export async function submitRegistration(
     id: string;
     name: string;
     price: number;
-    voucherEligible: boolean;
   };
   const menuRowList: PublicMenuRow[] = flattenedMenuRowsFromEventVenueLinks(
     event.eventVenueMenuItems,
@@ -139,6 +118,8 @@ export async function submitRegistration(
           registrationManualClosed: event.registrationManualClosed,
           registrationCapacity: event.registrationCapacity,
           registrationsTowardQuota: registrationsTowardQuotaPreview,
+          openRegistrationAt: event.openRegistrationAt,
+          closeRegistrationAt: event.closeRegistrationAt,
         }),
     registrationGloballyDisabled: opsGate.registrationGloballyDisabled,
     globalRegistrationClosedMessage: opsGate.globalRegistrationClosedMessage,
@@ -153,10 +134,6 @@ export async function submitRegistration(
   const raw = Object.fromEntries(formData.entries());
   const qtyPartnerNorm: 0 | 1 =
     String(raw.qtyPartner ?? "0").trim() === "1" ? 1 : 0;
-  const selectedMenuItemIds = formData
-    .getAll("selectedMenuItemIds")
-    .map(String)
-    .filter(Boolean);
 
   const purchaserIsMember =
     String(raw.purchaserIsMember ?? "")
@@ -181,7 +158,12 @@ export async function submitRegistration(
     partnerName: coerceForSchema(raw.partnerName),
     partnerWhatsapp: coerceForSchema(raw.partnerWhatsapp),
     partnerMemberNumber: coerceForSchema(raw.partnerMemberNumber),
-    selectedMenuItemIds,
+    primaryMandatoryMenuItemId: coerceForSchema(
+      raw.primaryMandatoryMenuItemId,
+    ),
+    partnerMandatoryMenuItemId: coerceForSchema(
+      raw.partnerMandatoryMenuItemId,
+    ),
     transferProof: optionalFile(formData.get("transferProof")),
     memberCardPhoto: optionalFile(formData.get("memberCardPhoto")),
     partnerMemberCardPhoto: optionalFile(
@@ -190,9 +172,7 @@ export async function submitRegistration(
   };
 
   const schema = createSubmitRegistrationFormSchema({
-    menuMode: event.menuMode,
-    menuSelection: event.menuSelection,
-    menuItems: menuRowList.map((m) => ({ id: m.id })),
+    mandatoryMenuItemIds: event.mandatoryMenuItemIds,
   });
   const parsed = schema.safeParse(payload);
 
@@ -251,7 +231,7 @@ export async function submitRegistration(
     claimedManagementPublicCodeStored = norm;
   }
 
-  /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs unique tiket. */
+  /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs klaim nomor. */
   const primaryMemberNumber = primaryDirectoryRow
     ? primaryDirectoryRow.memberNumber
     : primaryMemberNumberInput;
@@ -293,36 +273,23 @@ export async function submitRegistration(
     Boolean(primaryMemberNumber) || Boolean(primaryManagementMemberId);
   const partnerTicketPriceType = data.partnerIsMember ? "member" : "non_member";
 
-  // Konstruksi menu berdasarkan skema yang sudah valid (aman dari manipulasi)
-  const menuParts: Parameters<typeof computeSubmitTotal>[0]["perTicketMenu"] =
-    [];
+  const primaryMenuRow = menuRowList.find(
+    (m) => m.id === data.primaryMandatoryMenuItemId,
+  );
+  if (!primaryMenuRow) {
+    return rootError(
+      "Konfigurasi menu acara tidak konsisten atau berubah. Muat ulang halaman ini.",
+    );
+  }
 
-  if (event.menuMode === MenuMode.VOUCHER) {
-    if (event.voucherPrice == null) {
+  let partnerMenuRow: PublicMenuRow | undefined;
+  if (includePartner) {
+    const pid = data.partnerMandatoryMenuItemId?.trim();
+    partnerMenuRow = menuRowList.find((m) => m.id === pid);
+    if (!partnerMenuRow) {
       return rootError(
-        "Konfigurasi voucher acara belum lengkap. Hubungi panitia."
+        "Konfigurasi menu partner tidak konsisten atau berubah. Muat ulang halaman ini.",
       );
-    }
-    menuParts.push({ mode: "VOUCHER" });
-    if (includePartner) menuParts.push({ mode: "VOUCHER" });
-  } else {
-    const ids = data.selectedMenuItemIds ?? [];
-    const items = menuRowList.filter((m) => ids.includes(m.id));
-    if (items.length !== ids.length) {
-      return rootError(
-        "Konfigurasi menu acara tidak konsisten atau berubah. Muat ulang halaman ini."
-      );
-    }
-
-    menuParts.push({
-      mode: "PRESELECT",
-      selectedMenuItems: items.map((i) => ({ name: i.name, price: i.price })),
-    });
-    if (includePartner) {
-      menuParts.push({
-        mode: "PRESELECT",
-        selectedMenuItems: items.map((i) => ({ name: i.name, price: i.price })),
-      });
     }
   }
 
@@ -332,15 +299,21 @@ export async function submitRegistration(
       event: {
         ticketMemberPrice: event.ticketMemberPrice,
         ticketNonMemberPrice: event.ticketNonMemberPrice,
-        menuMode: event.menuMode,
-        voucherPrice: event.voucherPrice,
       },
       primaryPriceType: primaryIsMemberPrice ? "member" : "non_member",
+      primaryMandatoryMenu: {
+        name: primaryMenuRow.name,
+        price: primaryMenuRow.price,
+      },
       ...(includePartner
-        ? { partnerPriceType: partnerTicketPriceType }
+        ? {
+            partnerPriceType: partnerTicketPriceType,
+            partnerMandatoryMenu: {
+              name: partnerMenuRow!.name,
+              price: partnerMenuRow!.price,
+            },
+          }
         : {}),
-      includePartner,
-      perTicketMenu: menuParts,
     });
   } catch (e) {
     console.error(e);
@@ -358,7 +331,7 @@ export async function submitRegistration(
     const reg = await prisma.$transaction(async (tx) => {
       await assertRegistrationAcceptableOrThrowForTx(tx, event);
 
-      const registration = await tx.registration.create({
+      const primary = await tx.registration.create({
         data: {
           eventId: event.id,
           contactName: data.contactName,
@@ -366,63 +339,45 @@ export async function submitRegistration(
           claimedMemberNumber: primaryMemberNumber ?? null,
           primaryManagementMemberId,
           claimedManagementPublicCode: claimedManagementPublicCodeStored,
-          ticketMemberPriceApplied: pricing.ticketMemberPriceApplied,
-          ticketNonMemberPriceApplied: pricing.ticketNonMemberPriceApplied,
-          voucherPriceApplied: pricing.voucherPriceApplied,
-          computedTotalAtSubmit: pricing.computedTotalAtSubmit,
+          ticketRole: "primary",
+          ticketPriceType: primaryIsMemberPrice ? "member" : "non_member",
+          mandatoryMenuItemId: data.primaryMandatoryMenuItemId,
+          ticketPriceApplied: pricing.primaryTicketPrice,
+          mandatoryMenuPriceApplied: pricing.primaryMenuPrice,
+          computedTotalAtSubmit: pricing.primaryTotal,
           status: RegistrationStatus.submitted,
         },
       });
 
-      registrationId = registration.id;
+      registrationId = primary.id;
 
-      await tx.ticket.create({
-        data: {
-          registrationId: registration.id,
-          eventId: event.id,
-          role: "primary",
-          fullName: data.contactName,
-          whatsapp: data.contactWhatsapp,
-          memberNumber: primaryMemberNumber ?? null,
-          ticketPriceType: primaryIsMemberPrice ? "member" : "non_member",
-        },
-      });
-
-      if (includePartner && data.partnerName) {
-        await tx.ticket.create({
+      let partner: { id: string } | null = null;
+      if (includePartner && data.partnerName?.trim() && partnerMenuRow) {
+        partner = await tx.registration.create({
           data: {
-            registrationId: registration.id,
             eventId: event.id,
-            role: "partner",
-            fullName: data.partnerName.trim(),
-            whatsapp: data.partnerWhatsapp?.trim() || null,
-            memberNumber: canonicalPartnerMemberNumber ?? null,
+            primaryRegistrationId: primary.id,
+            contactName: data.partnerName.trim(),
+            contactWhatsapp: data.partnerWhatsapp?.trim() || "",
+            claimedMemberNumber: canonicalPartnerMemberNumber ?? null,
+            ticketRole: "partner",
             ticketPriceType: partnerTicketPriceType,
+            mandatoryMenuItemId: data.partnerMandatoryMenuItemId!.trim(),
+            ticketPriceApplied: pricing.partnerTicketPrice ?? 0,
+            mandatoryMenuPriceApplied: pricing.partnerMenuPrice ?? 0,
+            computedTotalAtSubmit: pricing.partnerTotal ?? 0,
+            status: RegistrationStatus.submitted,
           },
         });
       }
 
-      if (event.menuMode === MenuMode.PRESELECT) {
-        const tickets = await tx.ticket.findMany({
-          where: { registrationId: registration.id },
-        });
-        const idsMenu = data.selectedMenuItemIds ?? [];
-        for (const t of tickets) {
-          for (const mid of idsMenu) {
-            await tx.ticketMenuSelection.create({
-              data: { ticketId: t.id, menuItemId: mid },
-            });
-          }
-        }
-      }
-
-      return registration;
+      return { primary, partner };
     });
 
     activeUploadField = "transferProof";
     await uploadImageForRegistration({
       purpose: "transfer_proof",
-      registrationId: reg.id,
+      registrationId: reg.primary.id,
       file: transferProof,
     });
     activeUploadField = null;
@@ -431,7 +386,7 @@ export async function submitRegistration(
       activeUploadField = "memberCardPhoto";
       await uploadImageForRegistration({
         purpose: "member_card_photo",
-        registrationId: reg.id,
+        registrationId: reg.primary.id,
         file: memberCard,
       });
       activeUploadField = null;
@@ -441,26 +396,22 @@ export async function submitRegistration(
       activeUploadField = "partnerMemberCardPhoto";
       await uploadImageForRegistration({
         purpose: "partner_member_card_photo",
-        registrationId: reg.id,
+        registrationId: reg.primary.id,
         file: partnerMemberCard,
       });
       activeUploadField = null;
     }
 
-    await prisma.registration.update({
-      where: { id: reg.id },
+    const idsToConfirm = [reg.primary.id, ...(reg.partner ? [reg.partner.id] : [])];
+    await prisma.registration.updateMany({
+      where: { id: { in: idsToConfirm } },
       data: { status: RegistrationStatus.pending_review },
     });
 
-    return ok({ registrationId: reg.id });
+    return ok({ registrationId: reg.primary.id });
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {
       return rootError(e.message);
-    }
-    if (isTicketMemberUniqueConstraintError(e)) {
-      const memberNumbers =
-        candidates.length > 0 ? candidates : ["nomor member"];
-      return rootError(duplicateMemberMessage(memberNumbers));
     }
 
     let cleanupFailed = false;

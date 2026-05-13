@@ -44,8 +44,8 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-12">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 md:px-6 py-12">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <nav>
           <Link
             href="/events"
@@ -62,7 +62,7 @@ export default async function EventDetailPage({
               href={`/events/${event.slug}/register`}
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
-                "w-full sm:w-auto"
+                "w-full sm:w-auto",
               )}
             >
               Daftar untuk acara ini

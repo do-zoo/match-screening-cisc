@@ -59,8 +59,8 @@ export async function loadCommitteeAdminDetail(
     }),
     prisma.event.findMany({
       where: { picAdminProfileId: adminProfileId },
-      orderBy: { startAt: "desc" },
-      select: { id: true, title: true, startAt: true, status: true },
+      orderBy: { kickOffAt: "desc" },
+      select: { id: true, title: true, kickOffAt: true, status: true },
     }),
   ]);
 
@@ -94,7 +94,7 @@ export async function loadCommitteeAdminDetail(
     eventsAsPic: eventsRaw.map((e) => ({
       eventId: e.id,
       name: e.title,
-      startAtIso: e.startAt.toISOString(),
+      startAtIso: e.kickOffAt.toISOString(),
       status: e.status,
     })),
     memberOptions: memberOptionsRaw.map((m) => ({

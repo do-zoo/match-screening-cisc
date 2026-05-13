@@ -6,19 +6,16 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Controller,
-  useForm,
-  useWatch,
-  type Resolver,
-} from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 
+import { abandonDraftEventDescriptionImages } from "@/lib/actions/abandon-draft-event-description-images";
 import { createAdminEvent, updateAdminEvent } from "@/lib/actions/admin-events";
 import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import {
@@ -40,8 +37,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { IdrAmountInput } from "@/components/ui/idr-amount-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { formatIdr } from "@/lib/utils/format-idr";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
@@ -53,9 +52,11 @@ import {
 } from "@/components/ui/select";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { EntityCombobox } from "@/components/ui/entity-combobox";
+import { FileField } from "@/components/ui/file-field";
+import { FieldGroup } from "@/components/ui/field";
 
 const SENSITIVE_ACK_MESSAGE =
-  "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.";
+  "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.";
 
 export type EventAdminPicOption = { id: string; label: string };
 
@@ -67,7 +68,6 @@ export type VenueOptionForEventAdmin = {
     name: string;
     price: number;
     sortOrder: number;
-    voucherEligible: boolean;
   }>;
 };
 
@@ -77,10 +77,6 @@ const FALLBACK_LINKED_VENUE_MENU_ITEMS: LinkedVenueMenuItemDraft[] = [];
 export type EventAdminFormProps = {
   mode: "create" | "edit";
   eventId?: string;
-  committeeDefaults?: {
-    ticketMemberPrice: number;
-    ticketNonMemberPrice: number;
-  };
   defaults: AdminEventUpsertInput;
   registrationCount?: number;
   persistedIntegrity?: EventIntegritySnapshot | null;
@@ -89,8 +85,12 @@ export type EventAdminFormProps = {
   banksByPic: Record<string, Array<{ id: string; label: string }>>;
   /** Admin profiles eligible as PIC pembantu (same pool as PIC; PIC excluded in form). */
   helperAdminOptions: EventAdminPicOption[];
-  /** Venue aktif + katalog menu kanonik (subsenua acara). */
+  /** Venue aktif + katalog menu kanonik (semua item dihubungkan ke acara bila belum ada pendaftar). */
   venueOptions: VenueOptionForEventAdmin[];
+  /** Pratinjau sampul yang sudah tersimpan (mode edit). */
+  persistedCoverUrl?: string | null;
+  /** ID acara + token untuk unggah gambar di deskripsi (Buat / Edit). */
+  descriptionAssetContext?: { eventId: string; assetToken: string } | null;
 };
 
 export function EventAdminForm(props: EventAdminFormProps) {
@@ -99,6 +99,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
   const [rootMessage, setRootMessage] = useState<string | null>(null);
   const [pendingAcknowledge, setPendingAcknowledge] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  /** Set true tepat sebelum navigasi sukses Buat acara agar pembersihan draf blob tidak jalan. */
+  const createSavedRef = useRef(false);
+  const abandonDraftEffectGen = useRef(0);
 
   const registrationCount = props.registrationCount ?? 0;
   const persistedIntegrity =
@@ -106,12 +109,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
     ({
       slug: "",
       venueId: props.defaults.venueId,
-      menuMode: props.defaults.menuMode,
-      menuSelection: props.defaults.menuSelection,
+      mandatoryMenuItemIds: props.defaults.mandatoryMenuItemIds,
       ticketMemberPrice: props.defaults.ticketMemberPrice,
       ticketNonMemberPrice: props.defaults.ticketNonMemberPrice,
-      voucherPrice: props.defaults.voucherPriceIdr,
-      pricingSource: props.defaults.pricingSource,
       picAdminProfileId: props.defaults.picAdminProfileId,
       bankAccountId: props.defaults.bankAccountId,
     } satisfies EventIntegritySnapshot);
@@ -131,21 +131,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
     return venueOptions.find((v) => v.id === venueId) ?? null;
   }, [venueOptions, venueId]);
 
-  const menuMode = useWatch({ control: form.control, name: "menuMode" });
-  const menuSelection = useWatch({
-    control: form.control,
-    name: "menuSelection",
-  });
-  const pricingSource = useWatch({
-    control: form.control,
-    name: "pricingSource",
-  });
   const picId = useWatch({ control: form.control, name: "picAdminProfileId" });
   const bankAccountId = useWatch({
     control: form.control,
     name: "bankAccountId",
   });
-  const committee = props.committeeDefaults;
   const helpersSelected =
     useWatch({
       control: form.control,
@@ -186,23 +176,17 @@ export function EventAdminForm(props: EventAdminFormProps) {
     [bankChoices],
   );
 
-  const lockedMenuKeys = useMemo(() => {
+  const lockedIntegrityKeys = useMemo(() => {
     return findLockedViolations({
       registrationCount,
       persisted: persistedIntegrity,
       candidate: {
         venueId,
-        menuMode,
-        menuSelection,
       },
     });
-  }, [
-    registrationCount,
-    persistedIntegrity,
-    venueId,
-    menuMode,
-    menuSelection,
-  ]);
+  }, [registrationCount, persistedIntegrity, venueId]);
+
+  const mandatoryMenuLocked = registrationCount > 0;
 
   const setLinkedVenueMenusFromVenueSelection = React.useCallback(
     (vid: string) => {
@@ -211,9 +195,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         form.setValue("linkedVenueMenuItems", [], { shouldDirty: true });
         return;
       }
-      const sorted = [...v.menuItems].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
+      const sorted = [...v.menuItems].sort((a, b) => a.sortOrder - b.sortOrder);
       form.setValue(
         "linkedVenueMenuItems",
         sorted.map((m, idx) => ({
@@ -230,58 +212,42 @@ export function EventAdminForm(props: EventAdminFormProps) {
     useWatch({ control: form.control, name: "linkedVenueMenuItems" }) ??
     FALLBACK_LINKED_VENUE_MENU_ITEMS;
 
-  const linkedVenueMenuIdSet = useMemo(
-    () => new Set(linkedVenueMenus.map((x) => x.venueMenuItemId)),
-    [linkedVenueMenus],
-  );
-
-  const toggleVenueMenuItemForEvent = React.useCallback(
-    (menuItemId: string, checked: boolean) => {
-      if (!currentVenue || registrationCount > 0) return;
-      const sortedMaster = [...currentVenue.menuItems].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
-      const cur = form.getValues("linkedVenueMenuItems") ?? [];
-      const idSet = new Set(cur.map((c) => c.venueMenuItemId));
-      if (checked) idSet.add(menuItemId);
-      else idSet.delete(menuItemId);
-      const nextRows = sortedMaster
-        .filter((m) => idSet.has(m.id))
-        .map((m, idx) => ({
-          venueMenuItemId: m.id,
-          sortOrder: idx,
-        }));
-      form.setValue("linkedVenueMenuItems", nextRows, { shouldDirty: true });
-    },
-    [currentVenue, form, registrationCount],
-  );
-
-  const pickCommitteePrices = useCallback(() => {
-    if (!committee) return;
-    form.setValue("ticketMemberPrice", committee.ticketMemberPrice, {
-      shouldDirty: true,
-    });
-    form.setValue("ticketNonMemberPrice", committee.ticketNonMemberPrice, {
-      shouldDirty: true,
-    });
-  }, [committee, form]);
+  const mandatoryMenuItemIds =
+    useWatch({ control: form.control, name: "mandatoryMenuItemIds" }) ?? [];
 
   useEffect(() => {
-    if (
-      props.mode === "create" &&
-      committee &&
-      form.getValues("pricingSource") === "global_default"
-    ) {
-      pickCommitteePrices();
+    const linkedIds = linkedVenueMenus.map((x) => x.venueMenuItemId);
+    const cur = form.getValues("mandatoryMenuItemIds") ?? [];
+    const filtered = cur.filter((id) => linkedIds.includes(id));
+    const next =
+      filtered.length > 0
+        ? filtered
+        : linkedIds.length > 0
+          ? [linkedIds[0]!]
+          : [];
+    if (JSON.stringify(cur) !== JSON.stringify(next)) {
+      form.setValue("mandatoryMenuItemIds", next, { shouldDirty: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed committee prices once on mount for new events
-  }, []);
+  }, [linkedVenueMenus, form]);
 
   useEffect(() => {
-    if (menuMode === "PRESELECT") {
-      form.setValue("voucherPriceIdr", null, { shouldDirty: true });
-    }
-  }, [form, menuMode]);
+    if (props.mode !== "create" || !props.descriptionAssetContext) return;
+    const { eventId, assetToken } = props.descriptionAssetContext;
+    abandonDraftEffectGen.current += 1;
+    const genAtRun = abandonDraftEffectGen.current;
+    return () => {
+      queueMicrotask(() => {
+        if (abandonDraftEffectGen.current !== genAtRun) return;
+        if (createSavedRef.current) return;
+        void abandonDraftEventDescriptionImages(eventId, assetToken).catch(
+          () => {},
+        );
+      });
+    };
+  }, [
+    props.mode,
+    props.descriptionAssetContext,
+  ]);
 
   const submitPayload = useCallback(
     (withAck: boolean) => {
@@ -295,6 +261,19 @@ export function EventAdminForm(props: EventAdminFormProps) {
         fd.set("payload", JSON.stringify(payload));
         if (coverFile && coverFile.size > 0) {
           fd.set("cover", coverFile);
+        }
+        if (
+          props.mode === "create" &&
+          props.descriptionAssetContext
+        ) {
+          fd.set(
+            "descriptionClientEventId",
+            props.descriptionAssetContext.eventId,
+          );
+          fd.set(
+            "descriptionAssetToken",
+            props.descriptionAssetContext.assetToken,
+          );
         }
 
         const result =
@@ -321,6 +300,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         }
 
         if (props.mode === "create") {
+          createSavedRef.current = true;
           toastCudSuccess("create", "Acara berhasil dibuat.");
           router.push(`/admin/events/${result.data.eventId}/edit`);
         } else {
@@ -329,13 +309,14 @@ export function EventAdminForm(props: EventAdminFormProps) {
         }
       });
     },
-    [coverFile, form, props.eventId, props.mode, router],
+    [coverFile, form, props.eventId, props.mode, props.descriptionAssetContext, router],
   );
 
   return (
     <>
       <form
         className="space-y-10"
+        // eslint-disable-next-line react-hooks/refs -- callback dipanggil saat submit form, bukan saat render
         onSubmit={form.handleSubmit(() => submitPayload(false))}
       >
         {rootMessage ? (
@@ -350,6 +331,33 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <Field label="Judul">
             <Input {...form.register("title")} disabled={pending} />
           </Field>
+        </section>
+
+        <section className="space-y-2">
+          <FileField
+            id="event-hero-cover"
+            label={<h2 className="text-lg font-medium">Sampul</h2>}
+            description={
+              <span className="text-muted-foreground text-sm">
+                {props.mode === "create"
+                  ? "Unggah gambar sampul — wajib untuk acara baru."
+                  : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}{" "}
+                Rasio yang direkomendasikan 1200×630, area di luar rasio ini
+                akan dipangkas saat ditampilkan.
+              </span>
+            }
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            disabled={pending}
+            existingPreviewUrl={props.persistedCoverUrl ?? null}
+            maxSizeBytes={5 * 1024 * 1024}
+            pickPrompt="Ketuk untuk memilih sampul"
+            replacePrompt="Ganti sampul"
+            onChange={(f) => setCoverFile(f ?? null)}
+          />
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Ringkasan</h2>
           <Field label="Ringkasan">
             <Textarea
               {...form.register("summary")}
@@ -357,7 +365,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
               className="resize-y"
             />
           </Field>
-          <Field label="Deskripsi">
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Deskripsi</h2>
+          <Field label="Konten publik">
             <Controller
               control={form.control}
               name="descriptionHtml"
@@ -366,43 +378,18 @@ export function EventAdminForm(props: EventAdminFormProps) {
                   value={field.value}
                   onChange={field.onChange}
                   disabled={pending}
+                  descriptionImageUpload={
+                    props.descriptionAssetContext ?? null
+                  }
                 />
               )}
             />
           </Field>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          <h2 className="text-lg font-medium sm:col-span-2">Jadwal & lokasi</h2>
-          <Field label="Waktu mulai">
-            <Controller
-              control={form.control}
-              name="startAtIso"
-              render={({ field, fieldState }) => (
-                <DateTimePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                  aria-invalid={fieldState.invalid}
-                />
-              )}
-            />
-          </Field>
-          <Field label="Waktu selesai">
-            <Controller
-              control={form.control}
-              name="endAtIso"
-              render={({ field, fieldState }) => (
-                <DateTimePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                  aria-invalid={fieldState.invalid}
-                />
-              )}
-            />
-          </Field>
-          <Field label="Venue" className="sm:col-span-2">
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Venue</h2>
+          <Field label="Venue">
             <Controller
               control={form.control}
               name="venueId"
@@ -416,18 +403,195 @@ export function EventAdminForm(props: EventAdminFormProps) {
                     setLinkedVenueMenusFromVenueSelection(next);
                   }}
                   options={venueComboboxOptions}
-                  disabled={pending || lockedMenuKeys.includes("venueId")}
+                  disabled={pending || lockedIntegrityKeys.includes("venueId")}
                 />
               )}
             />
-            {lockedMenuKeys.includes("venueId") ? (
-              <Muted>Terhubung pada pendaftar — venue tidak dapat diubah.</Muted>
+            {lockedIntegrityKeys.includes("venueId") ? (
+              <Muted>
+                Terhubung pada pendaftar — venue tidak dapat diubah.
+              </Muted>
             ) : (
               <p className="text-muted-foreground text-xs">
-                Menu di formulir pengunjung diturunkan dari katalog venue. Ubah nama/harga menu di pengelola venue.
+                Menu di formulir pengunjung diturunkan dari katalog venue. Ubah
+                nama/harga menu di pengelola venue.
               </p>
             )}
           </Field>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Menu wajib (per tiket)</h2>
+          <p className="text-muted-foreground text-xs">
+            Pengunjung memilih satu item berikut untuk setiap tiket (utama dan
+            partner). Daftar mengikuti menu kanonik venue (semua item di acara
+            bila belum ada pendaftar; setelah ada pendaftar, snapshot menu acara
+            dikunci).
+          </p>
+          {linkedVenueMenus.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              Pilih venue yang memiliki setidaknya satu item menu kanonik.
+            </p>
+          ) : (
+            <div className="border-muted bg-card space-y-2 rounded-lg border p-4">
+              <div className="flex flex-col gap-2">
+                {linkedVenueMenus.flatMap((row) => {
+                  const meta = currentVenue?.menuItems.find(
+                    (mi) => mi.id === row.venueMenuItemId,
+                  );
+                  if (!meta) return [];
+                  const mid = row.venueMenuItemId;
+                  const checked = mandatoryMenuItemIds.includes(mid);
+                  return [
+                    <label
+                      key={mid}
+                      className="hover:bg-accent/60 flex cursor-pointer items-start gap-2 rounded px-2 py-1 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1 shrink-0"
+                        checked={checked}
+                        disabled={pending || mandatoryMenuLocked}
+                        onChange={(e) => {
+                          const cur = new Set(
+                            form.getValues("mandatoryMenuItemIds") ?? [],
+                          );
+                          if (e.target.checked) {
+                            cur.add(mid);
+                          } else {
+                            cur.delete(mid);
+                          }
+                          let next = [...cur];
+                          if (next.length === 0 && linkedVenueMenus[0]) {
+                            next = [linkedVenueMenus[0]!.venueMenuItemId];
+                          }
+                          form.setValue("mandatoryMenuItemIds", next, {
+                            shouldDirty: true,
+                          });
+                        }}
+                      />
+                      <span>
+                        <span className="font-medium">{meta.name}</span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {formatIdr(meta.price)}
+                        </span>
+                      </span>
+                    </label>,
+                  ];
+                })}
+              </div>
+              {mandatoryMenuLocked ? (
+                <Muted>
+                  Terhubung pada pendaftar — set menu wajib tidak dapat diubah.
+                </Muted>
+              ) : null}
+            </div>
+          )}
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <h2 className="text-lg font-medium sm:col-span-2">
+            Jadwal registrasi
+          </h2>
+          <Field label="Buka registrasi">
+            <Controller
+              control={form.control}
+              name="openRegistrationAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Tutup registrasi">
+            <Controller
+              control={form.control}
+              name="closeRegistrationAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <h2 className="text-lg font-medium sm:col-span-2">Jadwal acara</h2>
+          <Field label="Buka gate">
+            <Controller
+              control={form.control}
+              name="openGateAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Kick-off acara">
+            <Controller
+              control={form.control}
+              name="kickOffAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Harga tiket</h2>
+          <p className="text-muted-foreground text-xs">
+            Harga disimpan per acara sebagai bilangan bulat Rupiah (tanpa
+            desimal).
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tiket member">
+              <Controller
+                control={form.control}
+                name="ticketMemberPrice"
+                render={({ field, fieldState }) => (
+                  <IdrAmountInput
+                    disabled={pending}
+                    aria-invalid={fieldState.invalid}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
+              />
+            </Field>
+            <Field label="Tiket non-member">
+              <Controller
+                control={form.control}
+                name="ticketNonMemberPrice"
+                render={({ field, fieldState }) => (
+                  <IdrAmountInput
+                    disabled={pending}
+                    aria-invalid={fieldState.invalid}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
+              />
+            </Field>
+          </div>
         </section>
 
         <section className="space-y-4">
@@ -464,7 +628,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 render={({ field }) => (
                   <Input
                     type="number"
-                    min={0}
+                    min={1}
                     disabled={pending}
                     placeholder="Opsional"
                     value={
@@ -474,8 +638,12 @@ export function EventAdminForm(props: EventAdminFormProps) {
                     }
                     onChange={(e) => {
                       const raw = e.target.value;
-                      if (raw === "") field.onChange(null);
-                      else field.onChange(Number.parseInt(raw, 10));
+                      if (raw === "") {
+                        field.onChange(null);
+                        return;
+                      }
+                      const n = Number.parseInt(raw, 10);
+                      field.onChange(Number.isNaN(n) || n <= 0 ? null : n);
                     }}
                   />
                 )}
@@ -493,213 +661,43 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Harga tiket</h2>
-          <Field label="Sumber harga">
-            <Select
-              value={pricingSource}
-              onValueChange={(v) => {
-                if (v == null) return;
-                const next = v as AdminEventUpsertInput["pricingSource"];
-                form.setValue("pricingSource", next, { shouldDirty: true });
-                if (next === "global_default") pickCommitteePrices();
-              }}
-              disabled={pending}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="global_default">Default komite</SelectItem>
-                <SelectItem value="overridden">Override per acara</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tiket member (IDR)">
-              <Input
-                type="number"
-                min={0}
-                disabled={pending || pricingSource === "global_default"}
-                {...form.register("ticketMemberPrice", { valueAsNumber: true })}
-              />
-            </Field>
-            <Field label="Tiket non-member (IDR)">
-              <Input
-                type="number"
-                min={0}
-                disabled={pending || pricingSource === "global_default"}
-                {...form.register("ticketNonMemberPrice", {
-                  valueAsNumber: true,
-                })}
-              />
-            </Field>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            Jika memilih default komite, nilai disimpan dari{" "}
-            <strong>Pengaturan → Harga default</strong> (basis data bila sudah
-            pernah disimpan), lalu env <code>MATCH_DEFAULT_TICKET_*_IDR</code>,
-            lalu fallback bawaan aplikasi.
-          </p>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-medium">Konfigurasi menu</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Mode menu">
-              <Select
-                value={menuMode}
-                onValueChange={(v) => {
-                  if (v == null) return;
-                  form.setValue(
-                    "menuMode",
-                    v as AdminEventUpsertInput["menuMode"],
-                    {
-                      shouldDirty: true,
-                    },
-                  );
-                }}
-                disabled={pending || lockedMenuKeys.includes("menuMode")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PRESELECT">Pilih menu di form</SelectItem>
-                  <SelectItem value="VOUCHER">Voucher</SelectItem>
-                </SelectContent>
-              </Select>
-              {lockedMenuKeys.includes("menuMode") ? (
-                <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
-              ) : null}
-            </Field>
-            <Field label="Pilihan menu">
-              <Select
-                value={menuSelection}
-                onValueChange={(v) => {
-                  if (v == null) return;
-                  form.setValue(
-                    "menuSelection",
-                    v as AdminEventUpsertInput["menuSelection"],
-                    { shouldDirty: true },
-                  );
-                }}
-                disabled={pending || lockedMenuKeys.includes("menuSelection")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SINGLE">Satu opsi per tiket</SelectItem>
-                  <SelectItem value="MULTI">Multi pilih per tiket</SelectItem>
-                </SelectContent>
-              </Select>
-              {lockedMenuKeys.includes("menuSelection") ? (
-                <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
-              ) : null}
-            </Field>
-          </div>
-
-          <Field label="Harga voucher (IDR)">
-            <Input
-              type="number"
-              min={0}
-              disabled={pending || menuMode !== "VOUCHER"}
-              placeholder={
-                menuMode === "VOUCHER" ? "Wajib" : "Hanya mode Voucher"
-              }
-              {...form.register("voucherPriceIdr", {
-                setValueAs: (v) =>
-                  v === "" || v === undefined || Number.isNaN(Number(v))
-                    ? null
-                    : Number(v),
-              })}
-            />
-          </Field>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-medium">Subset menu untuk acara ini</h2>
-          {!currentVenue ? (
-            <p className="text-muted-foreground text-sm">
-              Pilih venue untuk menampilkan item menu yang bisa diaktifkan di acara ini.
-            </p>
-          ) : (
-            <div className="border-muted bg-card space-y-2 rounded-lg border p-4">
-              <p className="text-muted-foreground text-xs">
-                Minimal satu item. Urutan diturunkan dari daftar venue (atas ke bawah pada item yang dicentang).
-              </p>
-              <div className="flex flex-col gap-2">
-                {[...currentVenue.menuItems]
-                  .sort((a, b) => a.sortOrder - b.sortOrder)
-                  .map((m) => {
-                    const checked = linkedVenueMenuIdSet.has(m.id);
-                    return (
-                      <label
-                        key={m.id}
-                        className="hover:bg-accent/60 flex cursor-pointer items-start gap-2 rounded px-2 py-1 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1 shrink-0"
-                          checked={checked}
-                          disabled={pending || registrationCount > 0}
-                          onChange={(e) =>
-                            toggleVenueMenuItemForEvent(m.id, e.target.checked)
-                          }
-                        />
-                        <span>
-                          <span className="font-medium">{m.name}</span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {m.price.toLocaleString("id-ID")} ·{" "}
-                            {m.voucherEligible ? "voucher eligible" : "tanpa voucher"}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
-              </div>
-              {registrationCount > 0 ? (
-                <Muted>Subset menu dikunci untuk acara dengan pendaftar.</Muted>
-              ) : null}
-            </div>
-          )}
-        </section>
-
-        <section className="space-y-4">
           <h2 className="text-lg font-medium">PIC & rekening</h2>
-          <Field label="PIC utama">
-            <EntityCombobox
-              placeholder="Pilih PIC"
-              value={picId === "" ? null : picId}
-              onValueChange={(next) => {
-                if (next === null) return;
-                form.setValue("picAdminProfileId", next, { shouldDirty: true });
-                const first = props.banksByPic[next]?.[0]?.id ?? "";
-                form.setValue("bankAccountId", first, { shouldDirty: true });
-              }}
-              options={picComboboxOptions}
-              disabled={pending}
-            />
-          </Field>
-          <Field label="Rekening pembayaran">
-            <EntityCombobox
-              placeholder="Pilih rekening"
-              value={bankAccountId === "" ? null : bankAccountId}
-              onValueChange={(v) => {
-                if (v === null) return;
-                form.setValue("bankAccountId", v, { shouldDirty: true });
-              }}
-              disabled={pending || bankChoices.length === 0}
-              options={bankComboboxOptions}
-            />
-            {bankChoices.length === 0 ? (
-              <Muted>
-                Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan
-                komite.
-              </Muted>
-            ) : null}
-          </Field>
+          <FieldGroup className="grid gap-4 sm:grid-cols-2">
+            <Field label="PIC utama">
+              <EntityCombobox
+                placeholder="Pilih PIC"
+                value={picId === "" ? null : picId}
+                onValueChange={(next) => {
+                  if (next === null) return;
+                  form.setValue("picAdminProfileId", next, {
+                    shouldDirty: true,
+                  });
+                  const first = props.banksByPic[next]?.[0]?.id ?? "";
+                  form.setValue("bankAccountId", first, { shouldDirty: true });
+                }}
+                options={picComboboxOptions}
+                disabled={pending}
+              />
+            </Field>
+            <Field label="Rekening pembayaran">
+              <EntityCombobox
+                placeholder="Pilih rekening"
+                value={bankAccountId === "" ? null : bankAccountId}
+                onValueChange={(v) => {
+                  if (v === null) return;
+                  form.setValue("bankAccountId", v, { shouldDirty: true });
+                }}
+                disabled={pending || bankChoices.length === 0}
+                options={bankComboboxOptions}
+              />
+              {bankChoices.length === 0 ? (
+                <Muted>
+                  Tidak ada rekening aktif untuk PIC ini — tambahkan di
+                  pengaturan komite.
+                </Muted>
+              ) : null}
+            </Field>
+          </FieldGroup>
 
           <Field label={`PIC pembantu (${helpersSelected.length})`}>
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-3">
@@ -750,32 +748,16 @@ export function EventAdminForm(props: EventAdminFormProps) {
           </Field>
         </section>
 
-        <section className="space-y-2">
-          <h2 className="text-lg font-medium">Sampul</h2>
-          <p className="text-muted-foreground text-sm">
-            {props.mode === "create"
-              ? "Unggah gambar sampul — wajib untuk acara baru."
-              : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}
-          </p>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            disabled={pending}
-            className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1 file:text-xs"
-            onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-          />
-        </section>
-
-        <div className="flex flex-wrap gap-3 pb-16">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Menyimpan…" : "Simpan"}
-          </Button>
+        <div className="flex flex-wrap gap-3 justify-end pb-16">
           <Link
             href="/admin/events"
             className={buttonVariants({ variant: "outline" })}
           >
             Batal
           </Link>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Menyimpan…" : "Simpan"}
+          </Button>
         </div>
       </form>
 
@@ -784,8 +766,8 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <DialogHeader>
             <DialogTitle>Konfirmasi perubahan sensitif</DialogTitle>
             <DialogDescription>
-              Anda mengubah harga tiket/voucher, sumber harga, PIC utama, atau
-              rekening. Pastikan ini disengaja sebelum melanjutkan.
+              Anda mengubah harga tiket, PIC utama, atau rekening pembayaran.
+              Pastikan ini disengaja sebelum melanjutkan.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

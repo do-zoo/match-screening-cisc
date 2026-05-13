@@ -5,8 +5,9 @@ export function flattenedMenuRowsFromEventVenueLinks<
     venueMenuItem: {
       id: string;
       name: string;
+      description: string | null;
+      imageBlobUrl: string | null;
       price: number;
-      voucherEligible: boolean;
       sortOrder: number;
     };
   },
@@ -15,8 +16,9 @@ export function flattenedMenuRowsFromEventVenueLinks<
 ): Array<{
   id: string;
   name: string;
+  description: string | null;
+  imageBlobUrl: string | null;
   price: number;
-  voucherEligible: boolean;
 }> {
   return [...links]
     .sort(
@@ -27,7 +29,8 @@ export function flattenedMenuRowsFromEventVenueLinks<
     .map((x) => ({
       id: x.venueMenuItem.id,
       name: x.venueMenuItem.name,
+      description: x.venueMenuItem.description,
+      imageBlobUrl: x.venueMenuItem.imageBlobUrl,
       price: x.venueMenuItem.price,
-      voucherEligible: x.venueMenuItem.voucherEligible,
     }));
 }

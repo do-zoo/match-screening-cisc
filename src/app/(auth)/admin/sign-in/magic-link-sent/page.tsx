@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Logo } from "@/components/branding/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-function resolveFirst(param: string | string[] | undefined): string | undefined {
+function resolveFirst(
+  param: string | string[] | undefined,
+): string | undefined {
   if (param === undefined) return undefined;
   return Array.isArray(param) ? param[0] : param;
 }
@@ -54,14 +56,18 @@ export default async function MagicLinkSentPage({
 
   if (errorCode) {
     return (
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 md:px-6 py-12">
         <div className="mb-8 flex justify-center">
           <Logo height={52} priority />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Tautan tidak bisa dipakai</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Tautan tidak bisa dipakai
+        </h1>
         <Alert variant="destructive" className="mt-4">
           <AlertTitle>Verifikasi gagal</AlertTitle>
-          <AlertDescription>{magicLinkVerifyErrorMessage(errorCode)}</AlertDescription>
+          <AlertDescription>
+            {magicLinkVerifyErrorMessage(errorCode)}
+          </AlertDescription>
         </Alert>
         <p className="mt-6 text-sm text-muted-foreground">
           <Link
@@ -77,7 +83,7 @@ export default async function MagicLinkSentPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 md:px-6 py-12">
       <div className="mb-8 flex justify-center">
         <Logo height={52} priority />
       </div>
@@ -92,12 +98,18 @@ export default async function MagicLinkSentPage({
             . Link berlaku selama 5 menit.
           </>
         ) : (
-          <>Kami sudah mengirim link masuk ke email Anda. Link berlaku selama 5 menit.</>
+          <>
+            Kami sudah mengirim link masuk ke email Anda. Link berlaku selama 5
+            menit.
+          </>
         )}
       </p>
       <p className="mt-6 text-xs text-muted-foreground">
         Tidak menerima email? Periksa folder spam atau{" "}
-        <Link href="/admin/sign-in" className="underline underline-offset-4 hover:text-foreground">
+        <Link
+          href="/admin/sign-in"
+          className="underline underline-offset-4 hover:text-foreground"
+        >
           kembali dan coba lagi
         </Link>
         .

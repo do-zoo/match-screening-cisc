@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { pathsMatchRegistrationDetail } from "@/lib/admin/event-inbox-detail-path";
+import { pathsMatchRegistrationDetail } from "@/lib/admin/event-registration-detail-path";
+import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { cn } from "@/lib/utils";
 
 export function AdminEventBreadcrumbs({
@@ -17,7 +18,8 @@ export function AdminEventBreadcrumbs({
   const isReport =
     pathname === `/admin/events/${eventId}/report` ||
     pathname?.startsWith(`/admin/events/${eventId}/report/`);
-  const isInboxExact = pathname === `/admin/events/${eventId}/inbox`;
+  const listPath = eventRegistrantsListPath(eventId);
+  const isRegistrantsListExact = pathname === listPath;
   const isRegistrationDetail = pathsMatchRegistrationDetail(
     pathname ?? null,
     eventId,
@@ -29,17 +31,17 @@ export function AdminEventBreadcrumbs({
 
   if (isEdit) {
     crumbs.push(
-      { label: "Beranda", href: "/admin?tab=active" },
+      { label: "Beranda", href: "/admin" },
       { label: "Acara", href: "/admin/events" },
-      { label: title, href: `/admin/events/${eventId}/inbox` },
+      { label: title, href: listPath },
       { label: "Pengaturan", current: true },
     );
   } else {
     crumbs.push(
-      { label: "Beranda", href: "/admin?tab=active" },
+      { label: "Beranda", href: "/admin" },
       {
         label: title,
-        href: `/admin/events/${eventId}/inbox`,
+        href: listPath,
       },
     );
 
@@ -47,11 +49,11 @@ export function AdminEventBreadcrumbs({
       crumbs.push({ label: "Laporan", current: true });
     } else if (isRegistrationDetail) {
       crumbs.push(
-        { label: "Inbox", href: `/admin/events/${eventId}/inbox` },
+        { label: "Peserta Acara", href: listPath },
         { label: "Detail", current: true },
       );
-    } else if (isInboxExact) {
-      crumbs.push({ label: "Inbox", current: true });
+    } else if (isRegistrantsListExact) {
+      crumbs.push({ label: "Peserta Acara", current: true });
     }
   }
 

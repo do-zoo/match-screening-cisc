@@ -7,7 +7,8 @@ import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
 
 export function usePricingPreview(
   event: SerializedEventForRegistration,
-  selectedMenuIds: string[],
+  primaryMandatoryMenuItemId: string | undefined,
+  partnerMandatoryMenuItemId: string | undefined,
   claimedMemberNumber: string | undefined,
   qtyPartner: unknown,
   partnerIsMember?: boolean,
@@ -22,67 +23,41 @@ export function usePricingPreview(
       Boolean(claimedMemberNumber?.trim()) ||
       Boolean(managementPublicCode?.trim());
 
-    try {
-      if (event.menuMode === "VOUCHER") {
-        if (event.voucherPrice == null) {
-          return null;
-        }
-        const menuParts: Parameters<
-          typeof computeSubmitTotal
-        >[0]["perTicketMenu"] = [{ mode: "VOUCHER" }];
-        if (includePartner) menuParts.push({ mode: "VOUCHER" });
+    const primaryMenu = event.mandatoryMenuItems.find(
+      (m) => m.id === primaryMandatoryMenuItemId,
+    );
+    if (!primaryMenu) return null;
 
-        return computeSubmitTotal({
-          event: {
-            ticketMemberPrice: event.ticketMemberPrice,
-            ticketNonMemberPrice: event.ticketNonMemberPrice,
-            menuMode: event.menuMode,
-            voucherPrice: event.voucherPrice,
-          },
-          primaryPriceType: primaryMemberEligible ? "member" : "non_member",
-          ...(includePartner ? { partnerPriceType } : {}),
-          includePartner,
-          perTicketMenu: menuParts,
-        });
-      }
-
-      const items = event.menuItems.filter((m) =>
-        selectedMenuIds.includes(m.id),
+    let partnerMenu:
+      | SerializedEventForRegistration["mandatoryMenuItems"][number]
+      | undefined;
+    if (includePartner) {
+      partnerMenu = event.mandatoryMenuItems.find(
+        (m) => m.id === partnerMandatoryMenuItemId,
       );
+      if (!partnerMenu) return null;
+    }
 
-      const menuParts: Parameters<
-        typeof computeSubmitTotal
-      >[0]["perTicketMenu"] = [
-        {
-          mode: "PRESELECT",
-          selectedMenuItems: items.map((m) => ({
-            name: m.name,
-            price: m.price,
-          })),
-        },
-      ];
-
-      if (includePartner) {
-        menuParts.push({
-          mode: "PRESELECT",
-          selectedMenuItems: items.map((m) => ({
-            name: m.name,
-            price: m.price,
-          })),
-        });
-      }
-
+    try {
       return computeSubmitTotal({
         event: {
           ticketMemberPrice: event.ticketMemberPrice,
           ticketNonMemberPrice: event.ticketNonMemberPrice,
-          menuMode: event.menuMode,
-          voucherPrice: event.voucherPrice,
         },
         primaryPriceType: primaryMemberEligible ? "member" : "non_member",
-        ...(includePartner ? { partnerPriceType } : {}),
-        includePartner,
-        perTicketMenu: menuParts,
+        primaryMandatoryMenu: {
+          name: primaryMenu.name,
+          price: primaryMenu.price,
+        },
+        ...(includePartner && partnerMenu
+          ? {
+              partnerPriceType,
+              partnerMandatoryMenu: {
+                name: partnerMenu.name,
+                price: partnerMenu.price,
+              },
+            }
+          : {}),
       });
     } catch {
       return null;
@@ -93,6 +68,7 @@ export function usePricingPreview(
     event,
     partnerIsMember,
     qtyPartner,
-    selectedMenuIds,
+    primaryMandatoryMenuItemId,
+    partnerMandatoryMenuItemId,
   ]);
 }

@@ -1,12 +1,5 @@
 import { z } from "zod";
-import {
-  EventStatus,
-  MenuMode,
-  MenuSelection,
-  PricingSource,
-} from "@prisma/client";
-
-/** ISO string or datetime-local-compatible string interpreted in server as absolute instant (store UTC). */
+import { EventStatus } from "@prisma/client";
 
 const idrSchema = z.coerce.number().int().nonnegative();
 
@@ -20,67 +13,110 @@ export type LinkedVenueMenuItemDraft = z.infer<typeof linkedVenueMenuItemSchema>
 
 export const adminEventUpsertSchema = z
   .object({
-    title: z.string().trim().min(1),
-    summary: z.string().trim().min(1),
+    title: z.string().trim().min(1, "Judul acara wajib."),
+    summary: z.string().trim().min(1, "Ringkasan acara wajib."),
     /** Raw HTML sanitized before persistence on server (never trust strip on client-only). */
     descriptionHtml: z.string(),
-    venueId: z.string().min(1),
-    linkedVenueMenuItems: z.array(linkedVenueMenuItemSchema).min(1),
-    /** Accept `new Date(...)` compat strings from serialized JSON payloads. */
-    startAtIso: z.string().min(1),
-    endAtIso: z.string().min(1),
-    registrationCapacity: z.union([idrSchema, z.literal(null)]).optional(),
+    venueId: z.string().min(1, "Venue wajib."),
+    linkedVenueMenuItems: z
+      .array(linkedVenueMenuItemSchema)
+      .min(1, "Min 1 menu item."),
+    openRegistrationAtIso: z.string().min(1, "Waktu buka registrasi wajib."),
+    closeRegistrationAtIso: z.string().min(1, "Waktu tutup registrasi wajib."),
+    openGateAtIso: z.string().min(1, "Waktu buka gate wajib."),
+    kickOffAtIso: z.string().min(1, "Waktu mulai acara wajib."),
+    mandatoryMenuItemIds: z
+      .array(z.string().min(1))
+      .min(1, "Pilih min 1 menu wajib."),
+    /** 0 atau kosong = tak terbatas; nilai negatif ditolak. */
+    registrationCapacity: z.preprocess(
+      (v) => (v === 0 || v === "0" ? null : v),
+      z.union([z.coerce.number().int().positive(), z.literal(null)]).optional(),
+    ),
     registrationManualClosed: z.boolean(),
     status: z.nativeEnum(EventStatus),
-    menuMode: z.nativeEnum(MenuMode),
-    menuSelection: z.nativeEnum(MenuSelection),
-    voucherPriceIdr: z.union([idrSchema, z.literal(null)]),
-    pricingSource: z.nativeEnum(PricingSource),
     ticketMemberPrice: idrSchema,
     ticketNonMemberPrice: idrSchema,
-    picAdminProfileId: z.string().min(1),
-    bankAccountId: z.string().min(1),
+    picAdminProfileId: z.string().min(1, "PIC wajib."),
+    bankAccountId: z.string().min(1, "Rekening bank wajib."),
     helperAdminProfileIds: z.array(z.string().min(1)),
     acknowledgeSensitiveChanges: z.boolean().optional(),
   })
   .superRefine((v, ctx) => {
-    const start = Date.parse(v.startAtIso);
-    const end = Date.parse(v.endAtIso);
-    if (!Number.isFinite(start)) {
+    const openReg = Date.parse(v.openRegistrationAtIso);
+    const closeReg = Date.parse(v.closeRegistrationAtIso);
+    const openGate = Date.parse(v.openGateAtIso);
+    const kickOff = Date.parse(v.kickOffAtIso);
+
+    if (!Number.isFinite(openReg)) {
       ctx.addIssue({
         code: "custom",
-        path: ["startAtIso"],
-        message: "Waktu mulai tidak valid.",
+        path: ["openRegistrationAtIso"],
+        message: "Waktu buka registrasi tidak valid.",
       });
     }
-    if (!Number.isFinite(end)) {
+    if (!Number.isFinite(closeReg)) {
       ctx.addIssue({
         code: "custom",
-        path: ["endAtIso"],
-        message: "Waktu selesai tidak valid.",
+        path: ["closeRegistrationAtIso"],
+        message: "Waktu tutup registrasi tidak valid.",
       });
     }
-    if (Number.isFinite(start) && Number.isFinite(end) && end <= start) {
+    if (Number.isFinite(openReg) && Number.isFinite(closeReg) && closeReg <= openReg) {
       ctx.addIssue({
         code: "custom",
-        path: ["endAtIso"],
-        message: "Waktu selesai harus setelah mulai.",
+        path: ["closeRegistrationAtIso"],
+        message: "Registrasi harus ditutup setelah dibuka.",
       });
     }
-    if (v.menuMode === "VOUCHER") {
-      if (v.voucherPriceIdr === null) {
+
+    if (!Number.isFinite(openGate)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["openGateAtIso"],
+        message: "Waktu buka gate tidak valid.",
+      });
+    }
+    if (!Number.isFinite(kickOff)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["kickOffAtIso"],
+        message: "Waktu mulai acara tidak valid.",
+      });
+    }
+    if (Number.isFinite(openGate) && Number.isFinite(kickOff) && kickOff <= openGate) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["kickOffAtIso"],
+        message: "Acara harus dimulai setelah gate dibuka.",
+      });
+    }
+
+    if (v.ticketMemberPrice <= 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ticketMemberPrice"],
+        message: "Harga tiket member harus lebih dari 0.",
+      });
+    }
+    if (v.ticketNonMemberPrice <= 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ticketNonMemberPrice"],
+        message: "Harga tiket non-member harus lebih dari 0.",
+      });
+    }
+
+    const linked = new Set(v.linkedVenueMenuItems.map((x) => x.venueMenuItemId));
+    for (let i = 0; i < v.mandatoryMenuItemIds.length; i++) {
+      const id = v.mandatoryMenuItemIds[i]!;
+      if (!linked.has(id)) {
         ctx.addIssue({
           code: "custom",
-          path: ["voucherPriceIdr"],
-          message: "Harga voucher wajib untuk mode Voucher.",
+          path: ["mandatoryMenuItemIds", i],
+          message: "Menu wajib harus termasuk item menu acara.",
         });
       }
-    } else if (v.voucherPriceIdr !== null) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["voucherPriceIdr"],
-        message: "Kosongkan harga voucher jika Mode Menu bukan Voucher.",
-      });
     }
 
     const seen = new Set<string>();

@@ -37,20 +37,26 @@ vi.mock("@vercel/blob", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`MOCK_REDIRECT:${url}`);
+  }),
+}));
+
 // Stub heavy deps not under test
 vi.mock("@/lib/events/generate-event-slug", () => ({
   allocateUniqueEventSlug: vi.fn(),
-}));
-vi.mock("@/lib/events/event-admin-defaults", () => ({
-  resolveCommitteeTicketDefaults: vi.fn(),
 }));
 vi.mock("@/lib/public/sanitize-event-description", () => ({
   sanitizePublicEventDescriptionHtml: vi.fn((s: string) => s),
 }));
 
 import { del } from "@vercel/blob";
-import { prisma } from "@/lib/db/prisma";
+import { redirect } from "next/navigation";
+
 import { deleteAdminEvent } from "@/lib/actions/admin-events";
+import { ADMIN_EVENTS_DELETE_SUCCESS_FLASH } from "@/lib/admin/admin-events-delete-flash";
+import { prisma } from "@/lib/db/prisma";
 
 describe("deleteAdminEvent", () => {
   beforeEach(() => {
@@ -83,7 +89,7 @@ describe("deleteAdminEvent", () => {
     if (!r.ok) expect(r.rootError).toContain("3");
   });
 
-  it("deletes event and blob when no registrations", async () => {
+  it("deletes event and blob when no registrations, then redirects", async () => {
     vi.mocked(prisma.event.findUnique).mockResolvedValueOnce({
       id: "ev2",
       title: "Draft Event",
@@ -93,12 +99,16 @@ describe("deleteAdminEvent", () => {
     vi.mocked(prisma.event.delete).mockResolvedValueOnce({} as never);
     const fd = new FormData();
     fd.set("eventId", "ev2");
-    const r = await deleteAdminEvent(undefined, fd);
-    expect(r.ok).toBe(true);
+    await expect(deleteAdminEvent(undefined, fd)).rejects.toThrow(
+      "MOCK_REDIRECT:",
+    );
     expect(vi.mocked(prisma.event.delete)).toHaveBeenCalledWith({
       where: { id: "ev2" },
     });
     expect(vi.mocked(del)).toHaveBeenCalledWith("https://blob/cover2.webp");
+    expect(vi.mocked(redirect)).toHaveBeenCalledWith(
+      `/admin/events?tab=active&flash=${encodeURIComponent(ADMIN_EVENTS_DELETE_SUCCESS_FLASH)}`,
+    );
   });
 
   it("returns root error when eventId is empty", async () => {

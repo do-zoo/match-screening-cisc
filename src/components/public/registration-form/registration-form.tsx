@@ -12,6 +12,10 @@ import { submitRegistration } from "@/lib/actions/submit-registration";
 import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import type { ActionResult } from "@/lib/forms/action-result";
 import {
+  phoneValueToStoredString,
+  stringToPhoneValue,
+} from "@/lib/forms/phone-value-string";
+import {
   createSubmitRegistrationFormSchema,
   isMemberCardPhotoMissingWhenRequired,
   isMemberNumberMissingWhenMember,
@@ -24,7 +28,7 @@ import {
   type SubmitRegistrationInput,
 } from "@/lib/forms/submit-registration-schema";
 
-import { MenuSelectionSection } from "./menu-selection-section";
+import { MandatoryMenuSelection } from "./mandatory-menu-selection";
 import { PartnerTicketSection } from "./partner-ticket-section";
 import { PaymentSection } from "./payment-section";
 import { PurchaserInfoSection } from "./purchaser-info-section";
@@ -37,15 +41,16 @@ import {
   resolveActiveStepAfterStepsChange,
 } from "./registration-steps";
 import type { RegistrationFormProps } from "./types";
-import { usePrimaryPurchaserIdentityGate } from "./use-primary-purchaser-identity-gate";
 import { usePartnerMemberNumberValidation } from "./use-partner-member-number-validation";
 import { usePricingPreview } from "./use-pricing-preview";
+import { usePrimaryPurchaserIdentityGate } from "./use-primary-purchaser-identity-gate";
 
 function serverFieldErrorsToStepHint(
   fe: Record<string, string>,
 ): RegistrationStepId {
   if (fe.transferProof) return "payment";
-  if (fe.selectedMenuItemIds) return "menu";
+  if (fe.primaryMandatoryMenuItemId || fe.partnerMandatoryMenuItemId)
+    return "menu";
   if (
     fe.partnerMemberCardPhoto ||
     fe.partnerMemberNumber ||
@@ -71,8 +76,11 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   const router = useRouter();
 
   const schema = useMemo(
-    () => createSubmitRegistrationFormSchema(event),
-    [event],
+    () =>
+      createSubmitRegistrationFormSchema({
+        mandatoryMenuItemIds: event.mandatoryMenuItemIds,
+      }),
+    [event.mandatoryMenuItemIds],
   );
 
   const form = useForm<SubmitRegistrationInput>({
@@ -90,12 +98,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       partnerWhatsapp: "",
       partnerMemberNumber: "",
       partnerMemberCardPhoto: undefined,
-      selectedMenuItemIds:
-        event.menuSelection === "SINGLE"
-          ? event.menuItems[0]
-            ? [event.menuItems[0].id]
-            : []
-          : [],
+      primaryMandatoryMenuItemId: event.mandatoryMenuItems[0]?.id ?? "",
+      partnerMandatoryMenuItemId: "",
       transferProof: undefined,
       memberCardPhoto: undefined,
     },
@@ -103,10 +107,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   });
 
   const watched = useWatch({ control: form.control });
-  const selectedMenuIds = useMemo(
-    () => (watched.selectedMenuItemIds ?? []).filter(Boolean),
-    [watched.selectedMenuItemIds],
-  );
+  const primaryMenuId = String(watched.primaryMandatoryMenuItemId ?? "").trim();
+  const partnerMenuId = String(watched.partnerMandatoryMenuItemId ?? "").trim();
   const claimedMemberTrim = String(watched.claimedMemberNumber ?? "").trim();
   const managementCodeTrim = String(watched.managementPublicCode ?? "").trim();
   const primaryIdentityTrim =
@@ -128,8 +130,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   );
 
   const steps = useMemo(
-    () => buildRegistrationSteps(event.menuMode, showPartnerSection),
-    [event.menuMode, showPartnerSection],
+    () => buildRegistrationSteps(showPartnerSection),
+    [showPartnerSection],
   );
 
   const [userStepId, setUserStepId] = useState<RegistrationStepId>("purchaser");
@@ -180,7 +182,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   const pricingPreview = usePricingPreview(
     event,
-    selectedMenuIds,
+    primaryMenuId || undefined,
+    partnerMenuId || undefined,
     watched.claimedMemberNumber,
     watched.qtyPartner,
     watched.partnerIsMember,
@@ -397,7 +400,12 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     fd.set("slug", values.slug);
     fd.set("purchaserIsMember", values.purchaserIsMember ? "1" : "0");
     fd.set("contactName", values.contactName);
-    fd.set("contactWhatsapp", values.contactWhatsapp);
+    fd.set(
+      "contactWhatsapp",
+      phoneValueToStoredString(
+        stringToPhoneValue(String(values.contactWhatsapp ?? "")),
+      ),
+    );
 
     fd.set("claimedMemberNumber", values.claimedMemberNumber?.trim() ?? "");
     fd.set("managementPublicCode", values.managementPublicCode?.trim() ?? "");
@@ -405,11 +413,20 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
     fd.set("partnerIsMember", values.partnerIsMember ? "1" : "0");
     fd.set("partnerName", values.partnerName?.trim() ?? "");
-    fd.set("partnerWhatsapp", values.partnerWhatsapp?.trim() ?? "");
+    fd.set(
+      "partnerWhatsapp",
+      phoneValueToStoredString(
+        stringToPhoneValue(String(values.partnerWhatsapp ?? "").trim()),
+      ),
+    );
     fd.set("partnerMemberNumber", values.partnerMemberNumber?.trim() ?? "");
 
-    for (const id of values.selectedMenuItemIds ?? []) {
-      if (id) fd.append("selectedMenuItemIds", id);
+    fd.set("primaryMandatoryMenuItemId", values.primaryMandatoryMenuItemId);
+    if (values.qtyPartner === 1 && values.partnerMandatoryMenuItemId) {
+      fd.set(
+        "partnerMandatoryMenuItemId",
+        values.partnerMandatoryMenuItemId.trim(),
+      );
     }
 
     fd.set("transferProof", values.transferProof);
@@ -446,7 +463,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       "partnerWhatsapp",
       "partnerMemberNumber",
       "partnerMemberCardPhoto",
-      "selectedMenuItemIds",
+      "primaryMandatoryMenuItemId",
+      "partnerMandatoryMenuItemId",
     ]);
 
     if (result.rootError) {
@@ -467,7 +485,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   return (
     <form
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-4 md:p-6"
       encType="multipart/form-data"
       onSubmit={(e) => {
         e.preventDefault();
@@ -554,7 +572,22 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
                   />
                 ) : null}
                 {stepId === "menu" ? (
-                  <MenuSelectionSection control={form.control} event={event} />
+                  <div className="space-y-8">
+                    <MandatoryMenuSelection
+                      control={form.control}
+                      event={event}
+                      fieldName="primaryMandatoryMenuItemId"
+                      label="Menu wajib — pemesan utama"
+                    />
+                    {showPartnerSection && watched.qtyPartner === 1 ? (
+                      <MandatoryMenuSelection
+                        control={form.control}
+                        event={event}
+                        fieldName="partnerMandatoryMenuItemId"
+                        label="Menu wajib — tiket partner"
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
                 {stepId === "payment" ? (
                   <PaymentSection
@@ -575,7 +608,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
             {!isLastStep ? (
               <Button
                 type="button"
-                size="lg"
                 className="order-1 min-h-12 w-full sm:order-2 sm:justify-center"
                 disabled={!event.registrationOpen}
                 onClick={() => void goNext()}
@@ -585,7 +617,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
             ) : (
               <Button
                 type="submit"
-                size="lg"
                 className="order-1 min-h-12 w-full sm:order-2 sm:justify-center"
                 disabled={
                   !event.registrationOpen || form.formState.isSubmitting
@@ -599,7 +630,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
             <Button
               type="button"
               variant="outline"
-              size="lg"
               className="order-2 min-h-12 w-full sm:order-1 sm:justify-center"
               disabled={!event.registrationOpen || activeIndex === 0}
               onClick={goBack}

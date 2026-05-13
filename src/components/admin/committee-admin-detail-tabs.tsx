@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  startTransition,
   useActionState,
   useCallback,
   useEffect,
@@ -132,36 +133,83 @@ export function CommitteeAdminDetailTabs(props: {
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
   const [dialogKey, setDialogKey] = useState(0);
 
+  const afterSavedMutation = useCallback(() => {
+    startTransition(() => {
+      setActiveDialog(null);
+      setDialogKey((k) => k + 1);
+    });
+    router.refresh();
+  }, [router]);
+
+  const afterDeleted = useCallback(() => {
+    startTransition(() => {
+      setActiveDialog(null);
+      setDialogKey((k) => k + 1);
+    });
+    router.push("/admin/settings/committee");
+  }, [router]);
+
+  const roleAction = useCallback(
+    async (
+      prev: ActionResult<{ saved: true }> | null,
+      fd: FormData,
+    ): Promise<ActionResult<{ saved: true }> | null> => {
+      const result = await updateCommitteeAdminRole(prev, fd);
+      if (result.ok) afterSavedMutation();
+      return result;
+    },
+    [afterSavedMutation],
+  );
+  const memberAction = useCallback(
+    async (
+      prev: ActionResult<{ saved: true }> | null,
+      fd: FormData,
+    ): Promise<ActionResult<{ saved: true }> | null> => {
+      const result = await updateCommitteeAdminMemberLink(prev, fd);
+      if (result.ok) afterSavedMutation();
+      return result;
+    },
+    [afterSavedMutation],
+  );
+  const revokeAction = useCallback(
+    async (
+      prev: ActionResult<{ saved: true }> | null,
+      fd: FormData,
+    ): Promise<ActionResult<{ saved: true }> | null> => {
+      const result = await revokeCommitteeAdminMeaningfulAccess(prev, fd);
+      if (result.ok) afterSavedMutation();
+      return result;
+    },
+    [afterSavedMutation],
+  );
+  const deleteAction = useCallback(
+    async (
+      prev: ActionResult<{ deleted: true }> | null,
+      fd: FormData,
+    ): Promise<ActionResult<{ deleted: true }> | null> => {
+      const result = await deleteCommitteeAdmin(prev, fd);
+      if (result.ok) afterDeleted();
+      return result;
+    },
+    [afterDeleted],
+  );
+
   const [roleState, roleDispatch, rolePending] = useActionState(
-    updateCommitteeAdminRole,
+    roleAction,
     null as ActionResult<{ saved: true }> | null,
   );
   const [memberState, memberDispatch, memberPending] = useActionState(
-    updateCommitteeAdminMemberLink,
+    memberAction,
     null as ActionResult<{ saved: true }> | null,
   );
   const [revokeState, revokeDispatch, revokePending] = useActionState(
-    revokeCommitteeAdminMeaningfulAccess,
+    revokeAction,
     null as ActionResult<{ saved: true }> | null,
   );
   const [deleteState, deleteDispatch, deletePending] = useActionState(
-    deleteCommitteeAdmin,
+    deleteAction,
     null as ActionResult<{ deleted: true }> | null,
   );
-
-  useEffect(() => {
-    if (deleteState?.ok) {
-      setActiveDialog(null);
-      setDialogKey((k) => k + 1);
-      router.push("/admin/settings/committee");
-      return;
-    }
-    if (roleState?.ok || memberState?.ok || revokeState?.ok) {
-      setActiveDialog(null);
-      setDialogKey((k) => k + 1);
-      router.refresh();
-    }
-  }, [roleState?.ok, memberState?.ok, revokeState?.ok, deleteState?.ok, router]);
 
   useEffect(() => {
     if (roleState?.ok) toastCudSuccess("update", "Peran admin diperbarui.");

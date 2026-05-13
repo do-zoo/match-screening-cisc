@@ -1,86 +1,209 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button";
+import type { Prisma } from "@prisma/client";
+
+import { AdminVenuesCardsView } from "@/components/admin/admin-venues-cards-view";
+import { AdminVenuesIndexHeader } from "@/components/admin/admin-venues-index-header";
+import { AdminVenuesIndexToolbar } from "@/components/admin/admin-venues-index-toolbar";
+import { AdminVenuesTable } from "@/components/admin/admin-venues-table";
+import {
+  parseVenuesIndexTab,
+  type VenuesIndexTab,
+} from "@/lib/admin/admin-venues-index";
+import {
+  parseEventsIndexSearchQuery,
+  parseEventsIndexViewParam,
+} from "@/lib/admin/events-index-view";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
-import { cn } from "@/lib/utils";
+import {
+  ADMIN_TABLE_PAGE_SIZE,
+  parseAdminTablePage,
+  resolveClampedPage,
+} from "@/lib/table/admin-pagination";
 
 export const metadata: Metadata = { title: "Venue" };
 
-export default async function AdminVenuesPage() {
+function firstString(param: string | string[] | undefined): string | undefined {
+  if (param === undefined) return undefined;
+  if (Array.isArray(param)) return param[0];
+  return param;
+}
+
+function tabParamMissing(tabParam: string | string[] | undefined): boolean {
+  return (
+    tabParam === undefined ||
+    tabParam === "" ||
+    (Array.isArray(tabParam) && (tabParam.length === 0 || tabParam[0] === ""))
+  );
+}
+
+function buildVenueWhere(
+  tab: VenuesIndexTab,
+  q: string,
+): Prisma.VenueWhereInput {
+  const and: Prisma.VenueWhereInput[] = [];
+  if (tab === "active") and.push({ isActive: true });
+  if (tab === "inactive") and.push({ isActive: false });
+  if (q) {
+    and.push({
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { address: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+  return and.length > 0 ? { AND: and } : {};
+}
+
+export default async function AdminVenuesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await requireAdminSession();
   const ctx = await getAdminContext(session.user.id);
   if (!ctx || !hasOperationalOwnerParity(ctx.role)) {
     notFound();
   }
 
-  const venues = await prisma.venue.findMany({
+  const sp = (await searchParams) ?? {};
+  const viewMode = parseEventsIndexViewParam(sp.view);
+
+  if (tabParamMissing(sp.tab)) {
+    const p = new URLSearchParams();
+    p.set("tab", "all");
+    if (viewMode === "table") p.set("view", "tabel");
+    const qEarly = parseEventsIndexSearchQuery(sp.q);
+    if (qEarly) p.set("q", qEarly);
+    redirect(`/admin/venues?${p.toString()}`);
+  }
+
+  const tab = parseVenuesIndexTab(sp.tab);
+  const q = parseEventsIndexSearchQuery(sp.q);
+  const venueWhere = buildVenueWhere(tab, q);
+
+  const select = {
+    id: true,
+    name: true,
+    address: true,
+    isActive: true,
+    _count: { select: { menuItems: true, events: true } },
+  } as const;
+
+  if (viewMode === "table") {
+    const requestedPage = parseAdminTablePage(firstString(sp.page));
+    const totalItems = await prisma.venue.count({ where: venueWhere });
+    const page = resolveClampedPage(
+      requestedPage,
+      totalItems,
+      ADMIN_TABLE_PAGE_SIZE,
+    );
+    const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
+
+    const rows = await prisma.venue.findMany({
+      where: venueWhere,
+      orderBy: { name: "asc" },
+      skip,
+      take: ADMIN_TABLE_PAGE_SIZE,
+      select,
+    });
+
+    const venueRows = rows.map((v) => ({
+      id: v.id,
+      name: v.name,
+      address: v.address,
+      isActive: v.isActive,
+      menuItemCount: v._count.menuItems,
+      eventCount: v._count.events,
+    }));
+
+    return (
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
+        <AdminVenuesIndexHeader />
+
+        <AdminVenuesIndexToolbar
+          key={`venues-idx-toolbar-${tab}-table`}
+          tab={tab}
+          viewMode="table"
+          searchQuery={q}
+        />
+
+        {totalItems === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            Belum ada venue untuk filter ini. Buat venue baru lewat tombol Venue
+            baru.
+          </p>
+        ) : (
+          <AdminVenuesTable
+            pathname="/admin/venues"
+            preservedQuery={{
+              view: "tabel",
+              tab,
+              ...(q ? { q } : {}),
+            }}
+            venues={venueRows}
+            pagination={{
+              page,
+              pageSize: ADMIN_TABLE_PAGE_SIZE,
+              totalItems,
+            }}
+          />
+        )}
+      </main>
+    );
+  }
+
+  const requestedPage = parseAdminTablePage(firstString(sp.page));
+  const totalItems = await prisma.venue.count({ where: venueWhere });
+  const page = resolveClampedPage(
+    requestedPage,
+    totalItems,
+    ADMIN_TABLE_PAGE_SIZE,
+  );
+  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
+
+  const rows = await prisma.venue.findMany({
+    where: venueWhere,
     orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      address: true,
-      isActive: true,
-      _count: { select: { menuItems: true, events: true } },
-    },
+    skip,
+    take: ADMIN_TABLE_PAGE_SIZE,
+    select,
   });
 
-  return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Venue</h1>
-          <p className="text-muted-foreground text-sm">
-            Katalog lokasi beserta menu kanonik. Tiap acara memilih subset menu dari venue.
-          </p>
-        </div>
-        <Link
-          href="/admin/venues/new"
-          className={cn(buttonVariants(), "shrink-0")}
-        >
-          Venue baru
-        </Link>
-      </div>
+  const cards = rows.map((v) => ({
+    id: v.id,
+    name: v.name,
+    address: v.address,
+    isActive: v.isActive,
+    menuItemCount: v._count.menuItems,
+    eventCount: v._count.events,
+  }));
 
-      <ul className="divide-border rounded-lg border">
-        {venues.length === 0 ? (
-          <li className="text-muted-foreground p-4 text-sm">
-            Belum ada venue. Buat pertama lewat formulir Venue baru (menu bisa ditambahkan di sana).
-          </li>
-        ) : (
-          venues.map((v) => (
-            <li
-              key={v.id}
-              className="hover:bg-accent/40 flex flex-col gap-1 border-b p-4 last:border-b-0"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <strong className="font-medium">{v.name}</strong>
-                {!v.isActive ? (
-                  <span className="text-muted-foreground text-xs">
-                    Tidak aktif
-                  </span>
-                ) : null}
-              </div>
-              <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-                {v.address}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                {v._count.menuItems} menu · digunakan {v._count.events} acara
-              </p>
-              <Link
-                href={`/admin/venues/${v.id}/edit`}
-                className="text-xs font-medium underline-offset-4 hover:underline"
-              >
-                Ubah venue & menu
-              </Link>
-            </li>
-          ))
-        )}
-      </ul>
+  return (
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
+      <AdminVenuesIndexHeader />
+
+      <AdminVenuesIndexToolbar
+        key={`venues-idx-toolbar-${tab}-cards`}
+        tab={tab}
+        viewMode="cards"
+        searchQuery={q}
+      />
+
+      <AdminVenuesCardsView
+        tab={tab}
+        searchQuery={q}
+        venues={cards}
+        pagination={{
+          page,
+          pageSize: ADMIN_TABLE_PAGE_SIZE,
+          totalItems,
+        }}
+      />
     </main>
   );
 }

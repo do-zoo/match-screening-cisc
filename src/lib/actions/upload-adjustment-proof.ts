@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { del } from "@vercel/blob";
 import { prisma } from "@/lib/db/prisma";
 import { guardEvent, isAuthError } from "@/lib/actions/guard";
+import { eventRegistrationDetailPath } from "@/lib/admin/event-registrants-paths";
 import { ok, rootError, fieldError, type ActionResult } from "@/lib/forms/action-result";
 import { toWebp } from "@/lib/uploads/images";
 import { putWebpToBlob } from "@/lib/uploads/blob";
@@ -82,6 +83,6 @@ export async function uploadAdjustmentProof(
     throw err;
   }
 
-  revalidatePath(`/admin/events/${eventId}/inbox/${adj.registration.id}`);
+  revalidatePath(eventRegistrationDetailPath(eventId, adj.registration.id));
   return ok({ uploadId: uploadRow.id });
 }

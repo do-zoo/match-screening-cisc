@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   findLockedViolations,
+  findMandatoryMenuLockedViolation,
   needsSensitiveAcknowledgement,
   type EventIntegritySnapshot,
 } from "@/lib/events/event-edit-guards";
@@ -9,12 +10,9 @@ import {
 const persisted: EventIntegritySnapshot = {
   slug: "demo",
   venueId: "v1",
-  menuMode: "PRESELECT",
-  menuSelection: "SINGLE",
+  mandatoryMenuItemIds: ["m1"],
   ticketMemberPrice: 1,
   ticketNonMemberPrice: 2,
-  voucherPrice: null,
-  pricingSource: "global_default",
   picAdminProfileId: "a1",
   bankAccountId: "b1",
 };
@@ -25,12 +23,12 @@ describe("findLockedViolations", () => {
       findLockedViolations({
         registrationCount: 0,
         persisted,
-        candidate: { slug: "x", menuMode: "VOUCHER", menuSelection: "MULTI" },
+        candidate: { venueId: "v2" },
       }),
     ).toEqual([]);
   });
 
-  it("blocks slug/menu mutations when registrations exist", () => {
+  it("blocks slug/venue mutations when registrations exist", () => {
     expect(
       findLockedViolations({
         registrationCount: 3,
@@ -42,9 +40,28 @@ describe("findLockedViolations", () => {
       findLockedViolations({
         registrationCount: 3,
         persisted,
-        candidate: { menuMode: "VOUCHER" },
+        candidate: { venueId: "v2" },
       }),
-    ).toEqual(["menuMode"]);
+    ).toEqual(["venueId"]);
+  });
+});
+
+describe("findMandatoryMenuLockedViolation", () => {
+  it("flags mandatory menu set changes when registrations exist", () => {
+    expect(
+      findMandatoryMenuLockedViolation({
+        registrationCount: 3,
+        persisted,
+        candidateMandatoryMenuItemIds: ["m2"],
+      }),
+    ).toBe(true);
+    expect(
+      findMandatoryMenuLockedViolation({
+        registrationCount: 3,
+        persisted,
+        candidateMandatoryMenuItemIds: ["m1"],
+      }),
+    ).toBe(false);
   });
 });
 
@@ -54,13 +71,6 @@ describe("needsSensitiveAcknowledgement", () => {
       needsSensitiveAcknowledgement({
         persisted,
         candidate: { ticketMemberPrice: 9 },
-      }),
-    ).toBe(true);
-
-    expect(
-      needsSensitiveAcknowledgement({
-        persisted,
-        candidate: { voucherPrice: 10 },
       }),
     ).toBe(true);
 

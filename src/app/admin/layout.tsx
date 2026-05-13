@@ -31,6 +31,7 @@ export default async function AdminLayout({
       navFlags={navFlags}
       userEmail={session.user.email ?? null}
       displayName={session.user.name ?? null}
+      avatarUrl={session.user.image ?? null}
     >
       {children}
     </AdminAppShell>

@@ -1,0 +1,51 @@
+---
+description: Core project rules for the CISC match-screening codebase. Apply to all files.
+alwaysApply: true
+---
+
+# Project rules
+
+Full architecture, commands, and conventions are documented in [CLAUDE.md](../../CLAUDE.md). Read it before writing any code. The sections below are the most critical constraints extracted for quick reference.
+
+## Documentation maintenance
+
+Keep `CLAUDE.md` up to date in the same task whenever you change code that affects it:
+- New route or API endpoint → update "Route layout"
+- New or renamed lib module → update "Key library modules"
+- New Prisma model or enum → update "Data model"
+- New convention, mandatory step, or cross-file invariant → update the relevant section
+- New env var or CLI command → update the matching table
+
+## Node.js
+
+The repo requires **Node 24** (pinned in `.nvmrc`). Run `nvm use` before any terminal command invoking `pnpm`, `npx`, `node`, or Prisma CLI.
+
+## Server action rules
+
+Every admin server action must:
+1. Start with `"use server"`
+2. Call `guardEvent(eventId)`, `guardOwner()`, or `guardOwnerOrAdmin()` from `lib/actions/guard.ts` — never write your own auth check
+3. Return `ActionResult<T>` from `lib/forms/action-result.ts`
+4. Use Prisma enum values (e.g. `RegistrationStatus.approved`), not raw strings
+5. Write error messages in Indonesian
+6. Call `appendClubAuditLog` for any Owner-only mutation that changes club configuration
+
+## Client toast pattern
+
+After calling a server action on the client, use `toastCudSuccess` / `toastActionErr` from `lib/client/cud-notify.ts` — do not call `toast` directly.
+
+## Role helpers
+
+Use `hasGlobalVerifierAccess`, `hasOperationalOwnerParity`, and `canManageCommitteeAdvancedSettings` from `lib/permissions/roles.ts` instead of comparing role strings directly.
+
+## `@base-ui/react` Dialog
+
+Use the `render` prop, not `asChild`. Put `disabled` on `<DialogTrigger>`, not on the inner element.
+
+## Monetary values
+
+All prices are stored as **integers in IDR** (whole rupiah). `computeSubmitTotal` in `lib/pricing/compute-submit-total.ts` is the single source of truth.
+
+## Language
+
+UI strings, error messages, and toast messages must be in **Indonesian**.

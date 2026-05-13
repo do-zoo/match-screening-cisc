@@ -33,7 +33,7 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
   const reducedMotion = useReducedMotion();
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-6 py-12 md:gap-16 md:py-16">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-14 px-4 md:px-6 py-12 md:gap-16 md:py-16">
       <FadeContent blur className="max-w-2xl" threshold={0.15} duration={900}>
         <p className="text-xs font-medium tracking-widest text-[hsl(var(--muted-foreground))] uppercase">
           Komunitas
@@ -105,7 +105,11 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
       </FadeContent>
 
       {previewEvents.length > 0 ? (
-        <FadeContent className="flex flex-col gap-5" threshold={0.12} delay={0.15}>
+        <FadeContent
+          className="flex flex-col gap-5"
+          threshold={0.12}
+          delay={0.15}
+        >
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="font-semibold text-xl tracking-tight md:text-2xl">
               Acara mendatang
@@ -129,6 +133,12 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
                   coverBlobUrl={e.coverBlobUrl}
                   venueName={e.venueName}
                   startAtIso={e.startAtIso}
+                  ticketMemberPrice={e.ticketMemberPrice}
+                  ticketNonMemberPrice={e.ticketNonMemberPrice}
+                  registrationCapacity={e.registrationCapacity}
+                  registrationsTowardQuota={e.registrationsTowardQuota}
+                  closeRegistrationAtIso={e.closeRegistrationAtIso}
+                  badgeStatus={e.badgeStatus}
                   variant="list"
                 />
               </li>

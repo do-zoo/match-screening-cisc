@@ -1,8 +1,7 @@
 import { AdminEventBreadcrumbs } from "@/components/admin/admin-event-breadcrumbs";
-import { AdminEventSubnav } from "@/components/admin/admin-event-subnav";
 import { getAdminContext } from "@/lib/auth/admin-context";
-import { prisma } from "@/lib/db/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
 
 export default async function AdminEventBranchLayout({
@@ -29,9 +28,10 @@ export default async function AdminEventBranchLayout({
   return (
     <div data-admin-event-chrome className="flex min-h-0 flex-1 flex-col">
       {breadcrumbTitle ? (
-        <div className="mx-auto w-full max-w-6xl shrink-0 border-b border-border/60 bg-muted/20 px-6 pb-3 pt-6 lg:pt-10">
-          <AdminEventBreadcrumbs eventId={eventId} title={breadcrumbTitle} />
-          <AdminEventSubnav eventId={eventId} />
+        <div className="w-full shrink-0 border-b border-border/60 bg-muted/20">
+          <div className="mx-auto w-full max-w-6xl px-6 pb-3 pt-6 lg:pt-10">
+            <AdminEventBreadcrumbs eventId={eventId} title={breadcrumbTitle} />
+          </div>
         </div>
       ) : null}
       {children}

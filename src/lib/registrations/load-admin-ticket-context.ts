@@ -40,6 +40,21 @@ export async function loadTicketContextVm(input: {
     ),
   ];
 
+  const excludeIds = new Set<string>([registration.id]);
+  const groupRow = await prisma.registration.findUnique({
+    where: { id: registration.id },
+    select: {
+      primaryRegistrationId: true,
+      partnerRegistrations: { select: { id: true } },
+    },
+  });
+  if (groupRow?.primaryRegistrationId) {
+    excludeIds.add(groupRow.primaryRegistrationId);
+  }
+  for (const p of groupRow?.partnerRegistrations ?? []) {
+    excludeIds.add(p.id);
+  }
+
   let conflictsFlat: Array<{
     registrationId: string;
     contactName: string;
@@ -47,26 +62,26 @@ export async function loadTicketContextVm(input: {
   }> = [];
 
   if (nums.length > 0) {
-    const otherTickets = await prisma.ticket.findMany({
+    const exclude = [...excludeIds];
+    const fromRegs = await prisma.registration.findMany({
       where: {
         eventId,
-        registrationId: { not: registration.id },
-        memberNumber: { in: nums },
+        claimedMemberNumber: { in: nums },
+        id: { notIn: exclude },
       },
       select: {
-        memberNumber: true,
-        registration: {
-          select: { id: true, contactName: true },
-        },
+        id: true,
+        contactName: true,
+        claimedMemberNumber: true,
       },
     });
 
-    conflictsFlat = otherTickets
-      .filter((t) => t.memberNumber !== null)
-      .map((t) => ({
-        registrationId: t.registration.id,
-        contactName: t.registration.contactName,
-        memberNumber: t.memberNumber as string,
+    conflictsFlat = fromRegs
+      .filter((r) => r.claimedMemberNumber)
+      .map((r) => ({
+        registrationId: r.id,
+        contactName: r.contactName,
+        memberNumber: r.claimedMemberNumber as string,
       }));
   }
 

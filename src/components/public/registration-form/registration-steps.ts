@@ -1,5 +1,3 @@
-import { MenuMode } from "@prisma/client";
-
 import type { SubmitRegistrationInput } from "@/lib/forms/submit-registration-schema";
 
 export type RegistrationStepId = "purchaser" | "partner" | "menu" | "payment";
@@ -13,12 +11,11 @@ export const REGISTRATION_STEP_ORDER = [
 ] as const satisfies readonly RegistrationStepId[];
 
 export function buildRegistrationSteps(
-  menuMode: MenuMode,
   showPartnerSection: boolean,
 ): RegistrationStepId[] {
   const steps: RegistrationStepId[] = ["purchaser"];
   if (showPartnerSection) steps.push("partner");
-  if (menuMode === MenuMode.PRESELECT) steps.push("menu");
+  steps.push("menu");
   steps.push("payment");
   return steps;
 }
@@ -123,9 +120,10 @@ export function getTriggerFieldsForStep(
       }
       return ["qtyPartner"];
     case "menu":
-      return ["selectedMenuItemIds"];
+      return qtyPartner === 1
+        ? ["primaryMandatoryMenuItemId", "partnerMandatoryMenuItemId"]
+        : ["primaryMandatoryMenuItemId"];
     case "payment":
-      // Final step uses handleSubmit (full schema); no per-step trigger.
       return [];
     default: {
       const _exhaustive: never = stepId;

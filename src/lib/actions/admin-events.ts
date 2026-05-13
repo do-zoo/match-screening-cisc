@@ -3,7 +3,9 @@
 import { randomUUID } from "node:crypto";
 
 import { del } from "@vercel/blob";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { AdminRole } from "@prisma/client";
 
 import {
@@ -15,10 +17,12 @@ import {
 import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
+import { ADMIN_EVENTS_DELETE_SUCCESS_FLASH } from "@/lib/admin/admin-events-delete-flash";
+import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
-import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import {
   findLockedViolations,
+  findMandatoryMenuLockedViolation,
   needsSensitiveAcknowledgement,
   type EventIntegritySnapshot,
 } from "@/lib/events/event-edit-guards";
@@ -33,6 +37,7 @@ import {
   type ActionResult,
 } from "@/lib/forms/action-result";
 import { zodToFieldErrors } from "@/lib/forms/zod";
+import { verifyDescriptionAssetEventId } from "@/lib/public/description-asset-token";
 import { sanitizePublicEventDescriptionHtml } from "@/lib/public/sanitize-event-description";
 import { isUploadError } from "@/lib/uploads/errors";
 import { uploadEventHeroCover } from "@/lib/uploads/upload-event-cover";
@@ -58,24 +63,6 @@ function parsePayloadField(formData: FormData): unknown {
   } catch {
     return null;
   }
-}
-
-async function ticketPricesForWrite(opts: {
-  pricingSource: AdminEventUpsertInput["pricingSource"];
-  parsedMember: number;
-  parsedNonMember: number;
-}): Promise<{ ticketMemberPrice: number; ticketNonMemberPrice: number }> {
-  if (opts.pricingSource === "global_default") {
-    const d = await resolveCommitteeTicketDefaults(prisma);
-    return {
-      ticketMemberPrice: d.ticketMemberPrice,
-      ticketNonMemberPrice: d.ticketNonMemberPrice,
-    };
-  }
-  return {
-    ticketMemberPrice: opts.parsedMember,
-    ticketNonMemberPrice: opts.parsedNonMember,
-  };
 }
 
 async function validatePicBankAndHelpers(
@@ -217,18 +204,45 @@ export async function createAdminEvent(
   const vMenu = await validateLinkedVenueMenuOrError(data);
   if (!vMenu.ok) return vMenu;
 
-  const { ticketMemberPrice, ticketNonMemberPrice } =
-    await ticketPricesForWrite({
-      pricingSource: data.pricingSource,
-      parsedMember: data.ticketMemberPrice,
-      parsedNonMember: data.ticketNonMemberPrice,
-    });
+  const ticketMemberPrice = data.ticketMemberPrice;
+  const ticketNonMemberPrice = data.ticketNonMemberPrice;
 
   const helperIds = [...new Set(data.helperAdminProfileIds)].filter(
     (id) => id !== data.picAdminProfileId,
   );
 
-  const id = randomUUID();
+  const clientEventIdRaw = formData.get("descriptionClientEventId");
+  const descriptionAssetTokenRaw = formData.get("descriptionAssetToken");
+
+  let id: string;
+  if (
+    typeof clientEventIdRaw === "string" &&
+    clientEventIdRaw.length > 0 &&
+    typeof descriptionAssetTokenRaw === "string" &&
+    descriptionAssetTokenRaw.length > 0
+  ) {
+    const uuidParsed = z.string().uuid().safeParse(clientEventIdRaw);
+    if (!uuidParsed.success) {
+      return rootError("ID draf tidak valid. Muat ulang halaman.");
+    }
+    if (!verifyDescriptionAssetEventId(clientEventIdRaw, descriptionAssetTokenRaw)) {
+      return rootError(
+        "Token deskripsi tidak valid. Muat ulang halaman lalu coba lagi.",
+      );
+    }
+    const taken = await prisma.event.findUnique({
+      where: { id: clientEventIdRaw },
+      select: { id: true },
+    });
+    if (taken) {
+      return rootError(
+        "ID draf bentrok. Muat ulang halaman untuk mendapatkan ID baru.",
+      );
+    }
+    id = clientEventIdRaw;
+  } else {
+    id = randomUUID();
+  }
 
   let slug: string;
   try {
@@ -246,8 +260,10 @@ export async function createAdminEvent(
   }
 
   const description = sanitizePublicEventDescriptionHtml(data.descriptionHtml);
-  const voucherPrice =
-    data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
+  const openReg = new Date(data.openRegistrationAtIso);
+  const closeReg = new Date(data.closeRegistrationAtIso);
+  const openGate = new Date(data.openGateAtIso);
+  const kickOff = new Date(data.kickOffAtIso);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -258,8 +274,11 @@ export async function createAdminEvent(
           title: data.title,
           summary: data.summary,
           description,
-          startAt: new Date(data.startAtIso),
-          endAt: new Date(data.endAtIso),
+          openRegistrationAt: openReg,
+          closeRegistrationAt: closeReg,
+          openGateAt: openGate,
+          kickOffAt: kickOff,
+          mandatoryMenuItemIds: data.mandatoryMenuItemIds,
           venueId: data.venueId,
           coverBlobUrl: coverPut.url,
           coverBlobPath: coverPut.pathname,
@@ -271,10 +290,6 @@ export async function createAdminEvent(
           status: data.status,
           ticketMemberPrice,
           ticketNonMemberPrice,
-          pricingSource: data.pricingSource,
-          menuMode: data.menuMode,
-          menuSelection: data.menuSelection,
-          voucherPrice,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -342,12 +357,9 @@ export async function updateAdminEvent(
       slug: true,
       venueId: true,
       coverBlobUrl: true,
-      menuMode: true,
-      menuSelection: true,
+      mandatoryMenuItemIds: true,
       ticketMemberPrice: true,
       ticketNonMemberPrice: true,
-      voucherPrice: true,
-      pricingSource: true,
       picAdminProfileId: true,
       bankAccountId: true,
       eventVenueMenuItems: {
@@ -367,12 +379,9 @@ export async function updateAdminEvent(
   const persistedIntegrity: EventIntegritySnapshot = {
     slug: existing.slug,
     venueId: existing.venueId,
-    menuMode: existing.menuMode,
-    menuSelection: existing.menuSelection,
+    mandatoryMenuItemIds: [...existing.mandatoryMenuItemIds],
     ticketMemberPrice: existing.ticketMemberPrice,
     ticketNonMemberPrice: existing.ticketNonMemberPrice,
-    voucherPrice: existing.voucherPrice,
-    pricingSource: existing.pricingSource,
     picAdminProfileId: existing.picAdminProfileId,
     bankAccountId: existing.bankAccountId,
   };
@@ -382,13 +391,23 @@ export async function updateAdminEvent(
     persisted: persistedIntegrity,
     candidate: {
       venueId: data.venueId,
-      menuMode: data.menuMode,
-      menuSelection: data.menuSelection,
     },
   });
   if (locked.length > 0) {
     return rootError(
       `Bidang tidak dapat diubah karena sudah ada pendaftaran: ${locked.join(", ")}.`,
+    );
+  }
+
+  if (
+    findMandatoryMenuLockedViolation({
+      registrationCount: existing._count.registrations,
+      persisted: persistedIntegrity,
+      candidateMandatoryMenuItemIds: data.mandatoryMenuItemIds,
+    })
+  ) {
+    return rootError(
+      "Menu wajib tidak dapat diubah karena sudah ada pendaftaran.",
     );
   }
 
@@ -410,18 +429,12 @@ export async function updateAdminEvent(
   const vMenu = await validateLinkedVenueMenuOrError(data);
   if (!vMenu.ok) return vMenu;
 
-  const { ticketMemberPrice, ticketNonMemberPrice } =
-    await ticketPricesForWrite({
-      pricingSource: data.pricingSource,
-      parsedMember: data.ticketMemberPrice,
-      parsedNonMember: data.ticketNonMemberPrice,
-    });
+  const ticketMemberPrice = data.ticketMemberPrice;
+  const ticketNonMemberPrice = data.ticketNonMemberPrice;
 
   const candidateSensitivity: Partial<EventIntegritySnapshot> = {
     ticketMemberPrice,
     ticketNonMemberPrice,
-    voucherPrice: data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null,
-    pricingSource: data.pricingSource,
     picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
   };
@@ -432,7 +445,7 @@ export async function updateAdminEvent(
   });
   if (sens && !data.acknowledgeSensitiveChanges) {
     return rootError(
-      "Centang pengakuan untuk mengubah harga tiket/voucher, PIC utama, atau rekening pembayaran.",
+      "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.",
     );
   }
 
@@ -466,8 +479,10 @@ export async function updateAdminEvent(
   }
 
   const description = sanitizePublicEventDescriptionHtml(data.descriptionHtml);
-  const voucherPrice =
-    data.menuMode === "VOUCHER" ? data.voucherPriceIdr : null;
+  const openReg = new Date(data.openRegistrationAtIso);
+  const closeReg = new Date(data.closeRegistrationAtIso);
+  const openGate = new Date(data.openGateAtIso);
+  const kickOff = new Date(data.kickOffAtIso);
 
   const prevCoverUrl = existing.coverBlobUrl;
 
@@ -501,8 +516,11 @@ export async function updateAdminEvent(
           title: data.title,
           summary: data.summary,
           description,
-          startAt: new Date(data.startAtIso),
-          endAt: new Date(data.endAtIso),
+          openRegistrationAt: openReg,
+          closeRegistrationAt: closeReg,
+          openGateAt: openGate,
+          kickOffAt: kickOff,
+          mandatoryMenuItemIds: data.mandatoryMenuItemIds,
           venueId: data.venueId,
           ...(coverPut
             ? {
@@ -518,10 +536,6 @@ export async function updateAdminEvent(
           status: data.status,
           ticketMemberPrice,
           ticketNonMemberPrice,
-          pricingSource: data.pricingSource,
-          menuMode: data.menuMode,
-          menuSelection: data.menuSelection,
-          voucherPrice,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -553,7 +567,7 @@ export async function updateAdminEvent(
   revalidatePath("/");
   revalidatePath("/events");
   revalidatePath(`/events/${publicSlug}`);
-  revalidatePath(`/admin/events/${eventId}/inbox`);
+  revalidatePath(eventRegistrantsListPath(eventId));
   revalidatePath(`/admin/events/${eventId}/edit`);
 
   return ok({ eventId });
@@ -612,5 +626,9 @@ export async function deleteAdminEvent(
   revalidatePath("/admin/events");
   revalidatePath("/");
   revalidatePath("/events");
-  return ok({ deleted: true });
+  revalidatePath(`/admin/events/${event.id}/edit`);
+
+  redirect(
+    `/admin/events?tab=active&flash=${encodeURIComponent(ADMIN_EVENTS_DELETE_SUCCESS_FLASH)}`,
+  );
 }

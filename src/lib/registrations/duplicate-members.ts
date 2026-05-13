@@ -7,13 +7,14 @@ export async function findDuplicateMemberNumbers(
   const nums = [...new Set(candidates.filter(Boolean))];
   if (nums.length === 0) return [];
 
-  const existing = await prisma.ticket.findMany({
-    where: { eventId, memberNumber: { in: nums } },
-    select: { memberNumber: true },
+  const fromRegistrations = await prisma.registration.findMany({
+    where: { eventId, claimedMemberNumber: { in: nums } },
+    select: { claimedMemberNumber: true },
   });
 
-  const set = new Set(
-    existing.map((e) => e.memberNumber).filter(Boolean) as string[],
-  );
+  const set = new Set<string>();
+  for (const r of fromRegistrations) {
+    if (r.claimedMemberNumber) set.add(r.claimedMemberNumber);
+  }
   return nums.filter((n) => set.has(n));
 }

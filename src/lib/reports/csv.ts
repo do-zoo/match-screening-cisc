@@ -1,9 +1,24 @@
-import { TicketRole } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { TicketRole } from "@prisma/client";
+import { formatIdr } from "../utils/format-idr";
 
-/** Returns a UTF-8 CSV string of all registrations for an event. */
-export async function generateRegistrationsCsv(eventId: string): Promise<string> {
-  const registrations = await prisma.registration.findMany({
+function escapeCsv(v: string): string {
+  if (
+    v.includes(",") ||
+    v.includes('"') ||
+    v.includes("\n") ||
+    v.includes("\r")
+  ) {
+    return `"${v.replace(/"/g, '""')}"`;
+  }
+  return v;
+}
+
+/** CSV UTF-8: satu baris per `Registration` (utama atau partner). */
+export async function generateRegistrationsCsv(
+  eventId: string,
+): Promise<string> {
+  const rows = await prisma.registration.findMany({
     where: { eventId },
     orderBy: { createdAt: "asc" },
     select: {
@@ -13,82 +28,70 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       contactWhatsapp: true,
       claimedMemberNumber: true,
       memberValidation: true,
+      ticketRole: true,
+      primaryRegistrationId: true,
+      primaryRegistration: {
+        select: { id: true, contactName: true },
+      },
       status: true,
       attendanceStatus: true,
+      ticketPriceApplied: true,
+      mandatoryMenuPriceApplied: true,
       computedTotalAtSubmit: true,
-      tickets: {
-        select: {
-          role: true,
-          fullName: true,
-          whatsapp: true,
-          memberNumber: true,
-          ticketPriceType: true,
-          voucherRedeemedMenuItemId: true,
-          menuSelections: {
-            select: { menuItem: { select: { name: true } } },
-          },
-        },
-      },
+      mandatoryMenuItem: { select: { name: true } },
       adjustments: {
         select: { type: true, amount: true, status: true },
       },
     },
   });
 
-  const idr = (n: number) =>
-    new Intl.NumberFormat("id-ID", { style: "decimal", maximumFractionDigits: 0 }).format(n);
-
   const headers = [
     "ID",
     "Tanggal daftar",
-    "Nama kontak",
+    "Nama pendaftar",
     "WhatsApp",
     "No. member",
+    "Peran",
+    "Pembeli utama (jika partner)",
     "Validasi member",
     "Status",
     "Kehadiran",
+    "Harga tiket (IDR)",
+    "Menu wajib",
+    "Harga acuan menu wajib (IDR)",
     "Total (IDR)",
-    "Tiket utama",
-    "Menu tiket utama",
-    "Tiket partner",
-    "Menu tiket partner",
     "Penyesuaian (IDR)",
   ];
 
-  function escapeCsv(v: string): string {
-    if (v.includes(",") || v.includes('"') || v.includes("\n")) {
-      return `"${v.replace(/"/g, '""')}"`;
-    }
-    return v;
-  }
-
-  const rows = registrations.map((r) => {
-    const primary = r.tickets.find((t) => t.role === TicketRole.primary);
-    const partner = r.tickets.find((t) => t.role === TicketRole.partner);
-    const primaryMenu = primary?.menuSelections.map((s) => s.menuItem.name).join("; ") ?? "";
-    const partnerMenu = partner?.menuSelections.map((s) => s.menuItem.name).join("; ") ?? "";
+  const body = rows.map((r) => {
     const adjustmentTotal = r.adjustments.reduce((s, a) => s + a.amount, 0);
+    const roleLabel = r.ticketRole === TicketRole.primary ? "Utama" : "Partner";
+    const primaryBuyer =
+      r.ticketRole === TicketRole.partner && r.primaryRegistration
+        ? r.primaryRegistration.contactName
+        : "";
 
     return [
       r.id,
-      new Date(r.createdAt).toLocaleDateString("id-ID"),
+      new Date(r.createdAt).toLocaleString("id-ID"),
       r.contactName,
       r.contactWhatsapp,
       r.claimedMemberNumber ?? "",
+      roleLabel,
+      primaryBuyer,
       r.memberValidation,
       r.status,
       r.attendanceStatus,
-      idr(r.computedTotalAtSubmit),
-      primary?.fullName ?? "",
-      primaryMenu,
-      partner?.fullName ?? "",
-      partnerMenu,
-      adjustmentTotal > 0 ? idr(adjustmentTotal) : "",
+      formatIdr(r.ticketPriceApplied),
+      r.mandatoryMenuItem.name,
+      formatIdr(r.mandatoryMenuPriceApplied),
+      formatIdr(r.computedTotalAtSubmit),
+      adjustmentTotal > 0 ? formatIdr(adjustmentTotal) : "",
     ]
       .map(String)
       .map(escapeCsv)
       .join(",");
   });
 
-  return [headers.map(escapeCsv).join(","), ...rows].join("\r\n");
+  return [headers.map(escapeCsv).join(","), ...body].join("\r\n");
 }

@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,21 +12,6 @@ enum EventStatus {
   draft
   active
   finished
-}
-
-enum PricingSource {
-  global_default
-  overridden
-}
-
-enum MenuMode {
-  PRESELECT
-  VOUCHER
-}
-
-enum MenuSelection {
-  SINGLE
-  MULTI
 }
 
 enum RegistrationStatus {
@@ -79,6 +63,16 @@ enum UploadPurpose {
   member_card_photo
   partner_member_card_photo
   invoice_adjustment_proof
+  event_settlement_venue_transfer
+  event_settlement_venue_receipt
+  event_settlement_treasurer_margin
+}
+
+/// Bukti penutupan keuangan acara (PIC / Owner / Admin); satu baris per unggahan, riwayat append-only.
+enum EventSettlementArtifactKind {
+  venue_transfer
+  venue_receipt
+  treasurer_margin
 }
 
 enum AdminRole {
@@ -107,11 +101,11 @@ enum NotificationOutboundMode {
 // ---------- Models ----------
 
 model MasterMember {
-  id           String  @id @default(cuid())
-  memberNumber String  @unique
-  fullName     String
-  whatsapp     String?
-  isActive     Boolean @default(true)
+  id                 String  @id @default(cuid())
+  memberNumber       String  @unique
+  fullName           String
+  whatsapp           String?
+  isActive           Boolean @default(true)
   isManagementMember Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -170,7 +164,7 @@ model ManagementMember {
 }
 
 model BoardAssignment {
-  id                 String @id @default(cuid())
+  id                 String           @id @default(cuid())
   boardPeriodId      String
   boardPeriod        BoardPeriod      @relation(fields: [boardPeriodId], references: [id], onDelete: Cascade)
   managementMemberId String
@@ -188,7 +182,7 @@ model BoardAssignment {
 }
 
 model PicBankAccount {
-  id                  String        @id @default(cuid())
+  id                  String       @id @default(cuid())
   ownerAdminProfileId String
   ownerAdmin          AdminProfile @relation(fields: [ownerAdminProfileId], references: [id], onDelete: Restrict)
 
@@ -209,6 +203,8 @@ model Venue {
   id        String   @id @default(cuid())
   name      String
   address   String   @db.Text
+  /// Tautan peta (mis. Google Maps); opsional.
+  mapUrl    String?
   notes     String?  @db.Text
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -218,22 +214,23 @@ model Venue {
   events    Event[]
 }
 
-/// Baris menu kanonik per venue. Relasi tiket/menu pilihan akan dipindahkan ke model ini pada migrasi kontrak (M2).
+/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `Registration.mandatoryMenuItem`.
 model VenueMenuItem {
-  id              String   @id @default(cuid())
-  venueId         String
-  venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  name            String
+  id            String   @id @default(cuid())
+  venueId       String
+  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?  @db.Text
+  imageBlobUrl  String?
+  imageBlobPath String?
   /// IDR smallest unit (sama seperti harga tiket).
-  price           Int
-  sortOrder       Int      @default(0)
-  voucherEligible Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  price         Int
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  eventVenueLinks    EventVenueMenuItem[]
-  ticketSelections   TicketMenuSelection[]
-  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
+  eventVenueLinks            EventVenueMenuItem[]
+  registrationsMandatoryMenu Registration[]       @relation("RegistrationMandatoryMenu")
 
   @@index([venueId])
 }
@@ -251,14 +248,12 @@ model EventVenueMenuItem {
 }
 
 model Event {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String @id @default(cuid())
+  slug        String @unique
   title       String
   summary     String
   /// Konten WYSIWYG (HTML). Sanitasi di server saat admin menyimpan; publik memakai helper `sanitizePublicEventDescriptionHtml`.
-  description String   @db.Text
-  startAt     DateTime
-  endAt       DateTime
+  description String @db.Text
 
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
@@ -266,18 +261,22 @@ model Event {
   coverBlobUrl  String
   coverBlobPath String
 
-  registrationManualClosed Boolean @default(false)
+  // NEW: Timeline fields (replaces startAt, endAt)
+  openRegistrationAt  DateTime
+  closeRegistrationAt DateTime
+  openGateAt          DateTime
+  kickOffAt           DateTime
+
+  registrationManualClosed Boolean     @default(false)
   registrationCapacity     Int?
+  status                   EventStatus @default(draft)
 
-  status EventStatus @default(draft)
-
+  // Updated: pricing is required (no global defaults)
   ticketMemberPrice    Int
   ticketNonMemberPrice Int
-  pricingSource        PricingSource @default(global_default)
 
-  menuMode      MenuMode
-  menuSelection MenuSelection
-  voucherPrice  Int?
+  // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
+  mandatoryMenuItemIds String[] @default([])
 
   picAdminProfileId String
   picAdminProfile   AdminProfile @relation(fields: [picAdminProfileId], references: [id], onDelete: Restrict)
@@ -288,11 +287,12 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  helpers               EventPicHelper[]
-  registrations         Registration[]
-  eventVenueMenuItems   EventVenueMenuItem[]
+  helpers             EventPicHelper[]
+  registrations       Registration[]
+  eventVenueMenuItems EventVenueMenuItem[]
+  settlementArtifacts EventSettlementArtifact[]
 
-  @@index([status, startAt])
+  @@index([status, kickOffAt])
   @@index([venueId])
   @@index([picAdminProfileId])
   @@index([bankAccountId])
@@ -327,11 +327,18 @@ model Registration {
   memberId            String?
   member              MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
-  // Snapshot pricing (locked at submission)
-  ticketMemberPriceApplied    Int
-  ticketNonMemberPriceApplied Int
-  voucherPriceApplied         Int?
-  computedTotalAtSubmit       Int
+  primaryRegistrationId String?
+  primaryRegistration   Registration?  @relation("PartnerLink", fields: [primaryRegistrationId], references: [id], onDelete: Cascade)
+  partnerRegistrations  Registration[] @relation("PartnerLink")
+
+  ticketRole          TicketRole
+  ticketPriceType     TicketPriceType
+  mandatoryMenuItemId String
+  mandatoryMenuItem   VenueMenuItem   @relation("RegistrationMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
+
+  ticketPriceApplied        Int
+  mandatoryMenuPriceApplied Int
+  computedTotalAtSubmit     Int
 
   status           RegistrationStatus @default(submitted)
   attendanceStatus AttendanceStatus   @default(unknown)
@@ -339,7 +346,6 @@ model Registration {
   rejectionReason    String?
   paymentIssueReason String?
 
-  tickets     Ticket[]
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
 
@@ -349,52 +355,8 @@ model Registration {
 
   @@index([eventId, createdAt])
   @@index([status])
+  @@index([primaryRegistrationId])
   @@index([attendanceStatus])
-}
-
-model Ticket {
-  id             String       @id @default(cuid())
-  registrationId String
-  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-
-  role TicketRole
-
-  fullName     String
-  whatsapp     String?
-  memberNumber String?
-
-  ticketPriceType TicketPriceType
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Business rule: one ticket per member per event.
-  // Implemented as (eventId, memberNumber) unique via denormalized eventId.
-  eventId        String
-  menuSelections TicketMenuSelection[]
-
-  voucherRedeemedMenuItemId String?
-  voucherRedeemedAt         DateTime?
-  voucherRedeemedItem       VenueMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
-
-  @@index([registrationId])
-  @@index([eventId])
-  @@index([voucherRedeemedMenuItemId])
-  @@unique([eventId, memberNumber])
-  @@unique([registrationId, role])
-}
-
-model TicketMenuSelection {
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  menuItemId String
-  menuItem   VenueMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-
-  @@id([ticketId, menuItemId])
-  @@index([menuItemId])
 }
 
 model InvoiceAdjustment {
@@ -441,18 +403,11 @@ model Upload {
   invoiceAdjustmentId String?
   invoiceAdjustment   InvoiceAdjustment? @relation(fields: [invoiceAdjustmentId], references: [id], onDelete: Cascade)
 
+  eventSettlementArtifact EventSettlementArtifact?
+
   @@index([purpose, createdAt])
   @@index([registrationId])
   @@index([invoiceAdjustmentId])
-}
-
-/// Singleton committee default ticket prices (`singletonKey` = `default`). App read order: row → env → built-in fallbacks.
-model CommitteeTicketDefaults {
-  singletonKey         String   @id @default("default")
-  ticketMemberPrice      Int
-  ticketNonMemberPrice   Int
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
 }
 
 model ClubWaTemplate {
@@ -462,8 +417,8 @@ model ClubWaTemplate {
 }
 
 model ClubBranding {
-  singletonKey    String @id @default("default")
-  clubNameNav     String @default("CISC Nobar")
+  singletonKey    String   @id @default("default")
+  clubNameNav     String   @default("CISC Nobar")
   footerPlainText String?
   logoBlobUrl     String?
   logoBlobPath    String?
@@ -475,7 +430,7 @@ model ClubOperationalSettings {
   singletonKey                    String   @id @default("default")
   registrationGloballyDisabled    Boolean  @default(false)
   globalRegistrationClosedMessage String?
-  maintenanceBannerPlainText       String?
+  maintenanceBannerPlainText      String?
   createdAt                       DateTime @default(now())
   updatedAt                       DateTime @updatedAt
 }
@@ -524,11 +479,37 @@ model AdminProfile {
 
   invitationsCreated AdminInvitation[] @relation("AdminInvitationCreator")
 
+  settlementArtifactsUploaded EventSettlementArtifact[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
   @@index([managementMemberId])
+}
+
+model EventSettlementArtifact {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  kind EventSettlementArtifactKind
+
+  declaredAmountIdr    Int?
+  expectedAmountIdr    Int?
+  amountDeltaIdr       Int?
+  mismatchAcknowledged Boolean @default(false)
+  mismatchReason       String? @db.Text
+
+  uploadId String @unique
+  upload   Upload @relation(fields: [uploadId], references: [id], onDelete: Restrict)
+
+  uploadedByAdminProfileId String
+  uploadedBy               AdminProfile @relation(fields: [uploadedByAdminProfileId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId, kind, createdAt])
 }
 
 /// Undangan Owner -> admin baru; token disimpan sebagai hash (bukan plaintext).
@@ -557,14 +538,14 @@ model AdminInvitation {
 }
 
 model User {
-  id               String       @id
+  id               String      @id
   name             String
   email            String
-  emailVerified    Boolean      @default(false)
+  emailVerified    Boolean     @default(false)
   image            String?
-  twoFactorEnabled Boolean?     @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  twoFactorEnabled Boolean?    @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   sessions         Session[]
   accounts         Account[]
   twofactors       TwoFactor[]

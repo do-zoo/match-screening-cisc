@@ -14,8 +14,12 @@ const formatIdr = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-function linesForRole(lines: PricingLine[], role: PricingLine["role"]) {
-  return lines.filter((l) => l.role === role);
+function ticketLinesForRole(lines: PricingLine[], role: PricingLine["role"]) {
+  return lines.filter((l) => l.role === role && l.kind === "ticket");
+}
+
+function menuLinesForRole(lines: PricingLine[], role: PricingLine["role"]) {
+  return lines.filter((l) => l.role === role && l.kind === "menu");
 }
 
 function subtotalForRole(roleLines: PricingLine[]) {
@@ -27,18 +31,36 @@ function sectionHeading(
   roleLines: PricingLine[],
 ): string {
   if (role === "partner") return "Tiket pasangan (Pengurus)";
-  const ticket = roleLines.find((l) => l.kind === "ticket");
+  const ticket = roleLines[0];
   if (!ticket) return "Tiket utama";
   if (ticket.label === "Tiket Member") return "Tiket utama (Member)";
   if (ticket.label === "Tiket Non-member") return "Tiket utama (Non-member)";
   return "Tiket utama";
 }
 
+function MenuInfoRow({ line }: { line: PricingLine }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
+      <span>
+        {line.label}{" "}
+        <span className="font-mono tabular-nums">
+          ({formatIdr(line.amount)})
+        </span>
+        <span className="mt-0.5 block text-[11px] leading-snug">
+          Harga referensi alokasi venue; sudah termasuk dalam tiket.
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function LineRow({ line }: { line: PricingLine }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <span className="text-muted-foreground">{line.label}</span>
-      <span className="shrink-0 font-mono tabular-nums">{formatIdr(line.amount)}</span>
+      <span className="shrink-0 font-mono tabular-nums">
+        {formatIdr(line.amount)}
+      </span>
     </div>
   );
 }
@@ -47,7 +69,9 @@ export function PriceBreakdown({ pricing }: Props) {
   if (!pricing) {
     return (
       <div className="rounded-lg border bg-card p-4 text-muted-foreground">
-        <div className="mb-3 text-sm font-medium text-foreground">Ringkasan biaya</div>
+        <div className="mb-3 text-sm font-medium text-foreground">
+          Ringkasan biaya
+        </div>
         <div className="space-y-2" aria-hidden>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex justify-between gap-4">
@@ -57,18 +81,22 @@ export function PriceBreakdown({ pricing }: Props) {
           ))}
         </div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          Lengkapi pilihan menu untuk melihat estimasi.
+          Lengkapi pilihan menu wajib untuk melihat estimasi.
         </p>
       </div>
     );
   }
 
-  const primaryLines = linesForRole(pricing.lines, "primary");
-  const partnerLines = linesForRole(pricing.lines, "partner");
+  const primaryLines = ticketLinesForRole(pricing.lines, "primary");
+  const primaryMenuLines = menuLinesForRole(pricing.lines, "primary");
+  const partnerLines = ticketLinesForRole(pricing.lines, "partner");
+  const partnerMenuLines = menuLinesForRole(pricing.lines, "partner");
 
   return (
     <div className="rounded-lg border bg-card p-4">
-      <div className="mb-3 text-sm font-medium text-foreground">Ringkasan biaya</div>
+      <div className="mb-3 text-sm font-medium text-foreground">
+        Ringkasan biaya
+      </div>
 
       <div className="space-y-4">
         {primaryLines.length > 0 ? (
@@ -81,6 +109,16 @@ export function PriceBreakdown({ pricing }: Props) {
                 <LineRow key={`primary-${line.kind}-${idx}`} line={line} />
               ))}
             </div>
+            {primaryMenuLines.length > 0 ? (
+              <div className="space-y-2 border-t border-border/60 pt-2">
+                {primaryMenuLines.map((line, idx) => (
+                  <MenuInfoRow
+                    key={`primary-menu-${idx}`}
+                    line={line}
+                  />
+                ))}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-4 border-t border-border pt-2 text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono font-medium tabular-nums">
@@ -100,6 +138,16 @@ export function PriceBreakdown({ pricing }: Props) {
                 <LineRow key={`partner-${line.kind}-${idx}`} line={line} />
               ))}
             </div>
+            {partnerMenuLines.length > 0 ? (
+              <div className="space-y-2 border-t border-border/60 pt-2">
+                {partnerMenuLines.map((line, idx) => (
+                  <MenuInfoRow
+                    key={`partner-menu-${idx}`}
+                    line={line}
+                  />
+                ))}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-4 border-t border-border pt-2 text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono font-medium tabular-nums">
@@ -114,14 +162,10 @@ export function PriceBreakdown({ pricing }: Props) {
         <div className="flex items-center justify-between gap-4">
           <span className="font-medium text-foreground">Total dibayar</span>
           <span className="font-mono text-base font-semibold tabular-nums text-foreground">
-            {formatIdr(pricing.computedTotalAtSubmit)}
+            {formatIdr(pricing.grandTotal)}
           </span>
         </div>
       </div>
-
-      <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        Total final dikunci server saat pengiriman.
-      </p>
     </div>
   );
 }

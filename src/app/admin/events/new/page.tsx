@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,9 +13,13 @@ import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
+import {
+  COMMITTEE_TICKET_FALLBACK_MEMBER_IDR,
+  COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR,
+} from "@/lib/events/event-admin-defaults";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
+import { signDescriptionAssetEventId } from "@/lib/public/description-asset-token";
 import { cn } from "@/lib/utils";
 
 export default async function AdminNewEventPage() {
@@ -22,12 +28,13 @@ export default async function AdminNewEventPage() {
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
         <Alert variant="destructive">
           <AlertTitle>Profil admin belum ada</AlertTitle>
           <AlertDescription>
-            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk aktivasi akses PIC.
+            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk
+            aktivasi akses PIC.
           </AlertDescription>
         </Alert>
       </main>
@@ -37,8 +44,6 @@ export default async function AdminNewEventPage() {
   if (!hasOperationalOwnerParity(ctx.role)) {
     notFound();
   }
-
-  const committeeDefaults = await resolveCommitteeTicketDefaults(prisma);
 
   const venuesRaw = await prisma.venue.findMany({
     where: { isActive: true },
@@ -65,10 +70,7 @@ export default async function AdminNewEventPage() {
     }),
   ]);
 
-  const banksByPic: Record<
-    string,
-    Array<{ id: string; label: string }>
-  > = {};
+  const banksByPic: Record<string, Array<{ id: string; label: string }>> = {};
   for (const b of banks) {
     const list = banksByPic[b.ownerAdminProfileId] ?? [];
     list.push({
@@ -88,7 +90,6 @@ export default async function AdminNewEventPage() {
       name: m.name,
       price: m.price,
       sortOrder: m.sortOrder,
-      voucherEligible: m.voucherEligible,
     })),
   }));
 
@@ -112,23 +113,29 @@ export default async function AdminNewEventPage() {
           }))
       : [];
 
+  const defaultMandatory =
+    defaultLinked.length > 0 ? [defaultLinked[0]!.venueMenuItemId] : [];
+
+  const openReg = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const closeReg = new Date(inOneWeek.getTime() - 60 * 60 * 1000);
+  const openGate = new Date(inOneWeek.getTime() - 30 * 60 * 1000);
+
   const defaults: AdminEventUpsertInput = {
     title: "",
     summary: "",
     descriptionHtml: "<p></p>",
     venueId: firstVenue?.id ?? "",
     linkedVenueMenuItems: defaultLinked,
-    startAtIso: now.toISOString(),
-    endAtIso: inOneWeek.toISOString(),
+    openRegistrationAtIso: openReg.toISOString(),
+    closeRegistrationAtIso: closeReg.toISOString(),
+    openGateAtIso: openGate.toISOString(),
+    kickOffAtIso: inOneWeek.toISOString(),
+    mandatoryMenuItemIds: defaultMandatory,
     registrationCapacity: null,
     registrationManualClosed: false,
     status: "draft",
-    menuMode: "PRESELECT",
-    menuSelection: "SINGLE",
-    voucherPriceIdr: null,
-    pricingSource: "global_default",
-    ticketMemberPrice: committeeDefaults.ticketMemberPrice,
-    ticketNonMemberPrice: committeeDefaults.ticketNonMemberPrice,
+    ticketMemberPrice: COMMITTEE_TICKET_FALLBACK_MEMBER_IDR,
+    ticketNonMemberPrice: COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR,
     picAdminProfileId: firstPicId ?? "",
     bankAccountId: firstBankId,
     helperAdminProfileIds: [],
@@ -139,11 +146,14 @@ export default async function AdminNewEventPage() {
     venueOptions.every((v) => v.menuItems.length === 0)
   ) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
         <header className="flex flex-col gap-2">
           <Link
             href="/admin/events"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "w-fit px-0",
+            )}
           >
             ← Kembali ke daftar acara
           </Link>
@@ -153,7 +163,10 @@ export default async function AdminNewEventPage() {
           <AlertTitle>Venue atau menu venue belum siap</AlertTitle>
           <AlertDescription>
             Buat minimal satu venue yang memiliki setidaknya satu item menu di{" "}
-            <Link href="/admin/venues" className="font-medium underline underline-offset-4">
+            <Link
+              href="/admin/venues"
+              className="font-medium underline underline-offset-4"
+            >
               pengelola venue
             </Link>{" "}
             sebelum membuat acara.
@@ -165,11 +178,14 @@ export default async function AdminNewEventPage() {
 
   if (!firstPicId || !firstBankId) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
         <header className="flex flex-col gap-2">
           <Link
             href="/admin/events"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "w-fit px-0",
+            )}
           >
             ← Kembali ke daftar acara
           </Link>
@@ -178,38 +194,51 @@ export default async function AdminNewEventPage() {
         <Alert>
           <AlertTitle>Belum siap membuat acara</AlertTitle>
           <AlertDescription>
-            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar <strong>dan</strong> setidaknya
-            satu rekening PIC aktif milik admin tersebut. Pastikan rekening bank dipasangkan ke profil admin
-            di pengaturan komite, lalu coba lagi.
+            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar{" "}
+            <strong>dan</strong> setidaknya satu rekening PIC aktif milik admin
+            tersebut. Pastikan rekening bank dipasangkan ke profil admin di
+            pengaturan komite, lalu coba lagi.
           </AlertDescription>
         </Alert>
       </main>
     );
   }
 
+  const descriptionAssetClientEventId = randomUUID();
+  const descriptionAssetToken = signDescriptionAssetEventId(
+    descriptionAssetClientEventId,
+  );
+
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-2">
         <Link
           href="/admin/events"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "w-fit px-0",
+          )}
         >
           ← Kembali ke daftar acara
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
         <p className="text-muted-foreground text-sm">
-          Isi detail acara, menu, PIC, dan unggah sampul. Slug URL dibuat otomatis dari judul.
+          Isi detail acara, menu, PIC, dan unggah sampul. Slug URL dibuat
+          otomatis dari judul.
         </p>
       </header>
 
       <EventAdminForm
         mode="create"
-        committeeDefaults={committeeDefaults}
         defaults={defaults}
         picOptions={picOptions}
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
         venueOptions={venueOptions}
+        descriptionAssetContext={{
+          eventId: descriptionAssetClientEventId,
+          assetToken: descriptionAssetToken,
+        }}
       />
     </main>
   );

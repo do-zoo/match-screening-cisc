@@ -255,7 +255,7 @@ export function ManagementAssignmentFormDialog(props: Props) {
       }}
     >
       <DialogContent className="gap-0 p-0 sm:max-w-lg sm:rounded-2xl">
-        <DialogHeader className="space-y-2 border-b border-border/80 px-6 pt-6 pb-5 text-left sm:pr-14">
+        <DialogHeader className="space-y-2 border-b border-border/80 px-4 md:px-6 pt-6 pb-5 text-left sm:pr-14">
           <DialogTitle className="text-lg leading-tight font-semibold tracking-tight sm:text-xl">
             {props.mode === "create" ? "Tambah penugasan" : "Ubah jabatan"}
           </DialogTitle>
@@ -270,7 +270,7 @@ export function ManagementAssignmentFormDialog(props: Props) {
           className="flex flex-col"
           onSubmit={form.handleSubmit(submit as never)}
         >
-          <div className="flex flex-col gap-6 px-6 py-6">
+          <div className="flex flex-col gap-4 md:p-6 px-4 md:px-6 py-6">
             {rootMessage ? (
               <p
                 role="alert"
@@ -280,7 +280,7 @@ export function ManagementAssignmentFormDialog(props: Props) {
               </p>
             ) : null}
 
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 md:p-6">
               {props.mode === "create" ? (
                 <div className="space-y-2.5">
                   <div className="space-y-1">
@@ -299,12 +299,8 @@ export function ManagementAssignmentFormDialog(props: Props) {
                         <EntityCombobox
                           id="assign-member"
                           placeholder="Pilih pengurus…"
-                          value={
-                            field.value === "" ? null : field.value
-                          }
-                          onValueChange={(next) =>
-                            field.onChange(next ?? "")
-                          }
+                          value={field.value === "" ? null : field.value}
+                          onValueChange={(next) => field.onChange(next ?? "")}
                           options={assignmentMemberOptions}
                           disabled={isPending}
                           aria-invalid={fieldState.invalid}
@@ -323,7 +319,7 @@ export function ManagementAssignmentFormDialog(props: Props) {
                   <Label className="text-sm font-medium text-foreground">
                     Pengurus
                   </Label>
-                  <div className="rounded-xl border border-border/80 bg-muted/35 px-4 py-3.5 text-sm shadow-inner">
+                  <div className="rounded-xl border border-border/80 bg-muted/35 px-4 md:px-6 py-3.5 text-sm shadow-inner">
                     <p className="font-medium leading-snug">
                       {props.assignment.managementMember.fullName}
                     </p>
@@ -351,12 +347,8 @@ export function ManagementAssignmentFormDialog(props: Props) {
                       <EntityCombobox
                         id="assign-role"
                         placeholder="Pilih jabatan…"
-                        value={
-                          field.value === "" ? null : field.value
-                        }
-                        onValueChange={(next) =>
-                          field.onChange(next ?? "")
-                        }
+                        value={field.value === "" ? null : field.value}
+                        onValueChange={(next) => field.onChange(next ?? "")}
                         options={assignmentRoleOptions}
                         disabled={isPending}
                         aria-invalid={fieldState.invalid}
@@ -373,7 +365,7 @@ export function ManagementAssignmentFormDialog(props: Props) {
             </div>
           </div>
 
-          <DialogFooter className="mx-0 mb-0 flex-col-reverse gap-3 rounded-b-2xl border-t border-border/80 bg-muted/30 px-6 py-4 sm:flex-row sm:justify-end [&>button:last-of-type]:min-w-25">
+          <DialogFooter className="mx-0 mb-0 flex-col-reverse gap-3 rounded-b-2xl border-t border-border/80 bg-muted/30 px-4 md:px-6 py-4 sm:flex-row sm:justify-end [&>button:last-of-type]:min-w-25">
             {props.mode === "edit" && !showDeleteConfirm ? (
               <Button
                 type="button"

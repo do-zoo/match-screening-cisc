@@ -1,6 +1,12 @@
 "use client";
 
-import { LayoutListIcon, MoreVerticalIcon, NetworkIcon, PlusIcon, SearchIcon } from "lucide-react";
+import {
+  LayoutListIcon,
+  MoreVerticalIcon,
+  NetworkIcon,
+  PlusIcon,
+  SearchIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -49,7 +55,11 @@ const FILTER_OPTIONS: Array<{
 
 function buildPeriodAssignmentsHref(
   periodId: string,
-  opts: { filter: PeriodAssignmentAdminFilter; q: string; view: "list" | "tree" },
+  opts: {
+    filter: PeriodAssignmentAdminFilter;
+    q: string;
+    view: "list" | "tree";
+  },
 ): string {
   const qs = new URLSearchParams();
   const qTrim = opts.q.trim();
@@ -103,7 +113,9 @@ export function ManagementPeriodDetail({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [editDialog, setEditDialog] = useState<EditDialogState>(null);
-  const [treeAddRoleId, setTreeAddRoleId] = useState<string | undefined>(undefined);
+  const [treeAddRoleId, setTreeAddRoleId] = useState<string | undefined>(
+    undefined,
+  );
 
   const columns = useMemo<ColumnDef<AdminPeriodAssignmentRowVm>[]>(
     () => [
@@ -168,9 +180,7 @@ export function ManagementPeriodDetail({
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={`Aksi untuk ${row.original.managementMember.fullName}`}
-                render={
-                  <Button type="button" variant="ghost" size="icon-sm" />
-                }
+                render={<Button type="button" variant="ghost" size="icon-sm" />}
               >
                 <MoreVerticalIcon />
               </DropdownMenuTrigger>
@@ -217,7 +227,7 @@ export function ManagementPeriodDetail({
         };
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-6">
       <div className="text-sm text-muted-foreground">
         <Link href="/admin/management" className="hover:text-foreground">
           ← Kepengurusan
@@ -288,91 +298,95 @@ export function ManagementPeriodDetail({
       {view === "list" && (
         <>
           {assignmentsEmpty ? (
-            <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-              Belum ada penugasan. Klik &quot;Tambah Penugasan&quot; untuk mengisi
-              roster periode ini.
+            <p className="rounded-lg border border-dashed px-4 md:px-6 py-6 text-sm text-muted-foreground">
+              Belum ada penugasan. Klik &quot;Tambah Penugasan&quot; untuk
+              mengisi roster periode ini.
             </p>
           ) : (
-        <div className="flex flex-col gap-4">
-          <form
-            method="get"
-            action={pathname}
-            className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between"
-          >
-            <input type="hidden" name="filter" value={filter} />
-            <div className="flex w-full flex-col gap-1 sm:w-auto sm:min-w-52">
-              <Label
-                htmlFor="period-assignments-filter"
-                className="text-muted-foreground"
+            <div className="flex flex-col gap-4">
+              <form
+                method="get"
+                action={pathname}
+                className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between"
               >
-                Filter
-              </Label>
-              <Select
-                value={filter}
-                onValueChange={(next) => {
-                  if (
-                    next !== "all" &&
-                    next !== "linked" &&
-                    next !== "unlinked"
-                  ) {
-                    return;
-                  }
-                  router.push(
-                    buildPeriodAssignmentsHref(period.id, {
-                      filter: next,
-                      q: searchQuery,
-                      view,
-                    }),
-                  );
-                }}
-              >
-                <SelectTrigger
-                  id="period-assignments-filter"
-                  size="sm"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FILTER_OPTIONS.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>
-                      {f.label} ({counts[f.value]})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:min-w-0 sm:max-w-lg sm:flex-1 sm:flex-row sm:items-center">
-              <Input
-                name="q"
-                defaultValue={searchQuery}
-                placeholder="Cari jabatan, nama, atau kode publik"
-                className="sm:min-w-0 sm:flex-1"
-                aria-label="Cari penugasan"
-              />
-              <Button type="submit" variant="secondary" className="shrink-0">
-                <SearchIcon data-icon="inline-start" />
-                Cari
-              </Button>
-            </div>
-          </form>
+                <input type="hidden" name="filter" value={filter} />
+                <div className="flex w-full flex-col gap-1 sm:w-auto sm:min-w-52">
+                  <Label
+                    htmlFor="period-assignments-filter"
+                    className="text-muted-foreground"
+                  >
+                    Filter
+                  </Label>
+                  <Select
+                    value={filter}
+                    onValueChange={(next) => {
+                      if (
+                        next !== "all" &&
+                        next !== "linked" &&
+                        next !== "unlinked"
+                      ) {
+                        return;
+                      }
+                      router.push(
+                        buildPeriodAssignmentsHref(period.id, {
+                          filter: next,
+                          q: searchQuery,
+                          view,
+                        }),
+                      );
+                    }}
+                  >
+                    <SelectTrigger
+                      id="period-assignments-filter"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FILTER_OPTIONS.map((f) => (
+                        <SelectItem key={f.value} value={f.value}>
+                          {f.label} ({counts[f.value]})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex w-full flex-col gap-2 sm:min-w-0 sm:max-w-lg sm:flex-1 sm:flex-row sm:items-center">
+                  <Input
+                    name="q"
+                    defaultValue={searchQuery}
+                    placeholder="Cari jabatan, nama, atau kode publik"
+                    className="sm:min-w-0 sm:flex-1"
+                    aria-label="Cari penugasan"
+                  />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    className="shrink-0"
+                  >
+                    <SearchIcon data-icon="inline-start" />
+                    Cari
+                  </Button>
+                </div>
+              </form>
 
-          <div className="overflow-hidden rounded-lg border">
-            <DataTable
-              columns={columns}
-              data={assignments}
-              enableSorting={false}
-              emptyMessage="Tidak ada penugasan yang cocok dengan filter atau kata kunci."
-            />
-            <TablePagination
-              pathname={pathname}
-              preservedQuery={paginationPreserved}
-              currentPage={pagination.page}
-              pageSize={pagination.pageSize}
-              totalItems={pagination.totalItems}
-            />
-          </div>
-        </div>
+              <div className="overflow-hidden rounded-lg border">
+                <DataTable
+                  columns={columns}
+                  data={assignments}
+                  enableSorting={false}
+                  emptyMessage="Tidak ada penugasan yang cocok dengan filter atau kata kunci."
+                />
+                <TablePagination
+                  pathname={pathname}
+                  preservedQuery={paginationPreserved}
+                  currentPage={pagination.page}
+                  pageSize={pagination.pageSize}
+                  totalItems={pagination.totalItems}
+                />
+              </div>
+            </div>
           )}
         </>
       )}
@@ -380,7 +394,7 @@ export function ManagementPeriodDetail({
       {view === "tree" && (
         <div className="rounded-lg border">
           {treeRows.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">
+            <p className="px-4 md:px-6 py-6 text-sm text-muted-foreground">
               Belum ada jabatan. Tambahkan jabatan di halaman{" "}
               <Link href="/admin/management/roles" className="underline">
                 Jabatan
@@ -391,19 +405,33 @@ export function ManagementPeriodDetail({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-muted/40">
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Jabatan</th>
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Pemegang</th>
-                  <th className="px-4 py-2" />
+                  <th className="px-4 md:px-6 py-2 text-left font-medium text-muted-foreground">
+                    Jabatan
+                  </th>
+                  <th className="px-4 md:px-6 py-2 text-left font-medium text-muted-foreground">
+                    Pemegang
+                  </th>
+                  <th className="px-4 md:px-6 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {treeRows.map((row) => (
                   <tr key={row.roleId} className="border-t hover:bg-muted/20">
-                    <td className="px-4 py-2.5" style={{ paddingLeft: 16 + row.depth * 20 }}>
+                    <td
+                      className="px-4 md:px-6 py-2.5"
+                      style={{ paddingLeft: 16 + row.depth * 20 }}
+                    >
                       {row.depth > 0 && (
-                        <span className="mr-1 text-muted-foreground">{"└─"}</span>
+                        <span className="mr-1 text-muted-foreground">
+                          {"└─"}
+                        </span>
                       )}
-                      <span className={cn("font-medium", row.assignees.length === 0 && "text-muted-foreground")}>
+                      <span
+                        className={cn(
+                          "font-medium",
+                          row.assignees.length === 0 && "text-muted-foreground",
+                        )}
+                      >
                         {row.roleTitle}
                       </span>
                       {!row.roleIsUnique && (
@@ -412,16 +440,20 @@ export function ManagementPeriodDetail({
                         </Badge>
                       )}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 md:px-6 py-2.5">
                       {row.assignees.length === 0 ? (
-                        <span className="text-muted-foreground italic">Belum diisi</span>
+                        <span className="text-muted-foreground italic">
+                          Belum diisi
+                        </span>
                       ) : (
                         <span>
                           {row.assignees.map((a, i) => (
                             <span key={a.assignmentId}>
                               {a.fullName}
                               {a.masterMemberId && (
-                                <span className="ml-1 text-xs text-green-600 dark:text-green-400">· direktori</span>
+                                <span className="ml-1 text-xs text-green-600 dark:text-green-400">
+                                  · direktori
+                                </span>
                               )}
                               {i < row.assignees.length - 1 ? ", " : ""}
                             </span>
@@ -429,7 +461,7 @@ export function ManagementPeriodDetail({
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-4 md:px-6 py-2.5 text-right">
                       <Button
                         type="button"
                         variant="ghost"

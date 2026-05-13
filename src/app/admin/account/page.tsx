@@ -20,6 +20,7 @@ export default async function AdminAccountPage() {
         initialName={session.user.name ?? ""}
         email={session.user.email ?? ""}
         initialTwoFactorEnabled={Boolean(dbUser?.twoFactorEnabled)}
+        initialAvatarUrl={session.user.image ?? null}
       />
     </main>
   );

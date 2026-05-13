@@ -14,7 +14,7 @@ export default async function PublicEventsPage() {
   const events = await getPublicActiveEvents();
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 md:px-6 py-12">
       <div>
         <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
           Acara aktif
@@ -40,6 +40,12 @@ export default async function PublicEventsPage() {
                 coverBlobUrl={e.coverBlobUrl}
                 venueName={e.venueName}
                 startAtIso={e.startAtIso}
+                ticketMemberPrice={e.ticketMemberPrice}
+                ticketNonMemberPrice={e.ticketNonMemberPrice}
+                registrationCapacity={e.registrationCapacity}
+                registrationsTowardQuota={e.registrationsTowardQuota}
+                closeRegistrationAtIso={e.closeRegistrationAtIso}
+                badgeStatus={e.badgeStatus}
                 variant="grid"
               />
             </li>

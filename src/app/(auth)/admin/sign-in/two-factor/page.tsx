@@ -6,7 +6,11 @@ import { isTransactionalEmailConfigured } from "@/lib/auth/transactional-email-c
 export default async function AdminTwoFactorVerifyPage() {
   const emailOtpAvailable = isTransactionalEmailConfigured();
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Memuat…</div>}>
+    <Suspense
+      fallback={
+        <div className="p-4 md:p-6 text-sm text-muted-foreground">Memuat…</div>
+      }
+    >
       <AdminTwoFactorVerifyClient emailOtpAvailable={emailOtpAvailable} />
     </Suspense>
   );

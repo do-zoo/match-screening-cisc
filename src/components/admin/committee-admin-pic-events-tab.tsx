@@ -7,6 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { VariantProps } from "class-variance-authority";
 
 import type { EventAsPicVm } from "@/lib/admin/load-committee-admin-detail";
+import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -61,7 +62,7 @@ export function CommitteeAdminPicEventsTab(props: { events: EventAsPicVm[] }) {
         enableSorting: false,
         cell: ({ row }) => (
           <Link
-            href={`/admin/events/${row.original.eventId}/inbox`}
+            href={eventRegistrantsListPath(row.original.eventId)}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             → Inbox

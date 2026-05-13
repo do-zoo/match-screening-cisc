@@ -27,7 +27,7 @@ describe("maskDisplayWhatsapp", () => {
 
 describe("contactInitials", () => {
   it("extracts initials", () => {
-    expect(contactInitials("Demo PIC Pengurus")).toBe("DP");
+    expect(contactInitials("Dimas Purnomo")).toBe("DP");
     expect(contactInitials("X")).toBe("X");
     expect(contactInitials("")).toBe("?");
   });

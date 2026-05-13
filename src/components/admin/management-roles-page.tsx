@@ -28,7 +28,10 @@ import {
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { ManagementRoleFormDialog } from "@/components/admin/management-role-form-dialog";
-import { buildRoleTree, flattenTreeDepthFirst } from "@/lib/management/build-role-tree";
+import {
+  buildRoleTree,
+  flattenTreeDepthFirst,
+} from "@/lib/management/build-role-tree";
 import { cn } from "@/lib/utils";
 import type {
   AdminBoardRoleRowVm,
@@ -89,9 +92,7 @@ export function ManagementRolesPage({
   const [editDialog, setEditDialog] = useState<EditDialogState>(null);
 
   const isTreeMode =
-    allRolesForTree.length > 0 &&
-    filter === "all" &&
-    searchQuery.trim() === "";
+    allRolesForTree.length > 0 && filter === "all" && searchQuery.trim() === "";
 
   const treeFlat = useMemo(() => {
     if (!isTreeMode) return [];
@@ -128,13 +129,16 @@ export function ManagementRolesPage({
           />
         ),
         cell: ({ row }) => {
-          if (!isTreeMode) return <span className="font-medium">{row.original.title}</span>;
+          if (!isTreeMode)
+            return <span className="font-medium">{row.original.title}</span>;
           const entry = treeFlat.find((f) => f.node.id === row.original.id);
           const depth = entry?.depth ?? 0;
           return (
             <span className="font-medium" style={{ paddingLeft: depth * 20 }}>
               {depth > 0 ? (
-                <span className="mr-1 text-muted-foreground">{"└─".repeat(depth)}</span>
+                <span className="mr-1 text-muted-foreground">
+                  {"└─".repeat(depth)}
+                </span>
               ) : null}
               {row.original.title}
             </span>
@@ -202,9 +206,7 @@ export function ManagementRolesPage({
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={`Aksi untuk ${row.original.title}`}
-                render={
-                  <Button type="button" variant="ghost" size="icon-sm" />
-                }
+                render={<Button type="button" variant="ghost" size="icon-sm" />}
               >
                 <MoreVerticalIcon />
               </DropdownMenuTrigger>
@@ -251,7 +253,7 @@ export function ManagementRolesPage({
         };
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-6">
       <div className="text-sm text-muted-foreground">
         <Link href="/admin/management" className="hover:text-foreground">
           ← Kepengurusan
@@ -272,7 +274,7 @@ export function ManagementRolesPage({
       </div>
 
       {directoryEmpty ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed px-4 md:px-6 py-6 text-sm text-muted-foreground">
           Belum ada jabatan. Klik &quot;Tambah&quot; untuk menambahkan yang
           pertama.
         </p>

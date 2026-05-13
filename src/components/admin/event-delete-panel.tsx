@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,7 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { deleteAdminEvent } from "@/lib/actions/admin-events";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { toastActionErr } from "@/lib/client/cud-notify";
 import type { ActionResult } from "@/lib/forms/action-result";
 
 type Props = {
@@ -30,25 +29,17 @@ export function EventDeletePanel({
   eventTitle,
   registrationCount,
 }: Props) {
-  const router = useRouter();
   const [state, dispatch, isPending] = useActionState(
     deleteAdminEvent,
     null as ActionResult<{ deleted: true }> | null,
   );
 
   useEffect(() => {
-    if (state?.ok) {
-      toastCudSuccess("delete", "Acara berhasil dihapus.");
-      router.push("/admin/events");
-    }
-  }, [state, router]);
-
-  useEffect(() => {
     if (state?.ok === false) toastActionErr(state);
   }, [state]);
 
   return (
-    <section className="rounded-lg border border-destructive/40 p-6 flex flex-col gap-4">
+    <section className="rounded-lg border border-destructive/40 p-4 md:p-6 flex flex-col gap-4">
       <div>
         <h2 className="text-base font-semibold text-destructive">
           Zona berbahaya

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { InboxIcon, Table2Icon } from "lucide-react";
+import { Settings, Table2Icon, Users } from "lucide-react";
 
 import {
   adminShellNavIconClass,
@@ -11,25 +11,30 @@ import {
 } from "@/components/admin/admin-shell-nav-styles";
 
 const EVENT_BRANCH_RE =
-  /^\/admin\/events\/([^/]+)\/(?:inbox|report)(?:\/|$)/;
+  /^\/admin\/events\/([^/]+)\/(?:registrants|report|edit)(?:\/|$)/;
 
 function AdminEventSidebarBlockLoaded({
   eventId,
+  onNavigate,
 }: {
   eventId: string;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
+  const isEditBranch =
+    !!pathname && pathname === `/admin/events/${eventId}/edit`;
   const isReportBranch =
     !!pathname &&
     (pathname === `/admin/events/${eventId}/report` ||
       pathname.startsWith(`/admin/events/${eventId}/report/`));
-  const isInboxBranch =
+  const listPath = `/admin/events/${eventId}/registrants`;
+  const isRegistrantsBranch =
     !!pathname &&
-    (pathname === `/admin/events/${eventId}/inbox` ||
-      pathname.startsWith(`/admin/events/${eventId}/inbox/`));
+    (pathname === listPath || pathname.startsWith(`${listPath}/`));
 
   const [title, setTitle] = useState<string | null>(null);
+  const [canManageEventSettings, setCanManageEventSettings] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,8 +44,14 @@ function AdminEventSidebarBlockLoaded({
         credentials: "include",
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { title?: string };
-      if (!cancelled) setTitle(data.title ?? null);
+      const data = (await res.json()) as {
+        title?: string;
+        canManageEventSettings?: boolean;
+      };
+      if (!cancelled) {
+        setTitle(data.title ?? null);
+        setCanManageEventSettings(Boolean(data.canManageEventSettings));
+      }
     }
 
     void load();
@@ -66,41 +77,67 @@ function AdminEventSidebarBlockLoaded({
         ) : (
           <p className="mt-2 text-xs text-sidebar-foreground/45">Memuat judul…</p>
         )}
-        <nav aria-label="Inbox dan laporan" className="mt-3 flex flex-col gap-0.5">
+        <nav
+          aria-label="Peserta acara, laporan, dan pengaturan"
+          className="mt-3 flex flex-col gap-0.5"
+        >
           <Link
-            href={`/admin/events/${eventId}/inbox`}
-            className={adminShellNavLinkClass(isInboxBranch && !isReportBranch)}
+            href={listPath}
+            onClick={onNavigate}
+            className={adminShellNavLinkClass(
+              isRegistrantsBranch && !isReportBranch && !isEditBranch,
+            )}
           >
-            <InboxIcon
+            <Users
               className={adminShellNavIconClass(
-                isInboxBranch && !isReportBranch,
+                isRegistrantsBranch && !isReportBranch && !isEditBranch,
               )}
               aria-hidden
             />
-            Inbox
+            Peserta Acara
           </Link>
           <Link
             href={`/admin/events/${eventId}/report`}
-            className={adminShellNavLinkClass(isReportBranch)}
+            onClick={onNavigate}
+            className={adminShellNavLinkClass(isReportBranch && !isEditBranch)}
           >
             <Table2Icon
-              className={adminShellNavIconClass(isReportBranch)}
+              className={adminShellNavIconClass(isReportBranch && !isEditBranch)}
               aria-hidden
             />
             Laporan
           </Link>
+          {canManageEventSettings ? (
+            <Link
+              href={`/admin/events/${eventId}/edit`}
+              onClick={onNavigate}
+              className={adminShellNavLinkClass(isEditBranch)}
+            >
+              <Settings
+                className={adminShellNavIconClass(isEditBranch)}
+                aria-hidden
+              />
+              Pengaturan
+            </Link>
+          ) : null}
         </nav>
       </div>
     </div>
   );
 }
 
-export function AdminEventSidebarBlock() {
+export function AdminEventSidebarBlock({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
-  const match = pathname ? EVENT_BRANCH_RE.exec(pathname) : null;
+  const match = pathname ? pathname.match(EVENT_BRANCH_RE) : null;
   const eventId = match?.[1] ?? null;
 
   if (!eventId) return null;
 
-  return <AdminEventSidebarBlockLoaded key={eventId} eventId={eventId} />;
+  return (
+    <AdminEventSidebarBlockLoaded key={eventId} eventId={eventId} onNavigate={onNavigate} />
+  );
 }
