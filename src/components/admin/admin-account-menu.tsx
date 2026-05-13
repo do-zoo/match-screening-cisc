@@ -146,7 +146,9 @@ export function AdminAccountMenu({
           <ChevronDownIcon
             className={cn(
               "size-4 shrink-0",
-              variant === "sidebar" ? "text-sidebar-foreground/60" : "opacity-70",
+              variant === "sidebar"
+                ? "text-sidebar-foreground/60"
+                : "opacity-70",
             )}
             aria-hidden
           />
@@ -158,7 +160,7 @@ export function AdminAccountMenu({
         side={variant === "sidebar" ? "top" : "bottom"}
         sideOffset={variant === "sidebar" ? 8 : 4}
       >
-        <PopoverHeader className="flex items-center gap-3 px-1">
+        <PopoverHeader className="flex items-center gap-3 px-1 flex-row">
           <AdminAvatarCircle
             avatarUrl={avatarUrl}
             displayName={displayName}
