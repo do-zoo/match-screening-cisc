@@ -69,6 +69,8 @@ export const getSerializedEventForPublicRegistration = cache(
       descriptionHtml: sanitizePublicEventDescriptionHtml(event.description),
       coverBlobUrl: event.coverBlobUrl,
       venueName: event.venue.name,
+      venueAddress: event.venue.address,
+      venueMapUrl: event.venue.mapUrl ?? null,
       openRegistrationAtIso: event.openRegistrationAt.toISOString(),
       closeRegistrationAtIso: event.closeRegistrationAt.toISOString(),
       openGateAtIso: event.openGateAt.toISOString(),

@@ -19,6 +19,8 @@ export type SerializedEventForRegistration = {
   descriptionHtml: string;
   coverBlobUrl: string;
   venueName: string;
+  venueAddress: string;
+  venueMapUrl: string | null;
   openRegistrationAtIso: string;
   closeRegistrationAtIso: string;
   openGateAtIso: string;
