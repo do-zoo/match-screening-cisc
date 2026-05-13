@@ -57,7 +57,8 @@ Copy `.env.example` to `.env.local` and fill in for local development. Optionall
 | `MATCH_DB_PROFILE`      | Optional for **local CLI only**: unset / `development` / `dev` → load `.env` then `.env.local`; `production` / `prod` → `.env` then `.env.prod`. Ignored on Vercel.                                                   |
 | `DATABASE_URL`          | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
 | `DATABASE_URL_UNPOOLED` | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
-| `BETTER_AUTH_SECRET`    | Min 32-char secret for Better Auth                                                                                                                                                                                    |
+| `BETTER_AUTH_SECRET`    | Min 32-char secret for Better Auth; juga dipakai untuk menandatangani token unggah gambar deskripsi acara bila `DESCRIPTION_ASSET_SIGNING_SECRET` tidak diatur |
+| `DESCRIPTION_ASSET_SIGNING_SECRET` | Opsional: secret terpisah untuk HMAC token unggah gambar di editor deskripsi (`signDescriptionAssetEventId`); jika kosong dipakai `BETTER_AUTH_SECRET`. |
 | `BETTER_AUTH_URL`       | App origin (e.g. `http://localhost:3000`)                                                                                                                                                                             |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for file uploads                                                                                                                                                                                    |
 
@@ -141,6 +142,8 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/actions/submit-registration.ts` — the main public Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
+- `lib/uploads/upload-event-description-image.ts` — gambar isi deskripsi acara ke Blob (`events/{eventId}/description/{uuid}.webp`, WebP)
+- `lib/actions/upload-event-description-image.ts` — server action `uploadEventDescriptionImage(eventId, _prev, formData)`; `guardOwnerOrAdmin` + token HMAC di `FormData` (`file`, `token`); dipanggil dari `components/ui/rich-text-editor.tsx`
 - `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
 - `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance (`baselineTotal`, pendapatan tiket approved, alokasi menu wajib ke venue `menuVenuePayoutApproved`, penyesuaian, refund), dan agregasi menu wajib per item (`MenuStats.byItem`)
 - `lib/reports/settlement-expected-amounts.ts` — acuan nominal bukti penutupan vs `getEventReport.finance` (venue menu payout, margin bendahara v1 = tiket approved + penyesuaian lunas) + toleransi selisih
@@ -155,6 +158,9 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
+- `lib/public/sanitize-event-description.ts` — sanitasi HTML deskripsi acara publik (tag termasuk `img` dengan `src` HTTPS host `*.public.blob.vercel-storage.com` saja, `hr`, tautan `http`/`https`/`mailto`/`tel`, dll.)
+- `lib/public/description-asset-token.ts` — `signDescriptionAssetEventId` / `verifyDescriptionAssetEventId` (HMAC) untuk token unggah gambar di editor deskripsi dan penyelarisan `Event.id` pada **Buat acara**
+- `lib/public/event-description-image-src.ts` — `isAllowedEventDescriptionImageSrc` untuk validasi host `src` gambar
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses; kapasitas `null` atau ≤ 0 = tak terbatas (sama seperti form admin kosong)
 - `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
@@ -187,7 +193,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 </DialogTrigger>
 ```
 
-Notable third-party UI libraries: `@tanstack/react-table` for data tables; `@tiptap/react` (with `starter-kit`, `link`, `underline` extensions) for the event description rich-text editor; `react-day-picker` for date pickers; `@react-pdf/renderer` for PDF export (management period).
+Notable third-party UI libraries: `@tanstack/react-table` for data tables; `@tiptap/react` (`starter-kit`, `link`, `underline`, `image`, `placeholder`) untuk editor deskripsi acara; `react-day-picker` for date pickers; `@react-pdf/renderer` for PDF export (management period).
 
 ### Server action conventions
 
@@ -212,7 +218,7 @@ Acuan bukti penutupan: `getSettlementExpectedAmounts` memakai `baselineTotalAppr
 
 ### Uploads
 
-Images are converted to WebP (max 1600px for most uploads; menu images use max 1200px, quality 80) via Sharp before being put to Vercel Blob with **`access: "public"`** so the CDN can serve them directly (`next/image` and browser fetches bill mostly to Blob storage, not through app functions). Anyone with the full blob URL can download the object—treat URLs as confidential. Paths are deterministic (e.g. `registrations/{registrationId}/{purpose}.webp`; event cover under `events/{eventId}/cover.webp`; venue menu image under `venues/{venueId}/menu/{menuItemId}.webp`). DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup. Objects uploaded earlier as **private** stay private until re-upload or a deliberate migration replaces them.
+Images are converted to WebP (max 1600px for most uploads; menu images use max 1200px, quality 80) via Sharp before being put to Vercel Blob with **`access: "public"`** so the CDN can serve them directly (`next/image` and browser fetches bill mostly to Blob storage, not through app functions). Anyone with the full blob URL can download the object—treat URLs as confidential. Paths are deterministic (e.g. `registrations/{registrationId}/{purpose}.webp`; event cover under `events/{eventId}/cover.webp`; **gambar di HTML deskripsi acara** under `events/{eventId}/description/{uuid}.webp` (unggah dari editor admin dengan token HMAC); venue menu image under `venues/{venueId}/menu/{menuItemId}.webp`). DB row is written after the blob PUT; if the DB write fails, the blob is deleted as cleanup. Objects uploaded earlier as **private** stay private until re-upload or a deliberate migration replaces them.
 
 ### Testing
 

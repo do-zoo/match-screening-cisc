@@ -87,6 +87,8 @@ export type EventAdminFormProps = {
   venueOptions: VenueOptionForEventAdmin[];
   /** Pratinjau sampul yang sudah tersimpan (mode edit). */
   persistedCoverUrl?: string | null;
+  /** ID acara + token untuk unggah gambar di deskripsi (Buat / Edit). */
+  descriptionAssetContext?: { eventId: string; assetToken: string } | null;
 };
 
 export function EventAdminForm(props: EventAdminFormProps) {
@@ -236,6 +238,19 @@ export function EventAdminForm(props: EventAdminFormProps) {
         if (coverFile && coverFile.size > 0) {
           fd.set("cover", coverFile);
         }
+        if (
+          props.mode === "create" &&
+          props.descriptionAssetContext
+        ) {
+          fd.set(
+            "descriptionClientEventId",
+            props.descriptionAssetContext.eventId,
+          );
+          fd.set(
+            "descriptionAssetToken",
+            props.descriptionAssetContext.assetToken,
+          );
+        }
 
         const result =
           props.mode === "create"
@@ -269,7 +284,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         }
       });
     },
-    [coverFile, form, props.eventId, props.mode, router],
+    [coverFile, form, props.eventId, props.mode, props.descriptionAssetContext, router],
   );
 
   return (
@@ -337,6 +352,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
                   value={field.value}
                   onChange={field.onChange}
                   disabled={pending}
+                  descriptionImageUpload={
+                    props.descriptionAssetContext ?? null
+                  }
                 />
               )}
             />

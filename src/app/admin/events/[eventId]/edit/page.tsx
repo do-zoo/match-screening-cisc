@@ -16,6 +16,7 @@ import {
   canManageCommitteeAdvancedSettings,
   hasOperationalOwnerParity,
 } from "@/lib/permissions/roles";
+import { signDescriptionAssetEventId } from "@/lib/public/description-asset-token";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -183,6 +184,8 @@ export default async function AdminEditEventPage({
     bankAccountId: event.bankAccountId,
   };
 
+  const descriptionAssetToken = signDescriptionAssetEventId(eventId);
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-16 pt-8 lg:pt-6">
       <header className="flex flex-col gap-2">
@@ -216,6 +219,10 @@ export default async function AdminEditEventPage({
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
         venueOptions={venueOptions}
+        descriptionAssetContext={{
+          eventId,
+          assetToken: descriptionAssetToken,
+        }}
       />
       {canManageCommitteeAdvancedSettings(ctx.role) ? (
         <EventDeletePanel

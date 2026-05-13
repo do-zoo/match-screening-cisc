@@ -14,6 +14,9 @@ vi.mock("@/lib/db/prisma", () => ({
         eventPicHelper: { createMany: txEventPicHelperCreateMany },
       }),
     ),
+    event: {
+      findUnique: vi.fn(),
+    },
     adminProfile: {
       findUnique: vi.fn(),
     },
@@ -65,6 +68,8 @@ describe("createAdminEvent (integrasi dengan mock DB)", () => {
     vi.mocked(prisma.picBankAccount.findFirst).mockReset();
     vi.mocked(prisma.venueMenuItem.findMany).mockReset();
     vi.mocked(prisma.$transaction).mockReset();
+    vi.mocked(prisma.event.findUnique).mockReset();
+    vi.mocked(prisma.event.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.$transaction).mockImplementation(async (cb) =>
       cb({
         event: { create: txEventCreate },

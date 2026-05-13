@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,6 +19,7 @@ import {
 } from "@/lib/events/event-admin-defaults";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
+import { signDescriptionAssetEventId } from "@/lib/public/description-asset-token";
 import { cn } from "@/lib/utils";
 
 export default async function AdminNewEventPage() {
@@ -201,6 +204,11 @@ export default async function AdminNewEventPage() {
     );
   }
 
+  const descriptionAssetClientEventId = randomUUID();
+  const descriptionAssetToken = signDescriptionAssetEventId(
+    descriptionAssetClientEventId,
+  );
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-2">
@@ -227,6 +235,10 @@ export default async function AdminNewEventPage() {
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
         venueOptions={venueOptions}
+        descriptionAssetContext={{
+          eventId: descriptionAssetClientEventId,
+          assetToken: descriptionAssetToken,
+        }}
       />
     </main>
   );

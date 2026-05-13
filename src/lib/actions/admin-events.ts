@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import { del } from "@vercel/blob";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AdminRole } from "@prisma/client";
@@ -36,6 +37,7 @@ import {
   type ActionResult,
 } from "@/lib/forms/action-result";
 import { zodToFieldErrors } from "@/lib/forms/zod";
+import { verifyDescriptionAssetEventId } from "@/lib/public/description-asset-token";
 import { sanitizePublicEventDescriptionHtml } from "@/lib/public/sanitize-event-description";
 import { isUploadError } from "@/lib/uploads/errors";
 import { uploadEventHeroCover } from "@/lib/uploads/upload-event-cover";
@@ -209,7 +211,38 @@ export async function createAdminEvent(
     (id) => id !== data.picAdminProfileId,
   );
 
-  const id = randomUUID();
+  const clientEventIdRaw = formData.get("descriptionClientEventId");
+  const descriptionAssetTokenRaw = formData.get("descriptionAssetToken");
+
+  let id: string;
+  if (
+    typeof clientEventIdRaw === "string" &&
+    clientEventIdRaw.length > 0 &&
+    typeof descriptionAssetTokenRaw === "string" &&
+    descriptionAssetTokenRaw.length > 0
+  ) {
+    const uuidParsed = z.string().uuid().safeParse(clientEventIdRaw);
+    if (!uuidParsed.success) {
+      return rootError("ID draf tidak valid. Muat ulang halaman.");
+    }
+    if (!verifyDescriptionAssetEventId(clientEventIdRaw, descriptionAssetTokenRaw)) {
+      return rootError(
+        "Token deskripsi tidak valid. Muat ulang halaman lalu coba lagi.",
+      );
+    }
+    const taken = await prisma.event.findUnique({
+      where: { id: clientEventIdRaw },
+      select: { id: true },
+    });
+    if (taken) {
+      return rootError(
+        "ID draf bentrok. Muat ulang halaman untuk mendapatkan ID baru.",
+      );
+    }
+    id = clientEventIdRaw;
+  } else {
+    id = randomUUID();
+  }
 
   let slug: string;
   try {

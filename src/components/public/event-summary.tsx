@@ -90,6 +90,8 @@ export function EventSummary({ event }: Props) {
           "[&_p]:mb-0 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5",
           "[&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:pl-4 [&_blockquote]:italic",
           "[&_h2]:text-base [&_h2]:font-semibold [&_h3]:font-semibold",
+          "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md",
+          "[&_hr]:my-6 [&_hr]:border-border",
         )}
       >
         {parse(event.descriptionHtml)}
