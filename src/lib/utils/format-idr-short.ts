@@ -1,3 +1,7 @@
+/**
+ * Formats an IDR integer amount using abbreviated units.
+ * Millions: up to 1 decimal place (e.g. Rp 1,5jt). Thousands: whole number (e.g. Rp 150K).
+ */
 export function formatIdrShort(amount: number): string {
   if (amount >= 1_000_000) {
     const juta = amount / 1_000_000;
