@@ -1,10 +1,8 @@
 import { AdminEventBreadcrumbs } from "@/components/admin/admin-event-breadcrumbs";
-import { AdminEventSubnav } from "@/components/admin/admin-event-subnav";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 
 export default async function AdminEventBranchLayout({
   children,
@@ -27,19 +25,12 @@ export default async function AdminEventBranchLayout({
     breadcrumbTitle = event?.title ?? null;
   }
 
-  const canManageEventSettings =
-    ctx !== null && hasOperationalOwnerParity(ctx.role);
-
   return (
     <div data-admin-event-chrome className="flex min-h-0 flex-1 flex-col">
       {breadcrumbTitle ? (
         <div className="w-full shrink-0 border-b border-border/60 bg-muted/20">
           <div className="mx-auto w-full max-w-6xl px-6 pb-3 pt-6 lg:pt-10">
             <AdminEventBreadcrumbs eventId={eventId} title={breadcrumbTitle} />
-            <AdminEventSubnav
-              eventId={eventId}
-              canManageEventSettings={canManageEventSettings}
-            />
           </div>
         </div>
       ) : null}
