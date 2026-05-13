@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { EntityCombobox } from "@/components/ui/entity-combobox";
+import { ImageUploadDropzone } from "@/components/ui/image-upload-dropzone";
 
 const SENSITIVE_ACK_MESSAGE =
   "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.";
@@ -67,7 +68,6 @@ export type VenueOptionForEventAdmin = {
     name: string;
     price: number;
     sortOrder: number;
-    voucherEligible: boolean;
   }>;
 };
 
@@ -77,10 +77,6 @@ const FALLBACK_LINKED_VENUE_MENU_ITEMS: LinkedVenueMenuItemDraft[] = [];
 export type EventAdminFormProps = {
   mode: "create" | "edit";
   eventId?: string;
-  committeeDefaults?: {
-    ticketMemberPrice: number;
-    ticketNonMemberPrice: number;
-  };
   defaults: AdminEventUpsertInput;
   registrationCount?: number;
   persistedIntegrity?: EventIntegritySnapshot | null;
@@ -91,6 +87,8 @@ export type EventAdminFormProps = {
   helperAdminOptions: EventAdminPicOption[];
   /** Venue aktif + katalog menu kanonik (subsenua acara). */
   venueOptions: VenueOptionForEventAdmin[];
+  /** Pratinjau sampul yang sudah tersimpan (mode edit). */
+  persistedCoverUrl?: string | null;
 };
 
 export function EventAdminForm(props: EventAdminFormProps) {
@@ -109,7 +107,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
       mandatoryMenuItemIds: props.defaults.mandatoryMenuItemIds,
       ticketMemberPrice: props.defaults.ticketMemberPrice,
       ticketNonMemberPrice: props.defaults.ticketNonMemberPrice,
-      pricingSource: props.defaults.pricingSource,
       picAdminProfileId: props.defaults.picAdminProfileId,
       bankAccountId: props.defaults.bankAccountId,
     } satisfies EventIntegritySnapshot);
@@ -129,16 +126,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
     return venueOptions.find((v) => v.id === venueId) ?? null;
   }, [venueOptions, venueId]);
 
-  const pricingSource = useWatch({
-    control: form.control,
-    name: "pricingSource",
-  });
   const picId = useWatch({ control: form.control, name: "picAdminProfileId" });
   const bankAccountId = useWatch({
     control: form.control,
     name: "bankAccountId",
   });
-  const committee = props.committeeDefaults;
   const helpersSelected =
     useWatch({
       control: form.control,
@@ -261,27 +253,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
     [currentVenue, form, registrationCount],
   );
 
-  const pickCommitteePrices = useCallback(() => {
-    if (!committee) return;
-    form.setValue("ticketMemberPrice", committee.ticketMemberPrice, {
-      shouldDirty: true,
-    });
-    form.setValue("ticketNonMemberPrice", committee.ticketNonMemberPrice, {
-      shouldDirty: true,
-    });
-  }, [committee, form]);
-
-  useEffect(() => {
-    if (
-      props.mode === "create" &&
-      committee &&
-      form.getValues("pricingSource") === "global_default"
-    ) {
-      pickCommitteePrices();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed committee prices once on mount for new events
-  }, []);
-
   const submitPayload = useCallback(
     (withAck: boolean) => {
       setRootMessage(null);
@@ -358,12 +329,10 @@ export function EventAdminForm(props: EventAdminFormProps) {
               ? "Unggah gambar sampul — wajib untuk acara baru."
               : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}
           </p>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          <ImageUploadDropzone
+            value={props.persistedCoverUrl ?? undefined}
+            onChange={(file) => setCoverFile(file)}
             disabled={pending}
-            className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1 file:text-xs"
-            onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
           />
         </section>
 
@@ -395,65 +364,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
           </Field>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          <h2 className="text-lg font-medium sm:col-span-2">Jadwal & lokasi</h2>
-          <Field label="Buka registrasi">
-            <Controller
-              control={form.control}
-              name="openRegistrationAtIso"
-              render={({ field, fieldState }) => (
-                <DateTimePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                  aria-invalid={fieldState.invalid}
-                />
-              )}
-            />
-          </Field>
-          <Field label="Tutup registrasi">
-            <Controller
-              control={form.control}
-              name="closeRegistrationAtIso"
-              render={({ field, fieldState }) => (
-                <DateTimePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                  aria-invalid={fieldState.invalid}
-                />
-              )}
-            />
-          </Field>
-          <Field label="Buka gate">
-            <Controller
-              control={form.control}
-              name="openGateAtIso"
-              render={({ field, fieldState }) => (
-                <DateTimePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                  aria-invalid={fieldState.invalid}
-                />
-              )}
-            />
-          </Field>
-          <Field label="Kick-off acara">
-            <Controller
-              control={form.control}
-              name="kickOffAtIso"
-              render={({ field, fieldState }) => (
-                <DateTimePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                  aria-invalid={fieldState.invalid}
-                />
-              )}
-            />
-          </Field>
-          <Field label="Venue" className="sm:col-span-2">
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Venue</h2>
+          <Field label="Venue">
             <Controller
               control={form.control}
               name="venueId"
@@ -475,133 +388,25 @@ export function EventAdminForm(props: EventAdminFormProps) {
               <Muted>Terhubung pada pendaftar — venue tidak dapat diubah.</Muted>
             ) : (
               <p className="text-muted-foreground text-xs">
-                Menu di formulir pengunjung diturunkan dari katalog venue. Ubah nama/harga menu di pengelola venue.
+                Menu di formulir pengunjung diturunkan dari katalog venue. Ubah
+                nama/harga menu di pengelola venue.
               </p>
             )}
           </Field>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Registrasi</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Status acara">
-              <Controller
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      if (v != null) field.onChange(v);
-                    }}
-                    disabled={pending}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draf</SelectItem>
-                      <SelectItem value="active">Aktif</SelectItem>
-                      <SelectItem value="finished">Selesai</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-            <Field label="Kapasitas (kosongkan = tak terbatas)">
-              <Controller
-                control={form.control}
-                name="registrationCapacity"
-                render={({ field }) => (
-                  <Input
-                    type="number"
-                    min={0}
-                    disabled={pending}
-                    placeholder="Opsional"
-                    value={
-                      field.value === null || field.value === undefined
-                        ? ""
-                        : field.value
-                    }
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "") field.onChange(null);
-                      else field.onChange(Number.parseInt(raw, 10));
-                    }}
-                  />
-                )}
-              />
-            </Field>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              {...form.register("registrationManualClosed")}
-              disabled={pending}
-            />
-            Tutup registrasi secara manual (formulir diblokir)
-          </label>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-medium">Harga tiket</h2>
-          <Field label="Sumber harga">
-            <Select
-              value={pricingSource}
-              onValueChange={(v) => {
-                if (v == null) return;
-                const next = v as AdminEventUpsertInput["pricingSource"];
-                form.setValue("pricingSource", next, { shouldDirty: true });
-                if (next === "global_default") pickCommitteePrices();
-              }}
-              disabled={pending}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="global_default">Default komite</SelectItem>
-                <SelectItem value="overridden">Override per acara</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tiket member (IDR)">
-              <Input
-                type="number"
-                min={0}
-                disabled={pending || pricingSource === "global_default"}
-                {...form.register("ticketMemberPrice", { valueAsNumber: true })}
-              />
-            </Field>
-            <Field label="Tiket non-member (IDR)">
-              <Input
-                type="number"
-                min={0}
-                disabled={pending || pricingSource === "global_default"}
-                {...form.register("ticketNonMemberPrice", {
-                  valueAsNumber: true,
-                })}
-              />
-            </Field>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            Jika memilih default komite, nilai mengikuti env{" "}
-            <code>MATCH_DEFAULT_TICKET_*_IDR</code> lalu fallback bawaan aplikasi
-            (lihat Pengaturan → Harga default).
-          </p>
-        </section>
-
-        <section className="space-y-4">
           <h2 className="text-lg font-medium">Subset menu untuk acara ini</h2>
           {!currentVenue ? (
             <p className="text-muted-foreground text-sm">
-              Pilih venue untuk menampilkan item menu yang bisa diaktifkan di acara ini.
+              Pilih venue untuk menampilkan item menu yang bisa diaktifkan di
+              acara ini.
             </p>
           ) : (
             <div className="border-muted bg-card space-y-2 rounded-lg border p-4">
               <p className="text-muted-foreground text-xs">
-                Minimal satu item. Urutan diturunkan dari daftar venue (atas ke bawah pada item yang dicentang).
+                Minimal satu item. Urutan diturunkan dari daftar venue (atas ke
+                bawah pada item yang dicentang).
               </p>
               <div className="flex flex-col gap-2">
                 {[...currentVenue.menuItems]
@@ -626,8 +431,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
                           <span className="font-medium">{m.name}</span>
                           <span className="text-muted-foreground">
                             {" "}
-                            · {m.price.toLocaleString("id-ID")} ·{" "}
-                            {m.voucherEligible ? "voucher eligible" : "tanpa voucher"}
+                            · {m.price.toLocaleString("id-ID")} IDR
                           </span>
                         </span>
                       </label>
@@ -707,6 +511,159 @@ export function EventAdminForm(props: EventAdminFormProps) {
               ) : null}
             </div>
           )}
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <h2 className="text-lg font-medium sm:col-span-2">Jadwal registrasi</h2>
+          <Field label="Buka registrasi">
+            <Controller
+              control={form.control}
+              name="openRegistrationAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Tutup registrasi">
+            <Controller
+              control={form.control}
+              name="closeRegistrationAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <h2 className="text-lg font-medium sm:col-span-2">Jadwal acara</h2>
+          <Field label="Buka gate">
+            <Controller
+              control={form.control}
+              name="openGateAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Kick-off acara">
+            <Controller
+              control={form.control}
+              name="kickOffAtIso"
+              render={({ field, fieldState }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  aria-invalid={fieldState.invalid}
+                />
+              )}
+            />
+          </Field>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Harga tiket</h2>
+          <p className="text-muted-foreground text-xs">
+            Harga disimpan per acara (IDR, bilangan bulat).
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tiket member (IDR)">
+              <Input
+                type="number"
+                min={0}
+                disabled={pending}
+                {...form.register("ticketMemberPrice", { valueAsNumber: true })}
+              />
+            </Field>
+            <Field label="Tiket non-member (IDR)">
+              <Input
+                type="number"
+                min={0}
+                disabled={pending}
+                {...form.register("ticketNonMemberPrice", {
+                  valueAsNumber: true,
+                })}
+              />
+            </Field>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Registrasi</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Status acara">
+              <Controller
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => {
+                      if (v != null) field.onChange(v);
+                    }}
+                    disabled={pending}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draf</SelectItem>
+                      <SelectItem value="active">Aktif</SelectItem>
+                      <SelectItem value="finished">Selesai</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+            <Field label="Kapasitas (kosongkan = tak terbatas)">
+              <Controller
+                control={form.control}
+                name="registrationCapacity"
+                render={({ field }) => (
+                  <Input
+                    type="number"
+                    min={0}
+                    disabled={pending}
+                    placeholder="Opsional"
+                    value={
+                      field.value === null || field.value === undefined
+                        ? ""
+                        : field.value
+                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") field.onChange(null);
+                      else field.onChange(Number.parseInt(raw, 10));
+                    }}
+                  />
+                )}
+              />
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              {...form.register("registrationManualClosed")}
+              disabled={pending}
+            />
+            Tutup registrasi secara manual (formulir diblokir)
+          </label>
         </section>
 
         <section className="space-y-4">
@@ -811,7 +768,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <DialogHeader>
             <DialogTitle>Konfirmasi perubahan sensitif</DialogTitle>
             <DialogDescription>
-              Anda mengubah harga tiket, sumber harga, PIC utama, atau rekening.
+              Anda mengubah harga tiket, PIC utama, atau rekening pembayaran.
               Pastikan ini disengaja sebelum melanjutkan.
             </DialogDescription>
           </DialogHeader>

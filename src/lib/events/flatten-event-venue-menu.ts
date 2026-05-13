@@ -6,7 +6,6 @@ export function flattenedMenuRowsFromEventVenueLinks<
       id: string;
       name: string;
       price: number;
-      voucherEligible: boolean;
       sortOrder: number;
     };
   },
@@ -16,7 +15,6 @@ export function flattenedMenuRowsFromEventVenueLinks<
   id: string;
   name: string;
   price: number;
-  voucherEligible: boolean;
 }> {
   return [...links]
     .sort(
@@ -28,6 +26,5 @@ export function flattenedMenuRowsFromEventVenueLinks<
       id: x.venueMenuItem.id,
       name: x.venueMenuItem.name,
       price: x.venueMenuItem.price,
-      voucherEligible: x.venueMenuItem.voucherEligible,
     }));
 }

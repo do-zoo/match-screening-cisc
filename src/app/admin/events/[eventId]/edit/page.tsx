@@ -21,7 +21,6 @@ export async function generateMetadata({
   });
   return { title: event ? `Edit · ${event.title}` : "Edit Acara" };
 }
-import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity, canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
@@ -89,7 +88,6 @@ export default async function AdminEditEventPage({
       name: m.name,
       price: m.price,
       sortOrder: m.sortOrder,
-      voucherEligible: m.voucherEligible,
     })),
   }));
 
@@ -146,7 +144,6 @@ export default async function AdminEditEventPage({
     registrationCapacity: event.registrationCapacity,
     registrationManualClosed: event.registrationManualClosed,
     status: event.status,
-    pricingSource: event.pricingSource,
     ticketMemberPrice: event.ticketMemberPrice,
     ticketNonMemberPrice: event.ticketNonMemberPrice,
     picAdminProfileId: event.picAdminProfileId,
@@ -161,12 +158,9 @@ export default async function AdminEditEventPage({
     mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
     ticketMemberPrice: event.ticketMemberPrice,
     ticketNonMemberPrice: event.ticketNonMemberPrice,
-    pricingSource: event.pricingSource,
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
   };
-
-  const committeeDefaults = await resolveCommitteeTicketDefaults();
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pb-16 pt-8 lg:pt-6">
@@ -189,10 +183,10 @@ export default async function AdminEditEventPage({
       <EventAdminForm
         mode="edit"
         eventId={eventId}
-        committeeDefaults={committeeDefaults}
         defaults={defaults}
         registrationCount={event._count.registrations}
         persistedIntegrity={persistedIntegrity}
+        persistedCoverUrl={event.coverBlobUrl}
         picOptions={picOptions}
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}

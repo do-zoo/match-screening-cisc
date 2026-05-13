@@ -26,6 +26,22 @@ export function canEditEventBeforeRegistrationClose(
   return now < event.closeRegistrationAt;
 }
 
+/** Nama sesuai dokumen rencana; perilaku sama dengan `isRegistrationTimeWindowOpen`. */
+export function isRegistrationOpen(
+  event: Pick<EventTimingPick, "openRegistrationAt" | "closeRegistrationAt">,
+  now: Date = new Date(),
+): boolean {
+  return isRegistrationTimeWindowOpen(event, now);
+}
+
+/** Nama sesuai dokumen rencana; perilaku sama dengan `canEditEventBeforeRegistrationClose`. */
+export function canEditEvent(
+  event: Pick<EventTimingPick, "closeRegistrationAt">,
+  now: Date = new Date(),
+): boolean {
+  return canEditEventBeforeRegistrationClose(event, now);
+}
+
 export type EventTimePhase =
   | "before_registration"
   | "registration_open"

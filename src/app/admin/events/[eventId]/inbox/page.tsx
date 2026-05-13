@@ -94,14 +94,6 @@ export default async function AdminEventInboxPage({
         primaryRegistration: {
           select: { id: true, contactName: true },
         },
-        tickets: {
-          select: {
-            role: true,
-            fullName: true,
-            whatsapp: true,
-            memberNumber: true,
-          },
-        },
       },
     }),
   ]);

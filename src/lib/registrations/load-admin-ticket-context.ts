@@ -63,50 +63,26 @@ export async function loadTicketContextVm(input: {
 
   if (nums.length > 0) {
     const exclude = [...excludeIds];
-    const [fromTickets, fromRegs] = await Promise.all([
-      prisma.ticket.findMany({
-        where: {
-          eventId,
-          memberNumber: { in: nums },
-          registrationId: { notIn: exclude },
-        },
-        select: {
-          memberNumber: true,
-          registration: {
-            select: { id: true, contactName: true },
-          },
-        },
-      }),
-      prisma.registration.findMany({
-        where: {
-          eventId,
-          claimedMemberNumber: { in: nums },
-          id: { notIn: exclude },
-        },
-        select: {
-          id: true,
-          contactName: true,
-          claimedMemberNumber: true,
-        },
-      }),
-    ]);
+    const fromRegs = await prisma.registration.findMany({
+      where: {
+        eventId,
+        claimedMemberNumber: { in: nums },
+        id: { notIn: exclude },
+      },
+      select: {
+        id: true,
+        contactName: true,
+        claimedMemberNumber: true,
+      },
+    });
 
-    conflictsFlat = [
-      ...fromTickets
-        .filter((t) => t.memberNumber !== null)
-        .map((t) => ({
-          registrationId: t.registration.id,
-          contactName: t.registration.contactName,
-          memberNumber: t.memberNumber as string,
-        })),
-      ...fromRegs
-        .filter((r) => r.claimedMemberNumber)
-        .map((r) => ({
-          registrationId: r.id,
-          contactName: r.contactName,
-          memberNumber: r.claimedMemberNumber as string,
-        })),
-    ];
+    conflictsFlat = fromRegs
+      .filter((r) => r.claimedMemberNumber)
+      .map((r) => ({
+        registrationId: r.id,
+        contactName: r.contactName,
+        memberNumber: r.claimedMemberNumber as string,
+      }));
   }
 
   const conflicts = aggregateCrossRegistrationConflicts(conflictsFlat);

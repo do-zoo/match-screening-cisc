@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canEditEvent,
   canEditEventBeforeRegistrationClose,
   getEventPhase,
+  isRegistrationOpen,
   isRegistrationTimeWindowOpen,
 } from "./event-timing";
 
@@ -47,6 +49,23 @@ describe("event-timing", () => {
     );
     expect(getEventPhase(t, new Date("2026-06-10T20:00:00.000Z"))).toBe(
       "after_kickoff",
+    );
+  });
+
+  it("isRegistrationOpen alias matches time window helper", () => {
+    expect(
+      isRegistrationOpen(t, new Date("2026-06-05T12:00:00.000Z")),
+    ).toBe(isRegistrationTimeWindowOpen(t, new Date("2026-06-05T12:00:00.000Z")));
+  });
+
+  it("canEditEvent alias matches before-registration-close helper", () => {
+    expect(
+      canEditEvent(t, new Date("2026-06-10T11:59:59.000Z")),
+    ).toBe(
+      canEditEventBeforeRegistrationClose(
+        t,
+        new Date("2026-06-10T11:59:59.000Z"),
+      ),
     );
   });
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EventStatus, PricingSource } from "@prisma/client";
+import { EventStatus } from "@prisma/client";
 
 const idrSchema = z.coerce.number().int().nonnegative();
 
@@ -31,7 +31,6 @@ export const adminEventUpsertSchema = z
     registrationCapacity: z.union([idrSchema, z.literal(null)]).optional(),
     registrationManualClosed: z.boolean(),
     status: z.nativeEnum(EventStatus),
-    pricingSource: z.nativeEnum(PricingSource),
     ticketMemberPrice: idrSchema,
     ticketNonMemberPrice: idrSchema,
     picAdminProfileId: z.string().min(1, "PIC wajib."),

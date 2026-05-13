@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Event" ALTER COLUMN "openRegistrationAt" DROP DEFAULT,
+ALTER COLUMN "closeRegistrationAt" DROP DEFAULT,
+ALTER COLUMN "openGateAt" DROP DEFAULT,
+ALTER COLUMN "kickOffAt" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "Registration" ALTER COLUMN "ticketRole" DROP DEFAULT,
+ALTER COLUMN "ticketPriceType" DROP DEFAULT;

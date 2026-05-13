@@ -74,8 +74,6 @@ function syntheticTicketRows(opts: {
     whatsapp: row.contactWhatsapp,
     memberNumber: row.claimedMemberNumber,
     ticketPriceType: row.ticketPriceType,
-    voucherRedeemedMenuItemId: null as string | null,
-    voucherRedeemedAt: null as Date | null,
     menuSelections: [
       { menuItem: { name: row.menu.name, price: row.menu.price } },
     ],
@@ -174,14 +172,6 @@ export default async function AdminEventInboxDetailPage({
           },
         },
       },
-      tickets: {
-        orderBy: { createdAt: "asc" as const },
-        include: {
-          menuSelections: {
-            include: { menuItem: { select: { name: true, price: true } } },
-          },
-        },
-      },
       uploads: { orderBy: { createdAt: "asc" as const } },
       adjustments: {
         orderBy: { createdAt: "asc" as const },
@@ -201,17 +191,30 @@ export default async function AdminEventInboxDetailPage({
     price: m.price,
   });
 
-  let ticketsForDetail: DetailRegistration["tickets"] = registration.tickets;
-  if (ticketsForDetail.length === 0) {
-    if (registration.ticketRole === TicketRole.primary) {
-      const partners = registration.partnerRegistrations.map((pr) => ({
-        id: pr.id,
-        contactName: pr.contactName,
-        contactWhatsapp: pr.contactWhatsapp,
-        claimedMemberNumber: pr.claimedMemberNumber,
-        ticketPriceType: pr.ticketPriceType,
-        menu: menuSnap(pr.mandatoryMenuItem),
-      }));
+  let ticketsForDetail: DetailRegistration["tickets"];
+  if (registration.ticketRole === TicketRole.primary) {
+    const partners = registration.partnerRegistrations.map((pr) => ({
+      id: pr.id,
+      contactName: pr.contactName,
+      contactWhatsapp: pr.contactWhatsapp,
+      claimedMemberNumber: pr.claimedMemberNumber,
+      ticketPriceType: pr.ticketPriceType,
+      menu: menuSnap(pr.mandatoryMenuItem),
+    }));
+    ticketsForDetail = syntheticTicketRows({
+      primary: {
+        id: registration.id,
+        contactName: registration.contactName,
+        contactWhatsapp: registration.contactWhatsapp,
+        claimedMemberNumber: registration.claimedMemberNumber,
+        ticketPriceType: registration.ticketPriceType,
+        menu: menuSnap(registration.mandatoryMenuItem),
+      },
+      partners,
+    });
+  } else {
+    const p = registration.primaryRegistration;
+    if (!p) {
       ticketsForDetail = syntheticTicketRows({
         primary: {
           id: registration.id,
@@ -221,13 +224,20 @@ export default async function AdminEventInboxDetailPage({
           ticketPriceType: registration.ticketPriceType,
           menu: menuSnap(registration.mandatoryMenuItem),
         },
-        partners,
+        partners: [],
       });
     } else {
-      const p = registration.primaryRegistration;
-      if (!p) {
-        ticketsForDetail = syntheticTicketRows({
-          primary: {
+      ticketsForDetail = syntheticTicketRows({
+        primary: {
+          id: p.id,
+          contactName: p.contactName,
+          contactWhatsapp: p.contactWhatsapp,
+          claimedMemberNumber: p.claimedMemberNumber,
+          ticketPriceType: p.ticketPriceType,
+          menu: menuSnap(p.mandatoryMenuItem),
+        },
+        partners: [
+          {
             id: registration.id,
             contactName: registration.contactName,
             contactWhatsapp: registration.contactWhatsapp,
@@ -235,30 +245,8 @@ export default async function AdminEventInboxDetailPage({
             ticketPriceType: registration.ticketPriceType,
             menu: menuSnap(registration.mandatoryMenuItem),
           },
-          partners: [],
-        });
-      } else {
-        ticketsForDetail = syntheticTicketRows({
-          primary: {
-            id: p.id,
-            contactName: p.contactName,
-            contactWhatsapp: p.contactWhatsapp,
-            claimedMemberNumber: p.claimedMemberNumber,
-            ticketPriceType: p.ticketPriceType,
-            menu: menuSnap(p.mandatoryMenuItem),
-          },
-          partners: [
-            {
-              id: registration.id,
-              contactName: registration.contactName,
-              contactWhatsapp: registration.contactWhatsapp,
-              claimedMemberNumber: registration.claimedMemberNumber,
-              ticketPriceType: registration.ticketPriceType,
-              menu: menuSnap(registration.mandatoryMenuItem),
-            },
-          ],
-        });
-      }
+        ],
+      });
     }
   }
 
@@ -267,11 +255,9 @@ export default async function AdminEventInboxDetailPage({
     partnerRegistrations,
     mandatoryMenuItem,
     event: prismaEvent,
-    tickets,
     uploads: ownUploads,
     ...registrationRest
   } = registration;
-  void tickets;
 
   const uploadsMerged = mergeUploadsForDetail(
     registration.ticketRole,

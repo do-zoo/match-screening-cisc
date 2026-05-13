@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 export const COMMITTEE_SETTINGS_NAV = [
   { href: "/admin/settings", label: "Ringkasan" },
   { href: "/admin/settings/committee", label: "Komite & admin" },
-  { href: "/admin/settings/pricing", label: "Harga default" },
   { href: "/admin/settings/whatsapp-templates", label: "Template WhatsApp" },
   { href: "/admin/settings/branding", label: "Branding" },
   { href: "/admin/settings/notifications", label: "Notifikasi" },

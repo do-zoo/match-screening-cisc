@@ -87,7 +87,7 @@ An event registration system for a members-only social club (CISC). Members and 
   - `admin/management/` — kepengurusan hub
   - `admin/management/[periodId]` — board period detail (roles, assignments, PDF/CSV export)
   - `admin/venues/` — venue list; `admin/venues/[venueId]/edit`, `admin/venues/new`
-  - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, pricing, security, whatsapp-templates)
+  - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, security, whatsapp-templates)
   - `admin/account/` — personal account page (display name, 2FA)
 - `api/auth/[...all]` — Better Auth catch-all handler
 - `api/admin/events/[eventId]/title` — lightweight title lookup for breadcrumbs
@@ -100,7 +100,7 @@ An event registration system for a members-only social club (CISC). Members and 
 | Verify/edit registrations on all events | ✓ | ✓ | ✓ | — |
 | Verify/edit registrations on assigned events | ✓ | ✓ | ✓ | ✓ (via `EventPicHelper`) |
 | Operational management (members, events, venues, management) | ✓ | ✓ | — | — |
-| Committee advanced settings (pricing, WA templates, branding, security) | ✓ | — | — | — |
+| Committee advanced settings (WA templates, branding, security) | ✓ | — | — | — |
 
 `lib/permissions/roles.ts` exports `hasGlobalVerifierAccess`, `hasOperationalOwnerParity`, and `canManageCommitteeAdvancedSettings`. Use these functions rather than comparing role strings directly. Guard functions in `lib/actions/guard.ts` wrap these for server actions.
 
@@ -111,10 +111,9 @@ An event registration system for a members-only social club (CISC). Members and 
 Key entities:
 
 - **`MasterMember`** — the club member directory; `isManagementMember` gates partner ticket eligibility and is **derived from kepengurusan** (`BoardAssignment` for the active `BoardPeriod` when the pengurus row links via `ManagementMember.masterMemberId`), not edited manually in the directory UI
-- **`Event`** — slug, per-event ticket pricing, timeline **`openRegistrationAt` / `closeRegistrationAt` / `openGateAt` / `kickOffAt`**, **`mandatoryMenuItemIds`** (subset of linked venue menu items), linked menu via **`EventVenueMenuItem`**; financial PIC is **`picAdminProfileId`** (`AdminProfile`); pembayaran via **`bankAccountId`** → **`PicBankAccount`**
-- **`Venue`** / **`VenueMenuItem`** — venues carry a reusable menu item catalogue; when creating/editing an event the selected venue menu items are copied into **`EventVenueMenuItem`** rows (snapshotted at event creation; frozen after first registration — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`)
-- **`Registration`** — **satu baris per tiket** (utama dan/atau partner sebagai baris terpisah); partner menaut ke pembeli utama lewat **`primaryRegistrationId`**; **`ticketRole`**, **`ticketPriceType`**, **`mandatoryMenuItemId`**, **`ticketPriceApplied`**, **`mandatoryMenuPriceApplied`**, **`computedTotalAtSubmit`**; status flows: `submitted → pending_review → approved / rejected / payment_issue`
-- **`Ticket`** — **legacy** (deprecated); pendaftaran baru tidak membuat baris `Ticket`; unik `(eventId, memberNumber)` tetap relevan untuk data lama / migrasi
+- **`Event`** — slug, harga tiket per acara (`ticketMemberPrice`, `ticketNonMemberPrice` dalam IDR), timeline **`openRegistrationAt` / `closeRegistrationAt` / `openGateAt` / `kickOffAt`**, **`mandatoryMenuItemIds`** (subset of linked venue menu items), linked menu via **`EventVenueMenuItem`**; financial PIC is **`picAdminProfileId`** (`AdminProfile`); pembayaran via **`bankAccountId`** → **`PicBankAccount`**
+- **`Venue`** / **`VenueMenuItem`** — venues carry a reusable menu item catalogue (`name`, `price` IDR, `sortOrder`); when creating/editing an event the selected venue menu items are copied into **`EventVenueMenuItem`** rows (snapshotted at event creation; frozen after first registration — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`)
+- **`Registration`** — **satu baris per tiket** (utama dan/atau partner sebagai baris terpisah); partner menaut ke pembeli utama lewat **`primaryRegistrationId`**; **`ticketRole`**, **`ticketPriceType`**, **`mandatoryMenuItemId`**, **`ticketPriceApplied`**, **`mandatoryMenuPriceApplied`**, **`computedTotalAtSubmit`**; status flows: `submitted → pending_review → approved / rejected / payment_issue` (sumber kebenaran tiket; tidak ada tabel `Ticket` terpisah)
 - **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage
 - **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
@@ -142,21 +141,22 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
 - `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance (`baselineTotal`, agregat tiket/menu approved, penyesuaian, refund), dan agregasi menu wajib per item (`MenuStats.byItem`)
 - `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — CSV UTF-8 satu baris per `Registration` (peran, pembeli utama untuk partner, menu wajib, harga snapshot, kolom legacy tiket, penyesuaian)
-- `lib/events/event-timing.ts` — helper fase/waktu pendaftaran dan gate (`isRegistrationTimeWindowOpen`, `getEventPhase`, dll.)
-- `lib/registrations/partner-registration.ts` — helper baris utama/partner (`getPrimaryRegistration`, `getRegistrationPair`, dll.)
+- `lib/events/event-timing.ts` — helper fase/waktu pendaftaran dan gate (`isRegistrationTimeWindowOpen`, `isRegistrationOpen`, `canEditEventBeforeRegistrationClose`, `canEditEvent`, `getEventPhase`, dll.)
+- `lib/events/event-registration-window.ts` — re-export dari `registration-window.ts` (nama modul selaras dokumen rencana)
+- `lib/registrations/partner-registration.ts` — helper baris utama/partner (`getPrimaryRegistration`, `getPartnerRegistrations` / `getPartnerRegistrationsForPrimary`, `getRegistrationPair`, dll.)
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses
-- `lib/events/event-admin-defaults.ts` — saran harga tiket dari env `MATCH_DEFAULT_TICKET_*_IDR` (`resolveCommitteeTicketDefaults()` tanpa query DB; tabel komite lama dihapus)
+- `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
 - `lib/admin/` — admin-domain helpers: invite crypto, email, dashboard view model, committee invariants, nav flags, PIC bank permissions, path helpers
 
 ### UI components
 
-- `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution)
+- `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `dropzone.tsx`, `image-upload-dropzone.tsx` (sampul acara admin)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `VoucherRedemptionPanel`
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 
@@ -193,4 +193,4 @@ Images are converted to WebP (max 1600px, quality 80) via Sharp before being put
 
 ### Testing
 
-Tests are co-located next to their module as `.test.ts` files, with cross-cutting unit tests in `src/tests/unit/`. Vitest runs in `node` environment — no browser/DOM tests. Test setup file: `src/tests/vitest.setup.ts`. Action tests (e.g. `admin-events.test.ts`) mock Prisma and blob calls; pure logic tests (e.g. `compute-submit-total.test.ts`) have no mocks.
+Tests are co-located next to their module as `.test.ts` files, with cross-cutting unit tests in `src/tests/unit/`. Uji alur server action berat (Prisma + mock) ada di `src/lib/actions/__tests__/*.integration.test.ts`. Vitest runs in `node` environment — no browser/DOM tests. Test setup file: `src/tests/vitest.setup.ts`. Action tests (e.g. `admin-events.test.ts`) mock Prisma and blob calls; pure logic tests (e.g. `compute-submit-total.test.ts`) have no mocks.

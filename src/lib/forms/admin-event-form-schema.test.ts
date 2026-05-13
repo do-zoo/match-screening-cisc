@@ -1,4 +1,4 @@
-import { EventStatus, PricingSource } from "@prisma/client";
+import { EventStatus } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import { adminEventUpsertSchema } from "./admin-event-form-schema";
@@ -17,7 +17,6 @@ function validBase() {
     mandatoryMenuItemIds: ["menu-a"],
     registrationManualClosed: false,
     status: EventStatus.draft,
-    pricingSource: PricingSource.overridden,
     ticketMemberPrice: 500_000,
     ticketNonMemberPrice: 750_000,
     picAdminProfileId: "pic-1",

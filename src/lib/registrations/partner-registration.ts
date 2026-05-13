@@ -23,6 +23,9 @@ export async function getPartnerRegistrationsForPrimary(primaryId: string) {
   });
 }
 
+/** Alias nama dari dokumen rencana (`getPartnerRegistrations`). */
+export const getPartnerRegistrations = getPartnerRegistrationsForPrimary;
+
 /**
  * Pembeli utama + daftar partner pada grup yang sama.
  */

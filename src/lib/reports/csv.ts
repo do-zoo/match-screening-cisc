@@ -45,13 +45,6 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       adjustments: {
         select: { type: true, amount: true, status: true },
       },
-      tickets: {
-        select: {
-          role: true,
-          fullName: true,
-          memberNumber: true,
-        },
-      },
     },
   });
 
@@ -70,14 +63,10 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
     "Menu wajib",
     "Harga menu (IDR)",
     "Total (IDR)",
-    "Tiket utama (legacy)",
-    "Tiket partner (legacy)",
     "Penyesuaian (IDR)",
   ];
 
   const body = rows.map((r) => {
-    const primaryLegacy = r.tickets.find((t) => t.role === TicketRole.primary);
-    const partnerLegacy = r.tickets.find((t) => t.role === TicketRole.partner);
     const adjustmentTotal = r.adjustments.reduce((s, a) => s + a.amount, 0);
     const roleLabel =
       r.ticketRole === TicketRole.primary ? "Utama" : "Partner";
@@ -101,8 +90,6 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       r.mandatoryMenuItem.name,
       idr(r.mandatoryMenuPriceApplied),
       idr(r.computedTotalAtSubmit),
-      primaryLegacy?.fullName ?? "",
-      partnerLegacy?.fullName ?? "",
       adjustmentTotal > 0 ? idr(adjustmentTotal) : "",
     ]
       .map(String)

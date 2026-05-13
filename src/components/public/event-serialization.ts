@@ -2,7 +2,6 @@ export type SerializedEventMenuItem = {
   id: string;
   name: string;
   price: number;
-  voucherEligible: boolean;
 };
 
 export type SerializedBankAccount = {

@@ -36,7 +36,6 @@ export function VenueCatalogEditor({
         name: "",
         price: 0,
         sortOrder: prev.length + 1,
-        voucherEligible: true,
       },
     ]);
   }
@@ -105,10 +104,10 @@ export function VenueCatalogEditor({
           {items.map((row, index) => (
             <div
               key={row.id ?? `new_${index}`}
-              className="bg-card grid gap-2 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-12"
+              className="bg-card grid gap-2 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-10"
             >
 
-              <div className="col-span-full sm:col-span-2 lg:col-span-6">
+              <div className="col-span-full sm:col-span-2 lg:col-span-5">
                 <Label className="text-xs">Nama</Label>
                 <Input
                   value={row.name}
@@ -163,24 +162,6 @@ export function VenueCatalogEditor({
                   disabled={pending}
                 />
               </div>
-              <label className="flex items-center gap-2 lg:col-span-2 lg:self-end lg:pb-2">
-                <input
-                  type="checkbox"
-                  checked={row.voucherEligible}
-                  onChange={(e) =>
-                    setItems((prev) => {
-                      const next = [...prev];
-                      next[index] = {
-                        ...next[index]!,
-                        voucherEligible: e.target.checked,
-                      };
-                      return next;
-                    })
-                  }
-                  disabled={pending}
-                />
-                <span className="text-sm">Eligible voucher</span>
-              </label>
               <div className="col-span-full flex justify-end lg:col-span-full">
                 <Button
                   type="button"

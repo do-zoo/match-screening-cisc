@@ -5,7 +5,6 @@ const venueCatalogItemSchema = z.object({
   name: z.string().trim().min(1),
   price: z.coerce.number().int().nonnegative(),
   sortOrder: z.coerce.number().int(),
-  voucherEligible: z.boolean(),
 });
 
 export const venueCatalogPayloadSchema = z.object({

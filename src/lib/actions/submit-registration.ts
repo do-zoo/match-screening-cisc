@@ -1,7 +1,7 @@
 "use server";
 
 import { del } from "@vercel/blob";
-import { Prisma, RegistrationStatus } from "@prisma/client";
+import { RegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   fieldError,
@@ -66,26 +66,6 @@ function optionalFile(entry: FormDataEntryValue | null): File | undefined {
   return entry instanceof File ? entry : undefined;
 }
 
-function isTicketMemberUniqueConstraintError(err: unknown): boolean {
-  if (
-    !(err instanceof Prisma.PrismaClientKnownRequestError) ||
-    err.code !== "P2002"
-  ) {
-    return false;
-  }
-
-  const target = err.meta?.target;
-  if (Array.isArray(target)) {
-    return target.includes("eventId") && target.includes("memberNumber");
-  }
-
-  return (
-    typeof target === "string" &&
-    target.includes("eventId") &&
-    target.includes("memberNumber")
-  );
-}
-
 export async function submitRegistration(
   _prev: unknown,
   formData: FormData
@@ -115,7 +95,6 @@ export async function submitRegistration(
     id: string;
     name: string;
     price: number;
-    voucherEligible: boolean;
   };
   const menuRowList: PublicMenuRow[] = flattenedMenuRowsFromEventVenueLinks(
     event.eventVenueMenuItems,
@@ -252,7 +231,7 @@ export async function submitRegistration(
     claimedManagementPublicCodeStored = norm;
   }
 
-  /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs unique tiket. */
+  /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs klaim nomor. */
   const primaryMemberNumber = primaryDirectoryRow
     ? primaryDirectoryRow.memberNumber
     : primaryMemberNumberInput;
@@ -433,11 +412,6 @@ export async function submitRegistration(
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {
       return rootError(e.message);
-    }
-    if (isTicketMemberUniqueConstraintError(e)) {
-      const memberNumbers =
-        candidates.length > 0 ? candidates : ["nomor member"];
-      return rootError(duplicateMemberMessage(memberNumbers));
     }
 
     let cleanupFailed = false;

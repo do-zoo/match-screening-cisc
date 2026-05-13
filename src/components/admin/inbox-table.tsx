@@ -32,12 +32,6 @@ type InboxRegistrationRow = {
   ticketRole: TicketRole;
   attendanceStatus: AttendanceStatus;
   primaryRegistration: { id: string; contactName: string } | null;
-  tickets: Array<{
-    role: TicketRole;
-    fullName: string;
-    whatsapp: string | null;
-    memberNumber: string | null;
-  }>;
 };
 
 function attendanceLabel(s: AttendanceStatus): string {
@@ -121,19 +115,6 @@ export function InboxTable({
         enableSorting: false,
         cell: ({ row }) => {
           const r = row.original;
-          const legacyPrimary = r.tickets.find((t) => t.role === "primary");
-          if (legacyPrimary) {
-            return (
-              <div>
-                <div>{legacyPrimary.fullName}</div>
-                <div className="font-mono text-xs text-muted-foreground">
-                  {legacyPrimary.memberNumber ??
-                    r.claimedMemberNumber ??
-                    "non-member"}
-                </div>
-              </div>
-            );
-          }
           if (r.ticketRole === "partner" && r.primaryRegistration) {
             return (
               <div className="text-sm">

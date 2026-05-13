@@ -16,7 +16,6 @@ import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
 import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
-import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
 import {
   findLockedViolations,
   findMandatoryMenuLockedViolation,
@@ -59,24 +58,6 @@ function parsePayloadField(formData: FormData): unknown {
   } catch {
     return null;
   }
-}
-
-async function ticketPricesForWrite(opts: {
-  pricingSource: AdminEventUpsertInput["pricingSource"];
-  parsedMember: number;
-  parsedNonMember: number;
-}): Promise<{ ticketMemberPrice: number; ticketNonMemberPrice: number }> {
-  if (opts.pricingSource === "global_default") {
-    const d = await resolveCommitteeTicketDefaults();
-    return {
-      ticketMemberPrice: d.ticketMemberPrice,
-      ticketNonMemberPrice: d.ticketNonMemberPrice,
-    };
-  }
-  return {
-    ticketMemberPrice: opts.parsedMember,
-    ticketNonMemberPrice: opts.parsedNonMember,
-  };
 }
 
 async function validatePicBankAndHelpers(
@@ -218,12 +199,8 @@ export async function createAdminEvent(
   const vMenu = await validateLinkedVenueMenuOrError(data);
   if (!vMenu.ok) return vMenu;
 
-  const { ticketMemberPrice, ticketNonMemberPrice } =
-    await ticketPricesForWrite({
-      pricingSource: data.pricingSource,
-      parsedMember: data.ticketMemberPrice,
-      parsedNonMember: data.ticketNonMemberPrice,
-    });
+  const ticketMemberPrice = data.ticketMemberPrice;
+  const ticketNonMemberPrice = data.ticketNonMemberPrice;
 
   const helperIds = [...new Set(data.helperAdminProfileIds)].filter(
     (id) => id !== data.picAdminProfileId,
@@ -277,7 +254,6 @@ export async function createAdminEvent(
           status: data.status,
           ticketMemberPrice,
           ticketNonMemberPrice,
-          pricingSource: data.pricingSource,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -348,7 +324,6 @@ export async function updateAdminEvent(
       mandatoryMenuItemIds: true,
       ticketMemberPrice: true,
       ticketNonMemberPrice: true,
-      pricingSource: true,
       picAdminProfileId: true,
       bankAccountId: true,
       eventVenueMenuItems: {
@@ -371,7 +346,6 @@ export async function updateAdminEvent(
     mandatoryMenuItemIds: [...existing.mandatoryMenuItemIds],
     ticketMemberPrice: existing.ticketMemberPrice,
     ticketNonMemberPrice: existing.ticketNonMemberPrice,
-    pricingSource: existing.pricingSource,
     picAdminProfileId: existing.picAdminProfileId,
     bankAccountId: existing.bankAccountId,
   };
@@ -419,17 +393,12 @@ export async function updateAdminEvent(
   const vMenu = await validateLinkedVenueMenuOrError(data);
   if (!vMenu.ok) return vMenu;
 
-  const { ticketMemberPrice, ticketNonMemberPrice } =
-    await ticketPricesForWrite({
-      pricingSource: data.pricingSource,
-      parsedMember: data.ticketMemberPrice,
-      parsedNonMember: data.ticketNonMemberPrice,
-    });
+  const ticketMemberPrice = data.ticketMemberPrice;
+  const ticketNonMemberPrice = data.ticketNonMemberPrice;
 
   const candidateSensitivity: Partial<EventIntegritySnapshot> = {
     ticketMemberPrice,
     ticketNonMemberPrice,
-    pricingSource: data.pricingSource,
     picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
   };
@@ -531,7 +500,6 @@ export async function updateAdminEvent(
           status: data.status,
           ticketMemberPrice,
           ticketNonMemberPrice,
-          pricingSource: data.pricingSource,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },

@@ -1,26 +1,26 @@
-import Image from "next/image";
-import Link from "next/link";
-import {
-  InvoiceAdjustmentStatus,
-  WaTemplateKey,
-} from "@prisma/client";
 import type {
   AttendanceStatus,
   InvoiceAdjustmentType,
   MemberValidation,
   RegistrationStatus,
   TicketPriceType,
-  TicketRole,
   UploadPurpose,
 } from "@prisma/client";
+import {
+  InvoiceAdjustmentStatus,
+  TicketRole,
+  WaTemplateKey,
+} from "@prisma/client";
+import Image from "next/image";
+import Link from "next/link";
 
-import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
-import { RegistrationRelationsCard } from "@/components/admin/registration-detail-panels/registration-relations-card";
-import { RegistrationStatusPanel } from "@/components/admin/registration-detail-panels/registration-status-panel";
 import { AttendancePanel } from "@/components/admin/attendance-panel";
 import { CancelRefundPanel } from "@/components/admin/cancel-refund-panel";
-import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
 import { InvoiceAdjustmentPanel } from "@/components/admin/invoice-adjustment-panel";
+import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
+import { RegistrationRelationsCard } from "@/components/admin/registration-detail-panels/registration-relations-card";
+import { RegistrationStatusPanel } from "@/components/admin/registration-detail-panels/registration-status-panel";
+import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
 import {
   RegistrationTicketsTable,
   type RegistrationTicketRow,
@@ -75,6 +75,7 @@ export type DetailRegistration = {
   relationsPrimary: { id: string; contactName: string } | null;
   relationsPartners: Array<{ id: string; contactName: string }>;
   ticketRole: TicketRole;
+  ticketPriceType: TicketPriceType;
   status: RegistrationStatus;
   attendanceStatus: AttendanceStatus;
   memberValidation: MemberValidation;
@@ -86,7 +87,7 @@ export type DetailRegistration = {
     kickOffAt: Date;
     ticketMemberPrice: number;
     ticketNonMemberPrice: number;
-    menuItems: Array<{ id: string; name: string; price: number; voucherEligible: boolean }>;
+    menuItems: Array<{ id: string; name: string; price: number }>;
     bankAccount: { bankName: string; accountNumber: string; accountName: string } | null;
   };
   tickets: Array<{
@@ -96,8 +97,6 @@ export type DetailRegistration = {
     whatsapp: string | null;
     memberNumber: string | null;
     ticketPriceType: TicketPriceType;
-    voucherRedeemedMenuItemId: string | null;
-    voucherRedeemedAt: Date | null;
     menuSelections: Array<{ menuItem: { name: string; price: number } }>;
   }>;
   uploads: Array<{
@@ -514,10 +513,10 @@ export function RegistrationDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Tickets</CardTitle>
+          <CardTitle>Tiket & menu</CardTitle>
           <CardDescription>
-            Baris tiket dan menu saat pengiriman (termasuk data lama dari tabel
-            Ticket jika masih ada).
+            Ringkasan per baris registrasi (utama / partner) dan menu wajib saat
+            pengiriman.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -542,15 +541,11 @@ export function RegistrationDetail({
           eventId={eventId}
           registrationId={registration.id}
           current={registration.memberValidation}
-          primaryTicket={(() => {
-            const t = registration.tickets.find((x) => x.role === "primary");
-            if (!t) return null;
-            return {
-              id: t.id,
-              role: "primary" as const,
-              ticketPriceType: t.ticketPriceType,
-            };
-          })()}
+          primaryTicket={{
+            id: registration.id,
+            role: TicketRole.primary,
+            ticketPriceType: registration.ticketPriceType,
+          }}
           eventTicketMemberPrice={registration.event.ticketMemberPrice}
           eventTicketNonMemberPrice={registration.event.ticketNonMemberPrice}
         />

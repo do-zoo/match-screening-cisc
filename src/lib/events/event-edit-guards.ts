@@ -1,12 +1,9 @@
-import type { PricingSource } from "@prisma/client";
-
 export type EventIntegritySnapshot = {
   slug: string;
   venueId: string;
   mandatoryMenuItemIds: string[];
   ticketMemberPrice: number;
   ticketNonMemberPrice: number;
-  pricingSource: PricingSource;
   picAdminProfileId: string;
   bankAccountId: string;
 };
@@ -56,8 +53,7 @@ export function needsSensitiveAcknowledgement(opts: {
 
   const pricingChanged =
     merged.ticketMemberPrice !== opts.persisted.ticketMemberPrice ||
-    merged.ticketNonMemberPrice !== opts.persisted.ticketNonMemberPrice ||
-    merged.pricingSource !== opts.persisted.pricingSource;
+    merged.ticketNonMemberPrice !== opts.persisted.ticketNonMemberPrice;
 
   const financeActorChanged =
     merged.picAdminProfileId !== opts.persisted.picAdminProfileId ||

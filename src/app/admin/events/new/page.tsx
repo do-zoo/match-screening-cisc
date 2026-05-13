@@ -11,7 +11,10 @@ import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { resolveCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
+import {
+  COMMITTEE_TICKET_FALLBACK_MEMBER_IDR,
+  COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR,
+} from "@/lib/events/event-admin-defaults";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 import { cn } from "@/lib/utils";
@@ -37,8 +40,6 @@ export default async function AdminNewEventPage() {
   if (!hasOperationalOwnerParity(ctx.role)) {
     notFound();
   }
-
-  const committeeDefaults = await resolveCommitteeTicketDefaults();
 
   const venuesRaw = await prisma.venue.findMany({
     where: { isActive: true },
@@ -88,7 +89,6 @@ export default async function AdminNewEventPage() {
       name: m.name,
       price: m.price,
       sortOrder: m.sortOrder,
-      voucherEligible: m.voucherEligible,
     })),
   }));
 
@@ -133,9 +133,8 @@ export default async function AdminNewEventPage() {
     registrationCapacity: null,
     registrationManualClosed: false,
     status: "draft",
-    pricingSource: "global_default",
-    ticketMemberPrice: committeeDefaults.ticketMemberPrice,
-    ticketNonMemberPrice: committeeDefaults.ticketNonMemberPrice,
+    ticketMemberPrice: COMMITTEE_TICKET_FALLBACK_MEMBER_IDR,
+    ticketNonMemberPrice: COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR,
     picAdminProfileId: firstPicId ?? "",
     bankAccountId: firstBankId,
     helperAdminProfileIds: [],
@@ -211,7 +210,6 @@ export default async function AdminNewEventPage() {
 
       <EventAdminForm
         mode="create"
-        committeeDefaults={committeeDefaults}
         defaults={defaults}
         picOptions={picOptions}
         banksByPic={banksByPic}

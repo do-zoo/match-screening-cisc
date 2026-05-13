@@ -1,10 +1,6 @@
 import "dotenv/config";
 
-import {
-  AdminRole,
-  EventStatus,
-  PricingSource,
-} from "@prisma/client";
+import { AdminRole, EventStatus } from "@prisma/client";
 
 /** Same Neon + `db.localtest.me` proxy setup as the app (`scripts/bootstrap-admin` pattern). */
 import { prisma } from "@/lib/db/prisma";
@@ -227,16 +223,13 @@ async function main() {
   });
 
   // Venue menu rows are recreated below; dependents use onDelete Restrict, so strip them first
-  // (e.g. EventVenueMenuItem from seeded voucher event, TicketMenuSelection from test regs).
+  // (e.g. EventVenueMenuItem from seeded events).
   const seededVenueMenuIds = await prisma.venueMenuItem.findMany({
     where: { venueId: { in: [demoVenue.id, catalogVenue.id] } },
     select: { id: true },
   });
   const seededMenuIds = seededVenueMenuIds.map((r) => r.id);
   if (seededMenuIds.length > 0) {
-    await prisma.ticketMenuSelection.deleteMany({
-      where: { menuItemId: { in: seededMenuIds } },
-    });
     await prisma.eventVenueMenuItem.deleteMany({
       where: { venueMenuItemId: { in: seededMenuIds } },
     });
@@ -256,7 +249,6 @@ async function main() {
         name: "Paket Burger",
         price: 55_000,
         sortOrder: 1,
-        voucherEligible: true,
       },
     }),
     prisma.venueMenuItem.create({
@@ -265,7 +257,6 @@ async function main() {
         name: "Paket Nasi",
         price: 50_000,
         sortOrder: 2,
-        voucherEligible: true,
       },
     }),
   ]);
@@ -277,28 +268,24 @@ async function main() {
         name: "Snack ringan",
         price: 35_000,
         sortOrder: 1,
-        voucherEligible: true,
       },
       {
         venueId: catalogVenue.id,
         name: "Minuman",
         price: 25_000,
         sortOrder: 2,
-        voucherEligible: true,
       },
       {
         venueId: catalogVenue.id,
         name: "Paket premium",
         price: 95_000,
         sortOrder: 3,
-        voucherEligible: false,
       },
       {
         venueId: catalogVenue.id,
         name: "Dessert",
         price: 40_000,
         sortOrder: 4,
-        voucherEligible: true,
       },
     ],
   });
@@ -328,7 +315,6 @@ async function main() {
       status: EventStatus.active,
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
-      pricingSource: PricingSource.global_default,
       coverBlobUrl:
         "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
       coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
@@ -349,7 +335,6 @@ async function main() {
       status: EventStatus.active,
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
-      pricingSource: PricingSource.global_default,
       picAdminProfileId: ownerProfile.id,
       bankAccountId: bank.id,
     },
@@ -372,24 +357,24 @@ async function main() {
     .slice(0, 2)
     .map((m) => m.id);
 
-  const voucherSummary =
+  const kopdarSummary =
     "Kopdar santai — tiket dan menu wajib dibayar saat daftar.";
-  const voucherDescription =
+  const kopdarDescription =
     "<p>Acara seed kedua untuk menguji subset menu katalog.</p>";
 
   const kopdarStart = new Date("2026-06-14T17:00:00+07:00");
   const kopdarEnd = new Date("2026-06-14T21:30:00+07:00");
   const kopdarTiming = eventTiming(kopdarStart, kopdarEnd);
 
-  const voucherEvent = await prisma.event.upsert({
-    where: { slug: "demo-kopdar-voucher-2026" },
+  const kopdarEvent = await prisma.event.upsert({
+    where: { slug: "demo-kopdar-catalog-2026" },
     update: {
-      title: "Demo — Kopdar Voucher Juni",
+      title: "Demo — Kopdar Katalog Juni",
       bankAccountId: bank.id,
       picAdminProfileId: ownerProfile.id,
       venueId: catalogVenue.id,
-      summary: voucherSummary,
-      description: voucherDescription,
+      summary: kopdarSummary,
+      description: kopdarDescription,
       ...kopdarTiming,
       mandatoryMenuItemIds: catalogMandatoryIds,
       registrationManualClosed: false,
@@ -397,45 +382,41 @@ async function main() {
       status: EventStatus.active,
       ticketMemberPrice: 100_000,
       ticketNonMemberPrice: 150_000,
-      pricingSource: PricingSource.global_default,
       coverBlobUrl:
-        "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Voucher",
-      coverBlobPath: "__seed__/demo-kopdar-voucher-2026/cover.webp",
+        "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Katalog",
+      coverBlobPath: "__seed__/demo-kopdar-catalog-2026/cover.webp",
     },
     create: {
-      slug: "demo-kopdar-voucher-2026",
-      title: "Demo — Kopdar Voucher Juni",
-      summary: voucherSummary,
-      description: voucherDescription,
+      slug: "demo-kopdar-catalog-2026",
+      title: "Demo — Kopdar Katalog Juni",
+      summary: kopdarSummary,
+      description: kopdarDescription,
       ...kopdarTiming,
       mandatoryMenuItemIds: catalogMandatoryIds,
       coverBlobUrl:
-        "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Voucher",
-      coverBlobPath: "__seed__/demo-kopdar-voucher-2026/cover.webp",
+        "https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Katalog",
+      coverBlobPath: "__seed__/demo-kopdar-catalog-2026/cover.webp",
       registrationManualClosed: false,
       registrationCapacity: 40,
       venueId: catalogVenue.id,
       status: EventStatus.active,
       ticketMemberPrice: 100_000,
       ticketNonMemberPrice: 150_000,
-      pricingSource: PricingSource.global_default,
       picAdminProfileId: ownerProfile.id,
       bankAccountId: bank.id,
     },
   });
 
   await prisma.eventVenueMenuItem.deleteMany({
-    where: { eventId: voucherEvent.id },
+    where: { eventId: kopdarEvent.id },
   });
-  const voucherMenuRows = catalogVenueItems
-    .filter((m) => m.voucherEligible)
-    .map((m, i) => ({
-      eventId: voucherEvent.id,
-      venueMenuItemId: m.id,
-      sortOrder: i + 1,
-    }));
-  if (voucherMenuRows.length > 0) {
-    await prisma.eventVenueMenuItem.createMany({ data: voucherMenuRows });
+  const kopdarMenuRows = catalogVenueItems.map((m, i) => ({
+    eventId: kopdarEvent.id,
+    venueMenuItemId: m.id,
+    sortOrder: i + 1,
+  }));
+  if (kopdarMenuRows.length > 0) {
+    await prisma.eventVenueMenuItem.createMany({ data: kopdarMenuRows });
   }
 
   const mgmtCount = MASTER_MEMBER_SEEDS.filter(
@@ -445,8 +426,8 @@ async function main() {
     "Seed OK:",
     event.slug,
     "+",
-    voucherEvent.slug,
-    `· venue nobar=${demoVenue.id} · venue voucher=${catalogVenue.id} (${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
+    kopdarEvent.slug,
+    `· venue nobar=${demoVenue.id} · venue katalog=${catalogVenue.id} (${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
   );
 }
 

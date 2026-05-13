@@ -15,11 +15,6 @@ enum EventStatus {
   finished
 }
 
-enum PricingSource {
-  global_default
-  overridden
-}
-
 enum RegistrationStatus {
   submitted
   pending_review
@@ -208,7 +203,7 @@ model Venue {
   events    Event[]
 }
 
-/// Baris menu kanonik per venue. Relasi tiket/menu pilihan akan dipindahkan ke model ini pada migrasi kontrak (M2).
+/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `Registration.mandatoryMenuItem`.
 model VenueMenuItem {
   id              String   @id @default(cuid())
   venueId         String
@@ -217,13 +212,10 @@ model VenueMenuItem {
   /// IDR smallest unit (sama seperti harga tiket).
   price           Int
   sortOrder       Int      @default(0)
-  voucherEligible Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   eventVenueLinks    EventVenueMenuItem[]
-  ticketSelections   TicketMenuSelection[]
-  voucherRedemptions Ticket[]              @relation("VoucherRedemption")
   registrationsMandatoryMenu Registration[] @relation("RegistrationMandatoryMenu")
 
   @@index([venueId])
@@ -268,7 +260,6 @@ model Event {
   // Updated: pricing is required (no global defaults)
   ticketMemberPrice    Int
   ticketNonMemberPrice Int
-  pricingSource        PricingSource @default(overridden)
 
   // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
   mandatoryMenuItemIds String[] @default([])
@@ -343,9 +334,6 @@ model Registration {
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
 
-  /// Legacy `Ticket` rows (deprecated); new submissions do not create tickets.
-  tickets Ticket[]
-
   primaryManagementMemberId   String?
   primaryManagementMember     ManagementMember? @relation(fields: [primaryManagementMemberId], references: [id], onDelete: SetNull)
   claimedManagementPublicCode String?
@@ -354,53 +342,6 @@ model Registration {
   @@index([status])
   @@index([primaryRegistrationId])
   @@index([attendanceStatus])
-}
-
-/// DEPRECATED: Tiket per-orang kini disimpan di `Registration` (`ticketRole`, `ticketPriceType`, dll.).
-/// Tabel dipertahankan sementara untuk migrasi data; alur baru tidak membuat baris `Ticket`.
-model Ticket {
-  id             String       @id @default(cuid())
-  registrationId String
-  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-
-  role TicketRole
-
-  fullName     String
-  whatsapp     String?
-  memberNumber String?
-
-  ticketPriceType TicketPriceType
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Business rule: one ticket per member per event.
-  // Implemented as (eventId, memberNumber) unique via denormalized eventId.
-  eventId        String
-  menuSelections TicketMenuSelection[]
-
-  voucherRedeemedMenuItemId String?
-  voucherRedeemedAt         DateTime?
-  voucherRedeemedItem       VenueMenuItem? @relation("VoucherRedemption", fields: [voucherRedeemedMenuItemId], references: [id], onDelete: SetNull)
-
-  @@index([registrationId])
-  @@index([eventId])
-  @@index([voucherRedeemedMenuItemId])
-  @@unique([eventId, memberNumber])
-  @@unique([registrationId, role])
-}
-
-model TicketMenuSelection {
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  menuItemId String
-  menuItem   VenueMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-
-  @@id([ticketId, menuItemId])
-  @@index([menuItemId])
 }
 
 model InvoiceAdjustment {

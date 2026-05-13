@@ -13,7 +13,6 @@ const persisted: EventIntegritySnapshot = {
   mandatoryMenuItemIds: ["m1"],
   ticketMemberPrice: 1,
   ticketNonMemberPrice: 2,
-  pricingSource: "global_default",
   picAdminProfileId: "a1",
   bankAccountId: "b1",
 };

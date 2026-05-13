@@ -47,7 +47,6 @@ export default async function AdminEditVenuePage({
           name: true,
           price: true,
           sortOrder: true,
-          voucherEligible: true,
         },
       },
     },
@@ -63,7 +62,6 @@ export default async function AdminEditVenuePage({
       name: m.name,
       price: m.price,
       sortOrder: m.sortOrder,
-      voucherEligible: m.voucherEligible,
     })),
   };
 

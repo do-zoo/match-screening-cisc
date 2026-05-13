@@ -41,9 +41,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/events/generate-event-slug", () => ({
   allocateUniqueEventSlug: vi.fn(),
 }));
-vi.mock("@/lib/events/event-admin-defaults", () => ({
-  resolveCommitteeTicketDefaults: vi.fn(),
-}));
 vi.mock("@/lib/public/sanitize-event-description", () => ({
   sanitizePublicEventDescriptionHtml: vi.fn((s: string) => s),
 }));

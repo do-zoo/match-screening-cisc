@@ -46,7 +46,6 @@ export async function createVenueMinimal(
             "Contoh menu — sesuaikan nama & harga",
           price: 0,
           sortOrder: 1,
-          voucherEligible: true,
         },
       },
     },
@@ -100,7 +99,7 @@ export async function saveVenueCatalog(
 
       const existingRows = await tx.venueMenuItem.findMany({
         where: { venueId },
-        select: { id: true, name: true, price: true, voucherEligible: true },
+        select: { id: true, name: true, price: true },
       });
       const existingIds = new Set(existingRows.map((r) => r.id));
 
@@ -128,9 +127,7 @@ export async function saveVenueCatalog(
             const prev = existingRows.find((x) => x.id === row.id);
             if (
               prev &&
-              (prev.name !== row.name.trim() ||
-                prev.price !== row.price ||
-                prev.voucherEligible !== row.voucherEligible)
+              (prev.name !== row.name.trim() || prev.price !== row.price)
             ) {
               throw new Error("__VENUE_MENU_EDIT_FROZEN__");
             }
@@ -142,7 +139,6 @@ export async function saveVenueCatalog(
               name: row.name.trim(),
               price: row.price,
               sortOrder: row.sortOrder,
-              voucherEligible: row.voucherEligible,
             },
           });
         } else {
@@ -152,7 +148,6 @@ export async function saveVenueCatalog(
               name: row.name.trim(),
               price: row.price,
               sortOrder: row.sortOrder,
-              voucherEligible: row.voucherEligible,
             },
           });
         }
@@ -170,7 +165,7 @@ export async function saveVenueCatalog(
       }
       if (e.message === "__VENUE_MENU_EDIT_FROZEN__") {
         return rootError(
-          "Item menu terkunci — tidak bisa mengubah nama, harga, atau voucher eligible untuk acara yang ada.",
+          "Item menu terkunci — tidak bisa mengubah nama atau harga untuk acara yang ada.",
         );
       }
     }
