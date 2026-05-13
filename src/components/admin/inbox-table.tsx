@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { RegistrationStatus, TicketRole } from "@prisma/client";
+import type {
+  AttendanceStatus,
+  RegistrationStatus,
+  TicketRole,
+} from "@prisma/client";
 
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
 import {
@@ -25,6 +29,9 @@ type InboxRegistrationRow = {
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
   status: RegistrationStatus;
+  ticketRole: TicketRole;
+  attendanceStatus: AttendanceStatus;
+  primaryRegistration: { id: string; contactName: string } | null;
   tickets: Array<{
     role: TicketRole;
     fullName: string;
@@ -32,6 +39,16 @@ type InboxRegistrationRow = {
     memberNumber: string | null;
   }>;
 };
+
+function attendanceLabel(s: AttendanceStatus): string {
+  if (s === "attended") return "Hadir";
+  if (s === "no_show") return "Tidak hadir";
+  return "Belum dicatat";
+}
+
+function ticketRoleLabel(role: TicketRole): string {
+  return role === "primary" ? "Utama" : "Partner";
+}
 
 type InboxTableProps = {
   eventId: string;
@@ -67,7 +84,7 @@ export function InboxTable({
       {
         accessorKey: "createdAt",
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Submitted" />
+          <DataTableColumnHeader column={column} title="Dikirim" />
         ),
         cell: ({ row }) => (
           <span className="text-muted-foreground">
@@ -79,7 +96,7 @@ export function InboxTable({
         id: "contact",
         accessorFn: (row) => row.contactName,
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Contact" />
+          <DataTableColumnHeader column={column} title="Kontak" />
         ),
         cell: ({ row }) => {
           const r = row.original;
@@ -99,29 +116,75 @@ export function InboxTable({
         },
       },
       {
-        id: "primaryTicket",
-        header: "Primary ticket",
+        id: "ticketSummary",
+        header: "Tiket / pemilik",
         enableSorting: false,
         cell: ({ row }) => {
-          const primaryTicket = row.original.tickets.find(
-            (t) => t.role === "primary",
-          );
+          const r = row.original;
+          const legacyPrimary = r.tickets.find((t) => t.role === "primary");
+          if (legacyPrimary) {
+            return (
+              <div>
+                <div>{legacyPrimary.fullName}</div>
+                <div className="font-mono text-xs text-muted-foreground">
+                  {legacyPrimary.memberNumber ??
+                    r.claimedMemberNumber ??
+                    "non-member"}
+                </div>
+              </div>
+            );
+          }
+          if (r.ticketRole === "partner" && r.primaryRegistration) {
+            return (
+              <div className="text-sm">
+                <div className="font-medium">{r.contactName}</div>
+                <div className="text-muted-foreground">
+                  Partner dari{" "}
+                  <Link
+                    href={`/admin/events/${eventId}/inbox/${r.primaryRegistration.id}`}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    {r.primaryRegistration.contactName}
+                  </Link>
+                </div>
+                <div className="font-mono text-xs text-muted-foreground">
+                  {r.claimedMemberNumber ?? "—"}
+                </div>
+              </div>
+            );
+          }
           return (
             <div>
-              <div>{primaryTicket?.fullName ?? "-"}</div>
+              <div className="font-medium">{r.contactName}</div>
               <div className="font-mono text-xs text-muted-foreground">
-                {primaryTicket?.memberNumber ??
-                  row.original.claimedMemberNumber ??
-                  "non-member"}
+                {r.claimedMemberNumber ?? "non-member"}
               </div>
             </div>
           );
         },
       },
       {
+        id: "ticketRole",
+        header: "Peran",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="text-sm">{ticketRoleLabel(row.original.ticketRole)}</span>
+        ),
+      },
+      {
+        id: "attendance",
+        header: "Kehadiran",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {attendanceLabel(row.original.attendanceStatus)}
+          </span>
+        ),
+      },
+      {
         accessorKey: "status",
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Status" />
+          <DataTableColumnHeader column={column} title="Status pendaftaran" />
         ),
         cell: ({ row }) => (
           <RegistrationStatusBadge status={row.original.status} />
@@ -131,7 +194,7 @@ export function InboxTable({
         accessorKey: "computedTotalAtSubmit",
         header: ({ column }) => (
           <div className="text-right">
-            <DataTableColumnHeader column={column} title="Total" />
+            <DataTableColumnHeader column={column} title="Total bayar" />
           </div>
         ),
         cell: ({ row }) => (
@@ -147,15 +210,15 @@ export function InboxTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Registrations</CardTitle>
+        <CardTitle>Pendaftaran</CardTitle>
         <CardDescription>
-          Newest submissions first. Data is loaded per page from the database.
+          Urutan terbaru dulu. Data dimuat per halaman dari basis data.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {pagination.totalItems === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No registrations have been submitted for this event yet.
+            Belum ada pendaftaran untuk acara ini.
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border">

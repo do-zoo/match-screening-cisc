@@ -356,7 +356,27 @@ export function EventAdminForm(props: EventAdminFormProps) {
               className="resize-y"
             />
           </Field>
-          <Field label="Deskripsi">
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-lg font-medium">Sampul</h2>
+          <p className="text-muted-foreground text-sm">
+            {props.mode === "create"
+              ? "Unggah gambar sampul — wajib untuk acara baru."
+              : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}
+          </p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            disabled={pending}
+            className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1 file:text-xs"
+            onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+          />
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Deskripsi</h2>
+          <Field label="Konten publik">
             <Controller
               control={form.control}
               name="descriptionHtml"
@@ -767,22 +787,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
               })}
             </div>
           </Field>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-lg font-medium">Sampul</h2>
-          <p className="text-muted-foreground text-sm">
-            {props.mode === "create"
-              ? "Unggah gambar sampul — wajib untuk acara baru."
-              : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}
-          </p>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            disabled={pending}
-            className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1 file:text-xs"
-            onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-          />
         </section>
 
         <div className="flex flex-wrap gap-3 pb-16">

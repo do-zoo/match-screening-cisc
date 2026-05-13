@@ -5,6 +5,8 @@ import type {
   RegistrationStatus,
 } from "@prisma/client";
 
+import { isRegistrationTimeWindowOpen } from "@/lib/events/event-timing";
+
 /** Accepts root `PrismaClient` or interactive transaction client. */
 type DbWithRegistration = Pick<PrismaClient, "registration">;
 
@@ -53,7 +55,7 @@ export function isRegistrationOpenForEvent(args: {
   const now = args.now ?? new Date();
   if (event.status !== "active") return false;
   if (event.registrationManualClosed) return false;
-  if (now < event.openRegistrationAt || now >= event.closeRegistrationAt) {
+  if (!isRegistrationTimeWindowOpen(event, now)) {
     return false;
   }
   if (

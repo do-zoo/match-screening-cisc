@@ -15,7 +15,8 @@ import type {
 } from "@prisma/client";
 
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
-import { RegistrationActions } from "@/components/admin/registration-actions";
+import { RegistrationRelationsCard } from "@/components/admin/registration-detail-panels/registration-relations-card";
+import { RegistrationStatusPanel } from "@/components/admin/registration-detail-panels/registration-status-panel";
 import { AttendancePanel } from "@/components/admin/attendance-panel";
 import { CancelRefundPanel } from "@/components/admin/cancel-refund-panel";
 import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
@@ -68,6 +69,11 @@ export type DetailRegistration = {
   contactWhatsapp: string;
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
+  ticketPriceApplied: number;
+  mandatoryMenuPriceApplied: number;
+  mandatoryMenuItemName: string;
+  relationsPrimary: { id: string; contactName: string } | null;
+  relationsPartners: Array<{ id: string; contactName: string }>;
   ticketRole: TicketRole;
   status: RegistrationStatus;
   attendanceStatus: AttendanceStatus;
@@ -122,6 +128,12 @@ type Props = {
   ticketContext: TicketContextVm;
   waBodies: ClubWaBodies;
 };
+
+function attendanceLabel(s: AttendanceStatus): string {
+  if (s === "attended") return "Hadir";
+  if (s === "no_show") return "Tidak hadir";
+  return "Belum dicatat";
+}
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium",
@@ -238,18 +250,22 @@ export function RegistrationDetail({
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-3">
-            <span>Registration detail</span>
+            <span>Detail pendaftaran</span>
             <RegistrationStatusBadge status={registration.status} />
           </CardTitle>
           <CardDescription>
-            Submitted {dateFormatter.format(registration.createdAt)}
+            Dikirim {dateFormatter.format(registration.createdAt)}
             {` • ${registration.event.title}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-muted-foreground">Contact</div>
+              <div className="text-muted-foreground">Kehadiran</div>
+              <div className="font-medium">{attendanceLabel(registration.attendanceStatus)}</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-muted-foreground">Kontak</div>
               <div className="font-medium">{registration.contactName}</div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -257,13 +273,13 @@ export function RegistrationDetail({
               <div className="font-mono">{registration.contactWhatsapp}</div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-muted-foreground">Claimed member</div>
+              <div className="text-muted-foreground">Nomor member (klaim)</div>
               <div className="font-mono">
                 {registration.claimedMemberNumber ?? "-"}
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-muted-foreground">Computed total</div>
+              <div className="text-muted-foreground">Total saat kirim</div>
               <div className="font-mono text-base font-semibold">
                 {formatCurrencyIdr(registration.computedTotalAtSubmit)}
               </div>
@@ -274,6 +290,16 @@ export function RegistrationDetail({
           </div>
         </CardContent>
       </Card>
+
+      <RegistrationRelationsCard
+        eventId={eventId}
+        ticketRole={registration.ticketRole}
+        primaryRegistration={registration.relationsPrimary}
+        partnerRegistrations={registration.relationsPartners}
+        ticketPriceApplied={registration.ticketPriceApplied}
+        mandatoryMenuPriceApplied={registration.mandatoryMenuPriceApplied}
+        mandatoryMenuName={registration.mandatoryMenuItemName}
+      />
 
       <Card>
         <CardHeader>
@@ -331,13 +357,13 @@ export function RegistrationDetail({
         <CardHeader>
           <CardTitle>Uploads</CardTitle>
           <CardDescription>
-            Click any thumbnail to open the Blob URL in a new tab.
+            Klik thumbnail untuk membuka URL di tab baru.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {registration.uploads.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              No uploads are attached to this registration.
+              Tidak ada unggahan pada pendaftaran ini.
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -490,17 +516,19 @@ export function RegistrationDetail({
         <CardHeader>
           <CardTitle>Tickets</CardTitle>
           <CardDescription>
-            Tickets and menu selections captured at submission time.
+            Baris tiket dan menu saat pengiriman (termasuk data lama dari tabel
+            Ticket jika masih ada).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <RegistrationTicketsTable tickets={ticketRows} />
-          <RegistrationActions
-            eventId={eventId}
-            registrationId={registration.id}
-          />
         </CardContent>
       </Card>
+
+      <RegistrationStatusPanel
+        eventId={eventId}
+        registrationId={registration.id}
+      />
 
       <AttendancePanel
         eventId={eventId}

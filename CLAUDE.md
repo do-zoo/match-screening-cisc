@@ -140,8 +140,10 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
 - `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
-- `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance, aggregasi menu wajib per `Registration`
-- `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — 14-column RFC 4180 CSV
+- `lib/reports/queries.ts` — `getEventReport(eventId)` — parallel queries for attendance, finance (`baselineTotal`, agregat tiket/menu approved, penyesuaian, refund), dan agregasi menu wajib per item (`MenuStats.byItem`)
+- `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — CSV UTF-8 satu baris per `Registration` (peran, pembeli utama untuk partner, menu wajib, harga snapshot, kolom legacy tiket, penyesuaian)
+- `lib/events/event-timing.ts` — helper fase/waktu pendaftaran dan gate (`isRegistrationTimeWindowOpen`, `getEventPhase`, dll.)
+- `lib/registrations/partner-registration.ts` — helper baris utama/partner (`getPrimaryRegistration`, `getRegistrationPair`, dll.)
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
@@ -154,7 +156,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` composes the action panels: `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `VoucherRedemptionPanel`
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `VoucherRedemptionPanel`
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 

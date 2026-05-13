@@ -101,37 +101,32 @@ export default async function EventReportPage({
         <CardHeader>
           <CardTitle>Keuangan</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Stat label="Total baseline (approved)" value={idr(report.finance.baselineTotal)} />
+          <Stat label="Pendapatan tiket (approved)" value={idr(report.finance.ticketRevenueApproved)} />
+          <Stat label="Pendapatan menu wajib (approved)" value={idr(report.finance.menuRevenueApproved)} />
           <Stat label="Penyesuaian lunas" value={idr(report.finance.adjustmentsPaidTotal)} />
           <Stat label="Penyesuaian belum lunas" value={idr(report.finance.adjustmentsUnpaidTotal)} />
           <Stat label="Refund" value={`${report.finance.refundCount} pendaftaran`} />
         </CardContent>
       </Card>
 
-      {/* Menu/Voucher */}
+      {/* Menu wajib */}
       <Card>
         <CardHeader>
-          <CardTitle>Menu / Voucher</CardTitle>
+          <CardTitle>Menu wajib</CardTitle>
         </CardHeader>
         <CardContent>
-          {report.menu.mode === "PRESELECT" ? (
-            <div className="flex flex-wrap gap-2">
-              {report.menu.byItem.length === 0 && (
-                <p className="text-sm text-muted-foreground">Belum ada pemilihan menu.</p>
-              )}
-              {report.menu.byItem.map((item) => (
-                <Badge key={item.name} variant="secondary">
-                  {item.name}: {item.count}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Stat label="Voucher sudah ditukar" value={report.menu.redeemed} />
-              <Stat label="Voucher belum ditukar" value={report.menu.notRedeemed} />
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {report.menu.byItem.length === 0 && (
+              <p className="text-sm text-muted-foreground">Belum ada data menu per pendaftaran.</p>
+            )}
+            {report.menu.byItem.map((item) => (
+              <Badge key={item.name} variant="secondary">
+                {item.name}: {item.count}
+              </Badge>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

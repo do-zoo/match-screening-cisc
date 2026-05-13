@@ -31,6 +31,23 @@ export async function generateMetadata({
 
 type MenuSnap = { name: string; price: number };
 
+function mergeUploadsForDetail<T extends { id: string; createdAt: Date }>(
+  ticketRole: TicketRole,
+  primaryUploads: T[] | undefined,
+  ownUploads: T[],
+): T[] {
+  if (ticketRole !== TicketRole.partner || !primaryUploads?.length) {
+    return ownUploads;
+  }
+  const byId = new Map(primaryUploads.map((u) => [u.id, u]));
+  for (const u of ownUploads) {
+    byId.set(u.id, u);
+  }
+  return [...byId.values()].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  );
+}
+
 function syntheticTicketRows(opts: {
   primary: {
     id: string;
@@ -40,17 +57,17 @@ function syntheticTicketRows(opts: {
     ticketPriceType: TicketPriceType;
     menu: MenuSnap;
   };
-  partner: {
+  partners: Array<{
     id: string;
     contactName: string;
     contactWhatsapp: string;
     claimedMemberNumber: string | null;
     ticketPriceType: TicketPriceType;
     menu: MenuSnap;
-  } | null;
+  }>;
 }): DetailRegistration["tickets"] {
-  const { primary, partner } = opts;
-  const base = (id: string, role: TicketRole, row: typeof primary) => ({
+  const { primary, partners } = opts;
+  const base = (id: string, role: TicketRole, row: (typeof opts)["primary"]) => ({
     id,
     role,
     fullName: row.contactName,
@@ -65,8 +82,8 @@ function syntheticTicketRows(opts: {
   });
 
   const out = [base(primary.id, TicketRole.primary, primary)];
-  if (partner) {
-    out.push(base(partner.id, TicketRole.partner, partner));
+  for (const pr of partners) {
+    out.push(base(pr.id, TicketRole.partner, pr));
   }
   return out;
 }
@@ -107,6 +124,8 @@ export default async function AdminEventInboxDetailPage({
       primaryManagementMemberId: true,
       claimedManagementPublicCode: true,
       computedTotalAtSubmit: true,
+      ticketPriceApplied: true,
+      mandatoryMenuPriceApplied: true,
       status: true,
       attendanceStatus: true,
       memberValidation: true,
@@ -123,10 +142,12 @@ export default async function AdminEventInboxDetailPage({
           claimedMemberNumber: true,
           ticketPriceType: true,
           mandatoryMenuItem: { select: { name: true, price: true } },
+          uploads: {
+            orderBy: { createdAt: "asc" as const },
+          },
         },
       },
       partnerRegistrations: {
-        take: 1,
         orderBy: { createdAt: "asc" },
         select: {
           id: true,
@@ -183,7 +204,14 @@ export default async function AdminEventInboxDetailPage({
   let ticketsForDetail: DetailRegistration["tickets"] = registration.tickets;
   if (ticketsForDetail.length === 0) {
     if (registration.ticketRole === TicketRole.primary) {
-      const pr = registration.partnerRegistrations[0];
+      const partners = registration.partnerRegistrations.map((pr) => ({
+        id: pr.id,
+        contactName: pr.contactName,
+        contactWhatsapp: pr.contactWhatsapp,
+        claimedMemberNumber: pr.claimedMemberNumber,
+        ticketPriceType: pr.ticketPriceType,
+        menu: menuSnap(pr.mandatoryMenuItem),
+      }));
       ticketsForDetail = syntheticTicketRows({
         primary: {
           id: registration.id,
@@ -193,16 +221,7 @@ export default async function AdminEventInboxDetailPage({
           ticketPriceType: registration.ticketPriceType,
           menu: menuSnap(registration.mandatoryMenuItem),
         },
-        partner: pr
-          ? {
-              id: pr.id,
-              contactName: pr.contactName,
-              contactWhatsapp: pr.contactWhatsapp,
-              claimedMemberNumber: pr.claimedMemberNumber,
-              ticketPriceType: pr.ticketPriceType,
-              menu: menuSnap(pr.mandatoryMenuItem),
-            }
-          : null,
+        partners,
       });
     } else {
       const p = registration.primaryRegistration;
@@ -216,7 +235,7 @@ export default async function AdminEventInboxDetailPage({
             ticketPriceType: registration.ticketPriceType,
             menu: menuSnap(registration.mandatoryMenuItem),
           },
-          partner: null,
+          partners: [],
         });
       } else {
         ticketsForDetail = syntheticTicketRows({
@@ -228,31 +247,64 @@ export default async function AdminEventInboxDetailPage({
             ticketPriceType: p.ticketPriceType,
             menu: menuSnap(p.mandatoryMenuItem),
           },
-          partner: {
-            id: registration.id,
-            contactName: registration.contactName,
-            contactWhatsapp: registration.contactWhatsapp,
-            claimedMemberNumber: registration.claimedMemberNumber,
-            ticketPriceType: registration.ticketPriceType,
-            menu: menuSnap(registration.mandatoryMenuItem),
-          },
+          partners: [
+            {
+              id: registration.id,
+              contactName: registration.contactName,
+              contactWhatsapp: registration.contactWhatsapp,
+              claimedMemberNumber: registration.claimedMemberNumber,
+              ticketPriceType: registration.ticketPriceType,
+              menu: menuSnap(registration.mandatoryMenuItem),
+            },
+          ],
         });
       }
     }
   }
 
-  const registrationForDetail = {
-    ...registration,
+  const {
+    primaryRegistration,
+    partnerRegistrations,
+    mandatoryMenuItem,
+    event: prismaEvent,
+    tickets,
+    uploads: ownUploads,
+    ...registrationRest
+  } = registration;
+  void tickets;
+
+  const uploadsMerged = mergeUploadsForDetail(
+    registration.ticketRole,
+    primaryRegistration?.uploads,
+    ownUploads,
+  );
+
+  const registrationForDetail: DetailRegistration = {
+    ...registrationRest,
+    uploads: uploadsMerged,
+    ticketPriceApplied: registration.ticketPriceApplied,
+    mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
+    mandatoryMenuItemName: mandatoryMenuItem.name,
+    relationsPrimary: primaryRegistration
+      ? {
+          id: primaryRegistration.id,
+          contactName: primaryRegistration.contactName,
+        }
+      : null,
+    relationsPartners: partnerRegistrations.map((p) => ({
+      id: p.id,
+      contactName: p.contactName,
+    })),
     event: {
-      title: registration.event.title,
-      venueName: registration.event.venue.name,
-      kickOffAt: registration.event.kickOffAt,
-      ticketMemberPrice: registration.event.ticketMemberPrice,
-      ticketNonMemberPrice: registration.event.ticketNonMemberPrice,
+      title: prismaEvent.title,
+      venueName: prismaEvent.venue.name,
+      kickOffAt: prismaEvent.kickOffAt,
+      ticketMemberPrice: prismaEvent.ticketMemberPrice,
+      ticketNonMemberPrice: prismaEvent.ticketNonMemberPrice,
       menuItems: flattenedMenuRowsFromEventVenueLinks(
-        registration.event.eventVenueMenuItems,
+        prismaEvent.eventVenueMenuItems,
       ),
-      bankAccount: registration.event.bankAccount,
+      bankAccount: prismaEvent.bankAccount,
     },
     tickets: ticketsForDetail,
   };

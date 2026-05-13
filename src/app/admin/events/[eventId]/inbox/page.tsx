@@ -80,7 +80,20 @@ export default async function AdminEventInboxPage({
       orderBy: { createdAt: "desc" },
       skip,
       take: ADMIN_TABLE_PAGE_SIZE,
-      include: {
+      select: {
+        id: true,
+        createdAt: true,
+        contactName: true,
+        contactWhatsapp: true,
+        claimedMemberNumber: true,
+        computedTotalAtSubmit: true,
+        status: true,
+        ticketRole: true,
+        attendanceStatus: true,
+        primaryRegistrationId: true,
+        primaryRegistration: {
+          select: { id: true, contactName: true },
+        },
         tickets: {
           select: {
             role: true,

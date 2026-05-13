@@ -15,15 +15,17 @@ export type ParticipantStats = {
 };
 
 export type FinanceStats = {
-  baselineTotal: number; // sum of computedTotalAtSubmit for approved registrations
+  baselineTotal: number;
+  ticketRevenueApproved: number;
+  menuRevenueApproved: number;
   adjustmentsPaidTotal: number;
   adjustmentsUnpaidTotal: number;
   refundCount: number;
 };
 
-export type MenuStats =
-  | { mode: "PRESELECT"; byItem: { name: string; count: number }[] }
-  | { mode: "VOUCHER"; redeemed: number; notRedeemed: number };
+export type MenuStats = {
+  byItem: { name: string; count: number }[];
+};
 
 export type AttendanceStats = {
   attended: number;
@@ -45,6 +47,8 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     memberCount,
     partnerCount,
     financeAgg,
+    ticketRevAgg,
+    menuRevAgg,
     adjustmentGroups,
     refundCount,
     attendanceGroups,
@@ -64,6 +68,14 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     prisma.registration.aggregate({
       where: { eventId, status: RegistrationStatus.approved },
       _sum: { computedTotalAtSubmit: true },
+    }),
+    prisma.registration.aggregate({
+      where: { eventId, status: RegistrationStatus.approved },
+      _sum: { ticketPriceApplied: true },
+    }),
+    prisma.registration.aggregate({
+      where: { eventId, status: RegistrationStatus.approved },
+      _sum: { mandatoryMenuPriceApplied: true },
     }),
     prisma.invoiceAdjustment.groupBy({
       by: ["status"],
@@ -115,7 +127,6 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
   const menuNameById = Object.fromEntries(menuItems.map((i) => [i.id, i.name]));
 
   const menu: MenuStats = {
-    mode: "PRESELECT",
     byItem: regMenuGroups.map((s) => ({
       name: menuNameById[s.mandatoryMenuItemId] ?? s.mandatoryMenuItemId,
       count: s._count.id,
@@ -133,6 +144,8 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     },
     finance: {
       baselineTotal: financeAgg._sum.computedTotalAtSubmit ?? 0,
+      ticketRevenueApproved: ticketRevAgg._sum.ticketPriceApplied ?? 0,
+      menuRevenueApproved: menuRevAgg._sum.mandatoryMenuPriceApplied ?? 0,
       adjustmentsPaidTotal: adjustmentPaidRow?._sum.amount ?? 0,
       adjustmentsUnpaidTotal: adjustmentUnpaidRow?._sum.amount ?? 0,
       refundCount,
