@@ -1,5 +1,8 @@
 import { MenuMode, MenuSelection } from "@prisma/client";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { z } from "zod";
+
+import { toE164PlusForValidation } from "@/lib/forms/phone-value-string";
 
 /** Shared between client serialization and server Prisma payload. */
 export type EventValidationContext = {
@@ -8,7 +11,41 @@ export type EventValidationContext = {
   menuItems: { id: string }[];
 };
 
-const phone = z.string().trim().min(8, "WhatsApp wajib diisi");
+const contactWhatsappSchema = z.string().trim().superRefine((val, ctx) => {
+  const e164 = toE164PlusForValidation(val);
+  if (!e164) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "WhatsApp wajib diisi",
+    });
+    return;
+  }
+  if (!isValidPhoneNumber(e164)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Nomor WhatsApp tidak valid",
+    });
+  }
+});
+
+/** Opsional: jika diisi, harus nomor valid (min. 8 digit nasional/internasional). */
+const partnerWhatsappSchema = z.string().trim().superRefine((val, ctx) => {
+  if (val.length === 0) return;
+  const e164 = toE164PlusForValidation(val);
+  if (!e164) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Nomor WhatsApp partner terlalu pendek atau tidak lengkap",
+    });
+    return;
+  }
+  if (!isValidPhoneNumber(e164)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Nomor WhatsApp partner tidak valid",
+    });
+  }
+});
 
 /** Message + guard shared with multi-step UI (subset `trigger` may not surface every superRefine path). */
 export const MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE =
@@ -108,13 +145,13 @@ export function createSubmitRegistrationFormSchema(
       /** Disinkronkan dengan UI; server memaksa konsistensi dengan claimedMemberNumber. */
       purchaserIsMember: z.boolean(),
       contactName: z.string().trim().min(2, "Nama wajib diisi"),
-      contactWhatsapp: phone,
+      contactWhatsapp: contactWhatsappSchema,
       claimedMemberNumber: z.string().trim().optional(),
       managementPublicCode: z.string().trim().optional(),
       qtyPartner: z.union([z.literal(0), z.literal(1)]),
       partnerIsMember: z.boolean(),
       partnerName: z.string().trim().optional(),
-      partnerWhatsapp: z.string().trim().optional(),
+      partnerWhatsapp: partnerWhatsappSchema,
       partnerMemberNumber: z.string().trim().optional(),
       partnerMemberCardPhoto: z.instanceof(File).optional(),
       selectedMenuItemIds: z.array(z.string()).optional(),

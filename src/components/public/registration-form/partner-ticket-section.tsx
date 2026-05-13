@@ -17,8 +17,13 @@ import {
 } from "@/components/ui/field";
 import { FileField } from "@/components/ui/file-field";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  phoneValueToStoredString,
+  stringToPhoneValue,
+} from "@/lib/forms/phone-value-string";
 import {
   MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
   MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
@@ -211,11 +216,16 @@ export function PartnerTicketSection({
                         (opsional)
                       </span>
                     </FieldLabel>
-                    <Input
+                    <PhoneInput
                       id="ms-registration-partner-whatsapp"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      {...field}
+                      name={field.name}
+                      value={stringToPhoneValue(field.value)}
+                      onChange={(v) => {
+                        field.onChange(phoneValueToStoredString(v));
+                      }}
+                      onBlur={field.onBlur}
+                      aria-invalid={fieldState.invalid}
+                      placeholder="Nomor WhatsApp partner"
                     />
                     {fieldState.invalid ? (
                       <FieldError errors={[fieldState.error]} />
@@ -346,11 +356,16 @@ export function PartnerTicketSection({
                             (opsional)
                           </span>
                         </FieldLabel>
-                        <Input
+                        <PhoneInput
                           id="ms-registration-partner-whatsapp"
-                          inputMode="tel"
-                          autoComplete="tel"
-                          {...field}
+                          name={field.name}
+                          value={stringToPhoneValue(field.value)}
+                          onChange={(v) => {
+                            field.onChange(phoneValueToStoredString(v));
+                          }}
+                          onBlur={field.onBlur}
+                          aria-invalid={fieldState.invalid}
+                          placeholder="Nomor WhatsApp partner"
                         />
                         {fieldState.invalid ? (
                           <FieldError errors={[fieldState.error]} />

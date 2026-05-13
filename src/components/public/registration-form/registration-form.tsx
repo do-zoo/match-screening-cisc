@@ -12,6 +12,10 @@ import { submitRegistration } from "@/lib/actions/submit-registration";
 import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import type { ActionResult } from "@/lib/forms/action-result";
 import {
+  phoneValueToStoredString,
+  stringToPhoneValue,
+} from "@/lib/forms/phone-value-string";
+import {
   createSubmitRegistrationFormSchema,
   isMemberCardPhotoMissingWhenRequired,
   isMemberNumberMissingWhenMember,
@@ -397,7 +401,12 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     fd.set("slug", values.slug);
     fd.set("purchaserIsMember", values.purchaserIsMember ? "1" : "0");
     fd.set("contactName", values.contactName);
-    fd.set("contactWhatsapp", values.contactWhatsapp);
+    fd.set(
+      "contactWhatsapp",
+      phoneValueToStoredString(
+        stringToPhoneValue(String(values.contactWhatsapp ?? "")),
+      ),
+    );
 
     fd.set("claimedMemberNumber", values.claimedMemberNumber?.trim() ?? "");
     fd.set("managementPublicCode", values.managementPublicCode?.trim() ?? "");
@@ -405,7 +414,12 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
     fd.set("partnerIsMember", values.partnerIsMember ? "1" : "0");
     fd.set("partnerName", values.partnerName?.trim() ?? "");
-    fd.set("partnerWhatsapp", values.partnerWhatsapp?.trim() ?? "");
+    fd.set(
+      "partnerWhatsapp",
+      phoneValueToStoredString(
+        stringToPhoneValue(String(values.partnerWhatsapp ?? "").trim()),
+      ),
+    );
     fd.set("partnerMemberNumber", values.partnerMemberNumber?.trim() ?? "");
 
     for (const id of values.selectedMenuItemIds ?? []) {

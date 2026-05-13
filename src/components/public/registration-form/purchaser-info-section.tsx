@@ -12,6 +12,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import {
+  phoneValueToStoredString,
+  stringToPhoneValue,
+  whatsappDigitsOnly,
+} from "@/lib/forms/phone-value-string";
 import {
   MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
   MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE,
@@ -188,7 +194,7 @@ export function PurchaserInfoSection({
     contactName.trim().length >= 2 &&
     !editingWhileVerified;
 
-  const whatsappLooksEmpty = contactWhatsapp.trim().length < 8;
+  const whatsappLooksEmpty = whatsappDigitsOnly(contactWhatsapp).length < 8;
   const showWhatsappFillHint =
     (directoryVerified || directoryVerifiedByCode) && whatsappLooksEmpty;
 
@@ -398,7 +404,7 @@ export function PurchaserInfoSection({
             <DirectoryContactProfileCard
               maskedName={maskDisplayName(contactName)}
               maskedWhatsapp={
-                contactWhatsapp.trim().length >= 8
+                whatsappDigitsOnly(contactWhatsapp).length >= 8
                   ? maskDisplayWhatsapp(contactWhatsapp)
                   : ""
               }
@@ -452,13 +458,16 @@ export function PurchaserInfoSection({
                     <FieldLabel htmlFor="ms-registration-whatsapp">
                       WhatsApp
                     </FieldLabel>
-                    <Input
-                      {...field}
+                    <PhoneInput
                       id="ms-registration-whatsapp"
+                      name={field.name}
+                      value={stringToPhoneValue(field.value)}
+                      onChange={(v) => {
+                        field.onChange(phoneValueToStoredString(v));
+                      }}
+                      onBlur={field.onBlur}
                       aria-invalid={fieldState.invalid}
                       placeholder="Nomor utama WhatsApp"
-                      autoComplete="off"
-                      inputMode="tel"
                     />
                     <FieldDescription className="text-foreground/80">
                       Nomor utama yang bisa dihubungi via WhatsApp.

@@ -28,6 +28,9 @@ interface PhoneInputProps {
   onChange?: (val: PhoneValue) => void
   disabled?: boolean
   placeholder?: string
+  id?: string
+  name?: string
+  onBlur?: () => void
   "aria-invalid"?: boolean
 }
 
@@ -36,6 +39,9 @@ export function PhoneInput({
   onChange,
   disabled = false,
   placeholder = "Nomor telepon",
+  id,
+  name,
+  onBlur,
   "aria-invalid": ariaInvalid,
 }: PhoneInputProps) {
   const [open, setOpen] = React.useState(false)
@@ -76,7 +82,10 @@ export function PhoneInput({
 
   return (
     <InputGroup>
-      <InputGroupAddon align="inline-start" className="p-0">
+      <InputGroupAddon
+        align="inline-start"
+        className="shrink-0 self-stretch p-0 pl-0 has-[>button]:ml-0"
+      >
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger
             disabled={disabled}
@@ -84,14 +93,26 @@ export function PhoneInput({
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-full gap-1 rounded-r-none border-r border-input px-2 font-mono text-xs"
+                aria-label="Pilih kode negara"
+                className={cn(
+                  "h-full min-h-8 w-auto min-w-21 justify-center gap-1.5 rounded-none rounded-l-lg border-0 border-r border-border/60 bg-transparent px-2.5 py-0 font-mono text-xs font-medium text-foreground shadow-none ring-0 ring-offset-0",
+                  "hover:bg-muted/35 hover:text-foreground active:bg-muted/45",
+                  "focus-visible:border-0 focus-visible:ring-0",
+                  "data-popup-open:bg-muted/40 aria-expanded:bg-muted/40",
+                  "disabled:hover:bg-transparent",
+                  "[&_svg]:shrink-0"
+                )}
               />
             }
           >
-            <span>{selected.flag}</span>
-            <span>{selected.dialCode}</span>
-            <ChevronDownIcon className="size-3 opacity-50" aria-hidden="true" />
+            <span className="text-base leading-none" aria-hidden>
+              {selected.flag}
+            </span>
+            <span className="tabular-nums">{selected.dialCode}</span>
+            <ChevronDownIcon
+              className="size-3.5 opacity-55"
+              aria-hidden="true"
+            />
           </PopoverTrigger>
           <PopoverContent
             align="start"
@@ -175,12 +196,15 @@ export function PhoneInput({
         </Popover>
       </InputGroupAddon>
       <InputGroupInput
+        id={id}
+        name={name}
         type="tel"
         inputMode="numeric"
         disabled={disabled}
         placeholder={placeholder}
         value={value?.nationalNumber ?? ""}
         onChange={handleNationalNumberChange}
+        onBlur={onBlur}
         aria-invalid={ariaInvalid}
       />
     </InputGroup>
