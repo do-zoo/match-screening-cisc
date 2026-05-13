@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 type AdminAccountMenuProps = {
   userEmail: string | null;
   displayName?: string | null;
+  avatarUrl?: string | null;
   triggerClassName?: string;
   /** Dense header (mobile) vs pill at bottom (desktop sidebar). */
   variant?: "default" | "sidebar";
@@ -25,6 +26,7 @@ type AdminAccountMenuProps = {
 export function AdminAccountMenu({
   userEmail,
   displayName,
+  avatarUrl,
   triggerClassName,
   variant = "default",
 }: AdminAccountMenuProps) {

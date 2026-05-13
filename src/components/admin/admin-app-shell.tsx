@@ -140,11 +140,13 @@ export function AdminAppShell({
   navFlags,
   userEmail,
   displayName,
+  avatarUrl,
   children,
 }: {
   navFlags: GlobalSidebarNav;
   userEmail: string | null;
   displayName: string | null;
+  avatarUrl: string | null;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -174,6 +176,7 @@ export function AdminAppShell({
             <AdminAccountMenu
               userEmail={userEmail}
               displayName={displayName}
+              avatarUrl={avatarUrl}
               variant="sidebar"
             />
           </div>
@@ -217,7 +220,7 @@ export function AdminAppShell({
           </Sheet>
           <div className="min-w-0 flex-1 space-y-0.5">
             <p className="truncate text-xs text-sidebar-foreground/70">PIC</p>
-            <AdminAccountMenu userEmail={userEmail} displayName={displayName} />
+            <AdminAccountMenu userEmail={userEmail} displayName={displayName} avatarUrl={avatarUrl} />
           </div>
         </header>
 
