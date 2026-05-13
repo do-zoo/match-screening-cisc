@@ -40,6 +40,12 @@ export default async function PublicEventsPage() {
                 coverBlobUrl={e.coverBlobUrl}
                 venueName={e.venueName}
                 startAtIso={e.startAtIso}
+                ticketMemberPrice={e.ticketMemberPrice}
+                ticketNonMemberPrice={e.ticketNonMemberPrice}
+                registrationCapacity={e.registrationCapacity}
+                registrationsTowardQuota={e.registrationsTowardQuota}
+                closeRegistrationAtIso={e.closeRegistrationAtIso}
+                badgeStatus={e.badgeStatus}
                 variant="grid"
               />
             </li>
