@@ -1,6 +1,9 @@
 "use client";
 
 import GlareHover from "@/components/GlareHover";
+import type { BadgeStatus } from "@/lib/events/public-active-events";
+import { formatIdrShort } from "@/lib/utils/format-idr-short";
+import { formatIdr } from "@/lib/utils/format-idr";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,8 +15,72 @@ type EventCardProps = {
   coverBlobUrl: string;
   venueName: string;
   startAtIso: string;
+  ticketMemberPrice: number;
+  ticketNonMemberPrice: number;
+  registrationCapacity: number | null;
+  registrationsTowardQuota: number;
+  closeRegistrationAtIso: string;
+  badgeStatus: BadgeStatus;
   variant?: "list" | "grid";
 };
+
+const badgeConfig: Record<
+  BadgeStatus,
+  { label: string; className: string }
+> = {
+  open: {
+    label: "Buka",
+    className:
+      "bg-green-950 text-green-400 border border-green-800",
+  },
+  closing_soon: {
+    label: "Segera Tutup",
+    className:
+      "bg-amber-950 text-amber-400 border border-amber-800",
+  },
+  full: {
+    label: "Penuh",
+    className: "bg-red-950 text-red-400 border border-red-800",
+  },
+  closed: {
+    label: "Tutup",
+    className:
+      "bg-neutral-800 text-neutral-400 border border-neutral-700",
+  },
+};
+
+function StatusBadge({ status }: { status: BadgeStatus }) {
+  const { label, className } = badgeConfig[status];
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+        className,
+      )}
+    >
+      <span className="size-1.5 rounded-full bg-current" />
+      {label}
+    </span>
+  );
+}
+
+function QuotaDisplay({
+  registrationCapacity,
+  registrationsTowardQuota,
+}: {
+  registrationCapacity: number | null;
+  registrationsTowardQuota: number;
+}) {
+  if (registrationCapacity == null || registrationCapacity <= 0) {
+    return <span>∞ Tak terbatas</span>;
+  }
+  const remaining = Math.max(0, registrationCapacity - registrationsTowardQuota);
+  return (
+    <span>
+      {remaining} / {registrationCapacity} sisa
+    </span>
+  );
+}
 
 export function EventCard({
   slug,
@@ -22,12 +89,27 @@ export function EventCard({
   coverBlobUrl,
   venueName,
   startAtIso,
+  ticketMemberPrice,
+  ticketNonMemberPrice,
+  registrationCapacity,
+  registrationsTowardQuota,
+  closeRegistrationAtIso,
+  badgeStatus,
   variant = "list",
 }: EventCardProps) {
   const when = new Date(startAtIso).toLocaleString("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+  const closeDate = new Date(closeRegistrationAtIso).toLocaleString("id-ID", {
+    dateStyle: "medium",
+  });
+
+  const closeDateShort = new Date(closeRegistrationAtIso).toLocaleString(
+    "id-ID",
+    { day: "numeric", month: "short" },
+  );
 
   const radius =
     variant === "grid" ? "var(--radius-lg)" : "calc(var(--radius-lg) - 2px)";
@@ -44,13 +126,52 @@ export function EventCard({
             sizes="(max-width: 640px) 100vw, 50vw"
           />
         </div>
-        <div className="min-w-0 flex-1 p-4">
-          <div className="font-medium leading-snug">{title}</div>
+        <div className="flex min-w-0 flex-1 flex-col p-4">
+          {/* Title row + badge */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="font-medium leading-snug">{title}</div>
+            <StatusBadge status={badgeStatus} />
+          </div>
+          {/* Summary */}
           <p className="mt-2 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">
             {summary}
           </p>
-          <div className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+          {/* Venue + kickoff */}
+          <div className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
             {venueName} · {when}
+          </div>
+          {/* Deadline */}
+          <div className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+            Tutup pendaftaran: {closeDate}
+          </div>
+          {/* Divider */}
+          <div className="my-3 h-px bg-[hsl(var(--border))]" />
+          {/* Price + quota row */}
+          <div className="flex items-end justify-between gap-2">
+            <div className="text-sm">
+              <div>
+                <span className="font-medium">
+                  {formatIdr(ticketMemberPrice)}
+                </span>{" "}
+                <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                  member
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">
+                  {formatIdr(ticketNonMemberPrice)}
+                </span>{" "}
+                <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                  umum
+                </span>
+              </div>
+            </div>
+            <div className="text-right text-xs text-[hsl(var(--muted-foreground))]">
+              <QuotaDisplay
+                registrationCapacity={registrationCapacity}
+                registrationsTowardQuota={registrationsTowardQuota}
+              />
+            </div>
           </div>
         </div>
       </>
@@ -64,13 +185,33 @@ export function EventCard({
           className="size-24 shrink-0 rounded-md object-cover"
           sizes="96px"
         />
-        <div className="min-w-0 flex-1 text-left">
-          <div className="font-medium leading-snug">{title}</div>
+        <div className="flex min-w-0 flex-1 flex-col text-left">
+          {/* Title row + badge */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="font-medium leading-snug">{title}</div>
+            <StatusBadge status={badgeStatus} />
+          </div>
           <p className="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">
             {summary}
           </p>
           <div className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
             {venueName} · {when}
+          </div>
+          {/* Divider */}
+          <div className="my-2 h-px bg-[hsl(var(--border))]" />
+          {/* Condensed info row */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[hsl(var(--muted-foreground))]">
+            <span className="font-medium text-[hsl(var(--foreground))]">
+              {formatIdrShort(ticketMemberPrice)}/
+              {formatIdrShort(ticketNonMemberPrice)}
+            </span>
+            <span>·</span>
+            <span>Tutup {closeDateShort}</span>
+            <span>·</span>
+            <QuotaDisplay
+              registrationCapacity={registrationCapacity}
+              registrationsTowardQuota={registrationsTowardQuota}
+            />
           </div>
         </div>
       </>
@@ -88,7 +229,7 @@ export function EventCard({
         "flex overflow-hidden shadow-sm transition-shadow hover:shadow-md",
         variant === "grid"
           ? "flex-col items-stretch"
-          : "min-h-0 flex-row items-stretch"
+          : "min-h-0 flex-row items-stretch",
       )}
       style={{
         width: "100%",
@@ -101,7 +242,7 @@ export function EventCard({
           "relative z-1 flex text-[hsl(var(--foreground))] no-underline outline-none ring-offset-[hsl(var(--background))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]",
           variant === "grid"
             ? "min-h-0 w-full flex-1 flex-col"
-            : "w-full gap-4 p-3"
+            : "w-full gap-4 p-3",
         )}
       >
         {inner}
