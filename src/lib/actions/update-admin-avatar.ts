@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { del } from "@vercel/blob";
 
 import { auth } from "@/lib/auth/auth";
-import { getAdminSession } from "@/lib/auth/session";
+import { requireAdminSession } from "@/lib/auth/session";
 import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
 import { uploadAdminAvatar } from "@/lib/uploads/upload-admin-avatar";
 import { UploadError } from "@/lib/uploads/errors";
@@ -12,8 +12,7 @@ import { UploadError } from "@/lib/uploads/errors";
 export async function updateAdminAvatar(
   formData: FormData,
 ): Promise<ActionResult<{ url: string }>> {
-  const session = await getAdminSession();
-  if (!session) return rootError("Tidak diizinkan.");
+  const session = await requireAdminSession();
 
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {

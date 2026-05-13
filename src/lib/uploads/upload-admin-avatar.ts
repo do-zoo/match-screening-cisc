@@ -1,5 +1,3 @@
-import { del } from "@vercel/blob";
-
 import { putWebpToBlob } from "@/lib/uploads/blob";
 import { UploadError } from "@/lib/uploads/errors";
 import { toWebp } from "@/lib/uploads/images";
