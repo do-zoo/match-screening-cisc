@@ -129,7 +129,7 @@ pnpm vitest run src/lib/auth/assert-admin-magic-link-email.test.ts \
 | --- | --- |
 | Daftar inbox | [`[eventId]/inbox/page.tsx`](../../../src/app/admin/events/[eventId]/inbox/page.tsx) |
 | Detail | [`[eventId]/inbox/[registrationId]/page.tsx`](../../../src/app/admin/events/[eventId]/inbox/[registrationId]/page.tsx) |
-| UI panel | Komponen di [`registration-detail`](../../../src/components/admin/registration-detail.tsx) + panel terkait di `src/components/admin/` |
+| UI panel | `registration-detail-panels/` (`registration-detail-shell.tsx`, `tab-summary/`, `tab-verification/`, `tab-operations/`) + panel terkait di `src/components/admin/` |
 
 ### 3) Aksi status & dukungan reviewer
 

@@ -1,11 +1,18 @@
-import { TicketRole, type TicketPriceType } from "@prisma/client";
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
 import {
-  RegistrationDetail,
-  type DetailRegistration,
-} from "@/components/admin/registration-detail";
+  InvoiceAdjustmentStatus,
+  TicketRole,
+  type TicketPriceType,
+} from "@prisma/client";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+
+import { RegistrationDetailShell } from "@/components/admin/registration-detail-panels/registration-detail-shell";
+import type { DetailRegistration } from "@/components/admin/registration-detail-panels/shared/registration-detail-types";
+import {
+  buildRegistrationDetailPath,
+  defaultRegistrationDetailTab,
+  parseRegistrationDetailTab,
+} from "@/lib/admin/event-registration-detail-tab";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -89,12 +96,29 @@ function syntheticTicketRows(opts: {
   return out;
 }
 
+function firstString(param: string | string[] | undefined): string | undefined {
+  if (param === undefined) return undefined;
+  if (Array.isArray(param)) return param[0];
+  return param;
+}
+
+function tabParamMissing(param: string | string[] | undefined): boolean {
+  return (
+    param === undefined ||
+    param === "" ||
+    (Array.isArray(param) && (param.length === 0 || param[0] === ""))
+  );
+}
+
 export default async function AdminEventRegistrantsDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string; registrationId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { eventId, registrationId } = await params;
+  const sp = (await searchParams) ?? {};
 
   const session = await requireAdminSession();
   const ctx = await getAdminContext(session.user.id);
@@ -188,6 +212,27 @@ export default async function AdminEventRegistrantsDetailPage({
   });
 
   if (!registration) notFound();
+
+  const hasUnpaidAdjustment = registration.adjustments.some(
+    (a) => a.status === InvoiceAdjustmentStatus.unpaid,
+  );
+
+  const fallbackTab = defaultRegistrationDetailTab({
+    status: registration.status,
+    hasUnpaidAdjustment,
+  });
+
+  if (tabParamMissing(sp.tab)) {
+    redirect(buildRegistrationDetailPath(eventId, registrationId, fallbackTab));
+  }
+
+  const rawTab = firstString(sp.tab);
+  const parsedTab = parseRegistrationDetailTab(rawTab);
+  if (parsedTab === null) {
+    redirect(buildRegistrationDetailPath(eventId, registrationId, fallbackTab));
+  }
+
+  const detailTab = parsedTab;
 
   const menuSnap = (m: { name: string; price: number }): MenuSnap => ({
     name: m.name,
@@ -329,22 +374,13 @@ export default async function AdminEventRegistrantsDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Detail pendaftar
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {registrationForDetail.event.title}
-          </p>
-        </div>
-      </header>
-
-      <RegistrationDetail
+      <RegistrationDetailShell
         eventId={eventId}
+        tab={detailTab}
         registration={registrationForDetail}
         ticketContext={ticketContext}
         waBodies={waBodies}
+        showOperasiBadge={hasUnpaidAdjustment}
       />
     </main>
   );

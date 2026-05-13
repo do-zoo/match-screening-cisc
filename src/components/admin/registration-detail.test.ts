@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   formatCurrencyIdr,
   formatUploadPurpose,
-} from "@/components/admin/registration-detail";
+} from "@/components/admin/registration-detail-panels/shared/format";
 
 describe("registration detail presentation helpers", () => {
   test("formats submitted totals as Indonesian rupiah", () => {

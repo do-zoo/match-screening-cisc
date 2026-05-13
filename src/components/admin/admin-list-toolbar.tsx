@@ -86,7 +86,10 @@ export function AdminListToolbar({
 
   const clearSearchHref = search?.getUrlForQuery(undefined);
   const showClearSearch =
-    search !== undefined && search.value.trim().length > 0;
+    search !== undefined &&
+    search.value.trim().length > 0 &&
+    typeof clearSearchHref === "string" &&
+    clearSearchHref.length > 0;
 
   return (
     <div
