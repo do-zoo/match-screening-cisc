@@ -4,6 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## Documentation maintenance
+
+**Agents must keep this file up to date.** Whenever you change code that affects anything documented here, update the relevant section in the same task — not as a follow-up. Specifically:
+
+- **New route or API endpoint** → add to "Route layout"
+- **New or renamed lib module** → add to "Key library modules"
+- **New Prisma model or enum** → add to "Data model"
+- **New convention, pattern, or mandatory step** → add to the relevant section (server actions, forms, uploads, etc.)
+- **Role permission change** → update the permission table
+- **New environment variable** → add to the environment variable table
+- **New CLI command or script** → add to "Commands"
+
+Do **not** document ephemeral implementation details (local variable names, internal function bodies). Document only things that a future agent needs to understand *before* reading the code — cross-file invariants, non-obvious constraints, and conventions that would take multiple file reads to discover.
+
 ## Commands
 
 ```bash
@@ -61,13 +75,36 @@ An event registration system for a members-only social club (CISC). Members and 
   - `/` — homepage listing active events
   - `/events/[slug]` — event registration page (public form)
   - `/events/[slug]/register/[registrationId]` — post-submission confirmation
-- `(auth)/admin/sign-in` — magic-link + email/password sign-in
-- `admin/` — authenticated admin dashboard (plus `(auth)/admin/invite/[token]` — onboarding for invited admins; excluded from dashboard auth redirect via `proxy.ts`)
+- `(auth)/admin/sign-in` — magic-link + email/password sign-in (plus two-factor, magic-link-sent sub-pages)
+- `(auth)/admin/invite/[token]` — onboarding for invited admins; excluded from the admin auth redirect via `src/proxy.ts`
+- `admin/` — authenticated admin area (all routes require a session; redirect enforced in `src/proxy.ts` + `admin/layout.tsx`)
+  - `admin/events/` — event list + new event
   - `admin/events/[eventId]/inbox` — registrations list
-  - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + actions
-  - `admin/events/[eventId]/report` — per-event aggregated report + CSV export
-  - `admin/events/[eventId]/edit` — event editor
+  - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + action panels
+  - `admin/events/[eventId]/report` — aggregated report + CSV export
+  - `admin/events/[eventId]/edit` — event editor (venue, menu, pricing, hero cover)
+  - `admin/members/` — master member directory (CSV import/export)
+  - `admin/management/` — kepengurusan hub
+  - `admin/management/[periodId]` — board period detail (roles, assignments, PDF/CSV export)
+  - `admin/venues/` — venue list; `admin/venues/[venueId]/edit`, `admin/venues/new`
+  - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, pricing, security, whatsapp-templates)
+  - `admin/account/` — personal account page (display name, 2FA)
 - `api/auth/[...all]` — Better Auth catch-all handler
+- `api/admin/events/[eventId]/title` — lightweight title lookup for breadcrumbs
+- `api/admin/pic-banks/[adminProfileId]` — PIC bank accounts for the event form
+
+### Role permission model
+
+| Capability | Owner | Admin | Verifier | Viewer |
+| --- | --- | --- | --- | --- |
+| Verify/edit registrations on all events | ✓ | ✓ | ✓ | — |
+| Verify/edit registrations on assigned events | ✓ | ✓ | ✓ | ✓ (via `EventPicHelper`) |
+| Operational management (members, events, venues, management) | ✓ | ✓ | — | — |
+| Committee advanced settings (pricing, WA templates, branding, security) | ✓ | — | — | — |
+
+`lib/permissions/roles.ts` exports `hasGlobalVerifierAccess`, `hasOperationalOwnerParity`, and `canManageCommitteeAdvancedSettings`. Use these functions rather than comparing role strings directly. Guard functions in `lib/actions/guard.ts` wrap these for server actions.
+
+`EventPicHelper` rows grant a `Viewer` account access to specific events; `AdminContext.helperEventIds` carries the list and is checked by `canVerifyEvent`.
 
 ### Data model (`prisma/schema.prisma`)
 
@@ -75,11 +112,17 @@ Key entities:
 
 - **`MasterMember`** — the club member directory; `isManagementMember` gates partner ticket eligibility and is **derived from kepengurusan** (`BoardAssignment` for the active `BoardPeriod` when the pengurus row links via `ManagementMember.masterMemberId`), not edited manually in the directory UI
 - **`Event`** — slug, pricing, menu config (`MenuMode`: `PRESELECT` | `VOUCHER`); financial PIC is **`picAdminProfileId`** (`AdminProfile`), not a directory flag; **`PicBankAccount`** is owned by **`ownerAdminProfileId`**
+- **`Venue`** / **`VenueMenuItem`** — venues carry a reusable menu item catalogue; when creating/editing an event the selected venue menu items are copied into **`EventVenueMenuItem`** rows (snapshotted at event creation; frozen after first registration — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`)
 - **`Registration`** — one per submission; prices are snapshotted at submit time (`*Applied` fields); status flows: `submitted → pending_review → approved / rejected / payment_issue`
 - **`Ticket`** — one `primary` + optional `partner` per registration; unique constraint on `(eventId, memberNumber)` prevents double-booking
 - **`Upload`** — Vercel Blob metadata for transfer proofs and member card photos; converted to WebP before storage
 - **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
+- **`BoardPeriod`** / **`BoardRole`** / **`ManagementMember`** / **`BoardAssignment`** — kepengurusan (committee) structure; `recompute-directory-flags.ts` syncs `MasterMember.isManagementMember` from `BoardAssignment`
+- **`CommitteeTicketDefaults`** — global default pricing per ticket type (used when an event does not override)
+- **`ClubWaTemplate`** — per-`WaTemplateKey` body overrides stored in DB; loaded by `lib/wa-templates/load-club-wa-templates.ts` and merged with hardcoded defaults in `lib/wa-templates/render-wa-from-db.ts`
+- **`ClubBranding`** / **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton rows (always `singletonKey = "default"`); read via `lib/public/load-club-*.ts` helpers; mutations are Owner-only and append to `ClubAuditLog`
+- **`ClubAuditLog`** — append-only log of sensitive Owner-level mutations; written via `lib/audit/append-club-audit-log.ts` using action constants from `lib/audit/club-audit-actions.ts`
 
 Better Auth manages its own tables (users, sessions) directly via `pg.Pool` — they are **not** in `prisma/schema.prisma`.
 
@@ -92,13 +135,20 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/db/prisma.ts` — singleton `PrismaClient` with `PrismaNeon` adapter (pooled `DATABASE_URL`, Neon-recommended; HMR-safe via `globalThis`)
 - `lib/actions/guard.ts` — **all admin server actions must start here**: `guardEvent(eventId)`, `guardOwner()`, `guardOwnerOrAdmin()`, `isAuthError(e)`. Throws `"NO_PROFILE"` / `"FORBIDDEN"` / `"UNAUTHENTICATED"` strings; catch with `isAuthError` to surface as "Tidak diizinkan."
 - `lib/forms/action-result.ts` — `ActionResult<T>` discriminated union (`{ ok: true; data }` / `{ ok: false; fieldErrors?, rootError? }`); helpers `ok()`, `rootError()`, `fieldError()`. All admin server actions return this type.
+- `lib/client/cud-notify.ts` — client-side toast helpers: `toastCudSuccess(operation, message?)` and `toastActionErr(err, fallback?)`. Use these after calling a server action on the client instead of calling `toast` directly.
+- `lib/audit/append-club-audit-log.ts` — `appendClubAuditLog(db, row)` — call this inside any Owner mutation that touches club-level configuration; use constants from `lib/audit/club-audit-actions.ts` for the `action` field
 - `lib/actions/submit-registration.ts` — the main public Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
 - `lib/permissions/guards.ts` — `canVerifyEvent(ctx, eventId)` — role-based access check (used by `guardEvent`)
 - `lib/reports/queries.ts` — `getEventReport(eventId)` — 10 parallel queries for attendance, finance, menu/voucher aggregations
 - `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — 14-column RFC 4180 CSV
-- `lib/wa-templates/messages.ts` — WhatsApp message templates (Indonesian); covers approval, rejection, payment issue, cancellation, refund, underpayment invoice
+- `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
+- `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
+- `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
+- `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses
+- `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
+- `lib/admin/` — admin-domain helpers: invite crypto, email, dashboard view model, committee invariants, nav flags, PIC bank permissions, path helpers
 
 ### UI components
 
@@ -114,6 +164,8 @@ Registration status flows: `submitted → pending_review → approved / rejected
 </DialogTrigger>
 ```
 
+Notable third-party UI libraries: `@tanstack/react-table` for data tables; `@tiptap/react` (with `starter-kit`, `link`, `underline` extensions) for the event description rich-text editor; `react-day-picker` for date pickers; `@react-pdf/renderer` for PDF export (management period).
+
 ### Server action conventions
 
 Every admin server action must:
@@ -123,6 +175,7 @@ Every admin server action must:
 3. Return `ActionResult<T>` from `lib/forms/action-result.ts`
 4. Use Prisma enum values (e.g. `RegistrationStatus.approved`), not raw strings
 5. Write error messages in Indonesian (consistent with the rest of the codebase)
+6. Call `appendClubAuditLog` for any Owner-only mutation that changes club configuration
 
 ### Forms pattern
 
@@ -138,9 +191,4 @@ Images are converted to WebP (max 1600px, quality 80) via Sharp before being put
 
 ### Testing
 
-Tests live in two places:
-
-- Co-located `.test.ts` files next to the module (e.g., `compute-submit-total.test.ts`)
-- `src/tests/unit/` for cross-cutting unit tests
-
-Vitest runs in `node` environment. No browser/DOM tests. Test setup file: `src/tests/vitest.setup.ts`.
+Tests are co-located next to their module as `.test.ts` files, with cross-cutting unit tests in `src/tests/unit/`. Vitest runs in `node` environment — no browser/DOM tests. Test setup file: `src/tests/vitest.setup.ts`. Action tests (e.g. `admin-events.test.ts`) mock Prisma and blob calls; pure logic tests (e.g. `compute-submit-total.test.ts`) have no mocks.
