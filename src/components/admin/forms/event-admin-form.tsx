@@ -349,13 +349,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <Field label="Judul">
             <Input {...form.register("title")} disabled={pending} />
           </Field>
-          <Field label="Ringkasan">
-            <Textarea
-              {...form.register("summary")}
-              disabled={pending}
-              className="resize-y"
-            />
-          </Field>
         </section>
 
         <section className="space-y-2">
@@ -372,6 +365,17 @@ export function EventAdminForm(props: EventAdminFormProps) {
             className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1 file:text-xs"
             onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
           />
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">Ringkasan</h2>
+          <Field label="Ringkasan">
+            <Textarea
+              {...form.register("summary")}
+              disabled={pending}
+              className="resize-y"
+            />
+          </Field>
         </section>
 
         <section className="space-y-4">
