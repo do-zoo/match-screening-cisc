@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { AdminRole } from "@prisma/client";
 
 import {
@@ -15,8 +16,9 @@ import {
 import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
 import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
 import { prisma } from "@/lib/db/prisma";
-import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
+import { ADMIN_EVENTS_DELETE_SUCCESS_FLASH } from "@/lib/admin/admin-events-delete-flash";
 import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
+import { allocateUniqueEventSlug } from "@/lib/events/generate-event-slug";
 import {
   findLockedViolations,
   findMandatoryMenuLockedViolation,
@@ -591,5 +593,9 @@ export async function deleteAdminEvent(
   revalidatePath("/admin/events");
   revalidatePath("/");
   revalidatePath("/events");
-  return ok({ deleted: true });
+  revalidatePath(`/admin/events/${event.id}/edit`);
+
+  redirect(
+    `/admin/events?tab=active&flash=${encodeURIComponent(ADMIN_EVENTS_DELETE_SUCCESS_FLASH)}`,
+  );
 }

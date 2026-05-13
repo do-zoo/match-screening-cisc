@@ -79,7 +79,7 @@ An event registration system for a members-only social club (CISC). Members and 
 - `(auth)/admin/invite/[token]` — onboarding for invited admins; excluded from the admin auth redirect via `src/proxy.ts`
 - `admin/` — authenticated admin area (all routes require a session; redirect enforced in `src/proxy.ts` + `admin/layout.tsx`)
   - `admin/` (root) — hub ringkas komunitas (pintasan ke modul + agregat registrasi menunggu tinjauan); bukan daftar acara utama
-  - `admin/events/` — indeks acara: header (judul + Buat acara untuk Owner/Admin), toolbar filter (`?tab=`, `?q=` judul/slug/venue, pencarian debounce) + toggle kartu/tabel (`?view=tabel`) + ringkasan menunggu tinjauan; paginasi (`?page=`); tabel memakai filter status + teks yang sama; Verifier/Viewer hanya kartu; `tab` kosong → redirect ke `tab=active` (pertahankan `q` bila ada)
+  - `admin/events/` — indeks acara: header (judul + Buat acara untuk Owner/Admin), toolbar filter (`?tab=`, `?q=` judul/slug/venue, pencarian debounce) + toggle kartu/tabel (`?view=tabel`) + ringkasan menunggu tinjauan; paginasi (`?page=`); tabel memakai filter status + teks yang sama; Verifier/Viewer hanya kartu; `tab` kosong → redirect ke `tab=active` (pertahankan `q` bila ada); `layout.tsx` cabang memuat `AdminEventsIndexFlashHandler` (Suspense) agar toast sukses hapus acara tampil setelah `deleteAdminEvent` mengarahkan ke `?flash=hapus-acara` (mencegah 404 karena refresh RSC halaman edit pasca-hapus)
   - `admin/events/[eventId]/registrants` — daftar peserta (toolbar: `?q=`, `?tab=` status pendaftaran, `?view=tabel` vs kartu, `?page=`); label nav **Peserta Acara**; URL lama `/admin/events/[eventId]/inbox` dialihkan permanen lewat `next.config.ts`
   - `admin/events/[eventId]/registrants/[registrationId]` — detail registrasi + tab (`?tab=ringkasan|verifikasi|operasi`, redirect kanonikal bila `tab` hilang/invalid) + panel aksi
   - `admin/events/[eventId]/report` — aggregated report + CSV export; panel **bukti rekapitulasi penutupan** (transfer venue, nota venue, margin bendahara) untuk PIC acara / Owner / Admin dengan riwayat append-only
@@ -158,6 +158,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses; kapasitas `null` atau ≤ 0 = tak terbatas (sama seperti form admin kosong)
 - `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
+- `lib/admin/admin-events-delete-flash.ts` — konstanta nilai query `flash` setelah redirect sukses hapus acara (`deleteAdminEvent` → indeks + toast klien)
 - `lib/admin/events-index-view.ts` — parse mode kartu vs tabel (`view`), parse `q`, dan `buildAdminEventsIndexUrl` untuk query indeks acara
 - `lib/admin/event-registrants-paths.ts` — `eventRegistrantsListPath` / `eventRegistrationDetailPath` untuk URL daftar & detail peserta acara
 - `lib/admin/event-registrants-list-url.ts` — parse/build query daftar peserta (`tab`, `view`, `q`, `page`) + `registrationListWhere` untuk Prisma
