@@ -17,6 +17,7 @@ import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
 import { AdminBrandMark } from "@/components/admin/admin-brand-mark";
 import { AdminEventSidebarBlock } from "@/components/admin/admin-event-sidebar-block";
 import { AdminVenueSidebarBlock } from "@/components/admin/admin-venue-sidebar-block";
+import { CommitteeSettingsSubnav } from "@/components/admin/committee-settings-subnav";
 import {
   adminShellNavIconClass,
   adminShellNavLinkClass,
@@ -48,11 +49,9 @@ function AdminNavLinks({
   const membersActive =
     pathname === "/admin/members" || pathname.startsWith("/admin/members/");
   const managementActive =
-    pathname === "/admin/management" ||
-    pathname.startsWith("/admin/management/");
+    pathname === "/admin/management" || pathname.startsWith("/admin/management/");
   const settingsActive =
-    pathname === "/admin/settings" ||
-    pathname.startsWith("/admin/settings/");
+    pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
 
   return (
     <nav
@@ -74,10 +73,7 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(acaraExact)}
         >
-          <CalendarDays
-            className={adminShellNavIconClass(acaraExact)}
-            aria-hidden
-          />
+          <CalendarDays className={adminShellNavIconClass(acaraExact)} aria-hidden />
           Acara
         </Link>
       ) : null}
@@ -107,10 +103,7 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(managementActive)}
         >
-          <UsersRound
-            className={adminShellNavIconClass(managementActive)}
-            aria-hidden
-          />
+          <UsersRound className={adminShellNavIconClass(managementActive)} aria-hidden />
           Kepengurusan
         </Link>
       ) : null}
@@ -120,14 +113,26 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(settingsActive)}
         >
-          <Settings
-            className={adminShellNavIconClass(settingsActive)}
-            aria-hidden
-          />
+          <Settings className={adminShellNavIconClass(settingsActive)} aria-hidden />
           Pengaturan
         </Link>
       ) : null}
     </nav>
+  );
+}
+
+function AdminSettingsDrawerSection({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  if (!pathname?.startsWith("/admin/settings")) return null;
+  return (
+    <div className="border-t border-sidebar-border/70 pt-5">
+      <div className="rounded-xl bg-sidebar-accent/35 p-3.5 shadow-sm ring-1 ring-sidebar-border/45">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/50">
+          Pengaturan
+        </p>
+        <CommitteeSettingsSubnav onNavigate={onNavigate} />
+      </div>
+    </div>
   );
 }
 
@@ -143,6 +148,7 @@ export function AdminAppShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const closeMobile = () => setMobileOpen(false);
 
   return (
     <div
@@ -202,12 +208,10 @@ export function AdminAppShell({
                 <div className="space-y-1">
                   <AdminBrandMark />
                 </div>
-                <AdminNavLinks
-                  navFlags={navFlags}
-                  onNavigate={() => {
-                    setMobileOpen(false);
-                  }}
-                />
+                <AdminNavLinks navFlags={navFlags} onNavigate={closeMobile} />
+                <AdminEventSidebarBlock onNavigate={closeMobile} />
+                <AdminVenueSidebarBlock onNavigate={closeMobile} />
+                <AdminSettingsDrawerSection onNavigate={closeMobile} />
               </div>
             </SheetContent>
           </Sheet>
