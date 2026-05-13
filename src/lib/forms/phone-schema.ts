@@ -8,7 +8,7 @@ export const phoneValueSchema = z
     nationalNumber: z.string().trim().min(1, "Nomor telepon wajib diisi"),
   })
   .superRefine((val, ctx) => {
-    if (!val.nationalNumber.trim()) return
+    if (!val.nationalNumber) return
     try {
       const valid = isValidPhoneNumber(
         val.nationalNumber,
