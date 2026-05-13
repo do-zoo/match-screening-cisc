@@ -63,8 +63,8 @@ type AdminAccountMenuProps = {
   displayName?: string | null;
   avatarUrl?: string | null;
   triggerClassName?: string;
-  /** Dense header (mobile) vs pill at bottom (desktop sidebar). */
-  variant?: "default" | "sidebar";
+  /** icon = compact avatar-only button (mobile header) | sidebar = full pill | default = name+chevron pill */
+  variant?: "default" | "sidebar" | "icon";
 };
 
 export function AdminAccountMenu({
@@ -83,59 +83,78 @@ export function AdminAccountMenu({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        aria-label="Menu akun"
-        className={cn("w-full", triggerClassName)}
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              "min-h-0 w-full shrink justify-between gap-3 shadow-none",
-              variant === "sidebar"
-                ? "!h-auto !min-h-12 !whitespace-normal rounded-full border-sidebar-border/80 bg-sidebar-accent/35 px-3.5 py-2 text-left hover:bg-sidebar-accent/55"
-                : "border-transparent bg-transparent px-1 hover:bg-transparent",
-            )}
+      {variant === "icon" ? (
+        <PopoverTrigger
+          aria-label="Menu akun"
+          className={triggerClassName}
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              className="size-10 shrink-0 rounded-full border-sidebar-border bg-transparent p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            />
+          }
+        >
+          <AdminAvatarCircle
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            userEmail={userEmail ?? ""}
+            size="md"
           />
-        }
-      >
-        <AdminAvatarCircle
-          avatarUrl={avatarUrl}
-          displayName={displayName}
-          userEmail={userEmail ?? ""}
-          size={variant === "sidebar" ? "md" : "sm"}
-        />
-        <span className="min-w-0 flex-1 text-left">
-          <span className="block truncate text-sm font-medium leading-snug">
-            {primary}
-          </span>
-          {showEmailRow ? (
-            <span
+        </PopoverTrigger>
+      ) : (
+        <PopoverTrigger
+          aria-label="Menu akun"
+          className={cn("w-full", triggerClassName)}
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               className={cn(
-                "block truncate text-xs",
+                "min-h-0 w-full shrink justify-between gap-3 shadow-none",
                 variant === "sidebar"
-                  ? "text-sidebar-foreground/55"
-                  : "text-muted-foreground",
+                  ? "h-auto! min-h-12! whitespace-normal! rounded-full border-sidebar-border/80 bg-sidebar-accent/35 px-3.5 py-2 text-left hover:bg-sidebar-accent/55"
+                  : "border-transparent bg-transparent px-1 hover:bg-transparent",
               )}
-            >
-              {email}
+            />
+          }
+        >
+          <AdminAvatarCircle
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            userEmail={userEmail ?? ""}
+            size={variant === "sidebar" ? "md" : "sm"}
+          />
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate text-sm font-medium leading-snug">
+              {primary}
             </span>
-          ) : null}
-        </span>
-        <ChevronDownIcon
-          className={cn(
-            "size-4 shrink-0",
-            variant === "sidebar"
-              ? "text-sidebar-foreground/60"
-              : "opacity-70",
-          )}
-          aria-hidden
-        />
-      </PopoverTrigger>
+            {showEmailRow ? (
+              <span
+                className={cn(
+                  "block truncate text-xs",
+                  variant === "sidebar"
+                    ? "text-sidebar-foreground/55"
+                    : "text-muted-foreground",
+                )}
+              >
+                {email}
+              </span>
+            ) : null}
+          </span>
+          <ChevronDownIcon
+            className={cn(
+              "size-4 shrink-0",
+              variant === "sidebar" ? "text-sidebar-foreground/60" : "opacity-70",
+            )}
+            aria-hidden
+          />
+        </PopoverTrigger>
+      )}
       <PopoverContent
         className="w-72 p-3"
-        align="start"
+        align={variant === "icon" ? "end" : "start"}
         side={variant === "sidebar" ? "top" : "bottom"}
         sideOffset={variant === "sidebar" ? 8 : 4}
       >
@@ -147,7 +166,9 @@ export function AdminAccountMenu({
             size="md"
           />
           <div className="min-w-0">
-            <PopoverTitle className="truncate text-base">{primary}</PopoverTitle>
+            <PopoverTitle className="truncate text-base">
+              {primary}
+            </PopoverTitle>
             {email ? (
               <p className="truncate text-xs text-muted-foreground">{email}</p>
             ) : null}

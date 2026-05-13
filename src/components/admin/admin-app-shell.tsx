@@ -1,8 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   Home,
@@ -12,16 +9,19 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
 import { AdminBrandMark } from "@/components/admin/admin-brand-mark";
 import { AdminEventSidebarBlock } from "@/components/admin/admin-event-sidebar-block";
-import { AdminVenueSidebarBlock } from "@/components/admin/admin-venue-sidebar-block";
-import { CommitteeSettingsSubnav } from "@/components/admin/committee-settings-subnav";
 import {
   adminShellNavIconClass,
   adminShellNavLinkClass,
 } from "@/components/admin/admin-shell-nav-styles";
+import { AdminVenueSidebarBlock } from "@/components/admin/admin-venue-sidebar-block";
+import { CommitteeSettingsSubnav } from "@/components/admin/committee-settings-subnav";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -49,7 +49,8 @@ function AdminNavLinks({
   const membersActive =
     pathname === "/admin/members" || pathname.startsWith("/admin/members/");
   const managementActive =
-    pathname === "/admin/management" || pathname.startsWith("/admin/management/");
+    pathname === "/admin/management" ||
+    pathname.startsWith("/admin/management/");
   const settingsActive =
     pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
 
@@ -64,7 +65,10 @@ function AdminNavLinks({
         onClick={onNavigate}
         className={adminShellNavLinkClass(pathname === "/admin")}
       >
-        <Home className={adminShellNavIconClass(pathname === "/admin")} aria-hidden />
+        <Home
+          className={adminShellNavIconClass(pathname === "/admin")}
+          aria-hidden
+        />
         Beranda
       </Link>
       {navFlags.acara ? (
@@ -73,7 +77,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(acaraExact)}
         >
-          <CalendarDays className={adminShellNavIconClass(acaraExact)} aria-hidden />
+          <CalendarDays
+            className={adminShellNavIconClass(acaraExact)}
+            aria-hidden
+          />
           Acara
         </Link>
       ) : null}
@@ -83,7 +90,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(venuesActive)}
         >
-          <MapPin className={adminShellNavIconClass(venuesActive)} aria-hidden />
+          <MapPin
+            className={adminShellNavIconClass(venuesActive)}
+            aria-hidden
+          />
           Venue
         </Link>
       ) : null}
@@ -93,7 +103,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(membersActive)}
         >
-          <Users className={adminShellNavIconClass(membersActive)} aria-hidden />
+          <Users
+            className={adminShellNavIconClass(membersActive)}
+            aria-hidden
+          />
           Anggota
         </Link>
       ) : null}
@@ -103,7 +116,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(managementActive)}
         >
-          <UsersRound className={adminShellNavIconClass(managementActive)} aria-hidden />
+          <UsersRound
+            className={adminShellNavIconClass(managementActive)}
+            aria-hidden
+          />
           Kepengurusan
         </Link>
       ) : null}
@@ -113,7 +129,10 @@ function AdminNavLinks({
           onClick={onNavigate}
           className={adminShellNavLinkClass(settingsActive)}
         >
-          <Settings className={adminShellNavIconClass(settingsActive)} aria-hidden />
+          <Settings
+            className={adminShellNavIconClass(settingsActive)}
+            aria-hidden
+          />
           Pengaturan
         </Link>
       ) : null}
@@ -121,7 +140,11 @@ function AdminNavLinks({
   );
 }
 
-function AdminSettingsDrawerSection({ onNavigate }: { onNavigate?: () => void }) {
+function AdminSettingsDrawerSection({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   if (!pathname?.startsWith("/admin/settings")) return null;
   return (
@@ -155,11 +178,11 @@ export function AdminAppShell({
   return (
     <div
       data-admin-shell
-      className="flex min-h-[100dvh] w-full flex-col bg-muted/40 lg:flex-row lg:items-start"
+      className="flex min-h-dvh w-full flex-col bg-muted/40 lg:flex-row lg:items-start"
     >
       <aside
         aria-label="Menu admin utama"
-        className="sticky top-0 z-40 hidden w-[min(238px,100%)] shrink-0 border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground shadow-[inset_-1px_0_0_0_var(--sidebar-border)] lg:flex lg:max-h-[100dvh] lg:min-h-[100dvh] lg:flex-col lg:overflow-hidden lg:self-start"
+        className="sticky top-0 z-40 hidden w-[min(238px,100%)] shrink-0 border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground shadow-[inset_-1px_0_0_0_var(--sidebar-border)] lg:flex lg:max-h-dvh lg:min-h-dvh lg:flex-col lg:overflow-hidden lg:self-start"
       >
         <div className="flex min-h-0 w-full flex-1 flex-col px-3 pt-5 pb-4">
           <div className="shrink-0">
@@ -218,10 +241,13 @@ export function AdminAppShell({
               </div>
             </SheetContent>
           </Sheet>
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <p className="truncate text-xs text-sidebar-foreground/70">PIC</p>
-            <AdminAccountMenu userEmail={userEmail} displayName={displayName} avatarUrl={avatarUrl} />
-          </div>
+          <AdminAccountMenu
+            userEmail={userEmail}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+            variant="icon"
+            triggerClassName="ml-auto"
+          />
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
