@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import {
   Controller,
+  useWatch,
   type Control,
   type UseFormClearErrors,
   type UseFormSetValue,
 } from "react-hook-form";
 
 import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -23,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   phoneValueToStoredString,
   stringToPhoneValue,
+  whatsappDigitsOnly,
 } from "@/lib/forms/phone-value-string";
 import {
   MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
@@ -31,8 +35,102 @@ import {
 } from "@/lib/forms/submit-registration-schema";
 
 import { cn } from "@/lib/utils";
+import { PencilLine, ShieldCheck } from "lucide-react";
 
+import {
+  contactInitials,
+  maskDisplayName,
+  maskDisplayWhatsapp,
+} from "./mask-contact-display";
 import type { PartnerMemberNumberGateState } from "./types";
+
+function DirectoryContactProfileCard({
+  maskedName,
+  maskedWhatsapp,
+  initials,
+  onEdit,
+}: {
+  maskedName: string;
+  maskedWhatsapp: string;
+  initials: string;
+  onEdit: () => void;
+}) {
+  return (
+    <Field className="min-w-0">
+      <div className="flex flex-row flex-wrap items-end justify-between gap-3">
+        <FieldLabel className="text-base">
+          Identitas partner dari direktori
+        </FieldLabel>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="min-h-11 touch-manipulation gap-2"
+          onClick={onEdit}
+        >
+          <PencilLine className="size-4 shrink-0" aria-hidden />
+          Ubah nama &amp; WhatsApp
+        </Button>
+      </div>
+      <div
+        role="region"
+        aria-label="Data kontak disamarkan. Gunakan tombol ubah untuk menampilkan bidang lengkap dan mengedit."
+        className={cn(
+          "relative mt-3 min-h-11 overflow-hidden rounded-2xl shadow-md ring-1 ring-primary/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
+        )}
+      >
+        <div className="flex flex-row gap-4 rounded-2xl border border-border/80 bg-linear-to-br from-card via-card to-primary/6 px-4 py-4 backdrop-blur-sm dark:to-primary/4">
+          <div
+            className="flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/80 text-lg font-semibold text-primary-foreground shadow-inner"
+            aria-hidden
+          >
+            {initials}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className="flex flex-row flex-wrap items-center gap-2 gap-y-1">
+              <ShieldCheck
+                className="size-4 shrink-0 text-primary"
+                aria-hidden
+              />
+              <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
+                Terverifikasi di direktori
+              </span>
+            </div>
+            <div className="grid min-w-0 gap-2">
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Nama
+                </p>
+                <p
+                  className="truncate text-lg font-semibold tracking-tight text-foreground"
+                  aria-hidden="true"
+                >
+                  {maskedName}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  WhatsApp
+                </p>
+                <p
+                  className="font-mono text-base leading-relaxed tracking-wide text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  {maskedWhatsapp || "-"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <FieldDescription className="text-foreground/80">
+        Teks disamarkan agar lebih sulit dibaca orang lain dari samping; Anda
+        tetap bisa mengubah isi aktual untuk pendaftaran melalui
+        &quot;Ubah&quot;.
+      </FieldDescription>
+    </Field>
+  );
+}
 
 type Props = {
   control: Control<SubmitRegistrationInput>;
@@ -55,9 +153,26 @@ export function PartnerTicketSection({
   partnerDirectoryVerified,
   effectivePartnerMemberGate,
 }: Props) {
+  const partnerName = String(useWatch({ control, name: "partnerName" }) ?? "");
+  const partnerWhatsapp = String(
+    useWatch({ control, name: "partnerWhatsapp" }) ?? "",
+  );
+  const [partnerContactsShowInputs, setPartnerContactsShowInputs] =
+    useState(false);
+
   if (!showPartnerSection) return null;
 
   const qtyChecked = Number(qtyPartner ?? 0) === 1;
+
+  const whatsappLooksEmpty = whatsappDigitsOnly(partnerWhatsapp).length < 8;
+  const showPartnerMaskedProfileCard =
+    partnerDirectoryVerified &&
+    partnerName.trim().length >= 2 &&
+    !partnerContactsShowInputs;
+  const editingPartnerWhileVerified =
+    partnerDirectoryVerified && partnerContactsShowInputs;
+  const showPartnerWhatsappFillHint =
+    partnerDirectoryVerified && whatsappLooksEmpty;
 
   return (
     <section aria-label="Tiket partner" className="grid gap-5 rounded-xl">
@@ -326,53 +441,107 @@ export function PartnerTicketSection({
                     )}
                   />
 
-                  <Controller
-                    control={control}
-                    name="partnerName"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="ms-registration-partner-name">
-                          Nama partner
-                        </FieldLabel>
-                        <Input
-                          id="ms-registration-partner-name"
-                          autoComplete="name"
-                          {...field}
-                        />
-                        {fieldState.invalid ? (
-                          <FieldError errors={[fieldState.error]} />
-                        ) : null}
-                      </Field>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="partnerWhatsapp"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="ms-registration-partner-whatsapp">
-                          WhatsApp partner{" "}
-                          <span className="font-normal text-muted-foreground">
-                            (opsional)
-                          </span>
-                        </FieldLabel>
-                        <PhoneInput
-                          id="ms-registration-partner-whatsapp"
-                          name={field.name}
-                          value={stringToPhoneValue(field.value)}
-                          onChange={(v) => {
-                            field.onChange(phoneValueToStoredString(v));
-                          }}
-                          onBlur={field.onBlur}
-                          aria-invalid={fieldState.invalid}
-                          placeholder="Nomor WhatsApp partner"
-                        />
-                        {fieldState.invalid ? (
-                          <FieldError errors={[fieldState.error]} />
-                        ) : null}
-                      </Field>
-                    )}
-                  />
+                  {showPartnerMaskedProfileCard ? (
+                    <DirectoryContactProfileCard
+                      maskedName={maskDisplayName(partnerName)}
+                      maskedWhatsapp={
+                        whatsappDigitsOnly(partnerWhatsapp).length >= 8
+                          ? maskDisplayWhatsapp(partnerWhatsapp)
+                          : ""
+                      }
+                      initials={contactInitials(partnerName)}
+                      onEdit={() => setPartnerContactsShowInputs(true)}
+                    />
+                  ) : (
+                    <>
+                      {editingPartnerWhileVerified ? (
+                        <div className="flex flex-row flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2">
+                          <p className="text-sm text-muted-foreground">
+                            Bidang lengkap tidak disamarkan. Selesai mengisi?
+                            Anda bisa kembali ke kartu privat.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="lg"
+                            className="min-h-11 shrink-0 touch-manipulation"
+                            onClick={() => setPartnerContactsShowInputs(false)}
+                          >
+                            Tampilkan kartu privat
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      <Controller
+                        control={control}
+                        name="partnerName"
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel htmlFor="ms-registration-partner-name">
+                              Nama partner
+                            </FieldLabel>
+                            <Input
+                              id="ms-registration-partner-name"
+                              autoComplete="name"
+                              {...field}
+                            />
+                            {fieldState.invalid ? (
+                              <FieldError errors={[fieldState.error]} />
+                            ) : null}
+                          </Field>
+                        )}
+                      />
+                      <Controller
+                        control={control}
+                        name="partnerWhatsapp"
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel htmlFor="ms-registration-partner-whatsapp">
+                              WhatsApp partner{" "}
+                              <span className="font-normal text-muted-foreground">
+                                (opsional)
+                              </span>
+                            </FieldLabel>
+                            <PhoneInput
+                              id="ms-registration-partner-whatsapp"
+                              name={field.name}
+                              value={stringToPhoneValue(field.value)}
+                              onChange={(v) => {
+                                field.onChange(phoneValueToStoredString(v));
+                              }}
+                              onBlur={field.onBlur}
+                              aria-invalid={fieldState.invalid}
+                              placeholder="Nomor WhatsApp partner"
+                            />
+                            {fieldState.invalid ? (
+                              <FieldError errors={[fieldState.error]} />
+                            ) : null}
+                          </Field>
+                        )}
+                      />
+                    </>
+                  )}
+                  {showPartnerWhatsappFillHint ? (
+                    <Alert variant="destructive">
+                      {showPartnerMaskedProfileCard ? (
+                        <span>
+                          WhatsApp belum terisi atau tidak ada di direktori.
+                          Ketuk{" "}
+                          <span className="font-medium">
+                            Ubah nama &amp; WhatsApp
+                          </span>{" "}
+                          lalu isi nomor utama agar panitia bisa menghubungi
+                          partner.
+                        </span>
+                      ) : (
+                        <span>
+                          Lengkapi bidang{" "}
+                          <span className="font-medium">WhatsApp</span> di atas
+                          (minimal 8 digit) agar pendaftaran bisa dilanjutkan.
+                        </span>
+                      )}
+                    </Alert>
+                  ) : null}
                 </>
               ) : null}
             </>
