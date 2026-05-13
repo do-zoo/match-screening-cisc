@@ -30,7 +30,8 @@ export default async function AdminNewEventPage() {
         <Alert variant="destructive">
           <AlertTitle>Profil admin belum ada</AlertTitle>
           <AlertDescription>
-            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk aktivasi akses PIC.
+            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk
+            aktivasi akses PIC.
           </AlertDescription>
         </Alert>
       </main>
@@ -66,10 +67,7 @@ export default async function AdminNewEventPage() {
     }),
   ]);
 
-  const banksByPic: Record<
-    string,
-    Array<{ id: string; label: string }>
-  > = {};
+  const banksByPic: Record<string, Array<{ id: string; label: string }>> = {};
   for (const b of banks) {
     const list = banksByPic[b.ownerAdminProfileId] ?? [];
     list.push({
@@ -149,7 +147,10 @@ export default async function AdminNewEventPage() {
         <header className="flex flex-col gap-2">
           <Link
             href="/admin/events"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "w-fit px-0",
+            )}
           >
             ← Kembali ke daftar acara
           </Link>
@@ -159,7 +160,10 @@ export default async function AdminNewEventPage() {
           <AlertTitle>Venue atau menu venue belum siap</AlertTitle>
           <AlertDescription>
             Buat minimal satu venue yang memiliki setidaknya satu item menu di{" "}
-            <Link href="/admin/venues" className="font-medium underline underline-offset-4">
+            <Link
+              href="/admin/venues"
+              className="font-medium underline underline-offset-4"
+            >
               pengelola venue
             </Link>{" "}
             sebelum membuat acara.
@@ -175,7 +179,10 @@ export default async function AdminNewEventPage() {
         <header className="flex flex-col gap-2">
           <Link
             href="/admin/events"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "w-fit px-0",
+            )}
           >
             ← Kembali ke daftar acara
           </Link>
@@ -184,9 +191,10 @@ export default async function AdminNewEventPage() {
         <Alert>
           <AlertTitle>Belum siap membuat acara</AlertTitle>
           <AlertDescription>
-            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar <strong>dan</strong> setidaknya
-            satu rekening PIC aktif milik admin tersebut. Pastikan rekening bank dipasangkan ke profil admin
-            di pengaturan komite, lalu coba lagi.
+            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar{" "}
+            <strong>dan</strong> setidaknya satu rekening PIC aktif milik admin
+            tersebut. Pastikan rekening bank dipasangkan ke profil admin di
+            pengaturan komite, lalu coba lagi.
           </AlertDescription>
         </Alert>
       </main>
@@ -194,17 +202,21 @@ export default async function AdminNewEventPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-2">
         <Link
           href="/admin/events"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "w-fit px-0",
+          )}
         >
           ← Kembali ke daftar acara
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
         <p className="text-muted-foreground text-sm">
-          Isi detail acara, menu, PIC, dan unggah sampul. Slug URL dibuat otomatis dari judul.
+          Isi detail acara, menu, PIC, dan unggah sampul. Slug URL dibuat
+          otomatis dari judul.
         </p>
       </header>
 

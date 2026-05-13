@@ -1,10 +1,19 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { requireAdminSession } from "@/lib/auth/session";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getAdminContext } from "@/lib/auth/admin-context";
-import { canVerifyEvent } from "@/lib/permissions/guards";
+import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
+import { canVerifyEvent } from "@/lib/permissions/guards";
+import { getEventReport } from "@/lib/reports/queries";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 export async function generateMetadata({
   params,
@@ -18,15 +27,6 @@ export async function generateMetadata({
   });
   return { title: event ? `Laporan · ${event.title}` : "Laporan" };
 }
-import { getEventReport } from "@/lib/reports/queries";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 const idr = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -61,7 +61,9 @@ export default async function EventReportPage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Laporan acara</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Laporan acara
+          </h1>
           <p className="text-sm text-muted-foreground">{event.title}</p>
         </div>
         <div className="flex gap-3">
@@ -71,12 +73,6 @@ export default async function EventReportPage({
           >
             Unduh CSV
           </Link>
-          <Link
-            href={`/admin/events/${eventId}/inbox`}
-            className="text-sm font-medium underline-offset-4 hover:underline self-center"
-          >
-            Kembali ke inbox
-          </Link>
         </div>
       </header>
 
@@ -84,15 +80,23 @@ export default async function EventReportPage({
       <Card>
         <CardHeader>
           <CardTitle>Peserta</CardTitle>
-          <CardDescription>Total: {report.participant.total} pendaftaran</CardDescription>
+          <CardDescription>
+            Total: {report.participant.total} pendaftaran
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Stat label="Member" value={report.participant.memberCount} />
           <Stat label="Non-member" value={report.participant.nonMemberCount} />
           <Stat label="Partner" value={report.participant.partnerCount} />
-          {Object.entries(report.participant.byStatus).map(([status, count]) => (
-            <Stat key={status} label={status.replace(/_/g, " ")} value={count} />
-          ))}
+          {Object.entries(report.participant.byStatus).map(
+            ([status, count]) => (
+              <Stat
+                key={status}
+                label={status.replace(/_/g, " ")}
+                value={count}
+              />
+            ),
+          )}
         </CardContent>
       </Card>
 
@@ -102,12 +106,30 @@ export default async function EventReportPage({
           <CardTitle>Keuangan</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Stat label="Total baseline (approved)" value={idr(report.finance.baselineTotal)} />
-          <Stat label="Pendapatan tiket (approved)" value={idr(report.finance.ticketRevenueApproved)} />
-          <Stat label="Pendapatan menu wajib (approved)" value={idr(report.finance.menuRevenueApproved)} />
-          <Stat label="Penyesuaian lunas" value={idr(report.finance.adjustmentsPaidTotal)} />
-          <Stat label="Penyesuaian belum lunas" value={idr(report.finance.adjustmentsUnpaidTotal)} />
-          <Stat label="Refund" value={`${report.finance.refundCount} pendaftaran`} />
+          <Stat
+            label="Total baseline (approved)"
+            value={idr(report.finance.baselineTotal)}
+          />
+          <Stat
+            label="Pendapatan tiket (approved)"
+            value={idr(report.finance.ticketRevenueApproved)}
+          />
+          <Stat
+            label="Pendapatan menu wajib (approved)"
+            value={idr(report.finance.menuRevenueApproved)}
+          />
+          <Stat
+            label="Penyesuaian lunas"
+            value={idr(report.finance.adjustmentsPaidTotal)}
+          />
+          <Stat
+            label="Penyesuaian belum lunas"
+            value={idr(report.finance.adjustmentsUnpaidTotal)}
+          />
+          <Stat
+            label="Refund"
+            value={`${report.finance.refundCount} pendaftaran`}
+          />
         </CardContent>
       </Card>
 
@@ -119,7 +141,9 @@ export default async function EventReportPage({
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {report.menu.byItem.length === 0 && (
-              <p className="text-sm text-muted-foreground">Belum ada data menu per pendaftaran.</p>
+              <p className="text-sm text-muted-foreground">
+                Belum ada data menu per pendaftaran.
+              </p>
             )}
             {report.menu.byItem.map((item) => (
               <Badge key={item.name} variant="secondary">
@@ -149,7 +173,9 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg border p-3">
       <div className="text-xs text-muted-foreground capitalize">{label}</div>
-      <div className="text-xl font-semibold font-mono tabular-nums">{value}</div>
+      <div className="text-xl font-semibold font-mono tabular-nums">
+        {value}
+      </div>
     </div>
   );
 }

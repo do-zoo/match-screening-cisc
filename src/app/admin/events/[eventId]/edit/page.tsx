@@ -23,7 +23,10 @@ export async function generateMetadata({
 }
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
-import { hasOperationalOwnerParity, canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import {
+  hasOperationalOwnerParity,
+  canManageCommitteeAdvancedSettings,
+} from "@/lib/permissions/roles";
 import { EventDeletePanel } from "@/components/admin/event-delete-panel";
 import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for-event";
 import { cn } from "@/lib/utils";
@@ -41,11 +44,14 @@ export default async function AdminEditEventPage({
   if (!ctx) {
     return (
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Pengaturan acara</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Pengaturan acara
+        </h1>
         <Alert variant="destructive">
           <AlertTitle>Profil admin belum ada</AlertTitle>
           <AlertDescription>
-            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk aktivasi akses PIC.
+            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk
+            aktivasi akses PIC.
           </AlertDescription>
         </Alert>
       </main>
@@ -106,10 +112,7 @@ export default async function AdminEditEventPage({
     }),
   ]);
 
-  const banksByPic: Record<
-    string,
-    Array<{ id: string; label: string }>
-  > = {};
+  const banksByPic: Record<string, Array<{ id: string; label: string }>> = {};
   for (const b of banks) {
     const list = banksByPic[b.ownerAdminProfileId] ?? [];
     list.push({
@@ -181,19 +184,27 @@ export default async function AdminEditEventPage({
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pb-16 pt-8 lg:pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-16 pt-8 lg:pt-6">
       <header className="flex flex-col gap-2">
         <Link
           href="/admin/events"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit px-0")}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "w-fit px-0",
+          )}
         >
           ← Kembali ke daftar acara
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Pengaturan acara</h1>
-        <p className="text-muted-foreground text-sm font-mono">slug · {event.slug}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Pengaturan acara
+        </h1>
+        <p className="text-muted-foreground text-sm font-mono">
+          slug · {event.slug}
+        </p>
         {event._count.registrations > 0 ? (
           <p className="text-amber-800 text-sm dark:text-amber-200">
-            Ada {event._count.registrations} registrasi — slug, venue, dan set menu wajib dikunci oleh sistem.
+            Ada {event._count.registrations} registrasi — slug, venue, dan set
+            menu wajib dikunci oleh sistem.
           </p>
         ) : null}
       </header>

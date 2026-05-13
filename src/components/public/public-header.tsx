@@ -11,7 +11,7 @@ export function PublicHeader(props: {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/90 backdrop-blur-md">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-6">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-6">
         <Link
           href="/"
           className="flex min-w-0 items-center gap-3 font-semibold tracking-tight text-[hsl(var(--foreground))]"

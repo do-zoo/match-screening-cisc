@@ -79,7 +79,7 @@ An event registration system for a members-only social club (CISC). Members and 
 - `(auth)/admin/invite/[token]` — onboarding for invited admins; excluded from the admin auth redirect via `src/proxy.ts`
 - `admin/` — authenticated admin area (all routes require a session; redirect enforced in `src/proxy.ts` + `admin/layout.tsx`)
   - `admin/` (root) — hub ringkas komunitas (pintasan ke modul + agregat registrasi menunggu tinjauan); bukan daftar acara utama
-  - `admin/events/` — indeks acara bergaya dashboard (kartu + filter `?tab=`); Owner/Admin dapat `?view=tabel` untuk tabel paginasi; Verifier/Viewer hanya kartu; tampilan kartu memakai `?tab=` (kosong → redirect ke `tab=active`)
+  - `admin/events/` — indeks acara: header (judul + Buat acara untuk Owner/Admin), toolbar filter (`?tab=`, `?q=` judul/slug/venue, pencarian debounce) + toggle kartu/tabel (`?view=tabel`) + ringkasan menunggu tinjauan; paginasi (`?page=`); tabel memakai filter status + teks yang sama; Verifier/Viewer hanya kartu; `tab` kosong → redirect ke `tab=active` (pertahankan `q` bila ada)
   - `admin/events/[eventId]/inbox` — registrations list
   - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + action panels
   - `admin/events/[eventId]/report` — aggregated report + CSV export
@@ -152,15 +152,17 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses
 - `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
-- `lib/admin/events-index-view.ts` — parse mode kartu vs tabel pada query `view` indeks acara
+- `lib/admin/events-index-view.ts` — parse mode kartu vs tabel (`view`), parse `q`, dan `buildAdminEventsIndexUrl` untuk query indeks acara
+- `lib/admin/events-index-view-model.ts` — tab status (`?tab=`), sort/filter agregat registrasi per acara untuk indeks admin
+- `lib/admin/load-admin-events-index.ts` — `loadAdminEventsIndex` memuat acara yang boleh diverifikasi + KPI + paginasi tampilan kartu
 - `lib/admin/pending-review-total-for-context.ts` — agregat registrasi `pending_review` pada acara yang boleh diverifikasi konteks admin (halaman beranda)
-- `lib/admin/` — admin-domain helpers: invite crypto, email, dashboard view model, committee invariants, nav flags, PIC bank permissions, path helpers
+- `lib/admin/` — admin-domain helpers: invite crypto, email, committee invariants, nav flags, PIC bank permissions, path helpers
 
 ### UI components
 
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `dropzone.tsx`, `image-upload-dropzone.tsx` (sampul acara admin), `idr-amount-input.tsx` (harga IDR terformat)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`; `admin-events-dashboard-cards.tsx` — kartu ringkasan acara + filter tab untuk `/admin/events`
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`; `admin-events-index-header.tsx` — judul indeks acara + tautan Buat acara; `admin-events-index-toolbar.tsx` — cari (debounce) + status + toggle kartu/tabel untuk `/admin/events`; `admin-events-pending-review-alert.tsx` — ringkasan registrasi menunggu tinjauan (kartu & tabel); `admin-events-cards-view.tsx` — grid kartu ringkasan acara + paginasi
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 

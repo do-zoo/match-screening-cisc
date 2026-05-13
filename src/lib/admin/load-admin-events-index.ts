@@ -2,23 +2,33 @@ import type { AdminContext } from "@/lib/permissions/guards";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
 import { hasGlobalVerifierAccess } from "@/lib/permissions/roles";
+import {
+  ADMIN_TABLE_PAGE_SIZE,
+  parseAdminTablePage,
+  resolveClampedPage,
+} from "@/lib/table/admin-pagination";
 
 import {
-  buildDashboardEventCards,
-  filterDashboardCardsByTab,
-  type AdminDashboardEventCard,
-  type DashboardEventTab,
+  buildAdminEventSummaries,
+  filterAdminEventSummariesBySearch,
+  filterAdminEventSummariesByTab,
   groupByResultToCountMap,
-  parseDashboardEventTab,
-  sortDashboardEventCards,
-  sumPendingReviewForCards,
-} from "./dashboard-view-model";
+  parseEventsIndexStatusTab,
+  sortAdminEventSummaries,
+  sumPendingReviewForSummaries,
+  type AdminEventSummary,
+  type EventsIndexStatusTab,
+} from "./events-index-view-model";
+import { parseEventsIndexSearchQuery } from "./events-index-view";
 
-export type LoadAdminDashboardResult =
+export type LoadAdminEventsIndexResult =
   | {
       ok: true;
-      tab: DashboardEventTab;
-      events: AdminDashboardEventCard[];
+      tab: EventsIndexStatusTab;
+      page: number;
+      pageSize: number;
+      totalItems: number;
+      events: AdminEventSummary[];
       pendingReviewRecapTotal: number;
     }
   | { ok: false; error: "database" };
@@ -28,6 +38,7 @@ function collectAuthorizedEventRows(ctx: AdminContext) {
     return prisma.event.findMany({
       select: {
         id: true,
+        slug: true,
         title: true,
         status: true,
         kickOffAt: true,
@@ -43,6 +54,7 @@ function collectAuthorizedEventRows(ctx: AdminContext) {
     where: { id: { in: ids } },
     select: {
       id: true,
+      slug: true,
       title: true,
       status: true,
       kickOffAt: true,
@@ -94,13 +106,21 @@ async function fetchRegistrationCountsByEvent(eventIds: string[]) {
 }
 
 /**
- * Loads authorized events + registration KPIs for the admin dashboard (single Prisma cluster; no per-card N+1).
+ * Indeks acara (tampilan kartu): acara yang boleh diverifikasi + KPI registrasi,
+ * difilter status (`tab`) dan teks (`q`), dipaginasi di memori setelah sort.
  */
-export async function loadAdminDashboard(
+export async function loadAdminEventsIndex(
   ctx: AdminContext,
-  opts?: { tab?: string | string[] },
-): Promise<LoadAdminDashboardResult> {
-  const tab = parseDashboardEventTab(opts?.tab);
+  opts?: {
+    tab?: string | string[];
+    page?: string | string[];
+    q?: string | string[];
+  },
+): Promise<LoadAdminEventsIndexResult> {
+  const tab = parseEventsIndexStatusTab(opts?.tab);
+  const search = parseEventsIndexSearchQuery(opts?.q);
+  const requestedPage = parseAdminTablePage(opts?.page);
+  const pageSize = ADMIN_TABLE_PAGE_SIZE;
 
   try {
     const rawEvents = await collectAuthorizedEventRows(ctx);
@@ -109,10 +129,11 @@ export async function loadAdminDashboard(
 
     const counts = await fetchRegistrationCountsByEvent(eventIds);
 
-    const cards = sortDashboardEventCards(
-      buildDashboardEventCards(
+    const summaries = sortAdminEventSummaries(
+      buildAdminEventSummaries(
         visible.map((e) => ({
           id: e.id,
+          slug: e.slug,
           title: e.title,
           status: e.status,
           startAt: e.kickOffAt,
@@ -124,13 +145,21 @@ export async function loadAdminDashboard(
       ),
     );
 
-    const filtered = filterDashboardCardsByTab(cards, tab);
+    const byTab = filterAdminEventSummariesByTab(summaries, tab);
+    const filtered = filterAdminEventSummariesBySearch(byTab, search);
+    const totalItems = filtered.length;
+    const page = resolveClampedPage(requestedPage, totalItems, pageSize);
+    const skip = (page - 1) * pageSize;
+    const events = filtered.slice(skip, skip + pageSize);
 
     return {
       ok: true,
       tab,
-      events: filtered,
-      pendingReviewRecapTotal: sumPendingReviewForCards(filtered),
+      page,
+      pageSize,
+      totalItems,
+      events,
+      pendingReviewRecapTotal: sumPendingReviewForSummaries(filtered),
     };
   } catch {
     return { ok: false, error: "database" };

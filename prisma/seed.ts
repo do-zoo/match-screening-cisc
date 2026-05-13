@@ -190,7 +190,7 @@ async function main() {
       name: "Venue Demo · Nobar",
       address: "Jl. Demo No. 1, Tangerang Selatan",
       notes:
-        "Contoh venue untuk acara nobar demo. Dipakai `demo-final-ucl-2026` dengan subset dua menu.",
+        "Contoh venue untuk acara nobar demo. Dipakai `demo-final-ucl-2026` dengan subset dua minuman.",
       isActive: true,
     },
     create: {
@@ -198,7 +198,7 @@ async function main() {
       name: "Venue Demo · Nobar",
       address: "Jl. Demo No. 1, Tangerang Selatan",
       notes:
-        "Contoh venue untuk acara nobar demo. Dipakai `demo-final-ucl-2026` dengan subset dua menu.",
+        "Contoh venue untuk acara nobar demo. Dipakai `demo-final-ucl-2026` dengan subset dua minuman.",
       isActive: true,
     },
   });
@@ -209,7 +209,7 @@ async function main() {
       name: "Venue Demo · Katalog luas",
       address: "Jl. Contoh No. 99 (tanpa acara)",
       notes:
-        "Venue kedua untuk uji CRUD katalog: banyak item menu, belum ditautkan ke acara mana pun.",
+        "Venue kedua untuk uji CRUD katalog: banyak item minuman, belum ditautkan ke acara mana pun.",
       isActive: true,
     },
     create: {
@@ -217,7 +217,7 @@ async function main() {
       name: "Venue Demo · Katalog luas",
       address: "Jl. Contoh No. 99 (tanpa acara)",
       notes:
-        "Venue kedua untuk uji CRUD katalog: banyak item menu, belum ditautkan ke acara mana pun.",
+        "Venue kedua untuk uji CRUD katalog: banyak item minuman, belum ditautkan ke acara mana pun.",
       isActive: true,
     },
   });
@@ -242,20 +242,20 @@ async function main() {
     where: { venueId: catalogVenue.id },
   });
 
-  const [vmBurger, vmNasi] = await Promise.all([
+  const [vmEsTeh, vmKopiHitam] = await Promise.all([
     prisma.venueMenuItem.create({
       data: {
         venueId: demoVenue.id,
-        name: "Paket Burger",
-        price: 55_000,
+        name: "Es Teh Manis",
+        price: 15_000,
         sortOrder: 1,
       },
     }),
     prisma.venueMenuItem.create({
       data: {
         venueId: demoVenue.id,
-        name: "Paket Nasi",
-        price: 50_000,
+        name: "Kopi Hitam",
+        price: 20_000,
         sortOrder: 2,
       },
     }),
@@ -265,26 +265,26 @@ async function main() {
     data: [
       {
         venueId: catalogVenue.id,
-        name: "Snack ringan",
-        price: 35_000,
+        name: "Lemon Tea",
+        price: 18_000,
         sortOrder: 1,
       },
       {
         venueId: catalogVenue.id,
-        name: "Minuman",
-        price: 25_000,
+        name: "Es Jeruk Peras",
+        price: 22_000,
         sortOrder: 2,
       },
       {
         venueId: catalogVenue.id,
-        name: "Paket premium",
-        price: 95_000,
+        name: "Kopi Susu Gula Aren",
+        price: 28_000,
         sortOrder: 3,
       },
       {
         venueId: catalogVenue.id,
-        name: "Dessert",
-        price: 40_000,
+        name: "Air Mineral Botol",
+        price: 10_000,
         sortOrder: 4,
       },
     ],
@@ -309,7 +309,7 @@ async function main() {
       summary: eventSummary,
       description: eventDescription,
       ...demoTiming,
-      mandatoryMenuItemIds: [vmBurger.id, vmNasi.id],
+      mandatoryMenuItemIds: [vmEsTeh.id, vmKopiHitam.id],
       registrationManualClosed: false,
       registrationCapacity: null,
       status: EventStatus.active,
@@ -325,7 +325,7 @@ async function main() {
       summary: eventSummary,
       description: eventDescription,
       ...demoTiming,
-      mandatoryMenuItemIds: [vmBurger.id, vmNasi.id],
+      mandatoryMenuItemIds: [vmEsTeh.id, vmKopiHitam.id],
       coverBlobUrl:
         "https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party",
       coverBlobPath: "__seed__/demo-final-ucl-2026/cover.webp",
@@ -343,8 +343,8 @@ async function main() {
   await prisma.eventVenueMenuItem.deleteMany({ where: { eventId: event.id } });
   await prisma.eventVenueMenuItem.createMany({
     data: [
-      { eventId: event.id, venueMenuItemId: vmBurger.id, sortOrder: 1 },
-      { eventId: event.id, venueMenuItemId: vmNasi.id, sortOrder: 2 },
+      { eventId: event.id, venueMenuItemId: vmEsTeh.id, sortOrder: 1 },
+      { eventId: event.id, venueMenuItemId: vmKopiHitam.id, sortOrder: 2 },
     ],
   });
 
@@ -360,7 +360,7 @@ async function main() {
   const kopdarSummary =
     "Kopdar santai — tiket dan menu wajib dibayar saat daftar.";
   const kopdarDescription =
-    "<p>Acara seed kedua untuk menguji subset menu katalog.</p>";
+    "<p>Acara seed kedua untuk menguji subset minuman di katalog venue.</p>";
 
   const kopdarStart = new Date("2026-06-14T17:00:00+07:00");
   const kopdarEnd = new Date("2026-06-14T21:30:00+07:00");

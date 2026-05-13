@@ -1,14 +1,13 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import { TicketRole, type TicketPriceType } from "@prisma/client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import {
   RegistrationDetail,
   type DetailRegistration,
 } from "@/components/admin/registration-detail";
-import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminContext } from "@/lib/auth/admin-context";
+import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { flattenedMenuRowsFromEventVenueLinks } from "@/lib/events/flatten-event-venue-menu";
 import { canVerifyEvent } from "@/lib/permissions/guards";
@@ -67,7 +66,11 @@ function syntheticTicketRows(opts: {
   }>;
 }): DetailRegistration["tickets"] {
   const { primary, partners } = opts;
-  const base = (id: string, role: TicketRole, row: (typeof opts)["primary"]) => ({
+  const base = (
+    id: string,
+    role: TicketRole,
+    row: (typeof opts)["primary"],
+  ) => ({
     id,
     role,
     fullName: row.contactName,
@@ -311,8 +314,7 @@ export default async function AdminEventInboxDetailPage({
         id: registration.id,
         claimedMemberNumber: registration.claimedMemberNumber,
         primaryManagementMemberId: registration.primaryManagementMemberId,
-        claimedManagementPublicCode:
-          registration.claimedManagementPublicCode,
+        claimedManagementPublicCode: registration.claimedManagementPublicCode,
         tickets: ctxTickets,
       },
     });
@@ -336,12 +338,6 @@ export default async function AdminEventInboxDetailPage({
             {registrationForDetail.event.title}
           </p>
         </div>
-        <Link
-          href={`/admin/events/${eventId}/inbox`}
-          className="text-sm font-medium underline-offset-4 hover:underline"
-        >
-          Kembali ke inbox
-        </Link>
       </header>
 
       <RegistrationDetail
