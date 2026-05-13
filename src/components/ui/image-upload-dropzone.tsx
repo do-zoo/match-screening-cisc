@@ -53,7 +53,7 @@ export function ImageUploadDropzone({
   return (
     <div className="space-y-4">
       {preview ? (
-        <div className="border-input relative h-64 w-full overflow-hidden rounded-lg border">
+          <div className="border-input relative aspect-1200/630 w-full overflow-hidden rounded-lg border">
           {/* eslint-disable-next-line @next/next/no-img-element -- pratinjau data URL / URL blob publik */}
           <img
             src={preview}

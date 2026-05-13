@@ -12,6 +12,7 @@ import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 import { saveVenueCatalog } from "@/lib/actions/admin-venues";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IdrAmountInput } from "@/components/ui/idr-amount-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -125,19 +126,14 @@ export function VenueCatalogEditor({
                 />
               </div>
               <div className="lg:col-span-2">
-                <Label className="text-xs">Harga IDR</Label>
-                <Input
-                  type="number"
-                  min={0}
+                <Label className="text-xs">Harga</Label>
+                <IdrAmountInput
                   value={row.price}
-                  onChange={(e) =>
+                  onValueChange={(next) =>
                     setItems((prev) => {
-                      const next = [...prev];
-                      next[index] = {
-                        ...next[index]!,
-                        price: Number.parseInt(e.target.value || "0", 10),
-                      };
-                      return next;
+                      const copy = [...prev];
+                      copy[index] = { ...copy[index]!, price: next };
+                      return copy;
                     })
                   }
                   disabled={pending}

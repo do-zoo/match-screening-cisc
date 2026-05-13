@@ -33,7 +33,7 @@ export function EventSummary({ event }: Props) {
         alt=""
         width={1200}
         height={630}
-        className="aspect-video w-full rounded-lg border border-border object-cover"
+        className="aspect-1200/630 w-full rounded-lg border border-border object-cover"
         sizes="(max-width: 768px) 100vw, 672px"
         priority
       />

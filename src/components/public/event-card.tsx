@@ -35,7 +35,7 @@ export function EventCard({
   const inner =
     variant === "grid" ? (
       <>
-        <div className="relative aspect-16/10 w-full shrink-0 overflow-hidden rounded-t-lg">
+        <div className="relative aspect-1200/630 w-full shrink-0 overflow-hidden rounded-t-lg">
           <Image
             src={coverBlobUrl}
             alt=""

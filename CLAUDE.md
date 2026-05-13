@@ -134,6 +134,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/actions/guard.ts` — **all admin server actions must start here**: `guardEvent(eventId)`, `guardOwner()`, `guardOwnerOrAdmin()`, `isAuthError(e)`. Throws `"NO_PROFILE"` / `"FORBIDDEN"` / `"UNAUTHENTICATED"` strings; catch with `isAuthError` to surface as "Tidak diizinkan."
 - `lib/forms/action-result.ts` — `ActionResult<T>` discriminated union (`{ ok: true; data }` / `{ ok: false; fieldErrors?, rootError? }`); helpers `ok()`, `rootError()`, `fieldError()`. All admin server actions return this type.
 - `lib/client/cud-notify.ts` — client-side toast helpers: `toastCudSuccess(operation, message?)` and `toastActionErr(err, fallback?)`. Use these after calling a server action on the client instead of calling `toast` directly.
+- `lib/utils/idr-input.ts` — `parseIdrDigitsToInt` mengambil digit dari teks terformat Rupiah; dipakai bersama `format-idr.ts` dan `components/ui/idr-amount-input.tsx`
 - `lib/audit/append-club-audit-log.ts` — `appendClubAuditLog(db, row)` — call this inside any Owner mutation that touches club-level configuration; use constants from `lib/audit/club-audit-actions.ts` for the `action` field
 - `lib/actions/submit-registration.ts` — the main public Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
@@ -154,7 +155,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 
 ### UI components
 
-- `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `dropzone.tsx`, `image-upload-dropzone.tsx` (sampul acara admin)
+- `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `dropzone.tsx`, `image-upload-dropzone.tsx` (sampul acara admin), `idr-amount-input.tsx` (harga IDR terformat)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
 - `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`
 

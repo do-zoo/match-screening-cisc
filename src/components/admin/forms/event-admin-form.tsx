@@ -12,12 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Controller,
-  useForm,
-  useWatch,
-  type Resolver,
-} from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 
 import { createAdminEvent, updateAdminEvent } from "@/lib/actions/admin-events";
 import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
@@ -40,8 +35,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { IdrAmountInput } from "@/components/ui/idr-amount-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { formatIdr } from "@/lib/utils/format-idr";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
@@ -54,6 +51,7 @@ import {
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { ImageUploadDropzone } from "@/components/ui/image-upload-dropzone";
+import { FieldGroup } from "@/components/ui/field";
 
 const SENSITIVE_ACK_MESSAGE =
   "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.";
@@ -190,9 +188,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         form.setValue("linkedVenueMenuItems", [], { shouldDirty: true });
         return;
       }
-      const sorted = [...v.menuItems].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
+      const sorted = [...v.menuItems].sort((a, b) => a.sortOrder - b.sortOrder);
       form.setValue(
         "linkedVenueMenuItems",
         sorted.map((m, idx) => ({
@@ -301,7 +297,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <p className="text-muted-foreground text-sm">
             {props.mode === "create"
               ? "Unggah gambar sampul — wajib untuk acara baru."
-              : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}
+              : "Unggah gambar baru bila ingin mengganti sampul (opsional)."}{" "}
+            Rasio yang direkomendasikan 1200×630 (sama dengan og:image); area di
+            luar rasio ini akan dipangkas saat ditampilkan.
           </p>
           <ImageUploadDropzone
             value={props.persistedCoverUrl ?? undefined}
@@ -359,7 +357,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
               )}
             />
             {lockedIntegrityKeys.includes("venueId") ? (
-              <Muted>Terhubung pada pendaftar — venue tidak dapat diubah.</Muted>
+              <Muted>
+                Terhubung pada pendaftar — venue tidak dapat diubah.
+              </Muted>
             ) : (
               <p className="text-muted-foreground text-xs">
                 Menu di formulir pengunjung diturunkan dari katalog venue. Ubah
@@ -374,8 +374,8 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <p className="text-muted-foreground text-xs">
             Pengunjung memilih satu item berikut untuk setiap tiket (utama dan
             partner). Daftar mengikuti menu kanonik venue (semua item di acara
-            bila belum ada pendaftar; setelah ada pendaftar, snapshot menu
-            acara dikunci).
+            bila belum ada pendaftar; setelah ada pendaftar, snapshot menu acara
+            dikunci).
           </p>
           {linkedVenueMenus.length === 0 ? (
             <p className="text-muted-foreground text-sm">
@@ -423,7 +423,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
                         <span className="font-medium">{meta.name}</span>
                         <span className="text-muted-foreground">
                           {" "}
-                          · {meta.price.toLocaleString("id-ID")}
+                          · {formatIdr(meta.price)}
                         </span>
                       </span>
                     </label>,
@@ -440,7 +440,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">
-          <h2 className="text-lg font-medium sm:col-span-2">Jadwal registrasi</h2>
+          <h2 className="text-lg font-medium sm:col-span-2">
+            Jadwal registrasi
+          </h2>
           <Field label="Buka registrasi">
             <Controller
               control={form.control}
@@ -506,25 +508,35 @@ export function EventAdminForm(props: EventAdminFormProps) {
         <section className="space-y-4">
           <h2 className="text-lg font-medium">Harga tiket</h2>
           <p className="text-muted-foreground text-xs">
-            Harga disimpan per acara (IDR, bilangan bulat).
+            Harga disimpan per acara sebagai bilangan bulat Rupiah (tanpa desimal).
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tiket member (IDR)">
-              <Input
-                type="number"
-                min={0}
-                disabled={pending}
-                {...form.register("ticketMemberPrice", { valueAsNumber: true })}
+            <Field label="Tiket member">
+              <Controller
+                control={form.control}
+                name="ticketMemberPrice"
+                render={({ field, fieldState }) => (
+                  <IdrAmountInput
+                    disabled={pending}
+                    aria-invalid={fieldState.invalid}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
               />
             </Field>
-            <Field label="Tiket non-member (IDR)">
-              <Input
-                type="number"
-                min={0}
-                disabled={pending}
-                {...form.register("ticketNonMemberPrice", {
-                  valueAsNumber: true,
-                })}
+            <Field label="Tiket non-member">
+              <Controller
+                control={form.control}
+                name="ticketNonMemberPrice"
+                render={({ field, fieldState }) => (
+                  <IdrAmountInput
+                    disabled={pending}
+                    aria-invalid={fieldState.invalid}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
               />
             </Field>
           </div>
@@ -594,38 +606,42 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
         <section className="space-y-4">
           <h2 className="text-lg font-medium">PIC & rekening</h2>
-          <Field label="PIC utama">
-            <EntityCombobox
-              placeholder="Pilih PIC"
-              value={picId === "" ? null : picId}
-              onValueChange={(next) => {
-                if (next === null) return;
-                form.setValue("picAdminProfileId", next, { shouldDirty: true });
-                const first = props.banksByPic[next]?.[0]?.id ?? "";
-                form.setValue("bankAccountId", first, { shouldDirty: true });
-              }}
-              options={picComboboxOptions}
-              disabled={pending}
-            />
-          </Field>
-          <Field label="Rekening pembayaran">
-            <EntityCombobox
-              placeholder="Pilih rekening"
-              value={bankAccountId === "" ? null : bankAccountId}
-              onValueChange={(v) => {
-                if (v === null) return;
-                form.setValue("bankAccountId", v, { shouldDirty: true });
-              }}
-              disabled={pending || bankChoices.length === 0}
-              options={bankComboboxOptions}
-            />
-            {bankChoices.length === 0 ? (
-              <Muted>
-                Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan
-                komite.
-              </Muted>
-            ) : null}
-          </Field>
+          <FieldGroup className="grid gap-4 sm:grid-cols-2">
+            <Field label="PIC utama">
+              <EntityCombobox
+                placeholder="Pilih PIC"
+                value={picId === "" ? null : picId}
+                onValueChange={(next) => {
+                  if (next === null) return;
+                  form.setValue("picAdminProfileId", next, {
+                    shouldDirty: true,
+                  });
+                  const first = props.banksByPic[next]?.[0]?.id ?? "";
+                  form.setValue("bankAccountId", first, { shouldDirty: true });
+                }}
+                options={picComboboxOptions}
+                disabled={pending}
+              />
+            </Field>
+            <Field label="Rekening pembayaran">
+              <EntityCombobox
+                placeholder="Pilih rekening"
+                value={bankAccountId === "" ? null : bankAccountId}
+                onValueChange={(v) => {
+                  if (v === null) return;
+                  form.setValue("bankAccountId", v, { shouldDirty: true });
+                }}
+                disabled={pending || bankChoices.length === 0}
+                options={bankComboboxOptions}
+              />
+              {bankChoices.length === 0 ? (
+                <Muted>
+                  Tidak ada rekening aktif untuk PIC ini — tambahkan di
+                  pengaturan komite.
+                </Muted>
+              ) : null}
+            </Field>
+          </FieldGroup>
 
           <Field label={`PIC pembantu (${helpersSelected.length})`}>
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-3">

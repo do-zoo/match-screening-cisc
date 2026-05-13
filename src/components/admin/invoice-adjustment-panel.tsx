@@ -4,7 +4,9 @@ import { useRef, useState, useTransition } from "react";
 import { InvoiceAdjustmentStatus, InvoiceAdjustmentType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IdrAmountInput } from "@/components/ui/idr-amount-input";
 import { Separator } from "@/components/ui/separator";
+import { formatIdr } from "@/lib/utils/format-idr";
 import {
   createInvoiceAdjustment,
   markAdjustmentPaid,
@@ -29,26 +31,25 @@ type Props = {
   adjustments: Adjustment[];
 };
 
-const idr = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-
 export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }: Props) {
   const [isPending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(0);
   const [createError, setCreateError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   function handleCreate() {
     setCreateError(null);
-    const parsed = parseInt(amount.replace(/\D/g, ""), 10);
-    if (!parsed || parsed <= 0) { setCreateError("Masukkan jumlah yang valid."); return; }
+    if (!amount || amount <= 0) {
+      setCreateError("Masukkan jumlah yang valid.");
+      return;
+    }
     startTransition(async () => {
       const result = await createInvoiceAdjustment(eventId, {
         registrationId,
         type: InvoiceAdjustmentType.underpayment,
-        amount: parsed,
+        amount,
       });
       if (!result.ok) {
         toastActionErr(result);
@@ -56,7 +57,7 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
       } else {
         toastCudSuccess("create", "Penyesuaian invoice ditambahkan.");
         setCreateOpen(false);
-        setAmount("");
+        setAmount(0);
       }
     });
   }
@@ -115,7 +116,7 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
         {adjustments.map((adj) => (
           <div key={adj.id} className="rounded-lg border p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">{idr(adj.amount)}</span>
+              <span className="font-medium">{formatIdr(adj.amount)}</span>
               <span className={adj.status === InvoiceAdjustmentStatus.paid ? "text-emerald-700 font-medium" : "text-amber-700 font-medium"}>
                 {adj.status === InvoiceAdjustmentStatus.paid ? "Lunas" : "Belum lunas"}
               </span>
@@ -165,14 +166,17 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
         ) : (
           <div className="flex flex-col gap-2 rounded-lg border p-3">
             <p className="text-sm font-medium">Tambah kekurangan pembayaran</p>
-            <input type="number" min="1" placeholder="Jumlah (IDR)" value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="border rounded-md px-3 py-2 text-sm" disabled={isPending} />
+            <IdrAmountInput
+              value={amount}
+              onValueChange={setAmount}
+              placeholder="Rp0"
+              disabled={isPending}
+            />
             {createError && <p className="text-sm text-destructive">{createError}</p>}
             <div className="flex gap-2">
               <Button size="sm" onClick={handleCreate} disabled={isPending}>Buat penyesuaian</Button>
               <Button size="sm" variant="ghost" disabled={isPending}
-                onClick={() => { setCreateOpen(false); setAmount(""); setCreateError(null); }}>
+                onClick={() => { setCreateOpen(false); setAmount(0); setCreateError(null); }}>
                 Batal
               </Button>
             </div>
