@@ -49,6 +49,9 @@ function uploadErrorMessage(err: UploadError): string {
   if (code === "file_too_large") {
     return "Ukuran file terlalu besar. Maksimal 8 MB.";
   }
+  if (code === "blob_store_private") {
+    return "Konfigurasi penyimpanan unggahan sedang tidak sesuai (Blob store private). Hubungi admin untuk mengubah store menjadi public atau gunakan token dari store public.";
+  }
   return "Gagal mengunggah gambar. Coba unggah ulang.";
 }
 
