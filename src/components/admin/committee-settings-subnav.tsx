@@ -15,13 +15,14 @@ export const COMMITTEE_SETTINGS_NAV = [
   { href: "/admin/settings/security", label: "Keamanan" },
 ] as const;
 
-export function CommitteeSettingsSubnav() {
+export function CommitteeSettingsSubnav({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
   return (
-    <nav
-      aria-label="Submenu pengaturan"
-      className="flex flex-row gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
-    >
+    <nav aria-label="Submenu pengaturan" className="flex flex-col gap-1">
       {COMMITTEE_SETTINGS_NAV.map((item) => {
         const active =
           item.href === "/admin/settings"
@@ -31,6 +32,7 @@ export function CommitteeSettingsSubnav() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             data-active={active ? "" : undefined}
             className={cn(
               "shrink-0 rounded-md px-2 py-1.5 text-sm transition-colors",
