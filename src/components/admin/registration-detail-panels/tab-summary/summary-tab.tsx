@@ -27,14 +27,16 @@ export function SummaryTab({ eventId, registration }: Props) {
           Profil pendaftar, hubungan tiket, menu wajib, dan snapshot harga.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6">
+      <CardContent className="grid gap-4 md:p-6">
         <section className="grid gap-2">
           <h3 className="text-sm font-semibold tracking-tight">Identitas</h3>
           <IdentitySection registration={registration} />
         </section>
         <Separator />
         <section className="grid gap-2">
-          <h3 className="text-sm font-semibold tracking-tight">Peran & pasangan</h3>
+          <h3 className="text-sm font-semibold tracking-tight">
+            Peran & pasangan
+          </h3>
           <RelationsSection eventId={eventId} registration={registration} />
         </section>
         <Separator />

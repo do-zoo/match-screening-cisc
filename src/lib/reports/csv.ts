@@ -58,7 +58,7 @@ export async function generateRegistrationsCsv(
     "Kehadiran",
     "Harga tiket (IDR)",
     "Menu wajib",
-    "Harga menu (IDR)",
+    "Harga acuan menu wajib (IDR)",
     "Total (IDR)",
     "Penyesuaian (IDR)",
   ];

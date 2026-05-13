@@ -106,7 +106,7 @@ export async function uploadEventSettlementProof(
 
   const report = await getEventReport(eventId);
   const expectedMap = getSettlementExpectedAmounts({
-    ticketRevenueApproved: report.finance.ticketRevenueApproved,
+    baselineTotalApproved: report.finance.baselineTotal,
     menuVenuePayoutApproved: report.finance.menuVenuePayoutApproved,
     adjustmentsPaidTotal: report.finance.adjustmentsPaidTotal,
   });

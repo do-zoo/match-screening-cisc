@@ -9,7 +9,7 @@ describe("getSettlementExpectedAmounts", () => {
   it("maps finance snapshot to venue and treasurer expectations", () => {
     expect(
       getSettlementExpectedAmounts({
-        ticketRevenueApproved: 1_000_000,
+        baselineTotalApproved: 1_400_000,
         menuVenuePayoutApproved: 400_000,
         adjustmentsPaidTotal: 50_000,
       }),

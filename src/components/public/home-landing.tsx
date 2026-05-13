@@ -33,7 +33,7 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
   const reducedMotion = useReducedMotion();
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-14 px-6 py-12 md:gap-16 md:py-16">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-14 px-4 md:px-6 py-12 md:gap-16 md:py-16">
       <FadeContent blur className="max-w-2xl" threshold={0.15} duration={900}>
         <p className="text-xs font-medium tracking-widest text-[hsl(var(--muted-foreground))] uppercase">
           Komunitas

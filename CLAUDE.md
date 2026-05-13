@@ -205,7 +205,9 @@ Forms use `react-hook-form` + `zod` + shadcn `Form` wrappers. File inputs (`tran
 
 ### Pricing
 
-All monetary values are stored as integers in IDR smallest unit (i.e., whole rupiah). `computeSubmitTotal` is the single source of truth; it runs both client-side (live preview) and server-side (authoritative snapshot).
+All monetary values are stored as integers in IDR smallest unit (i.e., whole rupiah). `computeSubmitTotal` is the single source of truth; it runs both client-side (live preview) and server-side (authoritative snapshot). **Total yang dibayar peserta** (`primaryTotal` / `partnerTotal` / `grandTotal` dan `computedTotalAtSubmit` di DB) = **nominal tiket** saja — harga tiket acara sudah diasumsikan **inklusif** menu wajib. `mandatoryMenuPriceApplied` menyimpan **harga acuan** item menu dari katalog untuk laporan alokasi venue (`menuVenuePayoutApproved`), bukan ditambahkan ke total transfer. Snapshot lama dengan `tiket + menu = computed` tetap didukung di UI admin.
+
+Acuan bukti penutupan: `getSettlementExpectedAmounts` memakai `baselineTotalApproved − menuVenuePayoutApproved + adjustmentsPaidTotal` untuk margin bendahara (konsisten untuk snapshot lama dan baru).
 
 ### Uploads
 

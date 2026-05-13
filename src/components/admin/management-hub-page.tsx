@@ -42,7 +42,7 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
   const [editDialog, setEditDialog] = useState<EditDialogState>(null);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Kepengurusan</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -89,7 +89,7 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
         </div>
 
         {periods.length === 0 ? (
-          <p className="rounded-lg border px-4 py-6 text-sm text-muted-foreground">
+          <p className="rounded-lg border px-4 md:px-6 py-6 text-sm text-muted-foreground">
             Belum ada periode. Klik &quot;Tambah Periode&quot; untuk membuat
             yang pertama.
           </p>
@@ -100,7 +100,7 @@ export function ManagementHubPage({ periods, activePeriodId }: Props) {
               return (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between px-4 py-3"
+                  className="flex items-center justify-between px-4 md:px-6 py-3"
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{p.label}</span>

@@ -40,6 +40,7 @@ export async function overrideMemberValidation(
       ticketPriceType: true,
       ticketPriceApplied: true,
       mandatoryMenuPriceApplied: true,
+      computedTotalAtSubmit: true,
       event: {
         select: { ticketMemberPrice: true, ticketNonMemberPrice: true },
       },
@@ -71,14 +72,14 @@ export async function overrideMemberValidation(
         newPrimaryPriceType === "member"
           ? reg.event.ticketMemberPrice
           : reg.event.ticketNonMemberPrice;
-      const delta = newTicketPrice - reg.ticketPriceApplied;
+      const delta = newTicketPrice - reg.computedTotalAtSubmit;
 
       await tx.registration.update({
         where: { id: registrationId },
         data: {
           ticketPriceType: newPrimaryPriceType,
           ticketPriceApplied: newTicketPrice,
-          computedTotalAtSubmit: newTicketPrice + reg.mandatoryMenuPriceApplied,
+          computedTotalAtSubmit: newTicketPrice,
         },
       });
 

@@ -31,10 +31,12 @@ const STATUS_LABEL_ID: Record<RegistrationStatus, string> = {
 };
 
 function statusSummary(status: RegistrationStatus): string {
-  if (status === RegistrationStatus.approved) return "Pendaftaran telah disetujui.";
+  if (status === RegistrationStatus.approved)
+    return "Pendaftaran telah disetujui.";
   if (status === RegistrationStatus.rejected) return "Pendaftaran ditolak.";
   if (status === RegistrationStatus.cancelled) return "Pendaftaran dibatalkan.";
-  if (status === RegistrationStatus.refunded) return "Pendaftaran ditandai refund.";
+  if (status === RegistrationStatus.refunded)
+    return "Pendaftaran ditandai refund.";
   return "";
 }
 
@@ -73,10 +75,10 @@ export function DecisionSection({ eventId, registration }: Props) {
 
       {registration.ticketRole === TicketRole.primary ? (
         <details open className="rounded-lg border bg-card">
-          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium">
+          <summary className="cursor-pointer select-none px-4 md:px-6 py-3 text-sm font-medium">
             Validasi member
           </summary>
-          <div className="border-t px-4 pb-4 pt-2">
+          <div className="border-t px-4 md:px-6 pb-4 pt-2">
             <MemberValidationPanel
               eventId={eventId}
               registrationId={registration.id}
@@ -87,7 +89,9 @@ export function DecisionSection({ eventId, registration }: Props) {
                 ticketPriceType: registration.ticketPriceType,
               }}
               eventTicketMemberPrice={registration.event.ticketMemberPrice}
-              eventTicketNonMemberPrice={registration.event.ticketNonMemberPrice}
+              eventTicketNonMemberPrice={
+                registration.event.ticketNonMemberPrice
+              }
             />
           </div>
         </details>

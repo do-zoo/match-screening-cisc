@@ -1,11 +1,11 @@
+"use client";
 import type { ReactNode } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RegistrationDetailTab } from "@/lib/admin/event-registration-detail-tab";
 import { buildRegistrationDetailPath } from "@/lib/admin/event-registration-detail-tab";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 
 type Props = {
   eventId: string;
@@ -40,38 +40,41 @@ export function RegistrationDetailTabs({
           ),
         );
       }}
-      className="gap-0"
+      className="gap-0 w-full"
     >
-      <div
-        className={cn(
-          "sticky z-10 -mx-6 border-b border-border/60 bg-background/95 px-6 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
-          "top-0",
-        )}
+      <TabsList className="sticky z-10 border-b border-border/60 bg-background/95  backdrop-blur supports-backdrop-filter:bg-background/80 top-0 w-full h-10! overflow-x-auto">
+        <TabsTrigger value="ringkasan" className=" shrink-0">
+          Ringkasan
+        </TabsTrigger>
+        <TabsTrigger value="verifikasi" className=" shrink-0">
+          Verifikasi
+        </TabsTrigger>
+        <TabsTrigger value="operasi" className=" shrink-0">
+          Operasi
+          {showOperasiBadge ? (
+            <span
+              className="absolute right-0.5 top-0.5 size-2 rounded-full bg-destructive"
+              aria-hidden
+            />
+          ) : null}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent
+        value="ringkasan"
+        className="mt-4 w-full max-w-6xl self-center"
       >
-        <TabsList
-          variant="line"
-          className="h-auto w-full min-w-0 flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0"
-        >
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="verifikasi">Verifikasi & Komunikasi</TabsTrigger>
-          <TabsTrigger value="operasi" className="relative pr-3">
-            Operasi
-            {showOperasiBadge ? (
-              <span
-                className="absolute right-0.5 top-0.5 size-2 rounded-full bg-destructive"
-                aria-hidden
-              />
-            ) : null}
-          </TabsTrigger>
-        </TabsList>
-      </div>
-      <TabsContent value="ringkasan" className="mt-4 w-full max-w-3xl self-center">
         {panels.ringkasan}
       </TabsContent>
-      <TabsContent value="verifikasi" className="mt-4 w-full max-w-3xl self-center">
+      <TabsContent
+        value="verifikasi"
+        className="mt-4 w-full max-w-6xl self-center"
+      >
         {panels.verifikasi}
       </TabsContent>
-      <TabsContent value="operasi" className="mt-4 w-full max-w-3xl self-center">
+      <TabsContent
+        value="operasi"
+        className="mt-4 w-full max-w-6xl self-center"
+      >
         {panels.operasi}
       </TabsContent>
     </Tabs>

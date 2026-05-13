@@ -95,7 +95,7 @@ export function FileField({
       <label
         htmlFor={id}
         className={cn(
-          "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-input bg-muted/25 px-4 py-3 text-left transition-colors",
+          "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-input bg-muted/25 px-4 md:px-6 py-3 text-left transition-colors",
           "hover:border-muted-foreground/40 hover:bg-muted/40",
           "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
           disabled && "pointer-events-none opacity-50",

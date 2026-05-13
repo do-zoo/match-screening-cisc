@@ -193,16 +193,12 @@ export function MembersAdminPage({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={`Aksi untuk ${row.original.fullName}`}
-              render={
-                <Button type="button" variant="ghost" size="icon-sm" />
-              }
+              render={<Button type="button" variant="ghost" size="icon-sm" />}
             >
               <MoreVerticalIcon />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => setEditingMember(row.original)}
-              >
+              <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
                 Edit anggota
               </DropdownMenuItem>
               {isOwner ? (
@@ -242,12 +238,13 @@ export function MembersAdminPage({
         };
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Anggota</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola master anggota, status aktif, dan pengurus. PIC acara diatur per acara (profil admin).
+            Kelola master anggota, status aktif, dan pengurus. PIC acara diatur
+            per acara (profil admin).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -274,8 +271,8 @@ export function MembersAdminPage({
         <CardHeader>
           <CardTitle>Daftar anggota</CardTitle>
           <CardDescription>
-            Basis data dipaginasikan dari server ({pagination.totalItems} hasil untuk
-            filter ini).
+            Basis data dipaginasikan dari server ({pagination.totalItems} hasil
+            untuk filter ini).
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

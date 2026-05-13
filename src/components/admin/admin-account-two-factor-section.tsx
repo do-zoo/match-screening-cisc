@@ -60,7 +60,9 @@ export function AdminAccountTwoFactorSection({
         setSetupError(res.error.message ?? "Gagal mengaktifkan 2FA.");
         return;
       }
-      const data = res.data as { totpURI?: string; backupCodes?: string[] } | undefined;
+      const data = res.data as
+        | { totpURI?: string; backupCodes?: string[] }
+        | undefined;
       if (data?.totpURI) setTotpURI(data.totpURI);
       if (data?.backupCodes?.length) setBackupCodes(data.backupCodes);
     });
@@ -118,18 +120,22 @@ export function AdminAccountTwoFactorSection({
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border bg-card p-6">
+    <section className="flex flex-col gap-4 rounded-lg border bg-card p-4 md:p-6">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">Autentikasi dua faktor (2FA)</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          Autentikasi dua faktor (2FA)
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Wajibkan kode dari aplikasi autentikator setelah kata sandi. Simpan kode cadangan di
-          tempat aman.
+          Wajibkan kode dari aplikasi autentikator setelah kata sandi. Simpan
+          kode cadangan di tempat aman.
         </p>
       </div>
 
       {initialTwoFactorEnabled ? (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">2FA aktif</p>
+          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            2FA aktif
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -169,8 +175,8 @@ export function AdminAccountTwoFactorSection({
           <DialogHeader>
             <DialogTitle>Aktivasi 2FA</DialogTitle>
             <DialogDescription>
-              Masukkan kata sandi akun Anda, lalu pindai QR dengan aplikasi autentikator (Google
-              Authenticator, 1Password, dll.).
+              Masukkan kata sandi akun Anda, lalu pindai QR dengan aplikasi
+              autentikator (Google Authenticator, 1Password, dll.).
             </DialogDescription>
           </DialogHeader>
 
@@ -194,7 +200,11 @@ export function AdminAccountTwoFactorSection({
                 />
               </div>
               <DialogFooter>
-                <Button type="button" disabled={pending || !passwordEnable} onClick={handleEnableSubmit}>
+                <Button
+                  type="button"
+                  disabled={pending || !passwordEnable}
+                  onClick={handleEnableSubmit}
+                >
                   {pending ? "Memproses…" : "Lanjut"}
                 </Button>
               </DialogFooter>
@@ -205,7 +215,9 @@ export function AdminAccountTwoFactorSection({
                 <QRCode value={totpURI} size={180} />
               </div>
               <div>
-                <p className="mb-2 text-sm font-medium">Kode cadangan (simpan sekali)</p>
+                <p className="mb-2 text-sm font-medium">
+                  Kode cadangan (simpan sekali)
+                </p>
                 <ul className="grid grid-cols-2 gap-1 font-mono text-xs">
                   {backupCodes.map((c) => (
                     <li key={c} className="rounded bg-muted px-2 py-1">
@@ -215,7 +227,9 @@ export function AdminAccountTwoFactorSection({
                 </ul>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="twofa-first-code">Kode 6 digit dari aplikasi</Label>
+                <Label htmlFor="twofa-first-code">
+                  Kode 6 digit dari aplikasi
+                </Label>
                 <Input
                   id="twofa-first-code"
                   inputMode="numeric"
@@ -243,9 +257,13 @@ export function AdminAccountTwoFactorSection({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Nonaktifkan 2FA</DialogTitle>
-            <DialogDescription>Konfirmasi dengan kata sandi akun.</DialogDescription>
+            <DialogDescription>
+              Konfirmasi dengan kata sandi akun.
+            </DialogDescription>
           </DialogHeader>
-          {setupError ? <p className="text-sm text-destructive">{setupError}</p> : null}
+          {setupError ? (
+            <p className="text-sm text-destructive">{setupError}</p>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="twofa-disable-pw">Kata sandi</Label>
             <Input
@@ -257,7 +275,12 @@ export function AdminAccountTwoFactorSection({
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="destructive" disabled={pending} onClick={handleDisable}>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={handleDisable}
+            >
               {pending ? "Memproses…" : "Nonaktifkan"}
             </Button>
           </DialogFooter>
@@ -278,7 +301,9 @@ export function AdminAccountTwoFactorSection({
               Kode lama tidak berlaku lagi setelah Anda menyimpan yang baru.
             </DialogDescription>
           </DialogHeader>
-          {setupError ? <p className="text-sm text-destructive">{setupError}</p> : null}
+          {setupError ? (
+            <p className="text-sm text-destructive">{setupError}</p>
+          ) : null}
 
           {!newBackupCodes ? (
             <>
@@ -293,7 +318,11 @@ export function AdminAccountTwoFactorSection({
                 />
               </div>
               <DialogFooter>
-                <Button type="button" disabled={pending || !passwordRegen} onClick={handleRegen}>
+                <Button
+                  type="button"
+                  disabled={pending || !passwordRegen}
+                  onClick={handleRegen}
+                >
                   {pending ? "Memproses…" : "Buat kode baru"}
                 </Button>
               </DialogFooter>

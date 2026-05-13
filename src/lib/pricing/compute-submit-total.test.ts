@@ -17,8 +17,8 @@ describe("computeSubmitTotal", () => {
 
     expect(result.primaryTicketPrice).toBe(500_000);
     expect(result.primaryMenuPrice).toBe(150_000);
-    expect(result.primaryTotal).toBe(650_000);
-    expect(result.grandTotal).toBe(650_000);
+    expect(result.primaryTotal).toBe(500_000);
+    expect(result.grandTotal).toBe(500_000);
     expect(result.lines).toHaveLength(2);
   });
 
@@ -31,9 +31,9 @@ describe("computeSubmitTotal", () => {
       partnerMandatoryMenu: { name: "Lumpia", price: 100_000 },
     });
 
-    expect(result.primaryTotal).toBe(650_000);
-    expect(result.partnerTotal).toBe(600_000);
-    expect(result.grandTotal).toBe(1_250_000);
+    expect(result.primaryTotal).toBe(500_000);
+    expect(result.partnerTotal).toBe(500_000);
+    expect(result.grandTotal).toBe(1_000_000);
     expect(result.lines).toHaveLength(4);
   });
 
@@ -47,6 +47,6 @@ describe("computeSubmitTotal", () => {
     });
 
     expect(result.partnerTicketPrice).toBe(750_000);
-    expect(result.grandTotal).toBe(1_500_000);
+    expect(result.grandTotal).toBe(1_250_000);
   });
 });

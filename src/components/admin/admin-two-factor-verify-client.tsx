@@ -16,7 +16,10 @@ export function AdminTwoFactorVerifyClient({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = useMemo(() => searchParams.get("next") ?? "/admin", [searchParams]);
+  const next = useMemo(
+    () => searchParams.get("next") ?? "/admin",
+    [searchParams],
+  );
 
   const [totpCode, setTotpCode] = useState("");
   const [backupCode, setBackupCode] = useState("");
@@ -65,7 +68,9 @@ export function AdminTwoFactorVerifyClient({
     startOtpSend(async () => {
       const res = await adminAuthClient.twoFactor.sendOtp();
       if (res.error) {
-        setError("Terjadi kesalahan. Coba lagi atau gunakan kode aplikasi autentikator.");
+        setError(
+          "Terjadi kesalahan. Coba lagi atau gunakan kode aplikasi autentikator.",
+        );
         return;
       }
     });
@@ -87,11 +92,13 @@ export function AdminTwoFactorVerifyClient({
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 md:px-6 py-12">
       <div className="mb-8 flex justify-center">
         <Logo height={52} priority />
       </div>
-      <h1 className="text-2xl font-semibold tracking-tight">Verifikasi kedua</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Verifikasi kedua
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Masukkan kode dari aplikasi autentikator atau kode cadangan Anda.
       </p>
@@ -115,7 +122,12 @@ export function AdminTwoFactorVerifyClient({
             disabled={pending}
           />
         </Field>
-        <Button type="button" className="w-full" disabled={pending} onClick={onVerifyTotp}>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={pending}
+          onClick={onVerifyTotp}
+        >
           {pending ? "Memverifikasi…" : "Verifikasi TOTP"}
         </Button>
       </section>
@@ -165,14 +177,20 @@ export function AdminTwoFactorVerifyClient({
               disabled={pending}
             />
           </Field>
-          <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={onVerifyOtp}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={pending}
+            onClick={onVerifyOtp}
+          >
             {pending ? "Memverifikasi…" : "Verifikasi kode email"}
           </Button>
         </section>
       ) : (
         <p className="mt-8 text-xs text-muted-foreground">
-          Verifikasi lewat kode email belum diaktifkan pada lingkungan ini. Gunakan TOTP atau kode
-          cadangan.
+          Verifikasi lewat kode email belum diaktifkan pada lingkungan ini.
+          Gunakan TOTP atau kode cadangan.
         </p>
       )}
     </main>

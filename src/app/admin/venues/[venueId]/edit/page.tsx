@@ -44,7 +44,7 @@ export default async function AdminVenueEditBasicsPage({
   if (!venue) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Info dasar venue

@@ -61,6 +61,9 @@ function syntheticTicketRows(opts: {
     contactWhatsapp: string;
     claimedMemberNumber: string | null;
     ticketPriceType: TicketPriceType;
+    ticketPriceApplied: number;
+    mandatoryMenuPriceApplied: number;
+    computedTotalAtSubmit: number;
     menu: MenuSnap;
   };
   partners: Array<{
@@ -69,6 +72,9 @@ function syntheticTicketRows(opts: {
     contactWhatsapp: string;
     claimedMemberNumber: string | null;
     ticketPriceType: TicketPriceType;
+    ticketPriceApplied: number;
+    mandatoryMenuPriceApplied: number;
+    computedTotalAtSubmit: number;
     menu: MenuSnap;
   }>;
 }): DetailRegistration["tickets"] {
@@ -84,6 +90,10 @@ function syntheticTicketRows(opts: {
     whatsapp: row.contactWhatsapp,
     memberNumber: row.claimedMemberNumber,
     ticketPriceType: row.ticketPriceType,
+    ticketPriceApplied: row.ticketPriceApplied,
+    mandatoryMenuItemName: row.menu.name,
+    mandatoryMenuPriceApplied: row.mandatoryMenuPriceApplied,
+    computedTotalAtSubmit: row.computedTotalAtSubmit,
     menuSelections: [
       { menuItem: { name: row.menu.name, price: row.menu.price } },
     ],
@@ -125,11 +135,11 @@ export default async function AdminEventRegistrantsDetailPage({
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-4">
         <h1 className="text-2xl font-semibold tracking-tight">
           Detail pendaftar
         </h1>
-        <div className="rounded-lg border border-dashed bg-card p-6 text-sm">
+        <div className="rounded-lg border border-dashed bg-card p-4 md:p-6 text-sm">
           Missing AdminProfile
         </div>
       </main>
@@ -166,6 +176,9 @@ export default async function AdminEventRegistrantsDetailPage({
           contactWhatsapp: true,
           claimedMemberNumber: true,
           ticketPriceType: true,
+          ticketPriceApplied: true,
+          mandatoryMenuPriceApplied: true,
+          computedTotalAtSubmit: true,
           mandatoryMenuItem: { select: { name: true, price: true } },
           uploads: {
             orderBy: { createdAt: "asc" as const },
@@ -180,6 +193,9 @@ export default async function AdminEventRegistrantsDetailPage({
           contactWhatsapp: true,
           claimedMemberNumber: true,
           ticketPriceType: true,
+          ticketPriceApplied: true,
+          mandatoryMenuPriceApplied: true,
+          computedTotalAtSubmit: true,
           mandatoryMenuItem: { select: { name: true, price: true } },
         },
       },
@@ -247,6 +263,9 @@ export default async function AdminEventRegistrantsDetailPage({
       contactWhatsapp: pr.contactWhatsapp,
       claimedMemberNumber: pr.claimedMemberNumber,
       ticketPriceType: pr.ticketPriceType,
+      ticketPriceApplied: pr.ticketPriceApplied,
+      mandatoryMenuPriceApplied: pr.mandatoryMenuPriceApplied,
+      computedTotalAtSubmit: pr.computedTotalAtSubmit,
       menu: menuSnap(pr.mandatoryMenuItem),
     }));
     ticketsForDetail = syntheticTicketRows({
@@ -256,6 +275,9 @@ export default async function AdminEventRegistrantsDetailPage({
         contactWhatsapp: registration.contactWhatsapp,
         claimedMemberNumber: registration.claimedMemberNumber,
         ticketPriceType: registration.ticketPriceType,
+        ticketPriceApplied: registration.ticketPriceApplied,
+        mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
+        computedTotalAtSubmit: registration.computedTotalAtSubmit,
         menu: menuSnap(registration.mandatoryMenuItem),
       },
       partners,
@@ -270,6 +292,9 @@ export default async function AdminEventRegistrantsDetailPage({
           contactWhatsapp: registration.contactWhatsapp,
           claimedMemberNumber: registration.claimedMemberNumber,
           ticketPriceType: registration.ticketPriceType,
+          ticketPriceApplied: registration.ticketPriceApplied,
+          mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
+          computedTotalAtSubmit: registration.computedTotalAtSubmit,
           menu: menuSnap(registration.mandatoryMenuItem),
         },
         partners: [],
@@ -282,6 +307,9 @@ export default async function AdminEventRegistrantsDetailPage({
           contactWhatsapp: p.contactWhatsapp,
           claimedMemberNumber: p.claimedMemberNumber,
           ticketPriceType: p.ticketPriceType,
+          ticketPriceApplied: p.ticketPriceApplied,
+          mandatoryMenuPriceApplied: p.mandatoryMenuPriceApplied,
+          computedTotalAtSubmit: p.computedTotalAtSubmit,
           menu: menuSnap(p.mandatoryMenuItem),
         },
         partners: [
@@ -291,6 +319,9 @@ export default async function AdminEventRegistrantsDetailPage({
             contactWhatsapp: registration.contactWhatsapp,
             claimedMemberNumber: registration.claimedMemberNumber,
             ticketPriceType: registration.ticketPriceType,
+            ticketPriceApplied: registration.ticketPriceApplied,
+            mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
+            computedTotalAtSubmit: registration.computedTotalAtSubmit,
             menu: menuSnap(registration.mandatoryMenuItem),
           },
         ],
@@ -373,7 +404,7 @@ export default async function AdminEventRegistrantsDetailPage({
   const waBodies = await loadClubWaTemplateBodies();
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-4">
       <RegistrationDetailShell
         eventId={eventId}
         tab={detailTab}

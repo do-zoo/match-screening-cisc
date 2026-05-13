@@ -26,8 +26,10 @@ export default async function AdminInviteAcceptPage({
 
   if (invite.expired) {
     return (
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
-        <h1 className="text-xl font-semibold tracking-tight">Undangan kedaluwarsa</h1>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 md:px-6 py-12">
+        <h1 className="text-xl font-semibold tracking-tight">
+          Undangan kedaluwarsa
+        </h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           Minta Owner mengirim undangan baru dari Pengaturan → Komite & admin.
         </p>
@@ -39,11 +41,15 @@ export default async function AdminInviteAcceptPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
-      <h1 className="text-xl font-semibold tracking-tight">Selesaikan undangan admin</h1>
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 md:px-6 py-12">
+      <h1 className="text-xl font-semibold tracking-tight">
+        Selesaikan undangan admin
+      </h1>
       <p className="text-muted-foreground mt-1 text-sm">
         Untuk{" "}
-        <span className="text-foreground font-medium">{invite.emailNormalized}</span>
+        <span className="text-foreground font-medium">
+          {invite.emailNormalized}
+        </span>
       </p>
       <AdminInviteAcceptForm token={raw} />
     </main>

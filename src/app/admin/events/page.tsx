@@ -51,7 +51,7 @@ export default async function AdminEventsIndexPage({
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Acara</h1>
         <Alert variant="destructive">
           <AlertTitle>Profil admin belum ada</AlertTitle>
@@ -166,7 +166,7 @@ export default async function AdminEventsIndexPage({
     });
 
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
         <AdminEventsIndexHeader isOps />
 
         <AdminEventsIndexToolbar
@@ -214,7 +214,7 @@ export default async function AdminEventsIndexPage({
 
   if (!loaded.ok) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-10">
         <AdminEventsIndexHeader isOps={isOps} />
         <AdminEventsIndexToolbar
           key={`events-idx-toolbar-${tab}-cards`}
@@ -238,7 +238,7 @@ export default async function AdminEventsIndexPage({
     loaded;
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
       <AdminEventsIndexHeader isOps={isOps} />
 
       <AdminEventsIndexToolbar

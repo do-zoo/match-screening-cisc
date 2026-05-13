@@ -16,7 +16,11 @@ const OPTIONS = [
 const emptySubscribe = () => () => {};
 
 function useClientMounted() {
-  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 }
 
 export function ThemePreferenceField() {
@@ -29,7 +33,11 @@ export function ThemePreferenceField() {
       : "system";
 
   const activeLabel =
-    resolvedTheme === "dark" ? "gelap" : resolvedTheme === "light" ? "terang" : "";
+    resolvedTheme === "dark"
+      ? "gelap"
+      : resolvedTheme === "light"
+        ? "terang"
+        : "";
 
   return (
     <div className="flex flex-col gap-2">
@@ -52,7 +60,7 @@ export function ThemePreferenceField() {
                 key={o.value}
                 htmlFor={`theme-${o.value}`}
                 className={cn(
-                  "flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5",
+                  "flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 md:px-6 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5",
                 )}
               >
                 <RadioGroupItem value={o.value} id={`theme-${o.value}`} />

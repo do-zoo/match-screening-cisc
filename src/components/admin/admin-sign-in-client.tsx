@@ -36,7 +36,11 @@ type MagicLinkFormValues = MagicLinkInput & {
   root?: { server?: { message?: string } };
 };
 
-function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean }) {
+function AdminSignInFormInner({
+  magicLinkEnabled,
+}: {
+  magicLinkEnabled: boolean;
+}) {
   const router = useRouter();
   const search = useSearchParams();
   const next = useMemo(() => search.get("next") ?? "/admin", [search]);
@@ -51,18 +55,22 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
   });
 
   const magicForm = useForm<MagicLinkFormValues>({
-    resolver: zodResolver(MagicLinkEmailSchema as never) as Resolver<MagicLinkFormValues>,
+    resolver: zodResolver(
+      MagicLinkEmailSchema as never,
+    ) as Resolver<MagicLinkFormValues>,
     defaultValues: { email: "" },
     shouldFocusError: true,
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 md:px-6 py-12">
       <div className="mb-8 flex justify-center">
         <Logo height={52} priority />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">Admin sign in</h1>
-      <p className="mt-2 text-sm text-zinc-600">Masuk menggunakan email dan password.</p>
+      <p className="mt-2 text-sm text-zinc-600">
+        Masuk menggunakan email dan password.
+      </p>
 
       <form
         className="mt-8 space-y-4"
@@ -79,7 +87,9 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
               });
               return;
             }
-            const data = res.data as { twoFactorRedirect?: boolean } | undefined;
+            const data = res.data as
+              | { twoFactorRedirect?: boolean }
+              | undefined;
             if (data?.twoFactorRedirect) return;
             router.push(next);
           });
@@ -109,7 +119,9 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
           name="password"
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="ms-admin-signin-password">Password</FieldLabel>
+              <FieldLabel htmlFor="ms-admin-signin-password">
+                Password
+              </FieldLabel>
               <Input
                 {...field}
                 id="ms-admin-signin-password"
@@ -139,7 +151,9 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">atau</span>
+              <span className="bg-background px-2 text-muted-foreground">
+                atau
+              </span>
             </div>
           </div>
 
@@ -184,7 +198,9 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
                     autoComplete="email"
                     placeholder="you@example.com"
                   />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
                 </Field>
               )}
             />
@@ -208,7 +224,11 @@ function AdminSignInFormInner({ magicLinkEnabled }: { magicLinkEnabled: boolean 
   );
 }
 
-export function AdminSignInClient({ magicLinkEnabled }: { magicLinkEnabled: boolean }) {
+export function AdminSignInClient({
+  magicLinkEnabled,
+}: {
+  magicLinkEnabled: boolean;
+}) {
   return (
     <Suspense>
       <AdminSignInFormInner magicLinkEnabled={magicLinkEnabled} />

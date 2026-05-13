@@ -57,9 +57,9 @@ export default async function AdminEventRegistrantsPage({
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-4">
         <h1 className="text-2xl font-semibold tracking-tight">Peserta Acara</h1>
-        <div className="rounded-lg border border-dashed bg-card p-6 text-sm">
+        <div className="rounded-lg border border-dashed bg-card p-4 md:p-6 text-sm">
           Profil admin belum ada. Hubungi Owner untuk aktivasi akses PIC.
         </div>
       </main>
@@ -140,7 +140,7 @@ export default async function AdminEventRegistrantsPage({
   }));
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4 lg:pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-4 lg:pt-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Peserta Acara</h1>
         <p className="text-sm text-muted-foreground">Acara: {event.title}</p>

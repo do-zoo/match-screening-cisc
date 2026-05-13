@@ -1,8 +1,4 @@
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PublicFooter } from "@/components/public/public-footer";
 import { PublicHeader } from "@/components/public/public-header";
 import { effectiveMaintenanceBanner } from "@/lib/public/club-operational-policy";
@@ -10,7 +6,11 @@ import { loadPublicClubBranding } from "@/lib/public/load-club-branding";
 import { loadClubOperationalSettings } from "@/lib/public/load-club-operational-settings";
 import type { ReactNode } from "react";
 
-export default async function PublicLayout({ children }: { children: ReactNode }) {
+export default async function PublicLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [branding, ops] = await Promise.all([
     loadPublicClubBranding(),
     loadClubOperationalSettings(),
@@ -24,7 +24,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         logoUrl={branding.logoBlobUrl}
       />
       {bannerText ? (
-        <div className="border-b bg-muted/50 px-4 py-3">
+        <div className="border-b bg-muted/50 px-4 md:px-6 py-3">
           <Alert>
             <AlertTitle>Pemberitahuan</AlertTitle>
             <AlertDescription>{bannerText}</AlertDescription>

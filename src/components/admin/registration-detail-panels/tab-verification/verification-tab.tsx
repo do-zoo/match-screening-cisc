@@ -31,17 +31,22 @@ export function VerificationTab({
       <CardHeader>
         <CardTitle>Verifikasi & Komunikasi</CardTitle>
         <CardDescription>
-          Keputusan verifikasi, bukti pendukung, konteks tiket, dan tautan WhatsApp.
+          Keputusan verifikasi, bukti pendukung, konteks tiket, dan tautan
+          WhatsApp.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6">
+      <CardContent className="grid gap-4 md:p-6">
         <section className="grid gap-2">
-          <h3 className="text-sm font-semibold tracking-tight">Keputusan verifikasi</h3>
+          <h3 className="text-sm font-semibold tracking-tight">
+            Keputusan verifikasi
+          </h3>
           <DecisionSection eventId={eventId} registration={registration} />
         </section>
         <Separator />
         <section className="grid gap-2">
-          <h3 className="text-sm font-semibold tracking-tight">Bukti pendukung</h3>
+          <h3 className="text-sm font-semibold tracking-tight">
+            Bukti pendukung
+          </h3>
           <EvidenceSection
             eventId={eventId}
             registration={registration}

@@ -18,6 +18,10 @@ function ticketLinesForRole(lines: PricingLine[], role: PricingLine["role"]) {
   return lines.filter((l) => l.role === role && l.kind === "ticket");
 }
 
+function menuLinesForRole(lines: PricingLine[], role: PricingLine["role"]) {
+  return lines.filter((l) => l.role === role && l.kind === "menu");
+}
+
 function subtotalForRole(roleLines: PricingLine[]) {
   return roleLines.reduce((s, l) => s + l.amount, 0);
 }
@@ -32,6 +36,22 @@ function sectionHeading(
   if (ticket.label === "Tiket Member") return "Tiket utama (Member)";
   if (ticket.label === "Tiket Non-member") return "Tiket utama (Non-member)";
   return "Tiket utama";
+}
+
+function MenuInfoRow({ line }: { line: PricingLine }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
+      <span>
+        {line.label}{" "}
+        <span className="font-mono tabular-nums">
+          ({formatIdr(line.amount)})
+        </span>
+        <span className="mt-0.5 block text-[11px] leading-snug">
+          Harga referensi alokasi venue; sudah termasuk dalam tiket.
+        </span>
+      </span>
+    </div>
+  );
 }
 
 function LineRow({ line }: { line: PricingLine }) {
@@ -68,7 +88,9 @@ export function PriceBreakdown({ pricing }: Props) {
   }
 
   const primaryLines = ticketLinesForRole(pricing.lines, "primary");
+  const primaryMenuLines = menuLinesForRole(pricing.lines, "primary");
   const partnerLines = ticketLinesForRole(pricing.lines, "partner");
+  const partnerMenuLines = menuLinesForRole(pricing.lines, "partner");
 
   return (
     <div className="rounded-lg border bg-card p-4">
@@ -87,6 +109,16 @@ export function PriceBreakdown({ pricing }: Props) {
                 <LineRow key={`primary-${line.kind}-${idx}`} line={line} />
               ))}
             </div>
+            {primaryMenuLines.length > 0 ? (
+              <div className="space-y-2 border-t border-border/60 pt-2">
+                {primaryMenuLines.map((line, idx) => (
+                  <MenuInfoRow
+                    key={`primary-menu-${idx}`}
+                    line={line}
+                  />
+                ))}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-4 border-t border-border pt-2 text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono font-medium tabular-nums">
@@ -106,6 +138,16 @@ export function PriceBreakdown({ pricing }: Props) {
                 <LineRow key={`partner-${line.kind}-${idx}`} line={line} />
               ))}
             </div>
+            {partnerMenuLines.length > 0 ? (
+              <div className="space-y-2 border-t border-border/60 pt-2">
+                {partnerMenuLines.map((line, idx) => (
+                  <MenuInfoRow
+                    key={`partner-menu-${idx}`}
+                    line={line}
+                  />
+                ))}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-4 border-t border-border pt-2 text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono font-medium tabular-nums">

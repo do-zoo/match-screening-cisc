@@ -25,10 +25,13 @@ export function OperationsTab({ eventId, registration }: Props) {
           Kehadiran, penyesuaian invoice, dan pembatalan atau refund.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6">
+      <CardContent className="grid gap-4 md:p-6">
         <AttendanceSection eventId={eventId} registration={registration} />
         <Separator />
-        <InvoiceAdjustmentsSection eventId={eventId} registration={registration} />
+        <InvoiceAdjustmentsSection
+          eventId={eventId}
+          registration={registration}
+        />
         <Separator />
         <CancelRefundSection eventId={eventId} registration={registration} />
       </CardContent>

@@ -90,7 +90,7 @@ function DirectoryContactProfileCard({
           "relative mt-3 min-h-11 overflow-hidden rounded-2xl shadow-md ring-1 ring-primary/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
         )}
       >
-        <div className="flex flex-row gap-4 rounded-2xl border border-border/80 bg-linear-to-br from-card via-card to-primary/6 px-4 py-4 backdrop-blur-sm dark:to-primary/4">
+        <div className="flex flex-row gap-4 rounded-2xl border border-border/80 bg-linear-to-br from-card via-card to-primary/6 px-4 md:px-6 py-4 backdrop-blur-sm dark:to-primary/4">
           <div
             className="flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/80 text-lg font-semibold text-primary-foreground shadow-inner"
             aria-hidden
@@ -236,7 +236,7 @@ export function PurchaserInfoSection({
               <Label
                 htmlFor="ms-registration-status-member"
                 className={cn(
-                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4",
+                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 md:px-6 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4",
                 )}
               >
                 <RadioGroupItem
@@ -254,7 +254,7 @@ export function PurchaserInfoSection({
               <Label
                 htmlFor="ms-registration-status-non-member"
                 className={cn(
-                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4",
+                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 md:px-6 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4",
                 )}
               >
                 <RadioGroupItem

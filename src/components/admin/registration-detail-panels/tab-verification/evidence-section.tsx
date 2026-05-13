@@ -12,9 +12,13 @@ type Props = {
   ticketContext: TicketContextVm;
 };
 
-export function EvidenceSection({ eventId, registration, ticketContext }: Props) {
+export function EvidenceSection({
+  eventId,
+  registration,
+  ticketContext,
+}: Props) {
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4 md:p-6">
       <div className="grid gap-2">
         <h3 className="text-sm font-semibold tracking-tight">Unggahan</h3>
         {registration.uploads.length === 0 ? (
@@ -42,7 +46,10 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
                 <div className="relative mx-auto aspect-square w-full max-h-[140px] bg-muted/30 p-2">
                   <Image
                     src={upload.blobUrl}
-                    alt={upload.originalFilename ?? formatUploadPurpose(upload.purpose)}
+                    alt={
+                      upload.originalFilename ??
+                      formatUploadPurpose(upload.purpose)
+                    }
                     fill
                     sizes="(max-width: 640px) 50vw, 33vw"
                     className="object-contain"
@@ -55,13 +62,17 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
       </div>
 
       <div className="grid gap-3 text-sm">
-        <h3 className="text-sm font-semibold tracking-tight">Konteks tiket & kursi</h3>
+        <h3 className="text-sm font-semibold tracking-tight">
+          Konteks tiket & kursi
+        </h3>
         {ticketContext.kind === "error" ? (
           <p className="text-muted-foreground">{ticketContext.message}</p>
         ) : (
           <dl className="grid gap-3">
             <div>
-              <dt className="text-muted-foreground">Pengurus / komite (tiket utama)</dt>
+              <dt className="text-muted-foreground">
+                Pengurus / komite (tiket utama)
+              </dt>
               <dd className="mt-1">
                 {ticketContext.managementMember.state === "via_public_code" && (
                   <span>
@@ -73,12 +84,15 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
                     {ticketContext.managementMember.fullName}
                   </span>
                 )}
-                {ticketContext.managementMember.state === "no_primary_number" && (
+                {ticketContext.managementMember.state ===
+                  "no_primary_number" && (
                   <span className="text-muted-foreground">
-                    Tidak ada nomor member pada tiket utama — lookup tidak dijalankan.
+                    Tidak ada nomor member pada tiket utama — lookup tidak
+                    dijalankan.
                   </span>
                 )}
-                {ticketContext.managementMember.state === "not_in_directory" && (
+                {ticketContext.managementMember.state ===
+                  "not_in_directory" && (
                   <span className="text-amber-700 dark:text-amber-400">
                     Nomor utama tidak ditemukan di direktori member aktif.
                   </span>
@@ -87,7 +101,9 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
                   <span>
                     Status komite/pengurus:{" "}
                     <span className="font-medium">
-                      {ticketContext.managementMember.isManagementMember ? "Ya" : "Tidak"}
+                      {ticketContext.managementMember.isManagementMember
+                        ? "Ya"
+                        : "Tidak"}
                     </span>
                   </span>
                 )}
@@ -109,11 +125,14 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Bentrok nomor (acara ini)</dt>
+              <dt className="text-muted-foreground">
+                Bentrok nomor (acara ini)
+              </dt>
               <dd className="mt-1">
                 {ticketContext.conflicts.length === 0 ? (
                   <span className="text-muted-foreground">
-                    Tidak ada registrasi lain dengan nomor member yang sama pada tiket.
+                    Tidak ada registrasi lain dengan nomor member yang sama pada
+                    tiket.
                   </span>
                 ) : (
                   <ul className="list-inside list-disc space-y-2">
@@ -123,7 +142,10 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
                           {c.contactName} — {c.memberNumbers.join(", ")} —{" "}
                         </span>
                         <Link
-                          href={eventRegistrationDetailPath(eventId, c.registrationId)}
+                          href={eventRegistrationDetailPath(
+                            eventId,
+                            c.registrationId,
+                          )}
                           className="font-medium underline-offset-4 hover:underline"
                         >
                           buka detail

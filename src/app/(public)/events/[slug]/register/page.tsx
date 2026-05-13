@@ -34,8 +34,8 @@ export default async function EventRegistrationPage({
   if (!event) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-12">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 md:px-6 py-12">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 md:p-6">
         <nav>
           <Link
             href={`/events/${event.slug}`}
@@ -49,8 +49,8 @@ export default async function EventRegistrationPage({
             Pendaftaran: {event.title}
           </h1>
           <p className="text-sm leading-relaxed text-foreground/80">
-            Beberapa langkah singkat — ringkasan harga akan muncul sebelum pembayaran.
-            Siapkan bukti transfer untuk langkah terakhir.
+            Beberapa langkah singkat — ringkasan harga akan muncul sebelum
+            pembayaran. Siapkan bukti transfer untuk langkah terakhir.
           </p>
         </header>
         <RegistrationFormClientOnly event={event} />

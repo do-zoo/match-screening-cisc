@@ -193,7 +193,7 @@ export function ManagementMembersPage({
         };
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-6">
       <div className="text-sm text-muted-foreground">
         <Link href="/admin/management" className="hover:text-foreground">
           ← Kepengurusan
@@ -216,7 +216,7 @@ export function ManagementMembersPage({
       </div>
 
       {directoryEmpty ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed px-4 md:px-6 py-6 text-sm text-muted-foreground">
           Belum ada pengurus. Klik &quot;Tambah&quot; untuk menambahkan yang
           pertama.
         </p>

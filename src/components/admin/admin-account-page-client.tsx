@@ -35,15 +35,16 @@ export function AdminAccountPageClient({
   const rootErr = form.formState.errors.root?.message;
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-8 lg:py-10">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 md:px-6 py-8 lg:py-10">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Akun</h1>
         <p className="text-sm text-muted-foreground">
-          Nama tampilan dan tampilan antarmuka. Email dikelola lewat akun masuk Anda.
+          Nama tampilan dan tampilan antarmuka. Email dikelola lewat akun masuk
+          Anda.
         </p>
       </header>
 
-      <section className="flex flex-col gap-4 rounded-lg border bg-card p-6">
+      <section className="flex flex-col gap-4 rounded-lg border bg-card p-4 md:p-6">
         <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" value={email} readOnly className="bg-muted/50" />
@@ -101,15 +102,20 @@ export function AdminAccountPageClient({
         </form>
 
         <p className="text-xs text-muted-foreground">
-          <Link href="/admin" className="text-primary underline-offset-4 hover:underline">
+          <Link
+            href="/admin"
+            className="text-primary underline-offset-4 hover:underline"
+          >
             Kembali ke beranda admin
           </Link>
         </p>
       </section>
 
-      <AdminAccountTwoFactorSection initialTwoFactorEnabled={initialTwoFactorEnabled} />
+      <AdminAccountTwoFactorSection
+        initialTwoFactorEnabled={initialTwoFactorEnabled}
+      />
 
-      <section className="flex flex-col gap-3 rounded-lg border bg-card p-6">
+      <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 md:p-6">
         <ThemePreferenceField />
       </section>
     </div>

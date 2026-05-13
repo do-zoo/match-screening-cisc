@@ -44,6 +44,10 @@ export type DetailRegistration = {
     whatsapp: string | null;
     memberNumber: string | null;
     ticketPriceType: TicketPriceType;
+    ticketPriceApplied: number;
+    mandatoryMenuItemName: string;
+    mandatoryMenuPriceApplied: number;
+    computedTotalAtSubmit: number;
     menuSelections: Array<{ menuItem: { name: string; price: number } }>;
   }>;
   uploads: Array<{

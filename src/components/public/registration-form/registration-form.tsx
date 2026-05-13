@@ -485,7 +485,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   return (
     <form
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-4 md:p-6"
       encType="multipart/form-data"
       onSubmit={(e) => {
         e.preventDefault();

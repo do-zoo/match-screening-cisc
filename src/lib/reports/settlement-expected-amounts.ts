@@ -7,14 +7,15 @@ export const SETTLEMENT_AMOUNT_TOLERANCE_IDR = 50_000;
 
 /** Potongan angka laporan yang dipakai untuk menghitung acuan settlement. */
 export type SettlementFinanceSnapshot = {
-  ticketRevenueApproved: number;
+  /** Jumlah `computedTotalAtSubmit` pendaftaran approved (uang masuk snapshot). */
+  baselineTotalApproved: number;
   menuVenuePayoutApproved: number;
   adjustmentsPaidTotal: number;
 };
 
 /**
  * - `venueMenuPayout`: sama dengan agregat harga menu wajib approved (dana ke venue).
- * - `treasurerMargin`: tiket approved + penyesuaian yang sudah lunas (v1 — masuk bendahara komite).
+ * - `treasurerMargin`: baseline uang masuk − alokasi menu venue + penyesuaian lunas (benar untuk snapshot lama tiket+menu dan tiket inklusif).
  */
 export function getSettlementExpectedAmounts(f: SettlementFinanceSnapshot): {
   venueMenuPayout: number;
@@ -22,7 +23,10 @@ export function getSettlementExpectedAmounts(f: SettlementFinanceSnapshot): {
 } {
   return {
     venueMenuPayout: f.menuVenuePayoutApproved,
-    treasurerMargin: f.ticketRevenueApproved + f.adjustmentsPaidTotal,
+    treasurerMargin:
+      f.baselineTotalApproved -
+      f.menuVenuePayoutApproved +
+      f.adjustmentsPaidTotal,
   };
 }
 

@@ -227,7 +227,7 @@ export function ManagementPeriodDetail({
         };
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-6">
       <div className="text-sm text-muted-foreground">
         <Link href="/admin/management" className="hover:text-foreground">
           ← Kepengurusan
@@ -298,7 +298,7 @@ export function ManagementPeriodDetail({
       {view === "list" && (
         <>
           {assignmentsEmpty ? (
-            <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
+            <p className="rounded-lg border border-dashed px-4 md:px-6 py-6 text-sm text-muted-foreground">
               Belum ada penugasan. Klik &quot;Tambah Penugasan&quot; untuk
               mengisi roster periode ini.
             </p>
@@ -394,7 +394,7 @@ export function ManagementPeriodDetail({
       {view === "tree" && (
         <div className="rounded-lg border">
           {treeRows.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">
+            <p className="px-4 md:px-6 py-6 text-sm text-muted-foreground">
               Belum ada jabatan. Tambahkan jabatan di halaman{" "}
               <Link href="/admin/management/roles" className="underline">
                 Jabatan
@@ -405,20 +405,20 @@ export function ManagementPeriodDetail({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-muted/40">
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">
+                  <th className="px-4 md:px-6 py-2 text-left font-medium text-muted-foreground">
                     Jabatan
                   </th>
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">
+                  <th className="px-4 md:px-6 py-2 text-left font-medium text-muted-foreground">
                     Pemegang
                   </th>
-                  <th className="px-4 py-2" />
+                  <th className="px-4 md:px-6 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {treeRows.map((row) => (
                   <tr key={row.roleId} className="border-t hover:bg-muted/20">
                     <td
-                      className="px-4 py-2.5"
+                      className="px-4 md:px-6 py-2.5"
                       style={{ paddingLeft: 16 + row.depth * 20 }}
                     >
                       {row.depth > 0 && (
@@ -440,7 +440,7 @@ export function ManagementPeriodDetail({
                         </Badge>
                       )}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 md:px-6 py-2.5">
                       {row.assignees.length === 0 ? (
                         <span className="text-muted-foreground italic">
                           Belum diisi
@@ -461,7 +461,7 @@ export function ManagementPeriodDetail({
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-4 md:px-6 py-2.5 text-right">
                       <Button
                         type="button"
                         variant="ghost"

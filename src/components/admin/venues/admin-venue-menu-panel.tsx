@@ -341,7 +341,7 @@ export function AdminVenueMenuPanel({
   const draftFrozen = draft?.id != null && frozenMenuItemIdSet.has(draft.id);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:p-6">
       <header className="space-y-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -736,8 +736,7 @@ export function AdminVenueMenuPanel({
                   }}
                 />
                 {(draft?.imageBlobUrl && !draft.clearImage) ||
-                (draftFileKey !== null &&
-                  Boolean(imageFiles[draftFileKey])) ? (
+                (draftFileKey !== null && Boolean(imageFiles[draftFileKey])) ? (
                   <Button
                     type="button"
                     variant="ghost"

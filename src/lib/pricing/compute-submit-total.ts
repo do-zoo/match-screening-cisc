@@ -18,6 +18,7 @@ export type SubmitPricingInput = {
   partnerMandatoryMenu?: { name: string; price: number };
 };
 
+/** `*Total` / `grandTotal` = nominal yang dibayar peserta (harga tiket sudah termasuk menu wajib). */
 export type SubmitPricingResult = {
   primaryTicketPrice: number;
   primaryMenuPrice: number;
@@ -50,7 +51,7 @@ export function computeSubmitTotal(input: SubmitPricingInput): SubmitPricingResu
 
   const primaryTicket = ticketPrice(input, "primary");
   const primaryMenu = input.primaryMandatoryMenu.price;
-  const primaryTotal = primaryTicket + primaryMenu;
+  const primaryTotal = primaryTicket;
 
   lines.push({
     kind: "ticket",
@@ -72,7 +73,7 @@ export function computeSubmitTotal(input: SubmitPricingInput): SubmitPricingResu
   if (input.partnerMandatoryMenu && input.partnerPriceType) {
     partnerTicket = ticketPrice(input, "partner");
     partnerMenu = input.partnerMandatoryMenu.price;
-    partnerTotal = partnerTicket + partnerMenu;
+    partnerTotal = partnerTicket;
 
     lines.push({
       kind: "ticket",

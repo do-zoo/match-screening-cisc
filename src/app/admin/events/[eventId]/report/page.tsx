@@ -91,7 +91,7 @@ export default async function EventReportPage({
   }));
 
   const expectedSettlement = getSettlementExpectedAmounts({
-    ticketRevenueApproved: report.finance.ticketRevenueApproved,
+    baselineTotalApproved: report.finance.baselineTotal,
     menuVenuePayoutApproved: report.finance.menuVenuePayoutApproved,
     adjustmentsPaidTotal: report.finance.adjustmentsPaidTotal,
   });
@@ -101,7 +101,7 @@ export default async function EventReportPage({
     hasOperationalOwnerParity(ctx.role);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-10 pt-4">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -149,9 +149,13 @@ export default async function EventReportPage({
           <CardTitle>Keuangan</CardTitle>
           <CardDescription>
             Tiga angka pertama hanya menjumlahkan pendaftaran yang sudah{" "}
-            <strong>disetujui</strong>. Uang menu wajib di sini artinya bagian
-            pesanan makan/minum yang mengalir ke venue (setoran ke venue), bukan
-            uang yang dianggap “sisa” di kas komite.
+            <strong>disetujui</strong>. <strong>Total Uang Masuk</strong> mengikuti
+            total tercatat saat submit per pendaftaran (data lama bisa berupa tiket
+            ditambah menu; pendaftaran baru: nominal tiket sudah termasuk menu wajib).{" "}
+            <strong>Total Penjualan Menu</strong> adalah agregat harga acuan menu
+            untuk alokasi ke venue, bukan tambahan di atas tiket untuk model inklusif.{" "}
+            <strong>Revenue Tiket</strong> menjumlahkan kolom harga tiket tercatat
+            per baris (bisa sama dengan total uang masuk bila semua snapshot inklusif).
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
