@@ -15,8 +15,10 @@ const EVENT_BRANCH_RE =
 
 function AdminEventSidebarBlockLoaded({
   eventId,
+  onNavigate,
 }: {
   eventId: string;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -81,6 +83,7 @@ function AdminEventSidebarBlockLoaded({
         >
           <Link
             href={listPath}
+            onClick={onNavigate}
             className={adminShellNavLinkClass(
               isRegistrantsBranch && !isReportBranch && !isEditBranch,
             )}
@@ -95,6 +98,7 @@ function AdminEventSidebarBlockLoaded({
           </Link>
           <Link
             href={`/admin/events/${eventId}/report`}
+            onClick={onNavigate}
             className={adminShellNavLinkClass(isReportBranch && !isEditBranch)}
           >
             <Table2Icon
@@ -106,6 +110,7 @@ function AdminEventSidebarBlockLoaded({
           {canManageEventSettings ? (
             <Link
               href={`/admin/events/${eventId}/edit`}
+              onClick={onNavigate}
               className={adminShellNavLinkClass(isEditBranch)}
             >
               <Settings
@@ -121,12 +126,18 @@ function AdminEventSidebarBlockLoaded({
   );
 }
 
-export function AdminEventSidebarBlock() {
+export function AdminEventSidebarBlock({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
-  const match = pathname ? EVENT_BRANCH_RE.exec(pathname) : null;
+  const match = pathname ? pathname.match(EVENT_BRANCH_RE) : null;
   const eventId = match?.[1] ?? null;
 
   if (!eventId) return null;
 
-  return <AdminEventSidebarBlockLoaded key={eventId} eventId={eventId} />;
+  return (
+    <AdminEventSidebarBlockLoaded key={eventId} eventId={eventId} onNavigate={onNavigate} />
+  );
 }
