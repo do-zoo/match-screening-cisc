@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { InboxIcon, Table2Icon } from "lucide-react";
+import { InboxIcon, Settings, Table2Icon } from "lucide-react";
 
 import {
   adminShellNavIconClass,
@@ -11,7 +11,7 @@ import {
 } from "@/components/admin/admin-shell-nav-styles";
 
 const EVENT_BRANCH_RE =
-  /^\/admin\/events\/([^/]+)\/(?:inbox|report)(?:\/|$)/;
+  /^\/admin\/events\/([^/]+)\/(?:inbox|report|edit)(?:\/|$)/;
 
 function AdminEventSidebarBlockLoaded({
   eventId,
@@ -20,6 +20,8 @@ function AdminEventSidebarBlockLoaded({
 }) {
   const pathname = usePathname();
 
+  const isEditBranch =
+    !!pathname && pathname === `/admin/events/${eventId}/edit`;
   const isReportBranch =
     !!pathname &&
     (pathname === `/admin/events/${eventId}/report` ||
@@ -30,6 +32,7 @@ function AdminEventSidebarBlockLoaded({
       pathname.startsWith(`/admin/events/${eventId}/inbox/`));
 
   const [title, setTitle] = useState<string | null>(null);
+  const [canManageEventSettings, setCanManageEventSettings] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,8 +42,14 @@ function AdminEventSidebarBlockLoaded({
         credentials: "include",
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { title?: string };
-      if (!cancelled) setTitle(data.title ?? null);
+      const data = (await res.json()) as {
+        title?: string;
+        canManageEventSettings?: boolean;
+      };
+      if (!cancelled) {
+        setTitle(data.title ?? null);
+        setCanManageEventSettings(Boolean(data.canManageEventSettings));
+      }
     }
 
     void load();
@@ -66,14 +75,19 @@ function AdminEventSidebarBlockLoaded({
         ) : (
           <p className="mt-2 text-xs text-sidebar-foreground/45">Memuat judul…</p>
         )}
-        <nav aria-label="Inbox dan laporan" className="mt-3 flex flex-col gap-0.5">
+        <nav
+          aria-label="Inbox, laporan, dan pengaturan"
+          className="mt-3 flex flex-col gap-0.5"
+        >
           <Link
             href={`/admin/events/${eventId}/inbox`}
-            className={adminShellNavLinkClass(isInboxBranch && !isReportBranch)}
+            className={adminShellNavLinkClass(
+              isInboxBranch && !isReportBranch && !isEditBranch,
+            )}
           >
             <InboxIcon
               className={adminShellNavIconClass(
-                isInboxBranch && !isReportBranch,
+                isInboxBranch && !isReportBranch && !isEditBranch,
               )}
               aria-hidden
             />
@@ -81,14 +95,26 @@ function AdminEventSidebarBlockLoaded({
           </Link>
           <Link
             href={`/admin/events/${eventId}/report`}
-            className={adminShellNavLinkClass(isReportBranch)}
+            className={adminShellNavLinkClass(isReportBranch && !isEditBranch)}
           >
             <Table2Icon
-              className={adminShellNavIconClass(isReportBranch)}
+              className={adminShellNavIconClass(isReportBranch && !isEditBranch)}
               aria-hidden
             />
             Laporan
           </Link>
+          {canManageEventSettings ? (
+            <Link
+              href={`/admin/events/${eventId}/edit`}
+              className={adminShellNavLinkClass(isEditBranch)}
+            >
+              <Settings
+                className={adminShellNavIconClass(isEditBranch)}
+                aria-hidden
+              />
+              Pengaturan
+            </Link>
+          ) : null}
         </nav>
       </div>
     </div>

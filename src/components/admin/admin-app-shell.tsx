@@ -59,7 +59,7 @@ function AdminNavLinks({
       className={cn("flex flex-col gap-1.5", className)}
     >
       <Link
-        href="/admin?tab=active"
+        href="/admin"
         data-active={pathname === "/admin" ? "" : undefined}
         onClick={onNavigate}
         className={adminShellNavLinkClass(pathname === "/admin")}
@@ -69,7 +69,7 @@ function AdminNavLinks({
       </Link>
       {navFlags.acara ? (
         <Link
-          href="/admin/events"
+          href="/admin/events?tab=active"
           onClick={onNavigate}
           className={adminShellNavLinkClass(acaraExact)}
         >

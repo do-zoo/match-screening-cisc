@@ -101,7 +101,7 @@ export function AdminAccountPageClient({
         </form>
 
         <p className="text-xs text-muted-foreground">
-          <Link href="/admin?tab=active" className="text-primary underline-offset-4 hover:underline">
+          <Link href="/admin" className="text-primary underline-offset-4 hover:underline">
             Kembali ke beranda admin
           </Link>
         </p>

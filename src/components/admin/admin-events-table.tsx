@@ -36,6 +36,8 @@ export type AdminEventRow = {
 type Props = {
   events: AdminEventRow[];
   pathname: string;
+  /** Query string keys to keep on pagination links (e.g. `view`). */
+  preservedQuery?: Record<string, string | undefined>;
   pagination: {
     page: number;
     pageSize: number;
@@ -50,7 +52,12 @@ const fmtDay = new Intl.DateTimeFormat("id-ID", {
 
 const fmtNum = new Intl.NumberFormat("id-ID");
 
-export function AdminEventsTable({ events, pathname, pagination }: Props) {
+export function AdminEventsTable({
+  events,
+  pathname,
+  preservedQuery,
+  pagination,
+}: Props) {
   const columns = useMemo<ColumnDef<AdminEventRow>[]>(
     () => [
       {
@@ -158,6 +165,7 @@ export function AdminEventsTable({ events, pathname, pagination }: Props) {
       <DataTable columns={columns} data={events} enableSorting={false} />
       <TablePagination
         pathname={pathname}
+        preservedQuery={preservedQuery}
         currentPage={pagination.page}
         pageSize={pagination.pageSize}
         totalItems={pagination.totalItems}

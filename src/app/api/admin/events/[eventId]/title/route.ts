@@ -4,6 +4,7 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { canVerifyEvent } from "@/lib/permissions/guards";
+import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 
 export async function GET(
   _req: Request,
@@ -32,5 +33,8 @@ export async function GET(
     return new NextResponse(null, { status: 404 });
   }
 
-  return NextResponse.json({ title: event.title });
+  return NextResponse.json({
+    title: event.title,
+    canManageEventSettings: hasOperationalOwnerParity(ctx.role),
+  });
 }

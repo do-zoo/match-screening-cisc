@@ -29,14 +29,14 @@ export function AdminEventBreadcrumbs({
 
   if (isEdit) {
     crumbs.push(
-      { label: "Beranda", href: "/admin?tab=active" },
+      { label: "Beranda", href: "/admin" },
       { label: "Acara", href: "/admin/events" },
       { label: title, href: `/admin/events/${eventId}/inbox` },
       { label: "Pengaturan", current: true },
     );
   } else {
     crumbs.push(
-      { label: "Beranda", href: "/admin?tab=active" },
+      { label: "Beranda", href: "/admin" },
       {
         label: title,
         href: `/admin/events/${eventId}/inbox`,

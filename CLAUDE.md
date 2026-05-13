@@ -78,7 +78,8 @@ An event registration system for a members-only social club (CISC). Members and 
 - `(auth)/admin/sign-in` — magic-link + email/password sign-in (plus two-factor, magic-link-sent sub-pages)
 - `(auth)/admin/invite/[token]` — onboarding for invited admins; excluded from the admin auth redirect via `src/proxy.ts`
 - `admin/` — authenticated admin area (all routes require a session; redirect enforced in `src/proxy.ts` + `admin/layout.tsx`)
-  - `admin/events/` — event list + new event
+  - `admin/` (root) — hub ringkas komunitas (pintasan ke modul + agregat registrasi menunggu tinjauan); bukan daftar acara utama
+  - `admin/events/` — indeks acara bergaya dashboard (kartu + filter `?tab=`); Owner/Admin dapat `?view=tabel` untuk tabel paginasi; Verifier/Viewer hanya kartu; tampilan kartu memakai `?tab=` (kosong → redirect ke `tab=active`)
   - `admin/events/[eventId]/inbox` — registrations list
   - `admin/events/[eventId]/inbox/[registrationId]` — registration detail + action panels
   - `admin/events/[eventId]/report` — aggregated report + CSV export
@@ -90,7 +91,7 @@ An event registration system for a members-only social club (CISC). Members and 
   - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, security, whatsapp-templates)
   - `admin/account/` — personal account page (display name, 2FA)
 - `api/auth/[...all]` — Better Auth catch-all handler
-- `api/admin/events/[eventId]/title` — lightweight title lookup for breadcrumbs
+- `api/admin/events/[eventId]/title` — judul acara + `canManageEventSettings` untuk breadcrumb/sidebar
 - `api/admin/pic-banks/[adminProfileId]` — PIC bank accounts for the event form
 
 ### Role permission model
@@ -151,13 +152,15 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses
 - `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
 - `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
+- `lib/admin/events-index-view.ts` — parse mode kartu vs tabel pada query `view` indeks acara
+- `lib/admin/pending-review-total-for-context.ts` — agregat registrasi `pending_review` pada acara yang boleh diverifikasi konteks admin (halaman beranda)
 - `lib/admin/` — admin-domain helpers: invite crypto, email, dashboard view model, committee invariants, nav flags, PIC bank permissions, path helpers
 
 ### UI components
 
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `dropzone.tsx`, `image-upload-dropzone.tsx` (sampul acara admin), `idr-amount-input.tsx` (harga IDR terformat)
 - `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
-- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`
+- `src/components/admin/` — admin-facing panels and layout; `RegistrationDetail` memakai `registration-detail-panels/RegistrationRelationsCard` dan `RegistrationStatusPanel`, serta `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`; `admin-events-dashboard-cards.tsx` — kartu ringkasan acara + filter tab untuk `/admin/events`
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 
