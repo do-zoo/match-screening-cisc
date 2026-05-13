@@ -37,13 +37,12 @@ import {
   resolveActiveStepAfterStepsChange,
 } from "./registration-steps";
 import type { RegistrationFormProps } from "./types";
-import { useManagementCodeGate } from "./use-management-code-gate";
-import { usePartnerGate } from "./use-partner-gate";
+import { usePrimaryPurchaserIdentityGate } from "./use-primary-purchaser-identity-gate";
 import { usePartnerMemberNumberValidation } from "./use-partner-member-number-validation";
 import { usePricingPreview } from "./use-pricing-preview";
 
 function serverFieldErrorsToStepHint(
-  fe: Record<string, string>
+  fe: Record<string, string>,
 ): RegistrationStepId {
   if (fe.transferProof) return "payment";
   if (fe.selectedMenuItemIds) return "menu";
@@ -73,7 +72,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   const schema = useMemo(
     () => createSubmitRegistrationFormSchema(event),
-    [event]
+    [event],
   );
 
   const form = useForm<SubmitRegistrationInput>({
@@ -106,16 +105,19 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   const watched = useWatch({ control: form.control });
   const selectedMenuIds = useMemo(
     () => (watched.selectedMenuItemIds ?? []).filter(Boolean),
-    [watched.selectedMenuItemIds]
+    [watched.selectedMenuItemIds],
   );
   const claimedMemberTrim = String(watched.claimedMemberNumber ?? "").trim();
   const managementCodeTrim = String(watched.managementPublicCode ?? "").trim();
+  const primaryIdentityTrim =
+    claimedMemberTrim.length > 0 ? claimedMemberTrim : managementCodeTrim;
 
-  const { effectivePartnerGate, showPartnerSection: showPartnerByNumber } =
-    usePartnerGate(form, event.slug, claimedMemberTrim, managementCodeTrim);
-
-  const { directoryVerifiedByCode, effectiveManagementCodeGate } =
-    useManagementCodeGate(form, managementCodeTrim, claimedMemberTrim);
+  const {
+    effectivePartnerGate,
+    effectiveManagementCodeGate,
+    directoryVerifiedByCode,
+    showPartnerByNumber,
+  } = usePrimaryPurchaserIdentityGate(form, event.slug, primaryIdentityTrim);
 
   const showPartnerSection = showPartnerByNumber || directoryVerifiedByCode;
 
@@ -127,13 +129,13 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   const steps = useMemo(
     () => buildRegistrationSteps(event.menuMode, showPartnerSection),
-    [event.menuMode, showPartnerSection]
+    [event.menuMode, showPartnerSection],
   );
 
   const [userStepId, setUserStepId] = useState<RegistrationStepId>("purchaser");
   const activeStepId = useMemo(
     () => resolveActiveStepAfterStepsChange(userStepId, steps),
-    [userStepId, steps]
+    [userStepId, steps],
   );
 
   const activeIndex = Math.max(0, steps.indexOf(activeStepId));
@@ -212,44 +214,33 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       void form.setFocus("claimedMemberNumber");
       return;
     }
-    /** Zod tidak mengetahui hasil direktori; jangan lolos tanpa verified jika ada nomor diklaim. */
+    /** Zod tidak mengetahui hasil direktori / kode; jangan lolos tanpa verified jika identitas diisi. */
     if (
       stepId === "purchaser" &&
       purchaserIsMember &&
-      claimedMemberTrim.length > 0 &&
+      primaryIdentityTrim.length > 0 &&
       !directoryVerified
     ) {
-      if (effectivePartnerGate.status === "checking") return;
-      if (form.getFieldState("claimedMemberNumber", form.formState).error) {
+      const stillChecking =
+        (claimedMemberTrim.length > 0 &&
+          effectivePartnerGate.status === "checking") ||
+        (managementCodeTrim.length > 0 &&
+          claimedMemberTrim.length === 0 &&
+          effectiveManagementCodeGate.status === "checking");
+      if (stillChecking) return;
+      if (
+        form.getFieldState("claimedMemberNumber", form.formState).error ||
+        form.getFieldState("managementPublicCode", form.formState).error
+      ) {
         void form.setFocus("claimedMemberNumber");
         return;
       }
       form.setError("claimedMemberNumber", {
         type: "custom",
         message:
-          "Tunggu hingga nomor dikenali atau perbaiki nomor member Anda sebelum melanjutkan.",
+          "Tunggu hingga identitas dikenali atau perbaiki nomor / kode Anda sebelum melanjutkan.",
       });
       void form.setFocus("claimedMemberNumber");
-      return;
-    }
-    if (
-      stepId === "purchaser" &&
-      purchaserIsMember &&
-      claimedMemberTrim.length === 0 &&
-      managementCodeTrim.length > 0 &&
-      !directoryVerifiedByCode
-    ) {
-      if (effectiveManagementCodeGate.status === "checking") return;
-      if (form.getFieldState("managementPublicCode", form.formState).error) {
-        void form.setFocus("managementPublicCode");
-        return;
-      }
-      form.setError("managementPublicCode", {
-        type: "custom",
-        message:
-          "Tunggu hingga kode dikenali atau perbaiki kode pengurus sebelum melanjutkan.",
-      });
-      void form.setFocus("managementPublicCode");
       return;
     }
     /** Subset `trigger` tidak selalu membawa error superRefine untuk file kondisional — selaraskan dengan skema Zod. */
@@ -283,9 +274,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       !partnerDirectoryVerified
     ) {
       if (effectivePartnerMemberGate.status === "checking") return;
-      if (
-        form.getFieldState("partnerMemberNumber", form.formState).error
-      ) {
+      if (form.getFieldState("partnerMemberNumber", form.formState).error) {
         void form.setFocus("partnerMemberNumber");
         return;
       }
@@ -320,7 +309,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     effectivePartnerGate.status,
     claimedMemberTrim,
     managementCodeTrim,
-    directoryVerifiedByCode,
+    primaryIdentityTrim,
     effectiveManagementCodeGate.status,
     partnerMemberTrim,
     partnerDirectoryVerified,
@@ -339,7 +328,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
         id,
         title: registrationStepTitle(id),
       })),
-    [steps]
+    [steps],
   );
 
   const navigateToPastStepIndex = useCallback(
@@ -348,7 +337,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       const id = steps[index];
       if (id) setUserStepId(id);
     },
-    [steps, activeIndex]
+    [steps, activeIndex],
   );
 
   async function submitForm(values: SubmitRegistrationInput) {
@@ -411,10 +400,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     fd.set("contactWhatsapp", values.contactWhatsapp);
 
     fd.set("claimedMemberNumber", values.claimedMemberNumber?.trim() ?? "");
-    fd.set(
-      "managementPublicCode",
-      values.managementPublicCode?.trim() ?? "",
-    );
+    fd.set("managementPublicCode", values.managementPublicCode?.trim() ?? "");
     fd.set("qtyPartner", String(values.qtyPartner));
 
     fd.set("partnerIsMember", values.partnerIsMember ? "1" : "0");
@@ -440,7 +426,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     if (result.ok) {
       toastCudSuccess("create", "Pendaftaran berhasil dikirim.");
       router.push(
-        `/events/${event.slug}/register/${result.data.registrationId}`
+        `/events/${event.slug}/register/${result.data.registrationId}`,
       );
       return;
     }

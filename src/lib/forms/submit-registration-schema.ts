@@ -31,6 +31,10 @@ export const MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE =
 export const MEMBER_NOT_IN_DIRECTORY_MESSAGE =
   "Nomor member tidak dikenali atau tidak aktif di direktori kami." as const;
 
+/** Dipakai setelah direktori & jalur kode pengurus sama-sama gagal (satu field identitas). */
+export const PRIMARY_PURCHASER_IDENTITY_NOT_RECOGNIZED_MESSAGE =
+  "Identitas tidak dikenali. Periksa nomor member di direktori atau kode akses yang Anda terima." as const;
+
 export const MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE =
   "Nomor member partner wajib diisi untuk tiket member CISC." as const;
 

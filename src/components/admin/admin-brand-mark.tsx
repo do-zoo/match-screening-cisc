@@ -14,7 +14,7 @@ export function AdminBrandMark() {
         <p className="truncate text-sm font-semibold leading-tight text-sidebar-foreground">
           {SITE_BRAND_SHORT} Admin
         </p>
-        <p className="text-xs text-sidebar-foreground/70">Panel PIC</p>
+        <p className="text-xs text-sidebar-foreground/70">Panel Admin</p>
       </div>
     </Link>
   );

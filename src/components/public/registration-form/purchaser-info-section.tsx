@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Controller,
+  useFormState,
   useWatch,
   type Control,
   type UseFormClearErrors,
@@ -36,8 +37,7 @@ import {
   maskDisplayName,
   maskDisplayWhatsapp,
 } from "./mask-contact-display";
-import type { ManagementCodeGateState } from "./use-management-code-gate";
-import type { PartnerGateState } from "./types";
+import type { ManagementCodeGateState, PartnerGateState } from "./types";
 
 type Props = {
   control: Control<SubmitRegistrationInput>;
@@ -50,7 +50,6 @@ type Props = {
   directoryVerifiedByCode: boolean;
 };
 
-/** Kartu ringkas bergaya profile card (visual mirip pola React Bits Profile Card — reactbits.dev). Bukan enkripsi kriptografi, hanya penyamaran tampilan. */
 function DirectoryContactProfileCard({
   maskedName,
   maskedWhatsapp,
@@ -83,12 +82,12 @@ function DirectoryContactProfileCard({
         role="region"
         aria-label="Data kontak disamarkan. Gunakan tombol ubah untuk menampilkan bidang lengkap dan mengedit."
         className={cn(
-          "relative mt-3 min-h-11 overflow-hidden rounded-2xl shadow-md ring-1 ring-primary/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300"
+          "relative mt-3 min-h-11 overflow-hidden rounded-2xl shadow-md ring-1 ring-primary/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
         )}
       >
-        <div className="flex flex-row gap-4 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/[0.06] px-4 py-4 backdrop-blur-sm dark:to-primary/[0.04]">
+        <div className="flex flex-row gap-4 rounded-2xl border border-border/80 bg-linear-to-br from-card via-card to-primary/6 px-4 py-4 backdrop-blur-sm dark:to-primary/4">
           <div
-            className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 text-lg font-semibold text-primary-foreground shadow-inner"
+            className="flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/80 text-lg font-semibold text-primary-foreground shadow-inner"
             aria-hidden
           >
             {initials}
@@ -149,15 +148,24 @@ export function PurchaserInfoSection({
   effectiveManagementCodeGate,
   directoryVerifiedByCode,
 }: Props) {
+  const { errors: identityFormErrors } = useFormState({
+    control,
+    name: ["claimedMemberNumber", "managementPublicCode"],
+  });
+  const identityErrors = [
+    identityFormErrors.claimedMemberNumber,
+    identityFormErrors.managementPublicCode,
+  ].filter(Boolean);
+  const identityFieldInvalid = identityErrors.length > 0;
+
   const purchaserIsMember = Boolean(
-    useWatch({ control, name: "purchaserIsMember" })
+    useWatch({ control, name: "purchaserIsMember" }),
   );
   const contactName = String(useWatch({ control, name: "contactName" }) ?? "");
   const contactWhatsapp = String(
-    useWatch({ control, name: "contactWhatsapp" }) ?? ""
+    useWatch({ control, name: "contactWhatsapp" }) ?? "",
   );
 
-  /** Hanya bermakna saat direktori terverifikasi; jangan mengandalkan saat gagal/struck. */
   const [contactsShowInputs, setContactsShowInputs] = useState(false);
 
   const directoryVerified = useMemo(() => {
@@ -180,7 +188,6 @@ export function PurchaserInfoSection({
     contactName.trim().length >= 2 &&
     !editingWhileVerified;
 
-  /** Sama dengan ambang tampilan mask + min Zod WhatsApp (8). */
   const whatsappLooksEmpty = contactWhatsapp.trim().length < 8;
   const showWhatsappFillHint =
     (directoryVerified || directoryVerifiedByCode) && whatsappLooksEmpty;
@@ -224,7 +231,7 @@ export function PurchaserInfoSection({
               <Label
                 htmlFor="ms-registration-status-member"
                 className={cn(
-                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4"
+                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4",
                 )}
               >
                 <RadioGroupItem
@@ -242,7 +249,7 @@ export function PurchaserInfoSection({
               <Label
                 htmlFor="ms-registration-status-non-member"
                 className={cn(
-                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4"
+                  "flex min-h-12 cursor-pointer touch-manipulation flex-row items-start gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm shadow-sm outline-none hover:bg-muted/35 has-data-checked:border-primary has-data-checked:bg-primary/4",
                 )}
               >
                 <RadioGroupItem
@@ -282,103 +289,69 @@ export function PurchaserInfoSection({
           <Controller
             control={control}
             name="claimedMemberNumber"
-            render={({ field: mField, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="ms-registration-member-number">
-                  Nomor member{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (atau kode pengurus di bawah)
-                  </span>
-                </FieldLabel>
-                <Input
-                  {...mField}
-                  id="ms-registration-member-number"
-                  placeholder="Contoh: CISC-xxxx"
-                  value={mField.value ?? ""}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    mField.onChange(e);
-                    const v = e.target.value.trim();
-                    if (v) {
+            render={({ field, fieldState }) => {
+              const display =
+                String(field.value ?? "").trim() || managementCodeTrim;
+              const identityChecking =
+                (claimedMemberTrim.length > 0 &&
+                  effectivePartnerGate.status === "checking") ||
+                (managementCodeTrim.length > 0 &&
+                  claimedMemberTrim.length === 0 &&
+                  effectiveManagementCodeGate.status === "checking");
+              return (
+                <Field
+                  data-invalid={identityFieldInvalid || fieldState.invalid}
+                >
+                  <FieldLabel htmlFor="ms-registration-primary-identity">
+                    Nomor member
+                  </FieldLabel>
+                  <Input
+                    ref={field.ref}
+                    id="ms-registration-primary-identity"
+                    name={field.name}
+                    placeholder="Contoh: CISC-xxxx"
+                    value={display}
+                    autoComplete="off"
+                    onBlur={field.onBlur}
+                    onChange={(e) => {
+                      const raw = e.target.value;
                       setValue("managementPublicCode", "", {
                         shouldValidate: true,
                       });
-                    }
-                  }}
-                  aria-invalid={fieldState.invalid}
-                />
-                <FieldDescription className="text-foreground/80">
-                  {MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE} {""}
-                  Nama, WhatsApp, dan pengunggahan foto kartu muncul hanya {""}
-                  <span className="font-medium text-foreground">
-                    setelah nomor dikenali sebagai member aktif
-                  </span>{" "}
-                  di direktori. Data kontak bisa diisi otomatis dari direktori;
-                  {""}
-                  <span className="font-medium text-foreground">
-                    foto kartu
-                  </span>{" "}
-                  tetap diperlukan setelah itu.
-                </FieldDescription>
-                {claimedMemberTrim.length > 0 &&
-                effectivePartnerGate.status === "checking" ? (
+                      field.onChange(raw === "" ? undefined : raw);
+                    }}
+                    aria-invalid={identityFieldInvalid || fieldState.invalid}
+                  />
                   <FieldDescription className="text-foreground/80">
-                    Memeriksa data member di direktori…
+                    {MEMBER_NUMBER_REQUIRED_WHEN_MEMBER_MESSAGE} {""}
+                    Nama, WhatsApp, dan pengunggahan foto kartu muncul hanya {""}
+                    <span className="font-medium text-foreground">
+                      setelah nomor dikenali sebagai member aktif
+                    </span>{" "}
+                    di direktori. Data kontak bisa diisi otomatis dari direktori;
+                    {""}
+                    <span className="font-medium text-foreground">
+                      foto kartu
+                    </span>{" "}
+                    tetap diperlukan setelah itu.
                   </FieldDescription>
-                ) : null}
-                {effectivePartnerGate.status === "ready" &&
-                effectivePartnerGate.found &&
-                effectivePartnerGate.seatForEvent === "taken" ? (
-                  <Alert variant="destructive" className="mt-2">
-                    <span>{MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE}</span>
-                  </Alert>
-                ) : fieldState.invalid ? (
-                  <FieldError errors={[fieldState.error]} />
-                ) : null}
-              </Field>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="managementPublicCode"
-            render={({ field: cField, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="ms-registration-management-code">
-                  Kode pengurus
-                </FieldLabel>
-                <Input
-                  {...cField}
-                  id="ms-registration-management-code"
-                  placeholder="Jika tidak ada nomor di direktori"
-                  value={cField.value ?? ""}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    cField.onChange(e);
-                    const v = e.target.value.trim();
-                    if (v) {
-                      setValue("claimedMemberNumber", undefined, {
-                        shouldValidate: true,
-                      });
-                    }
-                  }}
-                  aria-invalid={fieldState.invalid}
-                />
-                <FieldDescription className="text-foreground/80">
-                  Alternatif bagi pengurus yang belum punya baris di direktori
-                  anggota. Jangan isi bersamaan dengan nomor member.
-                </FieldDescription>
-                {managementCodeTrim.length > 0 &&
-                effectiveManagementCodeGate.status === "checking" ? (
-                  <FieldDescription className="text-foreground/80">
-                    Memeriksa kode kepengurusan…
-                  </FieldDescription>
-                ) : null}
-                {fieldState.invalid ? (
-                  <FieldError errors={[fieldState.error]} />
-                ) : null}
-              </Field>
-            )}
+                  {identityChecking ? (
+                    <FieldDescription className="text-foreground/80">
+                      Memeriksa identitas…
+                    </FieldDescription>
+                  ) : null}
+                  {effectivePartnerGate.status === "ready" &&
+                  effectivePartnerGate.found &&
+                  effectivePartnerGate.seatForEvent === "taken" ? (
+                    <Alert variant="destructive" className="mt-2">
+                      <span>{MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE}</span>
+                    </Alert>
+                  ) : identityErrors.length > 0 ? (
+                    <FieldError errors={identityErrors} />
+                  ) : null}
+                </Field>
+              );
+            }}
           />
 
           {identityVerified ? (

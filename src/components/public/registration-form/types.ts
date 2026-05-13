@@ -21,7 +21,23 @@ export type PartnerGateState =
       seatForEvent: "available" | "taken";
     };
 
-/** Validasi async nomor member opsional pada tiket partner (selaras pola `usePartnerGate`). */
+export type ManagementCodeGateState =
+  | { status: "empty" }
+  | { status: "checking"; forTrim: string }
+  | {
+      status: "ready";
+      forTrim: string;
+      found: true;
+      fullName: string;
+    }
+  | {
+      status: "ready";
+      forTrim: string;
+      found: false;
+      reason: "not_found" | "not_assigned";
+    };
+
+/** Validasi async nomor member opsional pada tiket partner (selaras pola gate identitas utama). */
 export type PartnerMemberNumberGateState =
   | { status: "empty" }
   | { status: "checking"; forTrim: string }
