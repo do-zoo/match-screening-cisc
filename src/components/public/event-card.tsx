@@ -31,21 +31,22 @@ const badgeConfig: Record<
   open: {
     label: "Buka",
     className:
-      "bg-green-950 text-green-400 border border-green-800",
+      "border-green-200 bg-green-50 text-green-950 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400",
   },
   closing_soon: {
     label: "Segera Tutup",
     className:
-      "bg-amber-950 text-amber-400 border border-amber-800",
+      "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400",
   },
   full: {
     label: "Penuh",
-    className: "bg-red-950 text-red-400 border border-red-800",
+    className:
+      "border-red-200 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400",
   },
   closed: {
     label: "Tutup",
     className:
-      "bg-neutral-800 text-neutral-400 border border-neutral-700",
+      "border-neutral-200 bg-neutral-50 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400",
   },
 };
 
@@ -58,7 +59,7 @@ function StatusBadge({ status }: { status: BadgeStatus }) {
         className,
       )}
     >
-      <span className="size-1.5 rounded-full bg-current" />
+      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
       {label}
     </span>
   );
@@ -102,14 +103,14 @@ export function EventCard({
     timeStyle: "short",
   });
 
-  const closeDate = new Date(closeRegistrationAtIso).toLocaleString("id-ID", {
+  const closeRegistrationDate = new Date(closeRegistrationAtIso);
+  const closeDate = closeRegistrationDate.toLocaleString("id-ID", {
     dateStyle: "medium",
   });
-
-  const closeDateShort = new Date(closeRegistrationAtIso).toLocaleString(
-    "id-ID",
-    { day: "numeric", month: "short" },
-  );
+  const closeDateShort = closeRegistrationDate.toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+  });
 
   const radius =
     variant === "grid" ? "var(--radius-lg)" : "calc(var(--radius-lg) - 2px)";
