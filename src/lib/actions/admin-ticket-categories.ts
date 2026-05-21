@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db/prisma";
-import { guardOwnerOrAdmin } from "@/lib/actions/guard";
+import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
 import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
 import {
   ticketCategorySchema,
@@ -12,7 +12,12 @@ export async function createTicketCategory(
   eventId: string,
   input: TicketCategoryInput,
 ): Promise<ActionResult<{ id: string }>> {
-  await guardOwnerOrAdmin();
+  try {
+    await guardOwnerOrAdmin();
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
   const parsed = ticketCategorySchema.safeParse(input);
   if (!parsed.success) return rootError("Data kategori tidak valid.");
 
@@ -33,7 +38,12 @@ export async function updateTicketCategory(
   categoryId: string,
   input: TicketCategoryInput,
 ): Promise<ActionResult<void>> {
-  await guardOwnerOrAdmin();
+  try {
+    await guardOwnerOrAdmin();
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
   const parsed = ticketCategorySchema.safeParse(input);
   if (!parsed.success) return rootError("Data kategori tidak valid.");
 
@@ -51,7 +61,12 @@ export async function updateTicketCategory(
 export async function deleteTicketCategory(
   categoryId: string,
 ): Promise<ActionResult<void>> {
-  await guardOwnerOrAdmin();
+  try {
+    await guardOwnerOrAdmin();
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
 
   const count = await prisma.registration.count({
     where: { ticketCategoryId: categoryId },
@@ -69,7 +84,12 @@ export async function toggleTicketCategoryActive(
   categoryId: string,
   isActive: boolean,
 ): Promise<ActionResult<void>> {
-  await guardOwnerOrAdmin();
+  try {
+    await guardOwnerOrAdmin();
+  } catch (e) {
+    if (isAuthError(e)) return rootError("Tidak diizinkan.");
+    throw e;
+  }
   await prisma.eventTicketCategory.update({
     where: { id: categoryId },
     data: { isActive },

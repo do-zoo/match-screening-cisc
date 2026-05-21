@@ -106,7 +106,7 @@ export function TicketCategoriesPanel({
           regularPrice: values.regularPrice,
           memberPrice: values.memberPrice,
           maxQtyPerPerson: values.maxQtyPerPerson,
-          sortOrder: categories.length,
+          sortOrder: Math.max(...categories.map((c) => c.sortOrder), 0) + 1,
           isActive: true,
           registrationCount: 0,
         };
