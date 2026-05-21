@@ -1,52 +1,68 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect } from "vitest";
+import { computeSubmitTotal, type SubmitPricingInput } from "./compute-submit-total";
 
-import { computeSubmitTotal } from "./compute-submit-total";
+const cat = { regularPrice: 800_000, memberPrice: 650_000 };
+const menu = { price: 150_000, name: "Paket A" };
 
 describe("computeSubmitTotal", () => {
-  const baseEvent = {
-    ticketMemberPrice: 500_000,
-    ticketNonMemberPrice: 750_000,
-  };
+  it("single non-member holder, no menu", () => {
+    const input: SubmitPricingInput = {
+      holders: [{ memberValidation: "invalid", category: cat }],
+    };
+    const result = computeSubmitTotal(input);
+    expect(result.grandTotal).toBe(800_000);
+    expect(result.lines[0].ticketPrice).toBe(800_000);
+    expect(result.lines[0].isMember).toBe(false);
+  });
 
-  it("calculates primary only", () => {
-    const result = computeSubmitTotal({
-      event: baseEvent,
-      primaryPriceType: "member",
-      primaryMandatoryMenu: { name: "Nasi", price: 150_000 },
-    });
+  it("single member holder (valid)", () => {
+    const input: SubmitPricingInput = {
+      holders: [{ memberValidation: "valid", category: cat }],
+    };
+    const result = computeSubmitTotal(input);
+    expect(result.grandTotal).toBe(650_000);
+    expect(result.lines[0].isMember).toBe(true);
+  });
 
-    expect(result.primaryTicketPrice).toBe(500_000);
-    expect(result.primaryMenuPrice).toBe(150_000);
-    expect(result.primaryTotal).toBe(500_000);
-    expect(result.grandTotal).toBe(500_000);
+  it("overridden validation counts as member", () => {
+    const input: SubmitPricingInput = {
+      holders: [{ memberValidation: "overridden", category: cat }],
+    };
+    expect(computeSubmitTotal(input).lines[0].isMember).toBe(true);
+  });
+
+  it("unknown validation counts as non-member", () => {
+    const input: SubmitPricingInput = {
+      holders: [{ memberValidation: "unknown", category: cat }],
+    };
+    expect(computeSubmitTotal(input).lines[0].isMember).toBe(false);
+  });
+
+  it("two holders — member + non-member", () => {
+    const input: SubmitPricingInput = {
+      holders: [
+        { memberValidation: "valid", category: cat },
+        { memberValidation: "invalid", category: cat },
+      ],
+    };
+    const result = computeSubmitTotal(input);
+    expect(result.grandTotal).toBe(650_000 + 800_000);
     expect(result.lines).toHaveLength(2);
   });
 
-  it("calculates primary + partner", () => {
-    const result = computeSubmitTotal({
-      event: baseEvent,
-      primaryPriceType: "member",
-      primaryMandatoryMenu: { name: "Nasi", price: 150_000 },
-      partnerPriceType: "member",
-      partnerMandatoryMenu: { name: "Lumpia", price: 100_000 },
-    });
-
-    expect(result.primaryTotal).toBe(500_000);
-    expect(result.partnerTotal).toBe(500_000);
-    expect(result.grandTotal).toBe(1_000_000);
-    expect(result.lines).toHaveLength(4);
+  it("menu price stored separately, not added to grandTotal", () => {
+    const input: SubmitPricingInput = {
+      holders: [{ memberValidation: "invalid", category: cat, menuItem: menu }],
+    };
+    const result = computeSubmitTotal(input);
+    // grandTotal is ticket only
+    expect(result.grandTotal).toBe(800_000);
+    expect(result.lines[0].menuPrice).toBe(150_000);
   });
 
-  it("uses non-member price for partner when requested", () => {
-    const result = computeSubmitTotal({
-      event: baseEvent,
-      primaryPriceType: "member",
-      primaryMandatoryMenu: { name: "Nasi", price: 150_000 },
-      partnerPriceType: "non_member",
-      partnerMandatoryMenu: { name: "Lumpia", price: 100_000 },
-    });
-
-    expect(result.partnerTicketPrice).toBe(750_000);
-    expect(result.grandTotal).toBe(1_250_000);
+  it("empty holders returns zero total", () => {
+    const result = computeSubmitTotal({ holders: [] });
+    expect(result.grandTotal).toBe(0);
+    expect(result.lines).toHaveLength(0);
   });
 });
