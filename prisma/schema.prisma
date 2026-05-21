@@ -233,12 +233,13 @@ model RegistrationHolder {
   member                    MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
   ticketPriceApplied        Int
   mandatoryMenuItemId       String?
+  mandatoryMenuItem         VenueMenuItem? @relation("RegistrationHolderMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
   mandatoryMenuPriceApplied Int?
 
   @@index([registrationId])
 }
 
-/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `Registration.mandatoryMenuItem`.
+/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `RegistrationHolder.mandatoryMenuItem`.
 model VenueMenuItem {
   id            String   @id @default(cuid())
   venueId       String
@@ -253,7 +254,8 @@ model VenueMenuItem {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  eventVenueLinks            EventVenueMenuItem[]
+  eventVenueLinks                  EventVenueMenuItem[]
+  registrationHoldersMandatoryMenu RegistrationHolder[] @relation("RegistrationHolderMandatoryMenu")
 
   @@index([venueId])
 }
@@ -339,6 +341,7 @@ model Registration {
 
   ticketCategoryId String
   ticketCategory   EventTicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Restrict)
+  /// Total tiket dalam transaksi ini; jumlah RegistrationHolder rows harus sama.
   ticketQty        Int                 @default(1)
 
   createdAt DateTime @default(now())
