@@ -35,8 +35,7 @@ export const adminEventUpsertSchema = z
     ),
     registrationManualClosed: z.boolean(),
     status: z.nativeEnum(EventStatus),
-    ticketMemberPrice: idrSchema,
-    ticketNonMemberPrice: idrSchema,
+    multiCategoryPurchase: z.boolean().optional(),
     picAdminProfileId: z.string().min(1, "PIC wajib."),
     bankAccountId: z.string().min(1, "Rekening bank wajib."),
     helperAdminProfileIds: z.array(z.string().min(1)),
@@ -89,21 +88,6 @@ export const adminEventUpsertSchema = z
         code: "custom",
         path: ["kickOffAtIso"],
         message: "Acara harus dimulai setelah gate dibuka.",
-      });
-    }
-
-    if (v.ticketMemberPrice <= 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["ticketMemberPrice"],
-        message: "Harga tiket member harus lebih dari 0.",
-      });
-    }
-    if (v.ticketNonMemberPrice <= 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["ticketNonMemberPrice"],
-        message: "Harga tiket non-member harus lebih dari 0.",
       });
     }
 

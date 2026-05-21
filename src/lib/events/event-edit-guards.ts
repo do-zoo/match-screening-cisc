@@ -2,8 +2,6 @@ export type EventIntegritySnapshot = {
   slug: string;
   venueId: string;
   mandatoryMenuItemIds: string[];
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
   picAdminProfileId: string;
   bankAccountId: string;
 };
@@ -51,13 +49,9 @@ export function needsSensitiveAcknowledgement(opts: {
 }): boolean {
   const merged = { ...opts.persisted, ...opts.candidate };
 
-  const pricingChanged =
-    merged.ticketMemberPrice !== opts.persisted.ticketMemberPrice ||
-    merged.ticketNonMemberPrice !== opts.persisted.ticketNonMemberPrice;
-
   const financeActorChanged =
     merged.picAdminProfileId !== opts.persisted.picAdminProfileId ||
     merged.bankAccountId !== opts.persisted.bankAccountId;
 
-  return pricingChanged || financeActorChanged;
+  return financeActorChanged;
 }

@@ -28,6 +28,7 @@ import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -37,11 +38,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { IdrAmountInput } from "@/components/ui/idr-amount-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatIdr } from "@/lib/utils/format-idr";
 import { Textarea } from "@/components/ui/textarea";
+import { TicketCategoriesPanel } from "@/components/admin/event-editor/ticket-categories-panel";
+import type { EventTicketCategoryRow } from "@/lib/tickets/get-event-ticket-categories";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
@@ -56,7 +58,7 @@ import { FileField } from "@/components/ui/file-field";
 import { FieldGroup } from "@/components/ui/field";
 
 const SENSITIVE_ACK_MESSAGE =
-  "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.";
+  "Centang pengakuan untuk mengubah PIC utama atau rekening pembayaran.";
 
 export type EventAdminPicOption = { id: string; label: string };
 
@@ -89,6 +91,8 @@ export type EventAdminFormProps = {
   venueOptions: VenueOptionForEventAdmin[];
   /** Pratinjau sampul yang sudah tersimpan (mode edit). */
   persistedCoverUrl?: string | null;
+  /** Kategori tiket yang sudah tersimpan (mode edit); kosong untuk mode buat. */
+  categories: EventTicketCategoryRow[];
   /** ID acara + token untuk unggah gambar di deskripsi (Buat / Edit). */
   descriptionAssetContext?: { eventId: string; assetToken: string } | null;
 };
@@ -110,8 +114,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
       slug: "",
       venueId: props.defaults.venueId,
       mandatoryMenuItemIds: props.defaults.mandatoryMenuItemIds,
-      ticketMemberPrice: props.defaults.ticketMemberPrice,
-      ticketNonMemberPrice: props.defaults.ticketNonMemberPrice,
       picAdminProfileId: props.defaults.picAdminProfileId,
       bankAccountId: props.defaults.bankAccountId,
     } satisfies EventIntegritySnapshot);
@@ -557,40 +559,22 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Harga tiket</h2>
-          <p className="text-muted-foreground text-xs">
-            Harga disimpan per acara sebagai bilangan bulat Rupiah (tanpa
-            desimal).
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tiket member">
-              <Controller
-                control={form.control}
-                name="ticketMemberPrice"
-                render={({ field, fieldState }) => (
-                  <IdrAmountInput
-                    disabled={pending}
-                    aria-invalid={fieldState.invalid}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  />
-                )}
-              />
-            </Field>
-            <Field label="Tiket non-member">
-              <Controller
-                control={form.control}
-                name="ticketNonMemberPrice"
-                render={({ field, fieldState }) => (
-                  <IdrAmountInput
-                    disabled={pending}
-                    aria-invalid={fieldState.invalid}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  />
-                )}
-              />
-            </Field>
+          <h2 className="text-lg font-medium">Harga & Tiket</h2>
+          <TicketCategoriesPanel
+            eventId={props.eventId ?? ""}
+            categories={props.categories}
+          />
+          <div className="flex items-center gap-2 pt-2">
+            <Checkbox
+              id="multiCategoryPurchase"
+              checked={form.watch("multiCategoryPurchase") ?? false}
+              onCheckedChange={(v) =>
+                form.setValue("multiCategoryPurchase", Boolean(v))
+              }
+            />
+            <label htmlFor="multiCategoryPurchase" className="text-sm">
+              Izinkan beli tiket dari beberapa kategori dalam satu transaksi
+            </label>
           </div>
         </section>
 
@@ -766,7 +750,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
           <DialogHeader>
             <DialogTitle>Konfirmasi perubahan sensitif</DialogTitle>
             <DialogDescription>
-              Anda mengubah harga tiket, PIC utama, atau rekening pembayaran.
+              Anda mengubah PIC utama atau rekening pembayaran.
               Pastikan ini disengaja sebelum melanjutkan.
             </DialogDescription>
           </DialogHeader>

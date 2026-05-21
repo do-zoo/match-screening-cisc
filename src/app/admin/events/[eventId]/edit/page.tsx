@@ -12,6 +12,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import type { EventIntegritySnapshot } from "@/lib/events/event-edit-guards";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
+import { getEventTicketCategories } from "@/lib/tickets/get-event-ticket-categories";
 import {
   canManageCommitteeAdvancedSettings,
   hasOperationalOwnerParity,
@@ -63,7 +64,7 @@ export default async function AdminEditEventPage({
     notFound();
   }
 
-  const [event, venuesRaw] = await Promise.all([
+  const [event, venuesRaw, categories] = await Promise.all([
     prisma.event.findUnique({
       where: { id: eventId },
       include: {
@@ -81,6 +82,7 @@ export default async function AdminEditEventPage({
         menuItems: { orderBy: { sortOrder: "asc" } },
       },
     }),
+    getEventTicketCategories(eventId),
   ]);
 
   if (!event) {
@@ -166,8 +168,7 @@ export default async function AdminEditEventPage({
     registrationCapacity: event.registrationCapacity,
     registrationManualClosed: event.registrationManualClosed,
     status: event.status,
-    ticketMemberPrice: event.ticketMemberPrice,
-    ticketNonMemberPrice: event.ticketNonMemberPrice,
+    multiCategoryPurchase: event.multiCategoryPurchase,
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
     helperAdminProfileIds: event.helpers.map((h) => h.adminProfileId),
@@ -178,8 +179,6 @@ export default async function AdminEditEventPage({
     slug: event.slug,
     venueId: event.venueId,
     mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
-    ticketMemberPrice: event.ticketMemberPrice,
-    ticketNonMemberPrice: event.ticketNonMemberPrice,
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
   };
@@ -219,6 +218,7 @@ export default async function AdminEditEventPage({
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
         venueOptions={venueOptions}
+        categories={categories}
         descriptionAssetContext={{
           eventId,
           assetToken: descriptionAssetToken,

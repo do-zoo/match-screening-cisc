@@ -204,9 +204,6 @@ export async function createAdminEvent(
   const vMenu = await validateLinkedVenueMenuOrError(data);
   if (!vMenu.ok) return vMenu;
 
-  const ticketMemberPrice = data.ticketMemberPrice;
-  const ticketNonMemberPrice = data.ticketNonMemberPrice;
-
   const helperIds = [...new Set(data.helperAdminProfileIds)].filter(
     (id) => id !== data.picAdminProfileId,
   );
@@ -288,8 +285,7 @@ export async function createAdminEvent(
               ? null
               : data.registrationCapacity,
           status: data.status,
-          ticketMemberPrice,
-          ticketNonMemberPrice,
+          multiCategoryPurchase: data.multiCategoryPurchase ?? false,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -358,8 +354,6 @@ export async function updateAdminEvent(
       venueId: true,
       coverBlobUrl: true,
       mandatoryMenuItemIds: true,
-      ticketMemberPrice: true,
-      ticketNonMemberPrice: true,
       picAdminProfileId: true,
       bankAccountId: true,
       eventVenueMenuItems: {
@@ -380,8 +374,6 @@ export async function updateAdminEvent(
     slug: existing.slug,
     venueId: existing.venueId,
     mandatoryMenuItemIds: [...existing.mandatoryMenuItemIds],
-    ticketMemberPrice: existing.ticketMemberPrice,
-    ticketNonMemberPrice: existing.ticketNonMemberPrice,
     picAdminProfileId: existing.picAdminProfileId,
     bankAccountId: existing.bankAccountId,
   };
@@ -429,12 +421,7 @@ export async function updateAdminEvent(
   const vMenu = await validateLinkedVenueMenuOrError(data);
   if (!vMenu.ok) return vMenu;
 
-  const ticketMemberPrice = data.ticketMemberPrice;
-  const ticketNonMemberPrice = data.ticketNonMemberPrice;
-
   const candidateSensitivity: Partial<EventIntegritySnapshot> = {
-    ticketMemberPrice,
-    ticketNonMemberPrice,
     picAdminProfileId: data.picAdminProfileId,
     bankAccountId: data.bankAccountId,
   };
@@ -445,7 +432,7 @@ export async function updateAdminEvent(
   });
   if (sens && !data.acknowledgeSensitiveChanges) {
     return rootError(
-      "Centang pengakuan untuk mengubah harga tiket, PIC utama, atau rekening pembayaran.",
+      "Centang pengakuan untuk mengubah PIC utama atau rekening pembayaran.",
     );
   }
 
@@ -534,8 +521,7 @@ export async function updateAdminEvent(
               ? undefined
               : data.registrationCapacity,
           status: data.status,
-          ticketMemberPrice,
-          ticketNonMemberPrice,
+          multiCategoryPurchase: data.multiCategoryPurchase,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },

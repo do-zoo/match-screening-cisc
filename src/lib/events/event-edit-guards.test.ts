@@ -11,8 +11,6 @@ const persisted: EventIntegritySnapshot = {
   slug: "demo",
   venueId: "v1",
   mandatoryMenuItemIds: ["m1"],
-  ticketMemberPrice: 1,
-  ticketNonMemberPrice: 2,
   picAdminProfileId: "a1",
   bankAccountId: "b1",
 };
@@ -66,11 +64,11 @@ describe("findMandatoryMenuLockedViolation", () => {
 });
 
 describe("needsSensitiveAcknowledgement", () => {
-  it("detects pricing changes but not PIC-only omission", () => {
+  it("detects finance actor changes but not no-op candidates", () => {
     expect(
       needsSensitiveAcknowledgement({
         persisted,
-        candidate: { ticketMemberPrice: 9 },
+        candidate: { picAdminProfileId: "a2" },
       }),
     ).toBe(true);
 

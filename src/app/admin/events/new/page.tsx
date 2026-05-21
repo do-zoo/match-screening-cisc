@@ -13,10 +13,6 @@ import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import {
-  COMMITTEE_TICKET_FALLBACK_MEMBER_IDR,
-  COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR,
-} from "@/lib/events/event-admin-defaults";
 import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
 import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
 import { signDescriptionAssetEventId } from "@/lib/public/description-asset-token";
@@ -134,8 +130,7 @@ export default async function AdminNewEventPage() {
     registrationCapacity: null,
     registrationManualClosed: false,
     status: "draft",
-    ticketMemberPrice: COMMITTEE_TICKET_FALLBACK_MEMBER_IDR,
-    ticketNonMemberPrice: COMMITTEE_TICKET_FALLBACK_NON_MEMBER_IDR,
+    multiCategoryPurchase: false,
     picAdminProfileId: firstPicId ?? "",
     bankAccountId: firstBankId,
     helperAdminProfileIds: [],
@@ -235,6 +230,7 @@ export default async function AdminNewEventPage() {
         banksByPic={banksByPic}
         helperAdminOptions={helperAdminOptions}
         venueOptions={venueOptions}
+        categories={[]}
         descriptionAssetContext={{
           eventId: descriptionAssetClientEventId,
           assetToken: descriptionAssetToken,
