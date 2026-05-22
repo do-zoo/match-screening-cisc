@@ -24,6 +24,17 @@ export const getActiveEventRegistrationPageData = cache(async (slug: string) =>
       eventVenueMenuItems: {
         include: { venueMenuItem: true },
       },
+      ticketCategories: {
+        where: { isActive: true },
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          name: true,
+          regularPrice: true,
+          memberPrice: true,
+          maxQtyPerPerson: true,
+        },
+      },
     },
   }),
 );
@@ -78,8 +89,14 @@ export const getSerializedEventForPublicRegistration = cache(
       registrationOpen,
       registrationClosedMessage,
       mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
-      ticketMemberPrice: event.ticketMemberPrice,
-      ticketNonMemberPrice: event.ticketNonMemberPrice,
+      ticketCategories: event.ticketCategories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        regularPrice: c.regularPrice,
+        memberPrice: c.memberPrice,
+        maxQtyPerPerson: c.maxQtyPerPerson,
+      })),
+      menuRequired: event.mandatoryMenuItemIds.length > 0,
       bankAccount: {
         bankName: event.bankAccount.bankName,
         accountNumber: event.bankAccount.accountNumber,

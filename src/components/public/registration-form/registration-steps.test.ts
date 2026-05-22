@@ -1,131 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildRegistrationSteps,
-  getTriggerFieldsForStep,
-  resolveActiveStepAfterStepsChange,
+  REGISTRATION_STEP_ORDER,
+  registrationStepTitle,
   type RegistrationStepId,
 } from "./registration-steps";
 
-describe("buildRegistrationSteps", () => {
-  it("orders purchaser, optional partner, menu, then payment", () => {
-    expect(buildRegistrationSteps(false)).toEqual([
-      "purchaser",
-      "menu",
-      "payment",
-    ]);
-    expect(buildRegistrationSteps(true)).toEqual([
-      "purchaser",
-      "partner",
-      "menu",
-      "payment",
-    ]);
+describe("REGISTRATION_STEP_ORDER", () => {
+  it("has category, holders, payment in order", () => {
+    expect(REGISTRATION_STEP_ORDER).toEqual(["category", "holders", "payment"]);
   });
 });
 
-describe("resolveActiveStepAfterStepsChange", () => {
-  it("keeps current id when still in the step list", () => {
-    const steps = ["purchaser", "menu", "payment"] as const;
-    expect(
-      resolveActiveStepAfterStepsChange("menu", [...steps] as RegistrationStepId[]),
-    ).toBe("menu");
+describe("registrationStepTitle", () => {
+  it("returns Indonesian label for each step", () => {
+    expect(registrationStepTitle("category")).toBe("Pilih Tiket");
+    expect(registrationStepTitle("holders")).toBe("Data Peserta");
+    expect(registrationStepTitle("payment")).toBe("Pembayaran");
   });
 
-  it("moves forward in canonical order when current id was removed", () => {
-    const steps = ["purchaser", "payment"] as RegistrationStepId[];
-    expect(resolveActiveStepAfterStepsChange("partner", steps)).toBe("payment");
-    const withMenu = ["purchaser", "menu", "payment"] as RegistrationStepId[];
-    expect(
-      resolveActiveStepAfterStepsChange("partner", withMenu),
-    ).toBe("menu");
-  });
-});
-
-describe("getTriggerFieldsForStep purchaser gate", () => {
-  const qty = 0 as const;
-
-  it("member path before directory verified validates only purchaser + claimed", () => {
-    expect(
-      getTriggerFieldsForStep("purchaser", qty, {
-        purchaserIsMember: true,
-        directoryVerified: false,
-      }),
-    ).toEqual([
-      "purchaserIsMember",
-      "claimedMemberNumber",
-      "managementPublicCode",
-    ]);
-  });
-
-  it("member path after directory verified includes kontak dan foto kartu", () => {
-    expect(
-      getTriggerFieldsForStep("purchaser", qty, {
-        purchaserIsMember: true,
-        directoryVerified: true,
-      }),
-    ).toEqual([
-      "purchaserIsMember",
-      "claimedMemberNumber",
-      "contactName",
-      "contactWhatsapp",
-      "memberCardPhoto",
-    ]);
-  });
-
-  it("non-member path ignores directoryVerified", () => {
-    expect(
-      getTriggerFieldsForStep("purchaser", qty, {
-        purchaserIsMember: false,
-      }),
-    ).toEqual(["purchaserIsMember", "contactName", "contactWhatsapp"]);
-  });
-});
-
-describe("getTriggerFieldsForStep partner gate", () => {
-  const qty = 1 as const;
-
-  it("asks for partner member status before other partner fields when unknown", () => {
-    expect(getTriggerFieldsForStep("partner", qty, {})).toEqual([
-      "qtyPartner",
-      "partnerIsMember",
-    ]);
-  });
-
-  it("non-member partner path validates name/contact without nomor kartu partner", () => {
-    expect(
-      getTriggerFieldsForStep("partner", qty, {
-        partnerIsMember: false,
-      }),
-    ).toEqual([
-      "qtyPartner",
-      "partnerIsMember",
-      "partnerName",
-      "partnerWhatsapp",
-    ]);
-  });
-
-  it("member partner path before directory only validates nominal partner member", () => {
-    expect(
-      getTriggerFieldsForStep("partner", qty, {
-        partnerIsMember: true,
-        partnerDirectoryVerified: false,
-      }),
-    ).toEqual(["qtyPartner", "partnerIsMember", "partnerMemberNumber"]);
-  });
-
-  it("member partner after directory includes kartu + kontak untuk partner", () => {
-    expect(
-      getTriggerFieldsForStep("partner", qty, {
-        partnerIsMember: true,
-        partnerDirectoryVerified: true,
-      }),
-    ).toEqual([
-      "qtyPartner",
-      "partnerIsMember",
-      "partnerMemberNumber",
-      "partnerMemberCardPhoto",
-      "partnerName",
-      "partnerWhatsapp",
-    ]);
+  it("covers all step ids in REGISTRATION_STEP_ORDER", () => {
+    for (const id of REGISTRATION_STEP_ORDER) {
+      expect(registrationStepTitle(id as RegistrationStepId)).toBeTruthy();
+    }
   });
 });

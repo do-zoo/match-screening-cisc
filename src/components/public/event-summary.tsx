@@ -74,14 +74,24 @@ export function EventSummary({ event }: Props) {
           <dt className="text-[hsl(var(--muted-foreground))]">Mulai</dt>
           <dd>{fmt(event.kickOffAtIso, dateTimeLong)}</dd>
 
-          <dt className="text-[hsl(var(--muted-foreground))]">Harga tiket</dt>
-          <dd>
-            {formatIdr(event.ticketMemberPrice)}{" "}
-            <span className="text-[hsl(var(--muted-foreground))]">(member)</span>
-            {" / "}
-            {formatIdr(event.ticketNonMemberPrice)}{" "}
-            <span className="text-[hsl(var(--muted-foreground))]">(umum)</span>
-          </dd>
+          {event.ticketCategories && event.ticketCategories.length > 0 && (
+            <>
+              <dt className="text-[hsl(var(--muted-foreground))]">Harga tiket</dt>
+              <dd className="space-y-0.5">
+                {event.ticketCategories.map((cat) => (
+                  <div key={cat.id}>
+                    <span className="font-medium">{cat.name}</span>
+                    {": "}
+                    {formatIdr(cat.memberPrice)}{" "}
+                    <span className="text-[hsl(var(--muted-foreground))]">(member)</span>
+                    {" / "}
+                    {formatIdr(cat.regularPrice)}{" "}
+                    <span className="text-[hsl(var(--muted-foreground))]">(umum)</span>
+                  </div>
+                ))}
+              </dd>
+            </>
+          )}
         </dl>
       </div>
       <div

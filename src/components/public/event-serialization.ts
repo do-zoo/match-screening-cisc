@@ -12,6 +12,14 @@ export type SerializedBankAccount = {
   accountName: string;
 };
 
+export type SerializedTicketCategory = {
+  id: string;
+  name: string;
+  regularPrice: number;
+  memberPrice: number;
+  maxQtyPerPerson: number | null;
+};
+
 export type SerializedEventForRegistration = {
   slug: string;
   title: string;
@@ -28,8 +36,8 @@ export type SerializedEventForRegistration = {
   registrationOpen: boolean;
   registrationClosedMessage: string | null;
   mandatoryMenuItemIds: string[];
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
+  ticketCategories: SerializedTicketCategory[];
+  menuRequired: boolean;
   bankAccount: SerializedBankAccount;
   /** Semua item menu acara (dari `EventVenueMenuItem`). */
   menuItems: SerializedEventMenuItem[];
