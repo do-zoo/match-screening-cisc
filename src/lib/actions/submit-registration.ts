@@ -4,20 +4,12 @@ import { del } from "@vercel/blob";
 import { RegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
-  fieldError,
   ok,
   rootError,
   type ActionResult,
 } from "@/lib/forms/action-result";
-import {
-  createSubmitRegistrationFormSchema,
-  MEMBER_NOT_IN_DIRECTORY_MESSAGE,
-} from "@/lib/forms/submit-registration-schema";
+import { submitRegistrationSchema } from "@/lib/forms/submit-registration-schema";
 import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
-import { getActiveMasterMemberByMemberNumber } from "@/lib/members/lookup-master-member";
-import { normalizePublicManagementCode } from "@/lib/management/normalize-public-code";
-import { resolveManagementMemberForPublicRegistration } from "@/lib/management/resolve-management-member-for-registration";
-import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
 import { UploadError } from "@/lib/uploads/errors";
 import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
 import {
@@ -27,7 +19,6 @@ import {
   registrationBlockMessageForPublic,
   RegistrationNotAcceptableError,
 } from "@/lib/events/registration-window";
-import { flattenedMenuRowsFromEventVenueLinks } from "@/lib/events/flatten-event-venue-menu";
 import {
   DEFAULT_GLOBAL_REGISTRATION_CLOSED,
   mergeGlobalRegistrationClosure,
@@ -35,9 +26,6 @@ import {
 import { loadClubOperationalSettings } from "@/lib/public/load-club-operational-settings";
 
 export type { SubmitRegistrationInput } from "@/lib/forms/submit-registration-schema";
-
-const duplicateMemberMessage = (memberNumbers: string[]) =>
-  `Nomor member berikut sudah terdaftar untuk acara ini: ${memberNumbers.join(", ")}`;
 
 function uploadErrorMessage(err: UploadError): string {
   const code =
@@ -55,51 +43,62 @@ function uploadErrorMessage(err: UploadError): string {
   return "Gagal mengunggah gambar. Coba unggah ulang.";
 }
 
-/** FormData / Object.fromEntries can yield string | Blob; keep scalars predictable for Zod. */
-function coerceForSchema(value: unknown): unknown {
-  if (typeof value === "object" && value instanceof File) return value;
-  if (typeof value === "number") return String(value);
-  return value;
-}
-
-function optionalFile(entry: FormDataEntryValue | null): File | undefined {
-  return entry instanceof File ? entry : undefined;
-}
-
 export async function submitRegistration(
-  _prev: unknown,
-  formData: FormData
+  eventId: string,
+  formData: FormData,
 ): Promise<ActionResult<{ registrationId: string }>> {
-  const slug = formData.get("slug");
-  if (typeof slug !== "string" || slug.trim().length === 0) {
-    return fieldError({
-      slug: "Slug acara hilang atau tidak valid. Muat ulang halaman ini.",
-    });
+  // 1. Parse holders from JSON
+  let holdersRaw: unknown;
+  try {
+    holdersRaw = JSON.parse(formData.get("holders") as string);
+  } catch {
+    return rootError("Data peserta tidak valid.");
   }
 
-  // 1. Ambil Event Terlebih Dahulu
-  const event = await prisma.event.findFirst({
-    where: { slug, status: "active" },
-    include: {
-      eventVenueMenuItems: {
-        include: { venueMenuItem: true },
-      },
-    },
-  });
-
-  if (!event) {
-    return rootError("Event tidak tersedia atau belum aktif.");
-  }
-
-  type PublicMenuRow = {
-    id: string;
-    name: string;
-    price: number;
+  const rawInput = {
+    ticketCategoryId: formData.get("ticketCategoryId"),
+    ticketQty: Number(formData.get("ticketQty")),
+    holders: holdersRaw,
+    contactWhatsapp: formData.get("contactWhatsapp"),
+    transferProof: formData.get("transferProof"),
   };
-  const menuRowList: PublicMenuRow[] = flattenedMenuRowsFromEventVenueLinks(
-    event.eventVenueMenuItems,
-  );
 
+  const parsed = submitRegistrationSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    return rootError(firstIssue?.message ?? "Data tidak valid.");
+  }
+
+  const input = parsed.data;
+
+  // 2. Fetch event + category + club settings in parallel
+  const [event, opsGate] = await Promise.all([
+    prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        status: true,
+        registrationManualClosed: true,
+        openRegistrationAt: true,
+        closeRegistrationAt: true,
+        registrationCapacity: true,
+        ticketCategories: {
+          where: { id: input.ticketCategoryId, isActive: true },
+          select: {
+            id: true,
+            regularPrice: true,
+            memberPrice: true,
+            maxQtyPerPerson: true,
+          },
+        },
+      },
+    }),
+    loadClubOperationalSettings(),
+  ]);
+
+  if (!event) return rootError("Acara tidak ditemukan.");
+
+  // 3. Check registration window (local + global)
   const registrationsTowardQuotaPreview = await countRegistrationsTowardQuota(
     prisma,
     event.id,
@@ -108,7 +107,6 @@ export async function submitRegistration(
     event,
     registrationsTowardQuota: registrationsTowardQuotaPreview,
   });
-  const opsGate = await loadClubOperationalSettings();
   const mergedGate = mergeGlobalRegistrationClosure({
     registrationOpen: locallyOpen,
     registrationClosedMessage: locallyOpen
@@ -130,290 +128,92 @@ export async function submitRegistration(
     );
   }
 
-  // 2. Siapkan Payload & Parse dengan Factory Zod
-  const raw = Object.fromEntries(formData.entries());
-  const qtyPartnerNorm: 0 | 1 =
-    String(raw.qtyPartner ?? "0").trim() === "1" ? 1 : 0;
+  // 4. Validate category
+  const category = event.ticketCategories[0];
+  if (!category) return rootError("Kategori tiket tidak tersedia.");
 
-  const purchaserIsMember =
-    String(raw.purchaserIsMember ?? "")
-      .trim()
-      .toLowerCase() === "1";
-
-  const partnerIsMember =
-    qtyPartnerNorm === 1 &&
-    String(raw.partnerIsMember ?? "")
-      .trim()
-      .toLowerCase() === "1";
-
-  const payload = {
-    slug: coerceForSchema(raw.slug),
-    purchaserIsMember,
-    contactName: coerceForSchema(raw.contactName),
-    contactWhatsapp: coerceForSchema(raw.contactWhatsapp),
-    claimedMemberNumber: coerceForSchema(raw.claimedMemberNumber),
-    managementPublicCode: coerceForSchema(raw.managementPublicCode),
-    qtyPartner: qtyPartnerNorm,
-    partnerIsMember,
-    partnerName: coerceForSchema(raw.partnerName),
-    partnerWhatsapp: coerceForSchema(raw.partnerWhatsapp),
-    partnerMemberNumber: coerceForSchema(raw.partnerMemberNumber),
-    primaryMandatoryMenuItemId: coerceForSchema(
-      raw.primaryMandatoryMenuItemId,
-    ),
-    partnerMandatoryMenuItemId: coerceForSchema(
-      raw.partnerMandatoryMenuItemId,
-    ),
-    transferProof: optionalFile(formData.get("transferProof")),
-    memberCardPhoto: optionalFile(formData.get("memberCardPhoto")),
-    partnerMemberCardPhoto: optionalFile(
-      formData.get("partnerMemberCardPhoto"),
-    ),
-  };
-
-  const schema = createSubmitRegistrationFormSchema({
-    mandatoryMenuItemIds: event.mandatoryMenuItemIds,
-  });
-  const parsed = schema.safeParse(payload);
-
-  if (!parsed.success) {
-    const fe: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const p = issue.path[0];
-      if (typeof p === "string") fe[p] = issue.message;
-    }
-    return fieldError(fe);
-  }
-
-  const data = parsed.data;
-
-  // 3. Persiapan Data Lanjutan
-  const transferProof = data.transferProof;
-  const memberCard = data.memberCardPhoto;
-  const partnerMemberCard = data.partnerMemberCardPhoto;
-
-  const includePartner = data.qtyPartner === 1;
-  const primaryMemberNumberInput =
-    data.claimedMemberNumber?.trim() || undefined;
-  const partnerMemberNumberRaw =
-    includePartner && data.partnerIsMember
-      ? data.partnerMemberNumber?.trim() || undefined
-      : undefined;
-
-  const primaryDirectoryRow = primaryMemberNumberInput
-    ? await getActiveMasterMemberByMemberNumber(primaryMemberNumberInput)
-    : null;
-
-  if (primaryMemberNumberInput && !primaryDirectoryRow) {
-    return fieldError({
-      claimedMemberNumber: MEMBER_NOT_IN_DIRECTORY_MESSAGE,
-    });
-  }
-
-  const managementPublicCodeTrim =
-    data.managementPublicCode?.trim() || undefined;
-
-  let primaryManagementMemberId: string | null = null;
-  let claimedManagementPublicCodeStored: string | null = null;
-
-  if (managementPublicCodeTrim) {
-    const norm = normalizePublicManagementCode(managementPublicCodeTrim);
-    const resolved = await resolveManagementMemberForPublicRegistration(norm);
-    if (!resolved.ok) {
-      return fieldError({
-        managementPublicCode:
-          resolved.reason === "not_found"
-            ? "Kode pengurus tidak dikenali."
-            : "Pengurus tidak terdaftar dalam kepengurusan aktif untuk periode ini.",
-      });
-    }
-    primaryManagementMemberId = resolved.managementMemberId;
-    claimedManagementPublicCodeStored = norm;
-  }
-
-  /** Kanonis dari direktori (penulisan di DB); mencegah mismatch kapitalisasi vs klaim nomor. */
-  const primaryMemberNumber = primaryDirectoryRow
-    ? primaryDirectoryRow.memberNumber
-    : primaryMemberNumberInput;
-
-  let canonicalPartnerMemberNumber: string | undefined;
-  if (partnerMemberNumberRaw) {
-    const partnerRow =
-      await getActiveMasterMemberByMemberNumber(partnerMemberNumberRaw);
-    if (!partnerRow) {
-      return fieldError({
-        partnerMemberNumber: MEMBER_NOT_IN_DIRECTORY_MESSAGE,
-      });
-    }
-    canonicalPartnerMemberNumber = partnerRow.memberNumber;
-  }
-
-  const candidates = [primaryMemberNumber, canonicalPartnerMemberNumber].filter(
-    Boolean,
-  ) as string[];
-
-  // Validasi DB: Duplikat member & hak akses Pengurus
-  const dup = await findDuplicateMemberNumbers(event.id, candidates);
-  if (dup.length > 0) {
-    return rootError(duplicateMemberMessage(dup));
-  }
-
-  if (includePartner) {
-    const primaryEligibleForPartner =
-      Boolean(primaryDirectoryRow?.isManagementMember) ||
-      Boolean(primaryManagementMemberId);
-    if (!primaryEligibleForPartner) {
-      return rootError(
-        "Tiket partner hanya untuk pengurus (komite) — validasi identitas utama."
-      );
-    }
-  }
-
-  const primaryIsMemberPrice =
-    Boolean(primaryMemberNumber) || Boolean(primaryManagementMemberId);
-  const partnerTicketPriceType = data.partnerIsMember ? "member" : "non_member";
-
-  const primaryMenuRow = menuRowList.find(
-    (m) => m.id === data.primaryMandatoryMenuItemId,
-  );
-  if (!primaryMenuRow) {
+  if (
+    category.maxQtyPerPerson !== null &&
+    input.ticketQty > category.maxQtyPerPerson
+  ) {
     return rootError(
-      "Konfigurasi menu acara tidak konsisten atau berubah. Muat ulang halaman ini.",
+      `Maksimal ${category.maxQtyPerPerson} tiket untuk kategori ini.`,
     );
   }
 
-  let partnerMenuRow: PublicMenuRow | undefined;
-  if (includePartner) {
-    const pid = data.partnerMandatoryMenuItemId?.trim();
-    partnerMenuRow = menuRowList.find((m) => m.id === pid);
-    if (!partnerMenuRow) {
-      return rootError(
-        "Konfigurasi menu partner tidak konsisten atau berubah. Muat ulang halaman ini.",
-      );
-    }
+  if (input.holders.length !== input.ticketQty) {
+    return rootError("Jumlah data peserta tidak sesuai dengan jumlah tiket.");
   }
 
-  let pricing: ReturnType<typeof computeSubmitTotal>;
-  try {
-    pricing = computeSubmitTotal({
-      event: {
-        ticketMemberPrice: event.ticketMemberPrice,
-        ticketNonMemberPrice: event.ticketNonMemberPrice,
+  // 5. Compute pricing — all holders start as "unknown"; admin validates later
+  const pricing = computeSubmitTotal({
+    holders: input.holders.map((h) => ({
+      memberValidation: "unknown" as const,
+      category: {
+        regularPrice: category.regularPrice,
+        memberPrice: category.memberPrice,
       },
-      primaryPriceType: primaryIsMemberPrice ? "member" : "non_member",
-      primaryMandatoryMenu: {
-        name: primaryMenuRow.name,
-        price: primaryMenuRow.price,
-      },
-      ...(includePartner
-        ? {
-            partnerPriceType: partnerTicketPriceType,
-            partnerMandatoryMenu: {
-              name: partnerMenuRow!.name,
-              price: partnerMenuRow!.price,
-            },
-          }
-        : {}),
-    });
-  } catch (e) {
-    console.error(e);
-    return rootError("Gagal menghitung total pendaftaran. Hubungi panitia.");
-  }
+      menuItem: h.mandatoryMenuItemId ? { price: 0, name: "" } : null,
+    })),
+  });
 
+  // 6. Create Registration + RegistrationHolder[] in a transaction, then upload
   let registrationId = "";
-  let activeUploadField:
-    | "transferProof"
-    | "memberCardPhoto"
-    | "partnerMemberCardPhoto"
-    | null = null;
 
   try {
     const reg = await prisma.$transaction(async (tx) => {
       await assertRegistrationAcceptableOrThrowForTx(tx, event);
 
-      const primary = await tx.registration.create({
+      // contactName comes from the first holder
+      const contactName = input.holders[0].holderName;
+
+      const created = await tx.registration.create({
         data: {
           eventId: event.id,
-          contactName: data.contactName,
-          contactWhatsapp: data.contactWhatsapp,
-          claimedMemberNumber: primaryMemberNumber ?? null,
-          primaryManagementMemberId,
-          claimedManagementPublicCode: claimedManagementPublicCodeStored,
-          ticketRole: "primary",
-          ticketPriceType: primaryIsMemberPrice ? "member" : "non_member",
-          mandatoryMenuItemId: data.primaryMandatoryMenuItemId,
-          ticketPriceApplied: pricing.primaryTicketPrice,
-          mandatoryMenuPriceApplied: pricing.primaryMenuPrice,
-          computedTotalAtSubmit: pricing.primaryTotal,
+          ticketCategoryId: input.ticketCategoryId,
+          ticketQty: input.ticketQty,
+          contactName,
+          contactWhatsapp: input.contactWhatsapp,
+          computedTotalAtSubmit: pricing.grandTotal,
           status: RegistrationStatus.submitted,
+          holders: {
+            create: input.holders.map((h, i) => ({
+              sortOrder: i + 1,
+              holderName: h.holderName,
+              claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
+              ticketPriceApplied: pricing.lines[i]!.ticketPrice,
+              mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
+              mandatoryMenuPriceApplied: null,
+            })),
+          },
         },
       });
 
-      registrationId = primary.id;
-
-      let partner: { id: string } | null = null;
-      if (includePartner && data.partnerName?.trim() && partnerMenuRow) {
-        partner = await tx.registration.create({
-          data: {
-            eventId: event.id,
-            primaryRegistrationId: primary.id,
-            contactName: data.partnerName.trim(),
-            contactWhatsapp: data.partnerWhatsapp?.trim() || "",
-            claimedMemberNumber: canonicalPartnerMemberNumber ?? null,
-            ticketRole: "partner",
-            ticketPriceType: partnerTicketPriceType,
-            mandatoryMenuItemId: data.partnerMandatoryMenuItemId!.trim(),
-            ticketPriceApplied: pricing.partnerTicketPrice ?? 0,
-            mandatoryMenuPriceApplied: pricing.partnerMenuPrice ?? 0,
-            computedTotalAtSubmit: pricing.partnerTotal ?? 0,
-            status: RegistrationStatus.submitted,
-          },
-        });
-      }
-
-      return { primary, partner };
+      return created;
     });
 
-    activeUploadField = "transferProof";
+    registrationId = reg.id;
+
+    // 7. Upload transfer proof after transaction (so registrationId exists)
     await uploadImageForRegistration({
       purpose: "transfer_proof",
-      registrationId: reg.primary.id,
-      file: transferProof,
+      registrationId: reg.id,
+      file: input.transferProof,
     });
-    activeUploadField = null;
 
-    if (memberCard instanceof File) {
-      activeUploadField = "memberCardPhoto";
-      await uploadImageForRegistration({
-        purpose: "member_card_photo",
-        registrationId: reg.primary.id,
-        file: memberCard,
-      });
-      activeUploadField = null;
-    }
-
-    if (includePartner && partnerMemberCard instanceof File) {
-      activeUploadField = "partnerMemberCardPhoto";
-      await uploadImageForRegistration({
-        purpose: "partner_member_card_photo",
-        registrationId: reg.primary.id,
-        file: partnerMemberCard,
-      });
-      activeUploadField = null;
-    }
-
-    const idsToConfirm = [reg.primary.id, ...(reg.partner ? [reg.partner.id] : [])];
-    await prisma.registration.updateMany({
-      where: { id: { in: idsToConfirm } },
+    // 8. Move to pending_review
+    await prisma.registration.update({
+      where: { id: reg.id },
       data: { status: RegistrationStatus.pending_review },
     });
 
-    return ok({ registrationId: reg.primary.id });
+    return ok({ registrationId: reg.id });
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {
       return rootError(e.message);
     }
 
+    // Blob rollback: delete any uploaded blobs then clean up the DB row
     let cleanupFailed = false;
     if (registrationId) {
       const uploads = await prisma.upload.findMany({
@@ -430,7 +230,7 @@ export async function submitRegistration(
       if (cleanupFailed) {
         console.error(e);
         return rootError(
-          `Gagal menyimpan pendaftaran dan membersihkan unggahan. Laporkan ID pendaftaran ${registrationId} ke panitia.`
+          `Gagal menyimpan pendaftaran dan membersihkan unggahan. Laporkan ID pendaftaran ${registrationId} ke panitia.`,
         );
       }
       await prisma.registration
@@ -438,8 +238,8 @@ export async function submitRegistration(
         .catch(() => {});
     }
 
-    if (e instanceof UploadError && activeUploadField) {
-      return fieldError({ [activeUploadField]: uploadErrorMessage(e) });
+    if (e instanceof UploadError) {
+      return rootError(uploadErrorMessage(e));
     }
     console.error(e);
     return rootError("Gagal menyimpan pendaftaran. Coba lagi.");
