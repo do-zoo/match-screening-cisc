@@ -19,7 +19,7 @@ export function usePricingPreview({ category, holders }: UsePricingPreviewArgs) 
     if (!category || holders.length === 0) return null;
     return computeSubmitTotal({
       holders: holders.map((h) => ({
-        memberValidation: h.claimedMemberNumber ? "unknown" : "invalid",
+        memberValidation: h.claimedMemberNumber?.trim() ? "unknown" : "invalid",
         category: {
           regularPrice: category.regularPrice,
           memberPrice: category.memberPrice,

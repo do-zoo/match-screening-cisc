@@ -9,9 +9,10 @@ type Props = {
   onSelect: (id: string) => void;
   qty: number;
   onQtyChange: (qty: number) => void;
+  disabled?: boolean;
 };
 
-export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyChange }: Props) {
+export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyChange, disabled }: Props) {
   const selected = categories.find((c) => c.id === selectedId);
   const max = selected?.maxQtyPerPerson ?? 20;
 
@@ -27,7 +28,7 @@ export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyCha
                 selectedId === cat.id
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"
-              }`}
+              } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <input
                 type="radio"
@@ -35,6 +36,7 @@ export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyCha
                 value={cat.id}
                 checked={selectedId === cat.id}
                 onChange={() => onSelect(cat.id)}
+                disabled={disabled}
                 className="mt-0.5"
               />
               <div className="flex-1 min-w-0">
@@ -58,6 +60,7 @@ export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyCha
         <select
           value={qty}
           onChange={(e) => onQtyChange(parseInt(e.target.value, 10))}
+          disabled={disabled}
           className="mt-1 block w-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
           {Array.from({ length: max }, (_, i) => i + 1).map((n) => (

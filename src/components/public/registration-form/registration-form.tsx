@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, FormProvider, useFieldArray, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +41,10 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   const ticketQty = form.watch("ticketQty");
   const holders = form.watch("holders");
 
-  const selectedCategory = event.ticketCategories?.find((c) => c.id === selectedCategoryId);
+  const selectedCategory = useMemo(
+    () => event.ticketCategories?.find((c) => c.id === selectedCategoryId),
+    [event.ticketCategories, selectedCategoryId],
+  );
   const pricing = usePricingPreview({ category: selectedCategory, holders });
 
   function handleQtyChange(qty: number) {
@@ -48,7 +52,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     const current = form.getValues("holders");
     const next = Array.from(
       { length: qty },
-      (_, i) => current[i] ?? { holderName: "", claimedMemberNumber: "" },
+      (_, i) => current[i] ?? { holderName: "", claimedMemberNumber: "", mandatoryMenuItemId: "" },
     );
     replace(next);
   }
@@ -102,6 +106,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
                 onSelect={(id) => form.setValue("ticketCategoryId", id)}
                 qty={ticketQty}
                 onQtyChange={handleQtyChange}
+                disabled={form.formState.isSubmitting}
               />
             ) : (
               <p className="text-sm text-muted-foreground">
