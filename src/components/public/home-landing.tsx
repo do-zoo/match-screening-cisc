@@ -133,8 +133,8 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
                   coverBlobUrl={e.coverBlobUrl}
                   venueName={e.venueName}
                   startAtIso={e.startAtIso}
-                  ticketMemberPrice={e.ticketMemberPrice}
-                  ticketNonMemberPrice={e.ticketNonMemberPrice}
+                  lowestMemberPrice={e.lowestMemberPrice}
+                  lowestRegularPrice={e.lowestRegularPrice}
                   registrationCapacity={e.registrationCapacity}
                   registrationsTowardQuota={e.registrationsTowardQuota}
                   closeRegistrationAtIso={e.closeRegistrationAtIso}

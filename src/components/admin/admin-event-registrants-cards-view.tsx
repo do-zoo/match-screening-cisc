@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RegistrationStatus, TicketRole } from "@prisma/client";
+import type { RegistrationStatus } from "@prisma/client";
 
 import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,7 +15,8 @@ export type EventRegistrantCardRow = {
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
   status: RegistrationStatus;
-  ticketRole: TicketRole;
+  ticketQty: number;
+  ticketCategoryName: string;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -28,10 +29,6 @@ const idrFormatter = new Intl.NumberFormat("id-ID", {
   currency: "IDR",
   maximumFractionDigits: 0,
 });
-
-function ticketRoleLabel(role: TicketRole): string {
-  return role === "primary" ? "Utama" : "Partner";
-}
 
 export function AdminEventRegistrantsCardsView({
   eventId,
@@ -78,7 +75,7 @@ export function AdminEventRegistrantsCardsView({
                       {r.contactWhatsapp}
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      {ticketRoleLabel(r.ticketRole)}
+                      {r.ticketCategoryName} · {r.ticketQty} tiket
                       {r.claimedMemberNumber ? (
                         <>
                           {" "}

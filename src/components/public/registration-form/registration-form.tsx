@@ -65,7 +65,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     formData.append("contactWhatsapp", values.contactWhatsapp);
     if (values.transferProof) formData.append("transferProof", values.transferProof);
 
-    const result = await submitRegistration(null, formData);
+    const result = await submitRegistration(event.id, formData);
     if (result.ok) {
       toastCudSuccess("create", "Pendaftaran berhasil dikirim.");
       router.push(`/events/${event.slug}/register/${result.data.registrationId}`);

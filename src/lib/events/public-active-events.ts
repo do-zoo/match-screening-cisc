@@ -52,8 +52,10 @@ export type PublicActiveEventRow = {
   /** Waktu mulai acara (kick-off), untuk tampilan publik. */
   startAtIso: string;
   venueName: string;
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
+  /** Harga tiket reguler terendah di semua kategori aktif, atau null jika belum ada kategori. */
+  lowestRegularPrice: number | null;
+  /** Harga tiket member terendah di semua kategori aktif, atau null jika belum ada kategori. */
+  lowestMemberPrice: number | null;
   registrationCapacity: number | null;
   registrationsTowardQuota: number;
   closeRegistrationAtIso: string;
@@ -76,8 +78,10 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
       closeRegistrationAt: true,
       registrationManualClosed: true,
       registrationCapacity: true,
-      ticketMemberPrice: true,
-      ticketNonMemberPrice: true,
+      ticketCategories: {
+        where: { isActive: true },
+        select: { regularPrice: true, memberPrice: true },
+      },
       venue: { select: { name: true } },
       _count: {
         select: {
@@ -99,8 +103,12 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
     coverBlobUrl: e.coverBlobUrl,
     venueName: e.venue.name,
     startAtIso: e.kickOffAt.toISOString(),
-    ticketMemberPrice: e.ticketMemberPrice,
-    ticketNonMemberPrice: e.ticketNonMemberPrice,
+    lowestRegularPrice: e.ticketCategories.length > 0
+      ? Math.min(...e.ticketCategories.map((c) => c.regularPrice))
+      : null,
+    lowestMemberPrice: e.ticketCategories.length > 0
+      ? Math.min(...e.ticketCategories.map((c) => c.memberPrice))
+      : null,
     registrationCapacity: e.registrationCapacity,
     registrationsTowardQuota: e._count.registrations,
     closeRegistrationAtIso: e.closeRegistrationAt.toISOString(),

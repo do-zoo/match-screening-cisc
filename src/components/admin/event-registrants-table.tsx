@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-  AttendanceStatus,
-  RegistrationStatus,
-  TicketRole,
-} from "@prisma/client";
+import type { AttendanceStatus, RegistrationStatus } from "@prisma/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -23,19 +19,15 @@ type EventRegistrantsRow = {
   claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
   status: RegistrationStatus;
-  ticketRole: TicketRole;
+  ticketQty: number;
+  ticketCategoryName: string;
   attendanceStatus: AttendanceStatus;
-  primaryRegistration: { id: string; contactName: string } | null;
 };
 
 function attendanceLabel(s: AttendanceStatus): string {
   if (s === "attended") return "Hadir";
   if (s === "no_show") return "Tidak hadir";
   return "Belum dicatat";
-}
-
-function ticketRoleLabel(role: TicketRole): string {
-  return role === "primary" ? "Utama" : "Partner";
 }
 
 export type EventRegistrantsTableProps = {
@@ -106,51 +98,17 @@ export function EventRegistrantsTable({
       },
       {
         id: "ticketSummary",
-        header: "Tiket / pemilik",
+        header: "Tiket",
         enableSorting: false,
         cell: ({ row }) => {
           const r = row.original;
-          if (r.ticketRole === "partner" && r.primaryRegistration) {
-            return (
-              <div className="text-sm">
-                <div className="font-medium">{r.contactName}</div>
-                <div className="text-muted-foreground">
-                  Partner dari{" "}
-                  <Link
-                    href={eventRegistrationDetailPath(
-                      eventId,
-                      r.primaryRegistration.id,
-                    )}
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                  >
-                    {r.primaryRegistration.contactName}
-                  </Link>
-                </div>
-                <div className="font-mono text-xs text-muted-foreground">
-                  {r.claimedMemberNumber ?? "—"}
-                </div>
-              </div>
-            );
-          }
           return (
-            <div>
-              <div className="font-medium">{r.contactName}</div>
-              <div className="font-mono text-xs text-muted-foreground">
-                {r.claimedMemberNumber ?? "non-member"}
-              </div>
+            <div className="text-sm">
+              <div className="font-medium">{r.ticketCategoryName}</div>
+              <div className="text-muted-foreground">{r.ticketQty} tiket</div>
             </div>
           );
         },
-      },
-      {
-        id: "ticketRole",
-        header: "Peran",
-        enableSorting: false,
-        cell: ({ row }) => (
-          <span className="text-sm">
-            {ticketRoleLabel(row.original.ticketRole)}
-          </span>
-        ),
       },
       {
         id: "attendance",

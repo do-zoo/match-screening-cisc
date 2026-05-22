@@ -15,8 +15,8 @@ type EventCardProps = {
   coverBlobUrl: string;
   venueName: string;
   startAtIso: string;
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
+  lowestRegularPrice: number | null;
+  lowestMemberPrice: number | null;
   registrationCapacity: number | null;
   registrationsTowardQuota: number;
   closeRegistrationAtIso: string;
@@ -90,8 +90,8 @@ export function EventCard({
   coverBlobUrl,
   venueName,
   startAtIso,
-  ticketMemberPrice,
-  ticketNonMemberPrice,
+  lowestRegularPrice,
+  lowestMemberPrice,
   registrationCapacity,
   registrationsTowardQuota,
   closeRegistrationAtIso,
@@ -150,22 +150,29 @@ export function EventCard({
           {/* Price + quota row */}
           <div className="flex items-end justify-between gap-2">
             <div className="text-sm">
-              <div>
-                <span className="font-medium">
-                  {formatIdr(ticketMemberPrice)}
-                </span>{" "}
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                  member
-                </span>
-              </div>
-              <div>
-                <span className="font-medium">
-                  {formatIdr(ticketNonMemberPrice)}
-                </span>{" "}
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                  umum
-                </span>
-              </div>
+              {lowestMemberPrice != null ? (
+                <div>
+                  <span className="font-medium">
+                    {formatIdr(lowestMemberPrice)}
+                  </span>{" "}
+                  <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                    member
+                  </span>
+                </div>
+              ) : null}
+              {lowestRegularPrice != null ? (
+                <div>
+                  <span className="font-medium">
+                    {formatIdr(lowestRegularPrice)}
+                  </span>{" "}
+                  <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                    umum
+                  </span>
+                </div>
+              ) : null}
+              {lowestMemberPrice == null && lowestRegularPrice == null ? (
+                <span className="text-[hsl(var(--muted-foreground))]">—</span>
+              ) : null}
             </div>
             <div className="text-right text-xs text-[hsl(var(--muted-foreground))]">
               <QuotaDisplay
@@ -203,8 +210,11 @@ export function EventCard({
           {/* Condensed info row */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[hsl(var(--muted-foreground))]">
             <span className="font-medium text-[hsl(var(--foreground))]">
-              {formatIdrShort(ticketMemberPrice)}/
-              {formatIdrShort(ticketNonMemberPrice)}
+              {lowestMemberPrice != null
+                ? formatIdrShort(lowestMemberPrice)
+                : lowestRegularPrice != null
+                  ? formatIdrShort(lowestRegularPrice)
+                  : "—"}
             </span>
             <span>·</span>
             <span>Tutup {closeDateShort}</span>

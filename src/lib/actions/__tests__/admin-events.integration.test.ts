@@ -106,8 +106,6 @@ describe("createAdminEvent (integrasi dengan mock DB)", () => {
       mandatoryMenuItemIds: ["menu-1"],
       registrationManualClosed: false,
       status: EventStatus.draft,
-      ticketMemberPrice: 500_000,
-      ticketNonMemberPrice: 750_000,
       picAdminProfileId: "pic-1",
       bankAccountId: "bank-1",
       helperAdminProfileIds: [],
@@ -127,7 +125,6 @@ describe("createAdminEvent (integrasi dengan mock DB)", () => {
       data: Record<string, unknown>;
     };
     expect(call.data.mandatoryMenuItemIds).toEqual(["menu-1"]);
-    expect(call.data.ticketMemberPrice).toBe(500_000);
     expect(call.data.openRegistrationAt).toEqual(
       new Date("2026-06-01T08:00:00.000Z"),
     );

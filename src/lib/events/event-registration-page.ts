@@ -74,6 +74,7 @@ export const getSerializedEventForPublicRegistration = cache(
     registrationClosedMessage = merged.registrationClosedMessage;
 
     return {
+      id: event.id,
       slug: event.slug,
       title: event.title,
       summary: event.summary,

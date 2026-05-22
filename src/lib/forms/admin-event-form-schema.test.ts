@@ -17,8 +17,6 @@ function validBase() {
     mandatoryMenuItemIds: ["menu-a"],
     registrationManualClosed: false,
     status: EventStatus.draft,
-    ticketMemberPrice: 500_000,
-    ticketNonMemberPrice: 750_000,
     picAdminProfileId: "pic-1",
     bankAccountId: "bank-1",
     helperAdminProfileIds: [] as string[],
@@ -71,16 +69,8 @@ describe("adminEventUpsertSchema", () => {
     }
   });
 
-  it("rejects harga tiket member 0", () => {
-    const r = adminEventUpsertSchema.safeParse({
-      ...validBase(),
-      ticketMemberPrice: 0,
-    });
-    expect(r.success).toBe(false);
-    if (!r.success) {
-      expect(
-        r.error.issues.some((i) => i.path[0] === "ticketMemberPrice"),
-      ).toBe(true);
-    }
+  it("accepts when no ticketMemberPrice provided (pricing now per-category)", () => {
+    const r = adminEventUpsertSchema.safeParse(validBase());
+    expect(r.success).toBe(true);
   });
 });

@@ -104,21 +104,26 @@ export default async function AdminEventRegistrantsPage({
         claimedMemberNumber: true,
         computedTotalAtSubmit: true,
         status: true,
-        ticketRole: true,
+        ticketQty: true,
+        ticketCategory: { select: { name: true } },
         attendanceStatus: true,
-        primaryRegistrationId: true,
-        primaryRegistration: {
-          select: { id: true, contactName: true },
-        },
       },
     }),
   ]);
 
   if (!event) notFound();
 
-  const registrationRows = registrations.map((r) => ({
-    ...r,
+  const rows = registrations.map((r) => ({
+    id: r.id,
     createdAt: r.createdAt.toISOString(),
+    contactName: r.contactName,
+    contactWhatsapp: r.contactWhatsapp,
+    claimedMemberNumber: r.claimedMemberNumber,
+    computedTotalAtSubmit: r.computedTotalAtSubmit,
+    status: r.status,
+    ticketQty: r.ticketQty,
+    ticketCategoryName: r.ticketCategory.name,
+    attendanceStatus: r.attendanceStatus,
   }));
 
   const listPath = eventRegistrantsListPath(eventId);
@@ -127,17 +132,6 @@ export default async function AdminEventRegistrantsPage({
     view: viewMode,
     q,
   });
-
-  const cardRows = registrationRows.map((r) => ({
-    id: r.id,
-    createdAt: r.createdAt,
-    contactName: r.contactName,
-    contactWhatsapp: r.contactWhatsapp,
-    claimedMemberNumber: r.claimedMemberNumber,
-    computedTotalAtSubmit: r.computedTotalAtSubmit,
-    status: r.status,
-    ticketRole: r.ticketRole,
-  }));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-4 lg:pt-6">
@@ -158,7 +152,7 @@ export default async function AdminEventRegistrantsPage({
           eventId={eventId}
           listPath={listPath}
           preservedQuery={preservedQuery}
-          registrations={registrationRows}
+          registrations={rows}
           pagination={{
             page,
             pageSize: ADMIN_TABLE_PAGE_SIZE,
@@ -170,7 +164,7 @@ export default async function AdminEventRegistrantsPage({
           eventId={eventId}
           listPath={listPath}
           preservedQuery={preservedQuery}
-          registrations={cardRows}
+          registrations={rows}
           pagination={{
             page,
             pageSize: ADMIN_TABLE_PAGE_SIZE,

@@ -21,6 +21,7 @@ export type SerializedTicketCategory = {
 };
 
 export type SerializedEventForRegistration = {
+  id: string;
   slug: string;
   title: string;
   summary: string;
