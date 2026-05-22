@@ -14,10 +14,8 @@ import {
 type Props = {
   contactName: string;
   contactWhatsapp: string;
-  claimedMemberNumber: string | null;
   computedTotalAtSubmit: number;
   createdAt: Date;
-  peranLabel: string;
   status: RegistrationStatus;
   rejectionReason: string | null;
   paymentIssueReason: string | null;
@@ -26,18 +24,12 @@ type Props = {
 export function RegistrationDetailHeader({
   contactName,
   contactWhatsapp,
-  claimedMemberNumber,
   computedTotalAtSubmit,
   createdAt,
-  peranLabel,
   status,
   rejectionReason,
   paymentIssueReason,
 }: Props) {
-  const memberPart = claimedMemberNumber?.trim()
-    ? claimedMemberNumber.trim()
-    : "-";
-
   return (
     <header className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -45,7 +37,7 @@ export function RegistrationDetailHeader({
         <RegistrationStatusBadge status={status} />
       </div>
       <p className="text-sm text-muted-foreground">
-        {peranLabel} · {memberPart} · {contactWhatsapp}
+        {contactWhatsapp}
       </p>
       <p className="text-sm text-muted-foreground">
         {formatCurrencyIdr(computedTotalAtSubmit)}

@@ -1,8 +1,4 @@
-import {
-  InvoiceAdjustmentStatus,
-  TicketRole,
-  type TicketPriceType,
-} from "@prisma/client";
+import { InvoiceAdjustmentStatus } from "@prisma/client";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
@@ -33,77 +29,6 @@ export async function generateMetadata({
     select: { title: true },
   });
   return { title: event ? `Registrasi · ${event.title}` : "Registrasi" };
-}
-
-type MenuSnap = { name: string; price: number };
-
-function mergeUploadsForDetail<T extends { id: string; createdAt: Date }>(
-  ticketRole: TicketRole,
-  primaryUploads: T[] | undefined,
-  ownUploads: T[],
-): T[] {
-  if (ticketRole !== TicketRole.partner || !primaryUploads?.length) {
-    return ownUploads;
-  }
-  const byId = new Map(primaryUploads.map((u) => [u.id, u]));
-  for (const u of ownUploads) {
-    byId.set(u.id, u);
-  }
-  return [...byId.values()].sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-  );
-}
-
-function syntheticTicketRows(opts: {
-  primary: {
-    id: string;
-    contactName: string;
-    contactWhatsapp: string;
-    claimedMemberNumber: string | null;
-    ticketPriceType: TicketPriceType;
-    ticketPriceApplied: number;
-    mandatoryMenuPriceApplied: number;
-    computedTotalAtSubmit: number;
-    menu: MenuSnap;
-  };
-  partners: Array<{
-    id: string;
-    contactName: string;
-    contactWhatsapp: string;
-    claimedMemberNumber: string | null;
-    ticketPriceType: TicketPriceType;
-    ticketPriceApplied: number;
-    mandatoryMenuPriceApplied: number;
-    computedTotalAtSubmit: number;
-    menu: MenuSnap;
-  }>;
-}): DetailRegistration["tickets"] {
-  const { primary, partners } = opts;
-  const base = (
-    id: string,
-    role: TicketRole,
-    row: (typeof opts)["primary"],
-  ) => ({
-    id,
-    role,
-    fullName: row.contactName,
-    whatsapp: row.contactWhatsapp,
-    memberNumber: row.claimedMemberNumber,
-    ticketPriceType: row.ticketPriceType,
-    ticketPriceApplied: row.ticketPriceApplied,
-    mandatoryMenuItemName: row.menu.name,
-    mandatoryMenuPriceApplied: row.mandatoryMenuPriceApplied,
-    computedTotalAtSubmit: row.computedTotalAtSubmit,
-    menuSelections: [
-      { menuItem: { name: row.menu.name, price: row.menu.price } },
-    ],
-  });
-
-  const out = [base(primary.id, TicketRole.primary, primary)];
-  for (const pr of partners) {
-    out.push(base(pr.id, TicketRole.partner, pr));
-  }
-  return out;
 }
 
 function firstString(param: string | string[] | undefined): string | undefined {
@@ -155,57 +80,37 @@ export default async function AdminEventRegistrantsDetailPage({
       createdAt: true,
       contactName: true,
       contactWhatsapp: true,
-      claimedMemberNumber: true,
-      primaryManagementMemberId: true,
-      claimedManagementPublicCode: true,
       computedTotalAtSubmit: true,
-      ticketPriceApplied: true,
-      mandatoryMenuPriceApplied: true,
+      ticketQty: true,
+      ticketCategoryId: true,
+      ticketCategory: {
+        select: {
+          id: true,
+          name: true,
+          regularPrice: true,
+          memberPrice: true,
+        },
+      },
+      holders: {
+        orderBy: { sortOrder: "asc" as const },
+        select: {
+          id: true,
+          sortOrder: true,
+          holderName: true,
+          claimedMemberNumber: true,
+          memberValidation: true,
+          ticketPriceApplied: true,
+          mandatoryMenuItem: { select: { name: true } },
+        },
+      },
       status: true,
       attendanceStatus: true,
-      memberValidation: true,
       rejectionReason: true,
       paymentIssueReason: true,
-      ticketRole: true,
-      ticketPriceType: true,
-      primaryRegistrationId: true,
-      primaryRegistration: {
-        select: {
-          id: true,
-          contactName: true,
-          contactWhatsapp: true,
-          claimedMemberNumber: true,
-          ticketPriceType: true,
-          ticketPriceApplied: true,
-          mandatoryMenuPriceApplied: true,
-          computedTotalAtSubmit: true,
-          mandatoryMenuItem: { select: { name: true, price: true } },
-          uploads: {
-            orderBy: { createdAt: "asc" as const },
-          },
-        },
-      },
-      partnerRegistrations: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          contactName: true,
-          contactWhatsapp: true,
-          claimedMemberNumber: true,
-          ticketPriceType: true,
-          ticketPriceApplied: true,
-          mandatoryMenuPriceApplied: true,
-          computedTotalAtSubmit: true,
-          mandatoryMenuItem: { select: { name: true, price: true } },
-        },
-      },
-      mandatoryMenuItem: { select: { name: true, price: true } },
       event: {
         select: {
           title: true,
           kickOffAt: true,
-          ticketMemberPrice: true,
-          ticketNonMemberPrice: true,
           venue: { select: { name: true } },
           eventVenueMenuItems: {
             include: { venueMenuItem: true },
@@ -250,148 +155,37 @@ export default async function AdminEventRegistrantsDetailPage({
 
   const detailTab = parsedTab;
 
-  const menuSnap = (m: { name: string; price: number }): MenuSnap => ({
-    name: m.name,
-    price: m.price,
-  });
-
-  let ticketsForDetail: DetailRegistration["tickets"];
-  if (registration.ticketRole === TicketRole.primary) {
-    const partners = registration.partnerRegistrations.map((pr) => ({
-      id: pr.id,
-      contactName: pr.contactName,
-      contactWhatsapp: pr.contactWhatsapp,
-      claimedMemberNumber: pr.claimedMemberNumber,
-      ticketPriceType: pr.ticketPriceType,
-      ticketPriceApplied: pr.ticketPriceApplied,
-      mandatoryMenuPriceApplied: pr.mandatoryMenuPriceApplied,
-      computedTotalAtSubmit: pr.computedTotalAtSubmit,
-      menu: menuSnap(pr.mandatoryMenuItem),
-    }));
-    ticketsForDetail = syntheticTicketRows({
-      primary: {
-        id: registration.id,
-        contactName: registration.contactName,
-        contactWhatsapp: registration.contactWhatsapp,
-        claimedMemberNumber: registration.claimedMemberNumber,
-        ticketPriceType: registration.ticketPriceType,
-        ticketPriceApplied: registration.ticketPriceApplied,
-        mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
-        computedTotalAtSubmit: registration.computedTotalAtSubmit,
-        menu: menuSnap(registration.mandatoryMenuItem),
-      },
-      partners,
-    });
-  } else {
-    const p = registration.primaryRegistration;
-    if (!p) {
-      ticketsForDetail = syntheticTicketRows({
-        primary: {
-          id: registration.id,
-          contactName: registration.contactName,
-          contactWhatsapp: registration.contactWhatsapp,
-          claimedMemberNumber: registration.claimedMemberNumber,
-          ticketPriceType: registration.ticketPriceType,
-          ticketPriceApplied: registration.ticketPriceApplied,
-          mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
-          computedTotalAtSubmit: registration.computedTotalAtSubmit,
-          menu: menuSnap(registration.mandatoryMenuItem),
-        },
-        partners: [],
-      });
-    } else {
-      ticketsForDetail = syntheticTicketRows({
-        primary: {
-          id: p.id,
-          contactName: p.contactName,
-          contactWhatsapp: p.contactWhatsapp,
-          claimedMemberNumber: p.claimedMemberNumber,
-          ticketPriceType: p.ticketPriceType,
-          ticketPriceApplied: p.ticketPriceApplied,
-          mandatoryMenuPriceApplied: p.mandatoryMenuPriceApplied,
-          computedTotalAtSubmit: p.computedTotalAtSubmit,
-          menu: menuSnap(p.mandatoryMenuItem),
-        },
-        partners: [
-          {
-            id: registration.id,
-            contactName: registration.contactName,
-            contactWhatsapp: registration.contactWhatsapp,
-            claimedMemberNumber: registration.claimedMemberNumber,
-            ticketPriceType: registration.ticketPriceType,
-            ticketPriceApplied: registration.ticketPriceApplied,
-            mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
-            computedTotalAtSubmit: registration.computedTotalAtSubmit,
-            menu: menuSnap(registration.mandatoryMenuItem),
-          },
-        ],
-      });
-    }
-  }
-
-  const {
-    primaryRegistration,
-    partnerRegistrations,
-    mandatoryMenuItem,
-    event: prismaEvent,
-    uploads: ownUploads,
-    ...registrationRest
-  } = registration;
-
-  const uploadsMerged = mergeUploadsForDetail(
-    registration.ticketRole,
-    primaryRegistration?.uploads,
-    ownUploads,
-  );
+  const { event: prismaEvent, ...registrationRest } = registration;
 
   const registrationForDetail: DetailRegistration = {
     ...registrationRest,
-    uploads: uploadsMerged,
-    ticketPriceApplied: registration.ticketPriceApplied,
-    mandatoryMenuPriceApplied: registration.mandatoryMenuPriceApplied,
-    mandatoryMenuItemName: mandatoryMenuItem.name,
-    relationsPrimary: primaryRegistration
-      ? {
-          id: primaryRegistration.id,
-          contactName: primaryRegistration.contactName,
-        }
-      : null,
-    relationsPartners: partnerRegistrations.map((p) => ({
-      id: p.id,
-      contactName: p.contactName,
+    holders: registration.holders.map((h) => ({
+      id: h.id,
+      sortOrder: h.sortOrder,
+      holderName: h.holderName,
+      claimedMemberNumber: h.claimedMemberNumber,
+      memberValidation: h.memberValidation,
+      ticketPriceApplied: h.ticketPriceApplied,
+      menuItemName: h.mandatoryMenuItem?.name ?? null,
     })),
     event: {
       title: prismaEvent.title,
       venueName: prismaEvent.venue.name,
       kickOffAt: prismaEvent.kickOffAt,
-      ticketMemberPrice: prismaEvent.ticketMemberPrice,
-      ticketNonMemberPrice: prismaEvent.ticketNonMemberPrice,
       menuItems: flattenedMenuRowsFromEventVenueLinks(
         prismaEvent.eventVenueMenuItems,
       ),
       bankAccount: prismaEvent.bankAccount,
     },
-    tickets: ticketsForDetail,
   };
 
   let ticketContext: TicketContextVm;
   try {
-    const ctxTickets = ticketsForDetail.map((t) => ({
-      role: t.role,
-      fullName: t.fullName,
-      whatsapp: t.whatsapp,
-      memberNumber: t.memberNumber,
-      ticketPriceType: t.ticketPriceType,
-    }));
-
     ticketContext = await loadTicketContextVm({
       eventId,
       registration: {
         id: registration.id,
-        claimedMemberNumber: registration.claimedMemberNumber,
-        primaryManagementMemberId: registration.primaryManagementMemberId,
-        claimedManagementPublicCode: registration.claimedManagementPublicCode,
-        tickets: ctxTickets,
+        holders: registration.holders,
       },
     });
   } catch {

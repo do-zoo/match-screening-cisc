@@ -1,5 +1,3 @@
-import { TicketRole } from "@prisma/client";
-
 import { RegistrationDetailHeader } from "@/components/admin/registration-detail-panels/registration-detail-header";
 import { RegistrationDetailTabs } from "@/components/admin/registration-detail-panels/registration-detail-tabs";
 import { SummaryTab } from "@/components/admin/registration-detail-panels/tab-summary/summary-tab";
@@ -27,18 +25,13 @@ export function RegistrationDetailShell({
   waBodies,
   showOperasiBadge,
 }: Props) {
-  const peranLabel =
-    registration.ticketRole === TicketRole.primary ? "Utama" : "Partner";
-
   return (
     <div className="flex flex-col gap-4">
       <RegistrationDetailHeader
         contactName={registration.contactName}
         contactWhatsapp={registration.contactWhatsapp}
-        claimedMemberNumber={registration.claimedMemberNumber}
         computedTotalAtSubmit={registration.computedTotalAtSubmit}
         createdAt={registration.createdAt}
-        peranLabel={peranLabel}
         status={registration.status}
         rejectionReason={registration.rejectionReason}
         paymentIssueReason={registration.paymentIssueReason}

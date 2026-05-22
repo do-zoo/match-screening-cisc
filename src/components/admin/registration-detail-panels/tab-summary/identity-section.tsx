@@ -11,8 +11,6 @@ export function IdentitySection({ registration }: Props) {
       <div className="font-medium">{registration.contactName}</div>
       <div className="text-muted-foreground">
         {registration.contactWhatsapp}
-        {" · "}
-        Nomor member: {registration.claimedMemberNumber ?? "-"}
       </div>
       <div className="text-muted-foreground">
         Dikirim {registrationDetailDateFormatter.format(registration.createdAt)}

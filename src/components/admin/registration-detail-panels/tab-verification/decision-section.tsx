@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { RegistrationStatus, TicketRole } from "@prisma/client";
+import { RegistrationStatus } from "@prisma/client";
 
 import { RegistrationActions } from "@/components/admin/registration-actions";
-import { MemberValidationPanel } from "@/components/admin/member-validation-panel";
 import { Button } from "@/components/ui/button";
 import type { DetailRegistration } from "@/components/admin/registration-detail-panels/shared/registration-detail-types";
 
@@ -72,30 +71,6 @@ export function DecisionSection({ eventId, registration }: Props) {
           registrationId={registration.id}
         />
       )}
-
-      {registration.ticketRole === TicketRole.primary ? (
-        <details open className="rounded-lg border bg-card">
-          <summary className="cursor-pointer select-none px-4 md:px-6 py-3 text-sm font-medium">
-            Validasi member
-          </summary>
-          <div className="border-t px-4 md:px-6 pb-4 pt-2">
-            <MemberValidationPanel
-              eventId={eventId}
-              registrationId={registration.id}
-              current={registration.memberValidation}
-              primaryTicket={{
-                id: registration.id,
-                role: TicketRole.primary,
-                ticketPriceType: registration.ticketPriceType,
-              }}
-              eventTicketMemberPrice={registration.event.ticketMemberPrice}
-              eventTicketNonMemberPrice={
-                registration.event.ticketNonMemberPrice
-              }
-            />
-          </div>
-        </details>
-      ) : null}
     </div>
   );
 }

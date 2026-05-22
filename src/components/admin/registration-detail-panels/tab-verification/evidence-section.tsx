@@ -71,68 +71,13 @@ export function EvidenceSection({
           <dl className="grid gap-3">
             <div>
               <dt className="text-muted-foreground">
-                Pengurus / komite (tiket utama)
-              </dt>
-              <dd className="mt-1">
-                {ticketContext.managementMember.state === "via_public_code" && (
-                  <span>
-                    Kode pengurus{" "}
-                    <span className="font-mono font-medium">
-                      {ticketContext.managementMember.publicCode}
-                    </span>
-                    {" — "}
-                    {ticketContext.managementMember.fullName}
-                  </span>
-                )}
-                {ticketContext.managementMember.state ===
-                  "no_primary_number" && (
-                  <span className="text-muted-foreground">
-                    Tidak ada nomor member pada tiket utama — lookup tidak
-                    dijalankan.
-                  </span>
-                )}
-                {ticketContext.managementMember.state ===
-                  "not_in_directory" && (
-                  <span className="text-amber-700 dark:text-amber-400">
-                    Nomor utama tidak ditemukan di direktori member aktif.
-                  </span>
-                )}
-                {ticketContext.managementMember.state === "found" && (
-                  <span>
-                    Status komite/pengurus:{" "}
-                    <span className="font-medium">
-                      {ticketContext.managementMember.isManagementMember
-                        ? "Ya"
-                        : "Tidak"}
-                    </span>
-                  </span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Tiket partner</dt>
-              <dd className="mt-1 text-muted-foreground">
-                {!ticketContext.partner ? (
-                  "Tidak ada tiket partner."
-                ) : (
-                  <span>
-                    {ticketContext.partner.fullName} · WA{" "}
-                    {ticketContext.partner.whatsapp ?? "-"} · Member{" "}
-                    {ticketContext.partner.memberNumber ?? "-"} ·{" "}
-                    {ticketContext.partner.ticketPriceTypeLabel}
-                  </span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">
                 Bentrok nomor (acara ini)
               </dt>
               <dd className="mt-1">
                 {ticketContext.conflicts.length === 0 ? (
                   <span className="text-muted-foreground">
                     Tidak ada registrasi lain dengan nomor member yang sama pada
-                    tiket.
+                    pemegang tiket.
                   </span>
                 ) : (
                   <ul className="list-inside list-disc space-y-2">
