@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db/prisma";
-import { TicketRole } from "@prisma/client";
 import { formatIdr } from "../utils/format-idr";
 
 function escapeCsv(v: string): string {
@@ -14,7 +13,7 @@ function escapeCsv(v: string): string {
   return v;
 }
 
-/** CSV UTF-8: satu baris per `Registration` (utama atau partner). */
+/** CSV UTF-8: satu baris per `Registration`, kolom holder dinamis sesuai ticketQty maksimal. */
 export async function generateRegistrationsCsv(
   eventId: string,
 ): Promise<string> {
@@ -26,67 +25,85 @@ export async function generateRegistrationsCsv(
       createdAt: true,
       contactName: true,
       contactWhatsapp: true,
-      claimedMemberNumber: true,
-      memberValidation: true,
-      ticketRole: true,
-      primaryRegistrationId: true,
-      primaryRegistration: {
-        select: { id: true, contactName: true },
-      },
+      ticketQty: true,
+      ticketCategory: { select: { name: true } },
       status: true,
       attendanceStatus: true,
-      ticketPriceApplied: true,
-      mandatoryMenuPriceApplied: true,
       computedTotalAtSubmit: true,
-      mandatoryMenuItem: { select: { name: true } },
+      holders: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          holderName: true,
+          claimedMemberNumber: true,
+          memberValidation: true,
+          ticketPriceApplied: true,
+        },
+      },
       adjustments: {
         select: { type: true, amount: true, status: true },
       },
     },
   });
 
+  const maxHolders = rows.reduce(
+    (max, r) => Math.max(max, r.holders.length),
+    0,
+  );
+
+  const holderHeaders: string[] = [];
+  for (let n = 1; n <= maxHolders; n++) {
+    holderHeaders.push(
+      `Holder ${n} Nama`,
+      `Holder ${n} Member`,
+      `Holder ${n} Status Member`,
+      `Holder ${n} Harga (IDR)`,
+    );
+  }
+
   const headers = [
-    "ID",
+    "Registration ID",
     "Tanggal daftar",
-    "Nama pendaftar",
-    "WhatsApp",
-    "No. member",
-    "Peran",
-    "Pembeli utama (jika partner)",
-    "Validasi member",
+    "Kategori Tiket",
+    "Jumlah Tiket",
+    "Nama Kontak",
+    "No. WA Kontak",
     "Status",
     "Kehadiran",
-    "Harga tiket (IDR)",
-    "Menu wajib",
-    "Harga acuan menu wajib (IDR)",
     "Total (IDR)",
     "Penyesuaian (IDR)",
+    ...holderHeaders,
   ];
 
   const body = rows.map((r) => {
     const adjustmentTotal = r.adjustments.reduce((s, a) => s + a.amount, 0);
-    const roleLabel = r.ticketRole === TicketRole.primary ? "Utama" : "Partner";
-    const primaryBuyer =
-      r.ticketRole === TicketRole.partner && r.primaryRegistration
-        ? r.primaryRegistration.contactName
-        : "";
+
+    const holderCols: string[] = [];
+    for (let n = 0; n < maxHolders; n++) {
+      const h = r.holders[n];
+      if (h) {
+        holderCols.push(
+          h.holderName,
+          h.claimedMemberNumber ?? "",
+          h.memberValidation,
+          formatIdr(h.ticketPriceApplied),
+        );
+      } else {
+        holderCols.push("", "", "", "");
+      }
+    }
 
     return [
       r.id,
       new Date(r.createdAt).toLocaleString("id-ID"),
+      r.ticketCategory.name,
+      String(r.ticketQty),
       r.contactName,
       r.contactWhatsapp,
-      r.claimedMemberNumber ?? "",
-      roleLabel,
-      primaryBuyer,
-      r.memberValidation,
       r.status,
       r.attendanceStatus,
-      formatIdr(r.ticketPriceApplied),
-      r.mandatoryMenuItem.name,
-      formatIdr(r.mandatoryMenuPriceApplied),
       formatIdr(r.computedTotalAtSubmit),
       adjustmentTotal > 0 ? formatIdr(adjustmentTotal) : "",
+      ...holderCols,
     ]
       .map(String)
       .map(escapeCsv)

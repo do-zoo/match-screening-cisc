@@ -130,7 +130,7 @@ export default async function EventReportPage({
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Stat label="Member" value={report.participant.memberCount} />
           <Stat label="Non-member" value={report.participant.nonMemberCount} />
-          <Stat label="Partner" value={report.participant.partnerCount} />
+          <Stat label="Total Pemegang Tiket" value={report.participant.holderCount} />
           {Object.entries(report.participant.byStatus).map(
             ([status, count]) => (
               <Stat

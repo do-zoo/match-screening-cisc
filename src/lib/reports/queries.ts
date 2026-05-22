@@ -2,7 +2,7 @@ import {
   RegistrationStatus,
   AttendanceStatus,
   InvoiceAdjustmentStatus,
-  TicketRole,
+  MemberValidation,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
@@ -11,7 +11,7 @@ export type ParticipantStats = {
   byStatus: Partial<Record<RegistrationStatus, number>>;
   memberCount: number;
   nonMemberCount: number;
-  partnerCount: number;
+  holderCount: number;
 };
 
 export type FinanceStats = {
@@ -46,36 +46,39 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
   const [
     statusGroups,
     memberCount,
-    partnerCount,
+    holderCount,
     financeAgg,
     ticketRevAgg,
     menuRevAgg,
     adjustmentGroups,
     refundCount,
     attendanceGroups,
-    regMenuGroups,
+    holderMenuGroups,
   ] = await Promise.all([
     prisma.registration.groupBy({
       by: ["status"],
       where: { eventId },
       _count: { id: true },
     }),
-    prisma.registration.count({
-      where: { eventId, claimedMemberNumber: { not: null } },
+    prisma.registrationHolder.count({
+      where: {
+        registration: { eventId },
+        memberValidation: { in: [MemberValidation.valid, MemberValidation.overridden] },
+      },
     }),
-    prisma.registration.count({
-      where: { eventId, ticketRole: TicketRole.partner },
+    prisma.registrationHolder.count({
+      where: { registration: { eventId } },
     }),
     prisma.registration.aggregate({
       where: { eventId, status: RegistrationStatus.approved },
       _sum: { computedTotalAtSubmit: true },
     }),
-    prisma.registration.aggregate({
-      where: { eventId, status: RegistrationStatus.approved },
+    prisma.registrationHolder.aggregate({
+      where: { registration: { eventId, status: RegistrationStatus.approved } },
       _sum: { ticketPriceApplied: true },
     }),
-    prisma.registration.aggregate({
-      where: { eventId, status: RegistrationStatus.approved },
+    prisma.registrationHolder.aggregate({
+      where: { registration: { eventId, status: RegistrationStatus.approved } },
       _sum: { mandatoryMenuPriceApplied: true },
     }),
     prisma.invoiceAdjustment.groupBy({
@@ -91,9 +94,9 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
       where: { eventId },
       _count: { id: true },
     }),
-    prisma.registration.groupBy({
+    prisma.registrationHolder.groupBy({
       by: ["mandatoryMenuItemId"],
-      where: { eventId },
+      where: { registration: { eventId } },
       _count: { id: true },
     }),
   ]);
@@ -104,7 +107,7 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     byStatus[g.status] = g._count.id;
   }
 
-  const nonMemberCount = total - memberCount;
+  const nonMemberCount = holderCount - memberCount;
 
   const adjustmentPaidRow = adjustmentGroups.find(
     (g) => g.status === InvoiceAdjustmentStatus.paid,
@@ -118,7 +121,9 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
     attendanceMap[g.attendanceStatus] = g._count.id;
   }
 
-  const menuItemIds = regMenuGroups.map((s) => s.mandatoryMenuItemId);
+  const menuItemIds = holderMenuGroups
+    .map((s) => s.mandatoryMenuItemId)
+    .filter((id): id is string => id !== null);
   const menuItems = menuItemIds.length
     ? await prisma.venueMenuItem.findMany({
         where: { id: { in: menuItemIds } },
@@ -128,10 +133,12 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
   const menuNameById = Object.fromEntries(menuItems.map((i) => [i.id, i.name]));
 
   const menu: MenuStats = {
-    byItem: regMenuGroups.map((s) => ({
-      name: menuNameById[s.mandatoryMenuItemId] ?? s.mandatoryMenuItemId,
-      count: s._count.id,
-    })),
+    byItem: holderMenuGroups
+      .filter((s) => s.mandatoryMenuItemId !== null)
+      .map((s) => ({
+        name: menuNameById[s.mandatoryMenuItemId!] ?? s.mandatoryMenuItemId!,
+        count: s._count.id,
+      })),
   };
 
   return {
@@ -141,7 +148,7 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
       byStatus,
       memberCount,
       nonMemberCount,
-      partnerCount,
+      holderCount,
     },
     finance: {
       baselineTotal: financeAgg._sum.computedTotalAtSubmit ?? 0,
