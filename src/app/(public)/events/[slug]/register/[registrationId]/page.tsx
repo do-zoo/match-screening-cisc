@@ -1,14 +1,18 @@
+import { RegistrationStatus } from '@prisma/client'
 import { RegistrationStatusBadge } from '@/components/admin/registration-status-badge'
-import { buttonVariants } from '@/components/ui/button'
 import { prisma } from '@/lib/db/prisma'
-import { cn } from '@/lib/utils'
-import { formatIdr } from '@/lib/utils/format-idr'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { ApprovedPanel } from '@/components/public/registration-form/approved-panel'
+import { PendingReviewPanel } from '@/components/public/registration-form/pending-review-panel'
+import { UploadProofPanel } from '@/components/public/registration-form/upload-proof-panel'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
+
 export const metadata: Metadata = {
-  title: 'Pendaftaran Diterima',
+  title: 'Status Pendaftaran',
   robots: { index: false, follow: false },
 }
 
@@ -33,45 +37,55 @@ export default async function RegistrationReceiptPage({
 
   if (!registration) notFound()
 
+  const { status, id, computedTotalAtSubmit, event } = registration
+
+  if (status === RegistrationStatus.submitted) {
+    return (
+      <UploadProofPanel
+        registrationId={id}
+        eventTitle={event.title}
+        bankName={event.bankAccount.bankName}
+        accountName={event.bankAccount.accountName}
+        accountNumber={event.bankAccount.accountNumber}
+        totalAmount={computedTotalAtSubmit}
+      />
+    )
+  }
+
+  if (status === RegistrationStatus.pending_review) {
+    return (
+      <PendingReviewPanel
+        registrationId={id}
+        eventTitle={event.title}
+        totalAmount={computedTotalAtSubmit}
+      />
+    )
+  }
+
+  if (status === RegistrationStatus.approved) {
+    return (
+      <ApprovedPanel
+        registrationId={id}
+        eventTitle={event.title}
+        totalAmount={computedTotalAtSubmit}
+      />
+    )
+  }
+
+  // Fallback: rejected, cancelled, refunded, payment_issue, dll
   return (
-    <main className='mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 md:px-6 py-12'>
-      <header className='flex flex-col gap-3'>
-        <div className='flex flex-wrap items-center gap-3'>
-          <h1 className='font-semibold text-2xl tracking-tight'>Pendaftaran diterima</h1>
-          <RegistrationStatusBadge status={registration.status} />
-        </div>
-        <p className='text-sm text-[hsl(var(--muted-foreground))]'>
-          Simpan halaman ini sebagai bukti pemesanan sementara. Tim akan memverifikasi pembayaran dan status kamu akan
-          di-update.
-        </p>
+    <main className='mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-12 md:px-6'>
+      <header className='flex flex-wrap items-center gap-3'>
+        <h1 className='text-2xl font-semibold tracking-tight'>Status Pendaftaran</h1>
+        <RegistrationStatusBadge status={status} />
       </header>
-
-      <section className='grid gap-3 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 md:p-6'>
-        <div className='text-sm font-medium'>Ringkas</div>
-        <dl className='grid gap-3 text-sm'>
-          <div className='flex items-start justify-between gap-4 md:p-6'>
-            <dt className='text-[hsl(var(--muted-foreground))]'>Acara</dt>
-            <dd className='text-right'>{registration.event.title}</dd>
-          </div>
-
-          <div className='flex items-start justify-between gap-4 md:p-6'>
-            <dt className='text-[hsl(var(--muted-foreground))]'>Nomor pemesanan</dt>
-            <dd className='max-w-[60%] break-all font-mono text-right text-xs'>{registration.id}</dd>
-          </div>
-
-          <div className='flex items-start justify-between gap-4 md:p-6'>
-            <dt className='text-[hsl(var(--muted-foreground))]'>Total (snapshot)</dt>
-            <dd className='font-mono text-base font-semibold'>{formatIdr(registration.computedTotalAtSubmit)}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <nav className='flex flex-wrap gap-3 justify-end' aria-label='Navigasi setelah pendaftaran'>
+      <p className='text-sm text-muted-foreground'>
+        Hubungi panitia untuk informasi lebih lanjut mengenai pendaftaran ini.
+      </p>
+      <p className='break-all font-mono text-xs text-muted-foreground'>{id}</p>
+      <nav className='flex flex-wrap justify-end gap-3'>
         <Link href='/' className={cn(buttonVariants({ variant: 'outline' }))}>
           Ke beranda
-        </Link>
-        <Link href='/events' className={cn(buttonVariants({ variant: 'default' }))}>
-          Lihat acara lainnya
         </Link>
       </nav>
     </main>
