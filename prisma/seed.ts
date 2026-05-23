@@ -5,6 +5,11 @@ import { AdminRole, EventStatus } from '@prisma/client'
 /** Same Neon + `db.localtest.me` proxy setup as the app (`scripts/bootstrap-admin` pattern). */
 import { prisma } from '@/lib/db/prisma'
 
+// Stable ID prefix untuk EventTicketCategory — agar upsert idempoten
+const CAT_FINAL_REGULER = 'seed_cat_final_reguler'
+const CAT_FINAL_VIP = 'seed_cat_final_vip'
+const CAT_KOPDAR_REGULER = 'seed_cat_kopdar_reguler'
+
 /** Jendela registrasi vs gate vs kick-off untuk seed acara. */
 function eventTiming(start: Date, end: Date) {
   const openRegistrationAt = new Date(start.getTime() - 14 * 24 * 60 * 60 * 1000)
@@ -303,6 +308,7 @@ async function main() {
       mandatoryMenuItemIds: [vmEsTeh.id, vmKopiHitam.id],
       registrationManualClosed: false,
       registrationCapacity: null,
+      multiCategoryPurchase: true,
       status: EventStatus.active,
       coverBlobUrl: 'https://placehold.co/1200x630/001489/ffffff/png?text=Demo+Watch+Party',
       coverBlobPath: '__seed__/demo-final-ucl-2026/cover.webp',
@@ -318,6 +324,7 @@ async function main() {
       coverBlobPath: '__seed__/demo-final-ucl-2026/cover.webp',
       registrationManualClosed: false,
       registrationCapacity: null,
+      multiCategoryPurchase: true,
       venueId: demoVenue.id,
       status: EventStatus.active,
       picAdminProfileId: ownerProfile.id,
@@ -331,6 +338,18 @@ async function main() {
       { eventId: event.id, venueMenuItemId: vmEsTeh.id, sortOrder: 1 },
       { eventId: event.id, venueMenuItemId: vmKopiHitam.id, sortOrder: 2 },
     ],
+  })
+
+  // Ticket categories — upsert dengan ID stabil supaya idempoten
+  await prisma.eventTicketCategory.upsert({
+    where: { id: CAT_FINAL_REGULER },
+    update: { name: 'Tiket Reguler', regularPrice: 150_000, memberPrice: 120_000, maxQtyPerPerson: 4, sortOrder: 1, isActive: true },
+    create: { id: CAT_FINAL_REGULER, eventId: event.id, name: 'Tiket Reguler', regularPrice: 150_000, memberPrice: 120_000, maxQtyPerPerson: 4, sortOrder: 1, isActive: true },
+  })
+  await prisma.eventTicketCategory.upsert({
+    where: { id: CAT_FINAL_VIP },
+    update: { name: 'Tiket VIP', regularPrice: 250_000, memberPrice: 200_000, maxQtyPerPerson: 2, sortOrder: 2, isActive: true },
+    create: { id: CAT_FINAL_VIP, eventId: event.id, name: 'Tiket VIP', regularPrice: 250_000, memberPrice: 200_000, maxQtyPerPerson: 2, sortOrder: 2, isActive: true },
   })
 
   const catalogVenueItems = await prisma.venueMenuItem.findMany({
@@ -360,6 +379,7 @@ async function main() {
       mandatoryMenuItemIds: catalogMandatoryIds,
       registrationManualClosed: false,
       registrationCapacity: 40,
+      multiCategoryPurchase: false,
       status: EventStatus.active,
       coverBlobUrl: 'https://placehold.co/1200x630/034694/ffffff/png?text=Demo+Kopdar+Katalog',
       coverBlobPath: '__seed__/demo-kopdar-catalog-2026/cover.webp',
@@ -375,6 +395,7 @@ async function main() {
       coverBlobPath: '__seed__/demo-kopdar-catalog-2026/cover.webp',
       registrationManualClosed: false,
       registrationCapacity: 40,
+      multiCategoryPurchase: false,
       venueId: catalogVenue.id,
       status: EventStatus.active,
       picAdminProfileId: ownerProfile.id,
@@ -394,13 +415,21 @@ async function main() {
     await prisma.eventVenueMenuItem.createMany({ data: kopdarMenuRows })
   }
 
+  await prisma.eventTicketCategory.upsert({
+    where: { id: CAT_KOPDAR_REGULER },
+    update: { name: 'Tiket Reguler', regularPrice: 100_000, memberPrice: 75_000, maxQtyPerPerson: null, sortOrder: 1, isActive: true },
+    create: { id: CAT_KOPDAR_REGULER, eventId: kopdarEvent.id, name: 'Tiket Reguler', regularPrice: 100_000, memberPrice: 75_000, maxQtyPerPerson: null, sortOrder: 1, isActive: true },
+  })
+
   const mgmtCount = MASTER_MEMBER_SEEDS.filter(r => r.managementPublicCode).length
   console.log(
     'Seed OK:',
     event.slug,
-    '+',
+    `(${2} kategori tiket) +`,
     kopdarEvent.slug,
-    `· venue nobar=${demoVenue.id} · venue katalog=${catalogVenue.id} (${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
+    `(${1} kategori tiket)`,
+    `· venue nobar=${demoVenue.id} · venue katalog=${catalogVenue.id}`,
+    `(${MASTER_MEMBER_SEEDS.length} MasterMember · ${mgmtCount} ManagementMember · PIC = Owner ${ownerProfile.id})`,
   )
 }
 
