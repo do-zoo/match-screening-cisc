@@ -4,7 +4,7 @@ import { RegistrationStatus } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
-import { UploadError } from '@/lib/uploads/errors'
+import { isUploadError } from '@/lib/uploads/errors'
 
 export async function uploadTransferProof(
   registrationId: string,
@@ -22,7 +22,7 @@ export async function uploadTransferProof(
 
   if (!registration) return rootError('Pendaftaran tidak ditemukan.')
   if (registration.status !== RegistrationStatus.submitted) {
-    return rootError('Bukti transfer sudah dikirim sebelumnya.')
+    return rootError('Pendaftaran ini tidak dapat menerima bukti transfer.')
   }
 
   try {
@@ -39,7 +39,7 @@ export async function uploadTransferProof(
 
     return ok(null)
   } catch (e) {
-    if (e instanceof UploadError) {
+    if (isUploadError(e)) {
       return rootError('Gagal mengunggah gambar. Coba unggah ulang.')
     }
     console.error(e)

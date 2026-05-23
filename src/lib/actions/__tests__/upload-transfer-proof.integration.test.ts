@@ -16,6 +16,7 @@ vi.mock('@/lib/uploads/upload-image', () => ({
 
 import { prisma } from '@/lib/db/prisma'
 import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
+import { UploadError } from '@/lib/uploads/errors'
 import { uploadTransferProof } from '../upload-transfer-proof'
 
 const mockFindUnique = vi.mocked(prisma.registration.findUnique)
@@ -49,7 +50,17 @@ describe('uploadTransferProof', () => {
     fd.append('transferProof', new File(['x'], 'proof.jpg', { type: 'image/jpeg' }))
     const r = await uploadTransferProof('reg-1', fd)
     expect(r.ok).toBe(false)
-    if (!r.ok && 'rootError' in r) expect(r.rootError).toMatch(/sudah dikirim/)
+    if (!r.ok && 'rootError' in r) expect(r.rootError).toMatch(/tidak dapat/)
+  })
+
+  it('mengembalikan error jika upload gagal', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'reg-1', status: RegistrationStatus.submitted } as never)
+    mockUpload.mockRejectedValue(new UploadError('File too large.', { code: 'file_too_large', recoverable: true }))
+    const fd = new FormData()
+    fd.append('transferProof', new File(['x'], 'proof.jpg', { type: 'image/jpeg' }))
+    const r = await uploadTransferProof('reg-1', fd)
+    expect(r.ok).toBe(false)
+    if (!r.ok && 'rootError' in r) expect(r.rootError).toMatch(/Gagal mengunggah/)
   })
 
   it('upload berhasil dan status naik ke pending_review', async () => {
