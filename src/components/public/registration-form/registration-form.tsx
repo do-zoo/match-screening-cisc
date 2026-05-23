@@ -1,13 +1,12 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useMemo } from 'react'
 import { Controller, FormProvider, useFieldArray, useForm, type Resolver } from 'react-hook-form'
 
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-import { FileField } from '@/components/ui/file-field'
 import { Input } from '@/components/ui/input'
 import { submitRegistration } from '@/lib/actions/submit-registration'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
@@ -27,7 +26,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     defaultValues: {
       ticketCategoryId: event.ticketCategories?.[0]?.id ?? '',
       ticketQty: 1,
-      holders: [{ holderName: '', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
+      holders: [{ holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
       contactWhatsapp: '',
     },
   })
@@ -37,6 +36,22 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     name: 'holders',
   })
 
+  const [holderValidations, setHolderValidations] = useState<('valid' | 'invalid' | 'unknown')[]>(() =>
+    Array(1).fill('unknown'),
+  )
+
+  const handleValidationChange = useCallback(
+    (index: number, validation: 'valid' | 'invalid' | 'unknown') => {
+      setHolderValidations(prev => {
+        if (prev[index] === validation) return prev
+        const next = [...prev]
+        next[index] = validation
+        return next
+      })
+    },
+    [],
+  )
+
   const selectedCategoryId = form.watch('ticketCategoryId')
   const ticketQty = form.watch('ticketQty')
   const holders = form.watch('holders')
@@ -45,7 +60,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     () => event.ticketCategories?.find(c => c.id === selectedCategoryId),
     [event.ticketCategories, selectedCategoryId],
   )
-  const pricing = usePricingPreview({ category: selectedCategory, holders })
+  const pricing = usePricingPreview({ category: selectedCategory, holders, holderValidations })
 
   function handleQtyChange(qty: number) {
     form.setValue('ticketQty', qty)
@@ -60,6 +75,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
         },
     )
     replace(next)
+    setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
   }
 
   async function onSubmit(values: SubmitRegistrationInput) {
@@ -68,7 +84,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     formData.append('ticketQty', String(values.ticketQty))
     formData.append('holders', JSON.stringify(values.holders))
     formData.append('contactWhatsapp', values.contactWhatsapp)
-    if (values.transferProof) formData.append('transferProof', values.transferProof)
 
     const result = await submitRegistration(event.id, formData)
     if (result.ok) {
@@ -123,6 +138,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
                   isPrimary={index === 0}
                   menuItems={event.mandatoryMenuItems}
                   menuRequired={event.menuRequired ?? false}
+                  eventId={event.id}
+                  onValidationChange={handleValidationChange}
                 />
               ))}
             </div>
@@ -154,26 +171,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
               Transfer ke: <span className='font-medium text-foreground'>{event.bankAccount.bankName}</span> —{' '}
               {event.bankAccount.accountName} <span className='font-mono'>{event.bankAccount.accountNumber}</span>
             </div>
-
-            <Controller
-              control={form.control}
-              name='transferProof'
-              render={({ field: { ref, name, onBlur, onChange }, fieldState }) => (
-                <FileField
-                  ref={ref}
-                  id='ms-registration-transfer-proof'
-                  label='Bukti transfer'
-                  description='Unggah screenshot atau foto bukti pembayaran (JPG, PNG, WebP). Pastikan nominal dan nama penerima terbaca.'
-                  name={name}
-                  onBlur={onBlur}
-                  onChange={onChange}
-                  invalid={fieldState.invalid}
-                  errors={fieldState.error ? [fieldState.error] : undefined}
-                  pickPrompt='Ketuk untuk memilih bukti'
-                  replacePrompt='Ganti bukti'
-                />
-              )}
-            />
           </div>
 
           {/* Pricing summary */}

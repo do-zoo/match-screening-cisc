@@ -1,13 +1,10 @@
 'use server'
 
-import { del } from '@vercel/blob'
 import { RegistrationStatus } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema'
 import { computeSubmitTotal } from '@/lib/pricing/compute-submit-total'
-import { UploadError } from '@/lib/uploads/errors'
-import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
 import {
   assertRegistrationAcceptableOrThrowForTx,
   countRegistrationsTowardQuota,
@@ -22,21 +19,6 @@ import {
 import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-settings'
 
 export type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
-
-function uploadErrorMessage(err: UploadError): string {
-  const code = (err as UploadError & { meta?: { code?: string } }).meta?.code ?? err.code
-
-  if (code === 'invalid_content_type') {
-    return 'File harus berupa gambar JPG, PNG, WebP, HEIC, atau HEIF.'
-  }
-  if (code === 'file_too_large') {
-    return 'Ukuran file terlalu besar. Maksimal 8 MB.'
-  }
-  if (code === 'blob_store_private') {
-    return 'Konfigurasi penyimpanan unggahan sedang tidak sesuai (Blob store private). Hubungi admin untuk mengubah store menjadi public atau gunakan token dari store public.'
-  }
-  return 'Gagal mengunggah gambar. Coba unggah ulang.'
-}
 
 export async function submitRegistration(
   eventId: string,
@@ -55,7 +37,6 @@ export async function submitRegistration(
     ticketQty: Number(formData.get('ticketQty')),
     holders: holdersRaw,
     contactWhatsapp: formData.get('contactWhatsapp'),
-    transferProof: formData.get('transferProof'),
   }
 
   const parsed = submitRegistrationSchema.safeParse(rawInput)
@@ -130,7 +111,7 @@ export async function submitRegistration(
     return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
   }
 
-  // 5. Compute pricing — all holders start as "unknown"; admin validates later
+  // 5. Compute pricing (server always uses 'unknown' — admin verifies member status)
   const pricing = computeSubmitTotal({
     holders: input.holders.map(h => ({
       memberValidation: 'unknown' as const,
@@ -142,17 +123,14 @@ export async function submitRegistration(
     })),
   })
 
-  // 6. Create Registration + RegistrationHolder[] in a transaction, then upload
-  let registrationId = ''
-
+  // 6. Create Registration + RegistrationHolder[] in a transaction
   try {
     const reg = await prisma.$transaction(async tx => {
       await assertRegistrationAcceptableOrThrowForTx(tx, event)
 
-      // contactName comes from the first holder
       const contactName = input.holders[0].holderName
 
-      const created = await tx.registration.create({
+      return tx.registration.create({
         data: {
           eventId: event.id,
           ticketCategoryId: input.ticketCategoryId,
@@ -165,6 +143,7 @@ export async function submitRegistration(
             create: input.holders.map((h, i) => ({
               sortOrder: i + 1,
               holderName: h.holderName,
+              holderWhatsapp: h.holderWhatsapp?.trim() || null,
               claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
               ticketPriceApplied: pricing.lines[i]!.ticketPrice,
               mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
@@ -173,56 +152,12 @@ export async function submitRegistration(
           },
         },
       })
-
-      return created
-    })
-
-    registrationId = reg.id
-
-    // 7. Upload transfer proof after transaction (so registrationId exists)
-    await uploadImageForRegistration({
-      purpose: 'transfer_proof',
-      registrationId: reg.id,
-      file: input.transferProof,
-    })
-
-    // 8. Move to pending_review
-    await prisma.registration.update({
-      where: { id: reg.id },
-      data: { status: RegistrationStatus.pending_review },
     })
 
     return ok({ registrationId: reg.id })
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {
       return rootError(e.message)
-    }
-
-    // Blob rollback: delete any uploaded blobs then clean up the DB row
-    let cleanupFailed = false
-    if (registrationId) {
-      const uploads = await prisma.upload.findMany({
-        where: { registrationId },
-        select: { blobUrl: true },
-      })
-      for (const u of uploads) {
-        try {
-          await del(u.blobUrl)
-        } catch {
-          cleanupFailed = true
-        }
-      }
-      if (cleanupFailed) {
-        console.error(e)
-        return rootError(
-          `Gagal menyimpan pendaftaran dan membersihkan unggahan. Laporkan ID pendaftaran ${registrationId} ke panitia.`,
-        )
-      }
-      await prisma.registration.delete({ where: { id: registrationId } }).catch(() => {})
-    }
-
-    if (e instanceof UploadError) {
-      return rootError(uploadErrorMessage(e))
     }
     console.error(e)
     return rootError('Gagal menyimpan pendaftaran. Coba lagi.')

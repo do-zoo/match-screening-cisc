@@ -39,7 +39,6 @@ describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
     fd.set('ticketQty', '1')
     fd.set('holders', JSON.stringify([{ holderName: 'Tester' }]))
     fd.set('contactWhatsapp', '08123456789')
-    fd.set('transferProof', new File([new Uint8Array([1])], 'proof.jpg', { type: 'image/jpeg' }))
     const r = await submitRegistration('tidak-ada', fd)
     expect(r.ok).toBe(false)
     if (!r.ok && 'rootError' in r) {

@@ -18,6 +18,7 @@ const contactWhatsappSchema = z
 
 export const holderSchema = z.object({
   holderName: z.string().trim().min(1, 'Nama pemegang tiket wajib diisi'),
+  holderWhatsapp: z.string().trim().optional(),
   claimedMemberNumber: z.string().trim().optional(),
   mandatoryMenuItemId: z.string().optional(),
 })
@@ -29,7 +30,6 @@ export const submitRegistrationSchema = z.object({
   ticketQty: z.number().int().min(1, 'Jumlah tiket minimal 1'),
   holders: z.array(holderSchema).min(1, 'Minimal satu pemegang tiket'),
   contactWhatsapp: contactWhatsappSchema,
-  transferProof: z.instanceof(File, { message: 'Bukti transfer wajib diunggah' }),
 })
 
 export type SubmitRegistrationInput = z.infer<typeof submitRegistrationSchema>
