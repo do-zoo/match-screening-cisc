@@ -8,6 +8,7 @@
 ## Overview
 
 This spec redesigns the event registration system to:
+
 1. Make one menu item mandatory per ticket (selected at event creation)
 2. Treat primary and partner registrants as separate Registration records (independent attendance, shared proof)
 3. Remove global ticket defaults (per-event pricing now required)
@@ -23,12 +24,14 @@ This spec redesigns the event registration system to:
 ### Event
 
 **Changes:**
+
 - Replace `startAt`, `endAt` with 4-field timeline
 - Add `mandatoryMenuItemIds` (JSON array of VenueMenuItem IDs)
 - Make `ticketMemberPrice`, `ticketNonMemberPrice` required
 - Remove `menuMode`, `menuSelection`, `voucherPrice`
 
 **Schema:**
+
 ```prisma
 model Event {
   id          String   @id @default(cuid())
@@ -36,44 +39,44 @@ model Event {
   title       String
   summary     String
   description String   @db.Text
-  
+
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
-  
+
   coverBlobUrl  String
   coverBlobPath String
-  
+
   // Timeline (replaces startAt/endAt)
   openRegistrationAt  DateTime
   closeRegistrationAt DateTime
   openGateAt          DateTime
   kickOffAt           DateTime
-  
+
   registrationManualClosed Boolean @default(false)
   registrationCapacity     Int?
   status                   EventStatus @default(draft)
-  
+
   // Pricing (required, no global defaults)
   ticketMemberPrice    Int
   ticketNonMemberPrice Int
   pricingSource        PricingSource @default(overridden)
-  
+
   // Mandatory menu (admin selects 1+ options, user picks 1)
   mandatoryMenuItemIds String[] // JSON array of VenueMenuItem.id
-  
+
   picAdminProfileId String
   picAdminProfile   AdminProfile @relation(fields: [picAdminProfileId], references: [id], onDelete: Restrict)
-  
+
   bankAccountId String
   bankAccount   PicBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   helpers               EventPicHelper[]
   registrations         Registration[]
   eventVenueMenuItems   EventVenueMenuItem[]
-  
+
   @@index([status, kickOffAt])
   @@index([venueId])
   @@index([picAdminProfileId])
@@ -82,6 +85,7 @@ model Event {
 ```
 
 **Validation (in schema or app layer):**
+
 ```
 openRegistrationAt < closeRegistrationAt
 openGateAt < kickOffAt
@@ -89,6 +93,7 @@ openGateAt < kickOffAt
 ```
 
 **Edit locking:**
+
 ```
 After closeRegistrationAt passes:
   - All fields readonly
@@ -100,6 +105,7 @@ After closeRegistrationAt passes:
 **Rationale:** Partner becomes a separate registrant (independent attendance, simplified data structure).
 
 **Changes:**
+
 - Add `primaryRegistrationId` (FK to primary Registration)
 - Move `ticketRole` from Ticket model
 - Add `mandatoryMenuItemId` per registrant
@@ -107,12 +113,13 @@ After closeRegistrationAt passes:
 - Make `attendanceStatus` independent (not shared across pair)
 
 **Schema:**
+
 ```prisma
 model Registration {
   id      String @id @default(cuid())
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  
+
   // Registrant identity (same fields for primary & partner)
   contactName     String
   contactWhatsapp String
@@ -120,40 +127,40 @@ model Registration {
   memberValidation    MemberValidation @default(unknown)
   memberId            String?
   member              MasterMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  
+
   // Partner relationship
   primaryRegistrationId String?
   primaryRegistration   Registration? @relation("PartnerLink", fields: [primaryRegistrationId], references: [id], onDelete: Cascade)
   partnerRegistrations  Registration[] @relation("PartnerLink")
-  
+
   // Ticket info
   ticketRole      TicketRole      // "primary" | "partner"
   ticketPriceType TicketPriceType
   mandatoryMenuItemId String
   mandatoryMenuItem   VenueMenuItem @relation(fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
-  
+
   // Pricing snapshot (per registrant)
   ticketPriceApplied        Int
   mandatoryMenuPriceApplied Int
   computedTotalAtSubmit     Int
-  
+
   // Status (independent per registrant)
   status           RegistrationStatus @default(submitted)
   attendanceStatus AttendanceStatus   @default(unknown)
   rejectionReason    String?
   paymentIssueReason String?
-  
+
   // Management
   claimedManagementPublicCode String?
   primaryManagementMemberId   String?
   primaryManagementMember     ManagementMember? @relation(fields: [primaryManagementMemberId], references: [id], onDelete: SetNull)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
-  
+
   @@index([eventId, createdAt])
   @@index([status])
   @@index([primaryRegistrationId])
@@ -172,13 +179,13 @@ model Upload {
   id             String   @id @default(cuid())
   registrationId String
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  
+
   purpose UploadPurpose
   blobUrl  String
   blobPath String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([registrationId])
 }
 ```
@@ -252,20 +259,20 @@ export const adminEventUpsertSchema = z.object({
   descriptionHtml: z.string(),
   venueId: z.string().min(1),
   linkedVenueMenuItems: z.array(...).min(1), // for future add-ons
-  
+
   // New: explicit timing
   openRegistrationAtIso: z.string().min(1),
   closeRegistrationAtIso: z.string().min(1),
   openGateAtIso: z.string().min(1),
   kickOffAtIso: z.string().min(1),
-  
+
   // New: mandatory menu selection
   mandatoryMenuItemIds: z.array(z.string().min(1)).min(1),
-  
+
   // Updated: pricing required
   ticketMemberPrice: idrSchema,
   ticketNonMemberPrice: idrSchema,
-  
+
   registrationCapacity: z.union([idrSchema, z.literal(null)]).optional(),
   registrationManualClosed: z.boolean(),
   status: z.nativeEnum(EventStatus),
@@ -279,7 +286,7 @@ export const adminEventUpsertSchema = z.object({
   const closeReg = Date.parse(v.closeRegistrationAtIso);
   const openGate = Date.parse(v.openGateAtIso);
   const kickOff = Date.parse(v.kickOffAtIso);
-  
+
   if (closeReg <= openReg) {
     ctx.addIssue({
       code: "custom",
@@ -294,7 +301,7 @@ export const adminEventUpsertSchema = z.object({
       message: "Event harus dimulai setelah gates buka.",
     });
   }
-  
+
   // Validate pricing
   if (v.ticketMemberPrice <= 0 || v.ticketNonMemberPrice <= 0) {
     ctx.addIssue({
@@ -303,7 +310,7 @@ export const adminEventUpsertSchema = z.object({
       message: "Harga tiket harus lebih dari 0.",
     });
   }
-  
+
   // Validate mandatory menu
   if (v.mandatoryMenuItemIds.length === 0) {
     ctx.addIssue({
@@ -345,12 +352,14 @@ export const adminEventUpsertSchema = z.object({
 ### Validation
 
 **Availability:**
+
 ```
 Form only shown if: now() >= event.openRegistrationAt AND now() < event.closeRegistrationAt
 Otherwise: "Registrasi ditutup" / "Registrasi belum dibuka"
 ```
 
 **Fields:**
+
 ```
 contactName: required, min 1 char
 contactWhatsapp: optional
@@ -369,6 +378,7 @@ proof: required, image file (allowed: jpg, png, webp)
 ### On Submit (Server Action)
 
 **Creates:**
+
 ```
 1 Registration (primary)
   ticketRole: "primary"
@@ -391,6 +401,7 @@ proof: required, image file (allowed: jpg, png, webp)
 ```
 
 **Pricing calculation:**
+
 ```
 Primary total = ticketMemberPrice + menuItem.price
 Partner total = ticketMemberPrice + partnerMenuItem.price
@@ -404,6 +415,7 @@ Grand total = primary + partner (if present)
 ### Pricing Fields
 
 Each `Registration` snapshot stores:
+
 ```
 ticketPriceApplied: Int        // ticket only
 mandatoryMenuPriceApplied: Int  // menu only
@@ -413,16 +425,17 @@ computedTotalAtSubmit: Int      // ticket + menu
 ### computeSubmitTotal()
 
 **Simplified signature:**
+
 ```typescript
 type SubmitPricingInput = {
   event: {
     ticketMemberPrice: number
     ticketNonMemberPrice: number
-    mandatoryMenuItems: { id, name, price }[]
+    mandatoryMenuItems: { id; name; price }[]
   }
-  primaryTicketType: "member" | "non_member"
+  primaryTicketType: 'member' | 'non_member'
   primaryMandatoryMenuId: string
-  partnerTicketType?: "member" | "non_member"
+  partnerTicketType?: 'member' | 'non_member'
   partnerMandatoryMenuId?: string
 }
 
@@ -430,11 +443,11 @@ type SubmitPricingResult = {
   primaryTicketPrice: Int
   primaryMenuPrice: Int
   primaryTotal: Int
-  
+
   partnerTicketPrice?: Int
   partnerMenuPrice?: Int
   partnerTotal?: Int
-  
+
   grandTotal: Int
   lines: PricingLine[] // for UI display
 }
@@ -461,6 +474,7 @@ Used in reports for financial tracking.
 ### List View
 
 **Columns:**
+
 ```
 Registrant Name | Event | Ticket Role | Status | Attendance
 John Doe        | Gala  | Primary     | Approved | Attended
@@ -468,6 +482,7 @@ Jane Doe        | Gala  | Partner     | Approved | No-show
 ```
 
 **Behaviors:**
+
 - Each registrant is one row (primary & partner separate)
 - Can filter/sort by status, attendance
 - Partner rows visually linked to primary (UI cue)
@@ -475,6 +490,7 @@ Jane Doe        | Gala  | Partner     | Approved | No-show
 ### Detail View
 
 **For primary:**
+
 - Registrant info (name, member number, validation)
 - Ticket role: Primary
 - Mandatory menu selected
@@ -485,6 +501,7 @@ Jane Doe        | Gala  | Partner     | Approved | No-show
 - Linked partners: list of partner registrations with link
 
 **For partner:**
+
 - Same layout as primary
 - Shows: "Partner of [Primary Name]" (link to primary)
 - Upload(s) inherited from primary (show link to primary's upload)
@@ -494,6 +511,7 @@ Jane Doe        | Gala  | Partner     | Approved | No-show
 ### Actions
 
 Each registrant (primary or partner) can be:
+
 - Approved / Rejected / Payment Issue (independent)
 - Marked attended / no-show / unknown (independent)
 - Member validation toggled (valid / invalid / overridden)
@@ -506,6 +524,7 @@ Each registrant (primary or partner) can be:
 ### Event Report Page
 
 **Summary stats:**
+
 ```
 Total registrants: 150 (includes partners as separate rows)
   - Primary: 100
@@ -526,6 +545,7 @@ Cost & Margin:
 ### CSV Export
 
 **Columns (per registrant row):**
+
 ```
 Registrant Name | Role | Member Status | Ticket Price | Menu Item | Menu Price | Total | Status | Attendance
 John Doe        | Primary | Valid | 500000 | Nasi Kuning | 150000 | 650000 | Approved | Attended
@@ -541,6 +561,7 @@ Jane Doe        | Partner | Unknown | 500000 | Lumpia | 100000 | 600000 | Approv
 ### Registration Availability
 
 User can submit form if:
+
 ```
 now() >= event.openRegistrationAt
 AND
@@ -548,6 +569,7 @@ now() < event.closeRegistrationAt
 ```
 
 Public display:
+
 ```
 If now() < openRegistrationAt: "Registrasi dibuka [date/time]"
 If openRegistrationAt ≤ now() < closeRegistrationAt: "Daftar sekarang" (form enabled)
@@ -641,6 +663,7 @@ CREATE INDEX idx_registration_attendance ON Registration(attendanceStatus);
 ### Future: Optional Add-ons
 
 This design defers optional menu add-ons. When implemented later:
+
 - Keep `EventVenueMenuItem` & `TicketMenuSelection` tables (already in schema)
 - Add new fields: `optionalMenuItemIds`, `optionalMenuSelection` to Event
 - Extend Registration/Ticket to store optional menu choices
@@ -649,15 +672,19 @@ This design defers optional menu add-ons. When implemented later:
 ### Edge Cases
 
 **Question:** What if `closeRegistrationAt` > `kickOffAt`?
+
 - **Answer:** Allowed intentionally. Accommodates late registrations during/after event.
 
 **Question:** Can primary & partner select the same mandatory menu?
+
 - **Answer:** Yes, no constraint. User chooses independently.
 
 **Question:** Can mandatory menu be removed from event after creation?
+
 - **Answer:** Via edit form, if no registrations exist. After first registration, locked.
 
 **Question:** What if no menu items exist for event?
+
 - **Answer:** Admin must select ≥1 when creating event (validation prevents empty).
 
 ---
@@ -665,6 +692,7 @@ This design defers optional menu add-ons. When implemented later:
 ## 10. CISC.md Documentation Updates
 
 After implementation, update CLAUDE.md:
+
 - New "Event Timeline" section
 - Update "Data Model" (Event, Registration, removed Ticket/CommitteeTicketDefaults)
 - Update "Route layout" if registration timeline affects any routes
@@ -675,14 +703,14 @@ After implementation, update CLAUDE.md:
 
 ## Glossary
 
-| Term | Definition |
-|------|-----------|
-| **Mandatory menu** | One menu item (selected by admin) that every registrant must choose; price is part of ticket |
-| **Primary** | Main registrant in a registration pair |
-| **Partner** | Secondary registrant linked to primary; separate Registration record |
-| **Margin** | ticket price - menu price (financial tracking) |
-| **Registration window** | Period between openRegistrationAt and closeRegistrationAt when form is open |
-| **Timeline** | 4-field structure: openReg, closeReg, openGate, kickOff |
+| Term                    | Definition                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| **Mandatory menu**      | One menu item (selected by admin) that every registrant must choose; price is part of ticket |
+| **Primary**             | Main registrant in a registration pair                                                       |
+| **Partner**             | Secondary registrant linked to primary; separate Registration record                         |
+| **Margin**              | ticket price - menu price (financial tracking)                                               |
+| **Registration window** | Period between openRegistrationAt and closeRegistrationAt when form is open                  |
+| **Timeline**            | 4-field structure: openReg, closeReg, openGate, kickOff                                      |
 
 ---
 

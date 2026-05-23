@@ -30,37 +30,35 @@ Alasan: `loadAdminDashboard` memuat semua acara yang diizinkan sekaligus (tanpa 
 Buat `src/lib/admin/events-index-view.ts`:
 
 ```ts
-export type EventsIndexViewMode = "cards" | "table";
+export type EventsIndexViewMode = 'cards' | 'table'
 
-export function parseEventsIndexViewParam(
-  raw: string | string[] | undefined,
-): EventsIndexViewMode {
-  const v = Array.isArray(raw) ? raw[0] : raw;
-  if (v === "tabel" || v === "table") return "table";
-  return "cards";
+export function parseEventsIndexViewParam(raw: string | string[] | undefined): EventsIndexViewMode {
+  const v = Array.isArray(raw) ? raw[0] : raw
+  if (v === 'tabel' || v === 'table') return 'table'
+  return 'cards'
 }
 ```
 
 Buat `src/lib/admin/events-index-view.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
-import { parseEventsIndexViewParam } from "./events-index-view";
+import { describe, expect, it } from 'vitest'
+import { parseEventsIndexViewParam } from './events-index-view'
 
-describe("parseEventsIndexViewParam", () => {
-  it("defaults to cards", () => {
-    expect(parseEventsIndexViewParam(undefined)).toBe("cards");
-    expect(parseEventsIndexViewParam("")).toBe("cards");
-    expect(parseEventsIndexViewParam("kartu")).toBe("cards");
-  });
-  it("accepts table aliases", () => {
-    expect(parseEventsIndexViewParam("tabel")).toBe("table");
-    expect(parseEventsIndexViewParam("table")).toBe("table");
-  });
-  it("uses first array entry", () => {
-    expect(parseEventsIndexViewParam(["tabel", "x"])).toBe("table");
-  });
-});
+describe('parseEventsIndexViewParam', () => {
+  it('defaults to cards', () => {
+    expect(parseEventsIndexViewParam(undefined)).toBe('cards')
+    expect(parseEventsIndexViewParam('')).toBe('cards')
+    expect(parseEventsIndexViewParam('kartu')).toBe('cards')
+  })
+  it('accepts table aliases', () => {
+    expect(parseEventsIndexViewParam('tabel')).toBe('table')
+    expect(parseEventsIndexViewParam('table')).toBe('table')
+  })
+  it('uses first array entry', () => {
+    expect(parseEventsIndexViewParam(['tabel', 'x'])).toBe('table')
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan tes**
@@ -183,7 +181,7 @@ git add src/app/admin/page.tsx src/lib/admin/pending-review-total-for-context.ts
 git commit -m "feat(admin): reframe home as community hub preview"
 ```
 
-*(Hapus baris file pending helper jika logika di-inline.)*
+_(Hapus baris file pending helper jika logika di-inline.)_
 
 ---
 
@@ -283,12 +281,12 @@ Expected: lint bersih; semua tes Vitest lulus.
 
 **1. Spec coverage**
 
-| Permintaan | Task |
-|------------|------|
-| Dashboard = pratinjau komunitas/CRM, bukan sekadar acara | Task 4, 5 |
-| Acara = dashboard list (kartu + filter) | Task 1–3 |
-| Settings ke event layout (pengaturan acara) | Task 6 |
-| Komite global `/admin/settings` tidak dipindah | Architecture + tidak ada task memindahkan settings tree |
+| Permintaan                                               | Task                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------- |
+| Dashboard = pratinjau komunitas/CRM, bukan sekadar acara | Task 4, 5                                               |
+| Acara = dashboard list (kartu + filter)                  | Task 1–3                                                |
+| Settings ke event layout (pengaturan acara)              | Task 6                                                  |
+| Komite global `/admin/settings` tidak dipindah           | Architecture + tidak ada task memindahkan settings tree |
 
 **2. Placeholder scan**
 

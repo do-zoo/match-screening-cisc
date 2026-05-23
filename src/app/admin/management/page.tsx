@@ -1,25 +1,25 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
-import { requireAdminSession } from "@/lib/auth/session";
+import { requireAdminSession } from '@/lib/auth/session'
 
-export const metadata: Metadata = { title: "Kepengurusan" };
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
-import { prisma } from "@/lib/db/prisma";
-import { findActiveBoardPeriod } from "@/lib/management/active-period";
-import { ManagementHubPage } from "@/components/admin/management-hub-page";
+export const metadata: Metadata = { title: 'Kepengurusan' }
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
+import { prisma } from '@/lib/db/prisma'
+import { findActiveBoardPeriod } from '@/lib/management/active-period'
+import { ManagementHubPage } from '@/components/admin/management-hub-page'
 
 export default async function AdminManagementPage() {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
 
   if (!ctx || !hasOperationalOwnerParity(ctx.role)) {
-    notFound();
+    notFound()
   }
 
   const periods = await prisma.boardPeriod.findMany({
-    orderBy: { startsAt: "desc" },
+    orderBy: { startsAt: 'desc' },
     select: {
       id: true,
       label: true,
@@ -27,13 +27,13 @@ export default async function AdminManagementPage() {
       endsAt: true,
       _count: { select: { assignments: true } },
     },
-  });
+  })
 
-  const activePeriod = findActiveBoardPeriod(periods, new Date());
+  const activePeriod = findActiveBoardPeriod(periods, new Date())
 
   return (
     <ManagementHubPage
-      periods={periods.map((p) => ({
+      periods={periods.map(p => ({
         id: p.id,
         label: p.label,
         startsAt: p.startsAt,
@@ -42,5 +42,5 @@ export default async function AdminManagementPage() {
       }))}
       activePeriodId={activePeriod?.id ?? null}
     />
-  );
+  )
 }

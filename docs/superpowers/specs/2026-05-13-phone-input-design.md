@@ -11,8 +11,8 @@ Shared `PhoneInput` component untuk dipakai di seluruh codebase (admin forms dan
 
 ```ts
 type PhoneValue = {
-  countryCode: string    // dial code dengan +, misal "+62"
-  countryIso: string     // ISO 3166-1 alpha-2, misal "ID"
+  countryCode: string // dial code dengan +, misal "+62"
+  countryIso: string // ISO 3166-1 alpha-2, misal "ID"
   nationalNumber: string // angka yang user ketik, misal "81234567890"
 }
 ```
@@ -36,10 +36,8 @@ Integrasi ke react-hook-form via `<Controller>`:
 ```tsx
 <Controller
   control={control}
-  name="phone"
-  render={({ field }) => (
-    <PhoneInput value={field.value} onChange={field.onChange} />
-  )}
+  name='phone'
+  render={({ field }) => <PhoneInput value={field.value} onChange={field.onChange} />}
 />
 ```
 
@@ -83,19 +81,21 @@ Menggunakan `InputGroup` + `InputGroupAddon` + `InputGroupInput` yang sudah ada:
 Generate sekali dari `libphonenumber-js`:
 
 ```ts
-import { getCountries, getCountryCallingCode } from "libphonenumber-js"
+import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 
 // di phone-input-countries.ts
-export const COUNTRIES = getCountries().map((iso) => ({
-  iso,
-  dialCode: `+${getCountryCallingCode(iso)}`,
-  name: new Intl.DisplayNames(["id"], { type: "region" }).of(iso) ?? iso,
-  flag: isoToFlag(iso),  // konversi "ID" → "🇮🇩" via regional indicator codepoints
-})).sort((a, b) => a.name.localeCompare(b.name, "id"))
+export const COUNTRIES = getCountries()
+  .map(iso => ({
+    iso,
+    dialCode: `+${getCountryCallingCode(iso)}`,
+    name: new Intl.DisplayNames(['id'], { type: 'region' }).of(iso) ?? iso,
+    flag: isoToFlag(iso), // konversi "ID" → "🇮🇩" via regional indicator codepoints
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name, 'id'))
 
 // helper:
 function isoToFlag(iso: string) {
-  return [...iso.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))).join("")
+  return [...iso.toUpperCase()].map(c => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0))).join('')
 }
 ```
 
@@ -106,17 +106,19 @@ Nama negara ditampilkan dalam Bahasa Indonesia via `Intl.DisplayNames`.
 File `src/lib/forms/phone-schema.ts`:
 
 ```ts
-import { isValidPhoneNumber } from "libphonenumber-js"
-import { z } from "zod"
+import { isValidPhoneNumber } from 'libphonenumber-js'
+import { z } from 'zod'
 
-export const phoneValueSchema = z.object({
-  countryCode: z.string().min(1, "Pilih kode negara"),
-  countryIso: z.string().min(1),
-  nationalNumber: z.string().trim().min(1, "Nomor telepon wajib diisi"),
-}).refine(
-  (val) => isValidPhoneNumber(val.nationalNumber, val.countryIso as CountryCode),
-  { message: "Nomor telepon tidak valid", path: ["nationalNumber"] }
-)
+export const phoneValueSchema = z
+  .object({
+    countryCode: z.string().min(1, 'Pilih kode negara'),
+    countryIso: z.string().min(1),
+    nationalNumber: z.string().trim().min(1, 'Nomor telepon wajib diisi'),
+  })
+  .refine(val => isValidPhoneNumber(val.nationalNumber, val.countryIso as CountryCode), {
+    message: 'Nomor telepon tidak valid',
+    path: ['nationalNumber'],
+  })
 
 export type PhoneValue = z.infer<typeof phoneValueSchema>
 ```

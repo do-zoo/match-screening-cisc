@@ -44,28 +44,28 @@ Informasi navigasi sidebar global (**Pengaturan** hanya **Owner**) tetap mengiku
 
 ## 3) Locked architecture decisions
 
-| Topik | Keputusan |
-|--------|------------|
-| Navigasi | **`/admin/settings`** = **hub** (daftar tautan ringkas/deskripsi ke sub-modul); **tidak** mengandalkan satu halaman panjang sebagai tujuan akhir untuk semua konten konfigurasi. |
-| Sub-path | Satu segment per modul (§4); layout bersama boleh `src/app/admin/settings/layout.tsx`. |
-| Akses | Semua loader dan Server Actions untuk modul-modul ini memakai **`guardOwner()`** dari `src/lib/actions/guard.ts` (atau pola setara **`canManageCommitteeAdvancedSettings`** + **`notFound()`** pada RSC), konsisten dengan komentar modul Owner-only pada `roles.ts`. |
-| Data | **Hibrida**: entitas structural di tabel/normalized (anggota PIC, `PicBankAccount`, `AdminProfile`, template terstruktur, audit); singleton atau baris tunggel untuk defaults & branding gabungan boleh **asal** dapat di-upgrade tanpa menghapus sejarah kritikal audit. Hindari satu dokumen JSON opak untuk seluruh konfigurasi tanpa skema. |
-| Error & copy | Server Actions mengembalikan **`ActionResult`**; pesan kesalahan Bahasa Indonesia. |
+| Topik        | Keputusan                                                                                                                                                                                                                                                                                                                                       |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navigasi     | **`/admin/settings`** = **hub** (daftar tautan ringkas/deskripsi ke sub-modul); **tidak** mengandalkan satu halaman panjang sebagai tujuan akhir untuk semua konten konfigurasi.                                                                                                                                                                |
+| Sub-path     | Satu segment per modul (§4); layout bersama boleh `src/app/admin/settings/layout.tsx`.                                                                                                                                                                                                                                                          |
+| Akses        | Semua loader dan Server Actions untuk modul-modul ini memakai **`guardOwner()`** dari `src/lib/actions/guard.ts` (atau pola setara **`canManageCommitteeAdvancedSettings`** + **`notFound()`** pada RSC), konsisten dengan komentar modul Owner-only pada `roles.ts`.                                                                           |
+| Data         | **Hibrida**: entitas structural di tabel/normalized (anggota PIC, `PicBankAccount`, `AdminProfile`, template terstruktur, audit); singleton atau baris tunggel untuk defaults & branding gabungan boleh **asal** dapat di-upgrade tanpa menghapus sejarah kritikal audit. Hindari satu dokumen JSON opak untuk seluruh konfigurasi tanpa skema. |
+| Error & copy | Server Actions mengembalikan **`ActionResult`**; pesan kesalahan Bahasa Indonesia.                                                                                                                                                                                                                                                              |
 
 ## 4) Sub-path canonik (IA)
 
 Path internal memakai **Inggris kebab-case** selaras `next.config` dan rute admin yang ada.
 
-| Modul | Path |
-|--------|------|
-| Hub | `/admin/settings` |
-| PIC, admin aplikasi, penugasan terkait | `/admin/settings/committee` |
-| Harga default global | `/admin/settings/pricing` |
-| Template WhatsApp | `/admin/settings/whatsapp-templates` |
-| Branding publik | `/admin/settings/branding` |
-| Notifikasi & saluran | `/admin/settings/notifications` |
-| Feature flags / operasional | `/admin/settings/operations` |
-| Keamanan & audit | `/admin/settings/security` |
+| Modul                                  | Path                                 |
+| -------------------------------------- | ------------------------------------ |
+| Hub                                    | `/admin/settings`                    |
+| PIC, admin aplikasi, penugasan terkait | `/admin/settings/committee`          |
+| Harga default global                   | `/admin/settings/pricing`            |
+| Template WhatsApp                      | `/admin/settings/whatsapp-templates` |
+| Branding publik                        | `/admin/settings/branding`           |
+| Notifikasi & saluran                   | `/admin/settings/notifications`      |
+| Feature flags / operasional            | `/admin/settings/operations`         |
+| Keamanan & audit                       | `/admin/settings/security`           |
 
 **Redirect legacy:** mempertahankan **`/admin/pengaturan` → `/admin/settings`** di `next.config.ts`; sub-path tidak wajib punya alias legacy kecuali diputuskan terpisah.
 
@@ -106,12 +106,12 @@ Path internal memakai **Inggris kebab-case** selaras `next.config` dan rute admi
 
 ## 7) Phased delivery
 
-| Fase | Isi |
-|------|-----|
+| Fase  | Isi                                                                                                                                                          |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **A** | Persist default harga; `committee` (PIC/admin/bank UX — keputusan sumber tunggal form); foundational guards + layout hub + skeleton sub-path lain bila perlu |
-| **B** | Template WA + branding |
-| **C** | Operations flags + banner/maintenance sesuai daftar flag |
-| **D** | Notifikasi (hingga kirim nyata jika siap) + security policies + audit log |
+| **B** | Template WA + branding                                                                                                                                       |
+| **C** | Operations flags + banner/maintenance sesuai daftar flag                                                                                                     |
+| **D** | Notifikasi (hingga kirim nyata jika siap) + security policies + audit log                                                                                    |
 
 Urutan boleh digeser sedikit atas kebutuhan operasi klub dokumentasikan satu baris dalam PR impl.
 
@@ -123,11 +123,11 @@ Urutan boleh digeser sedikit atas kebutuhan operasi klub dokumentasikan satu bar
 
 ## 9) Risiko & mitigasi
 
-| Risiko | Mitigasi |
-|--------|----------|
-| Duplikasi form PIC/rekening | Pilih satu sumber utama + tautan dari modul lain (§5.1). |
+| Risiko                              | Mitigasi                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| Duplikasi form PIC/rekening         | Pilih satu sumber utama + tautan dari modul lain (§5.1).                                   |
 | Scope audit + notifikasi membengkak | Batasi peristiwa audit v1 dan saluran notifikasi yang benar-benar diimplementasi per fase. |
-| Branding + cache | revalidatePath/tag atau dokumentasi stale di implementasi. |
+| Branding + cache                    | revalidatePath/tag atau dokumentasi stale di implementasi.                                 |
 
 ## 10) Relation to prior shell spec
 

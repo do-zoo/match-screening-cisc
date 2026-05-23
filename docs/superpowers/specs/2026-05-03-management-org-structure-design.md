@@ -6,6 +6,7 @@
 ## Overview
 
 Upgrade fitur manajemen kepengurusan untuk mendukung:
+
 1. Multiple assignment per member (satu orang bisa punya banyak jabatan, satu jabatan bisa dipegang banyak orang)
 2. Hierarki jabatan (tree dengan kedalaman bebas, tiap jabatan punya flag `isUnique`)
 3. Tampilan struktur organisasi pohon di period detail (toggle table ↔ tree)
@@ -64,10 +65,12 @@ model BoardAssignment {
 ### Enforcement `isUnique` di server action
 
 Saat `createBoardAssignment`:
+
 - Jika `boardRole.isUnique === true`, cek apakah sudah ada `BoardAssignment` dengan `boardPeriodId + boardRoleId` yang sama
 - Jika sudah ada → return `rootError("Jabatan ini hanya boleh dipegang 1 orang per periode.")`
 
 Saat `updateBoardAssignment` (ganti jabatan):
+
 - Lakukan cek yang sama, kecualikan assignment yang sedang diedit
 
 ---
@@ -84,7 +87,7 @@ Saat `updateBoardAssignment` (ganti jabatan):
 Tabel dirender dalam urutan **depth-first** (induk → anak → cucu, lanjut ke saudara). Kolom:
 
 | Jabatan | Kapasitas | Status | Urutan | Aksi |
-|---------|-----------|--------|--------|------|
+| ------- | --------- | ------ | ------ | ---- |
 
 - Indentasi `└─` pada kolom Jabatan menunjukkan level kedalaman (1 `└─` per level)
 - Kapasitas: badge "1 orang" (hijau) atau "Banyak" (biru)
@@ -97,6 +100,7 @@ Tabel dirender dalam urutan **depth-first** (induk → anak → cucu, lanjut ke 
 ### Toggle view
 
 Tombol di pojok kanan atas area tabel:
+
 ```
 [ ☰ Daftar ]  [ 🌳 Struktur ]
 ```
@@ -162,6 +166,7 @@ model AdminProfile {
 ```
 
 `ManagementMember` sebaliknya mendapat back-relation:
+
 ```prisma
 model ManagementMember {
   // ... existing fields ...
@@ -171,16 +176,16 @@ model ManagementMember {
 
 ### Dampak ke kode
 
-| File | Perubahan |
-|------|-----------|
-| `src/lib/auth/admin-context.ts` | `profile.member.eventsAsHelper` → `profile.managementMember?.masterMember?.eventsAsHelper` |
-| `src/lib/admin/pic-options-for-event.ts` | Label PIC: `p.member?.memberNumber` → `p.managementMember?.publicCode`; helper exclusion map: `r.memberId` → `r.managementMember?.masterMemberId ?? null` |
-| `src/lib/admin/load-committee-admin-directory.ts` | `memberId`/`member` → `managementMemberId`/`managementMember`; `memberOptions` dari `MasterMember` → dari `ManagementMember` |
-| `src/lib/actions/admin-committee-profiles.ts` | Linking admin: `memberId → MasterMember` → `managementMemberId → ManagementMember` |
-| `src/lib/actions/admin-events.ts` | `pic.memberId` → `pic.managementMember?.masterMemberId` (untuk exclude PIC dari daftar helper) |
-| `src/app/admin/events/page.tsx` | `picAdminProfile.member?.fullName` → `picAdminProfile.managementMember?.fullName` |
-| `src/components/admin/committee-admin-settings-panel.tsx` | UI link admin ke ManagementMember (bukan MasterMember lagi) |
-| `src/app/api/admin/pic-banks/[adminProfileId]/route.ts` | Tidak ada perubahan logika; tetap fetch PicBankAccount by adminProfileId |
+| File                                                      | Perubahan                                                                                                                                                 |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/auth/admin-context.ts`                           | `profile.member.eventsAsHelper` → `profile.managementMember?.masterMember?.eventsAsHelper`                                                                |
+| `src/lib/admin/pic-options-for-event.ts`                  | Label PIC: `p.member?.memberNumber` → `p.managementMember?.publicCode`; helper exclusion map: `r.memberId` → `r.managementMember?.masterMemberId ?? null` |
+| `src/lib/admin/load-committee-admin-directory.ts`         | `memberId`/`member` → `managementMemberId`/`managementMember`; `memberOptions` dari `MasterMember` → dari `ManagementMember`                              |
+| `src/lib/actions/admin-committee-profiles.ts`             | Linking admin: `memberId → MasterMember` → `managementMemberId → ManagementMember`                                                                        |
+| `src/lib/actions/admin-events.ts`                         | `pic.memberId` → `pic.managementMember?.masterMemberId` (untuk exclude PIC dari daftar helper)                                                            |
+| `src/app/admin/events/page.tsx`                           | `picAdminProfile.member?.fullName` → `picAdminProfile.managementMember?.fullName`                                                                         |
+| `src/components/admin/committee-admin-settings-panel.tsx` | UI link admin ke ManagementMember (bukan MasterMember lagi)                                                                                               |
+| `src/app/api/admin/pic-banks/[adminProfileId]/route.ts`   | Tidak ada perubahan logika; tetap fetch PicBankAccount by adminProfileId                                                                                  |
 
 ### Catatan
 
@@ -218,15 +223,15 @@ model AdminProfile {
 
 ### Dampak ke kode
 
-| File | Perubahan |
-|------|-----------|
-| `src/lib/auth/admin-context.ts` | `profile.member.eventsAsHelper` → `profile.eventsAsHelper` langsung (1-hop, lebih simpel) |
-| `src/lib/admin/pic-options-for-event.ts` | Helper exclusion: tidak perlu lagi map `memberId`; exclude by `adminProfileId` langsung |
-| `src/lib/actions/admin-events.ts` | `helperMasterMemberIds` → `helperAdminProfileIds`; `uniqueHelperMemberIdsExcludingPicLinkedMember` diupdate exclude by `picAdminProfileId`; DB write: `{ eventId, memberId }` → `{ eventId, adminProfileId }` |
-| `src/lib/forms/admin-event-form-schema.ts` | `helperMasterMemberIds` → `helperAdminProfileIds` |
-| `src/app/admin/events/[eventId]/edit/page.tsx` | `helpers.map(h => h.memberId)` → `helpers.map(h => h.adminProfileId)` |
-| `src/app/admin/events/new/page.tsx` | Init `helperAdminProfileIds: []` |
-| `src/components/admin/forms/event-admin-form.tsx` | UI picker helper: dari daftar MasterMember → daftar AdminProfile |
+| File                                              | Perubahan                                                                                                                                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/auth/admin-context.ts`                   | `profile.member.eventsAsHelper` → `profile.eventsAsHelper` langsung (1-hop, lebih simpel)                                                                                                                     |
+| `src/lib/admin/pic-options-for-event.ts`          | Helper exclusion: tidak perlu lagi map `memberId`; exclude by `adminProfileId` langsung                                                                                                                       |
+| `src/lib/actions/admin-events.ts`                 | `helperMasterMemberIds` → `helperAdminProfileIds`; `uniqueHelperMemberIdsExcludingPicLinkedMember` diupdate exclude by `picAdminProfileId`; DB write: `{ eventId, memberId }` → `{ eventId, adminProfileId }` |
+| `src/lib/forms/admin-event-form-schema.ts`        | `helperMasterMemberIds` → `helperAdminProfileIds`                                                                                                                                                             |
+| `src/app/admin/events/[eventId]/edit/page.tsx`    | `helpers.map(h => h.memberId)` → `helpers.map(h => h.adminProfileId)`                                                                                                                                         |
+| `src/app/admin/events/new/page.tsx`               | Init `helperAdminProfileIds: []`                                                                                                                                                                              |
+| `src/components/admin/forms/event-admin-form.tsx` | UI picker helper: dari daftar MasterMember → daftar AdminProfile                                                                                                                                              |
 
 ### Catatan
 
@@ -238,22 +243,22 @@ model AdminProfile {
 
 ## Perubahan File
 
-| File | Perubahan |
-|------|-----------|
-| `prisma/schema.prisma` | Tambah `isUnique`, `parentRoleId`, `parent`, `children` ke `BoardRole`; hapus dua `@@unique` dari `BoardAssignment`; hapus `AdminProfile.memberId → MasterMember`, tambah `AdminProfile.managementMemberId → ManagementMember`; ubah `EventPicHelper` dari `Event ↔ MasterMember` ke `Event ↔ AdminProfile` |
-| `prisma/migrations/...` | Migration baru |
-| `src/lib/forms/admin-board-role-schema.ts` | Tambah `isUnique`, `parentRoleId` ke schema Zod |
-| `src/lib/forms/admin-board-assignment-schema.ts` | Tidak ada perubahan schema; enforcement pindah ke server action |
-| `src/lib/actions/admin-board-assignments.ts` | Tambah enforcement `isUnique` di `createBoardAssignment` dan `updateBoardAssignment` |
-| `src/lib/management/query-admin-board-roles.ts` | Tambah query untuk fetch tree (depth-first), tambah `isUnique` dan `parentRoleId` ke VM |
-| `src/lib/management/query-admin-period-assignments.ts` | Update untuk support multiple assignments per member |
-| `src/lib/management/query-admin-period-tree.ts` | Query baru: fetch semua `BoardRole` (dengan hierarki) + `BoardAssignment` untuk satu periode — digunakan oleh tree view |
-| `src/components/admin/management-role-form-dialog.tsx` | Tambah field parent role dan kapasitas |
-| `src/components/admin/management-roles-page.tsx` | Update render tabel dengan indentasi hierarki (depth-first, flat saat filter aktif) |
-| `src/components/admin/management-period-detail.tsx` | Tambah toggle view, implementasi tree view rekursif |
-| `src/app/admin/management/[periodId]/page.tsx` | Tambah `?view` param ke page props |
-| `src/app/admin/management/[periodId]/export-csv/route.ts` | Route baru untuk CSV download |
-| `src/app/admin/management/[periodId]/export-pdf/route.ts` | Route baru untuk PDF download (`@react-pdf/renderer`) |
+| File                                                      | Perubahan                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prisma/schema.prisma`                                    | Tambah `isUnique`, `parentRoleId`, `parent`, `children` ke `BoardRole`; hapus dua `@@unique` dari `BoardAssignment`; hapus `AdminProfile.memberId → MasterMember`, tambah `AdminProfile.managementMemberId → ManagementMember`; ubah `EventPicHelper` dari `Event ↔ MasterMember` ke `Event ↔ AdminProfile` |
+| `prisma/migrations/...`                                   | Migration baru                                                                                                                                                                                                                                                                                              |
+| `src/lib/forms/admin-board-role-schema.ts`                | Tambah `isUnique`, `parentRoleId` ke schema Zod                                                                                                                                                                                                                                                             |
+| `src/lib/forms/admin-board-assignment-schema.ts`          | Tidak ada perubahan schema; enforcement pindah ke server action                                                                                                                                                                                                                                             |
+| `src/lib/actions/admin-board-assignments.ts`              | Tambah enforcement `isUnique` di `createBoardAssignment` dan `updateBoardAssignment`                                                                                                                                                                                                                        |
+| `src/lib/management/query-admin-board-roles.ts`           | Tambah query untuk fetch tree (depth-first), tambah `isUnique` dan `parentRoleId` ke VM                                                                                                                                                                                                                     |
+| `src/lib/management/query-admin-period-assignments.ts`    | Update untuk support multiple assignments per member                                                                                                                                                                                                                                                        |
+| `src/lib/management/query-admin-period-tree.ts`           | Query baru: fetch semua `BoardRole` (dengan hierarki) + `BoardAssignment` untuk satu periode — digunakan oleh tree view                                                                                                                                                                                     |
+| `src/components/admin/management-role-form-dialog.tsx`    | Tambah field parent role dan kapasitas                                                                                                                                                                                                                                                                      |
+| `src/components/admin/management-roles-page.tsx`          | Update render tabel dengan indentasi hierarki (depth-first, flat saat filter aktif)                                                                                                                                                                                                                         |
+| `src/components/admin/management-period-detail.tsx`       | Tambah toggle view, implementasi tree view rekursif                                                                                                                                                                                                                                                         |
+| `src/app/admin/management/[periodId]/page.tsx`            | Tambah `?view` param ke page props                                                                                                                                                                                                                                                                          |
+| `src/app/admin/management/[periodId]/export-csv/route.ts` | Route baru untuk CSV download                                                                                                                                                                                                                                                                               |
+| `src/app/admin/management/[periodId]/export-pdf/route.ts` | Route baru untuk PDF download (`@react-pdf/renderer`)                                                                                                                                                                                                                                                       |
 
 ---
 

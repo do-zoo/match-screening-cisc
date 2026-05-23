@@ -5,59 +5,59 @@ import type {
   MemberValidation,
   RegistrationStatus,
   UploadPurpose,
-} from "@prisma/client";
+} from '@prisma/client'
 
 export type DetailRegistration = {
-  id: string;
-  createdAt: Date;
-  contactName: string;
-  contactWhatsapp: string;
-  computedTotalAtSubmit: number;
-  status: RegistrationStatus;
-  attendanceStatus: AttendanceStatus;
-  rejectionReason: string | null;
-  paymentIssueReason: string | null;
-  ticketQty: number;
+  id: string
+  createdAt: Date
+  contactName: string
+  contactWhatsapp: string
+  computedTotalAtSubmit: number
+  status: RegistrationStatus
+  attendanceStatus: AttendanceStatus
+  rejectionReason: string | null
+  paymentIssueReason: string | null
+  ticketQty: number
   ticketCategory: {
-    id: string;
-    name: string;
-    regularPrice: number;
-    memberPrice: number;
-  };
+    id: string
+    name: string
+    regularPrice: number
+    memberPrice: number
+  }
   holders: Array<{
-    id: string;
-    sortOrder: number;
-    holderName: string;
-    claimedMemberNumber: string | null;
-    memberValidation: MemberValidation;
-    ticketPriceApplied: number;
-    menuItemName: string | null;
-  }>;
+    id: string
+    sortOrder: number
+    holderName: string
+    claimedMemberNumber: string | null
+    memberValidation: MemberValidation
+    ticketPriceApplied: number
+    menuItemName: string | null
+  }>
   event: {
-    title: string;
-    venueName: string;
-    kickOffAt: Date;
-    menuItems: Array<{ id: string; name: string; price: number }>;
-    bankAccount: { bankName: string; accountNumber: string; accountName: string } | null;
-  };
+    title: string
+    venueName: string
+    kickOffAt: Date
+    menuItems: Array<{ id: string; name: string; price: number }>
+    bankAccount: { bankName: string; accountNumber: string; accountName: string } | null
+  }
   uploads: Array<{
-    id: string;
-    purpose: UploadPurpose;
-    blobUrl: string;
-    contentType: string;
-    bytes: number;
-    width: number | null;
-    height: number | null;
-    originalFilename: string | null;
-    createdAt: Date;
-  }>;
+    id: string
+    purpose: UploadPurpose
+    blobUrl: string
+    contentType: string
+    bytes: number
+    width: number | null
+    height: number | null
+    originalFilename: string | null
+    createdAt: Date
+  }>
   adjustments: Array<{
-    id: string;
-    type: InvoiceAdjustmentType;
-    amount: number;
-    status: InvoiceAdjustmentStatus;
-    paidAt: Date | null;
-    createdAt: Date;
-    uploads: Array<{ id: string; blobUrl: string; bytes: number; createdAt: Date }>;
-  }>;
-};
+    id: string
+    type: InvoiceAdjustmentType
+    amount: number
+    status: InvoiceAdjustmentStatus
+    paidAt: Date | null
+    createdAt: Date
+    uploads: Array<{ id: string; blobUrl: string; bytes: number; createdAt: Date }>
+  }>
+}

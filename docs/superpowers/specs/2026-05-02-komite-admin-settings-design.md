@@ -11,10 +11,10 @@ Seluruh area **Pengaturan** komite dilindungi **`canManageCommitteeAdvancedSetti
 
 ## 2. Tujuan
 
-| Kode | Tujuan |
-|------|--------|
-| **A** | Owner mengelola **AdminProfile** di dalam aplikasi: menambah (untuk akun yang sudah ada), mengubah peran, mengatur opsional **`memberId`**. |
-| **B** | Memperjelas **IA dan copy**: sumber kebenaran PIC/rekening vs identitas akses admin; CTA ke Anggota; tidak menduplikasi form Anggota. |
+| Kode  | Tujuan                                                                                                                                                                                                                                    |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** | Owner mengelola **AdminProfile** di dalam aplikasi: menambah (untuk akun yang sudah ada), mengubah peran, mengatur opsional **`memberId`**.                                                                                               |
+| **B** | Memperjelas **IA dan copy**: sumber kebenaran PIC/rekening vs identitas akses admin; CTA ke Anggota; tidak menduplikasi form Anggota.                                                                                                     |
 | **C** | **Transparansi operasional ringkas**: indikator 2FA (`User.twoFactorEnabled`), aktivitas sesi terbaru (satu timestamp per akun dari agregasi `Session`), konsisten dengan prinsip privasi (tanpa menampilkan IP/user agent pada MVP ini). |
 
 ## 3. Bukan ruang lingkup (YAGNI)
@@ -83,7 +83,7 @@ Script **`bootstrap-admin`** boleh tetap menulis **`ADMIN_PROFILE_BOOTSTRAP_UPSE
 
 - Pertahankan **`/admin/settings/committee`** sebagai satu halaman: tabel ditingkatkan + blok penjelasan **B** di atasnya.
 - Aksi (**tambah**, **edit peran**, **edit tautan anggota**, **cabut akses bermakna**) melalui **dialog** atau **sheet** konsisten dengan komponen admin lain (mis. pola Base UI Dialog jika sudah menjadi standar modul tersebut).
-- Teks bantuan: alur umum (*anggota ada di direktori → pengguna punya akun login → Owner menambahkan di sini*).
+- Teks bantuan: alur umum (_anggota ada di direktori → pengguna punya akun login → Owner menambahkan di sini_).
 
 Perbarui teks kartu hub **`/admin/settings`** untuk kartu **Komite & admin** agar menekankan **pengelolaan admin aplikasi**, bukan rekening PIC.
 

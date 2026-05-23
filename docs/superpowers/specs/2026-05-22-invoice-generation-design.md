@@ -44,19 +44,19 @@ GET /api/admin/events/[eventId]/registrants/[registrationId]/invoice.pdf
 
 ### Info block (2 columns)
 
-| Kepada | Event |
-|---|---|
-| Holder 1 name (primary buyer) | Event title |
-| No. Member (if any) | Event date (kickOffAt) |
-| Contact WA | Venue name |
+| Kepada                        | Event                  |
+| ----------------------------- | ---------------------- |
+| Holder 1 name (primary buyer) | Event title            |
+| No. Member (if any)           | Event date (kickOffAt) |
+| Contact WA                    | Venue name             |
 
 ### Holder table
 
-| # | Nama Pemegang | Kategori | Status | Harga |
-|---|---|---|---|---|
-| 1 | Budi Santoso | Cat 1 | Member | Rp 650.000 |
-| 2 | Rina Santoso | Cat 1 | Reguler | Rp 800.000 |
-| — | **TOTAL** | | | **Rp 1.450.000** |
+| #   | Nama Pemegang | Kategori | Status  | Harga            |
+| --- | ------------- | -------- | ------- | ---------------- |
+| 1   | Budi Santoso  | Cat 1    | Member  | Rp 650.000       |
+| 2   | Rina Santoso  | Cat 1    | Reguler | Rp 800.000       |
+| —   | **TOTAL**     |          |         | **Rp 1.450.000** |
 
 - Status badge: "Member" (blue) or "Reguler" (grey)
 - Prices from `RegistrationHolder.ticketPriceApplied` (snapshot — never recalculated)

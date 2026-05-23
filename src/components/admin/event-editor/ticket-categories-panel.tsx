@@ -1,81 +1,65 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import { useState, useTransition } from "react";
-import { useForm, Controller, type Resolver } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import * as React from 'react'
+import { useState, useTransition } from 'react'
+import { useForm, Controller, type Resolver } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 import {
   createTicketCategory,
   updateTicketCategory,
   deleteTicketCategory,
   toggleTicketCategoryActive,
-} from "@/lib/actions/admin-ticket-categories";
-import { toastCudSuccess, toastActionErr } from "@/lib/client/cud-notify";
-import {
-  ticketCategorySchema,
-  type TicketCategoryInput,
-} from "@/lib/forms/ticket-category-schema";
-import type { EventTicketCategoryRow } from "@/lib/tickets/get-event-ticket-categories";
-import { formatIdr } from "@/lib/utils/format-idr";
+} from '@/lib/actions/admin-ticket-categories'
+import { toastCudSuccess, toastActionErr } from '@/lib/client/cud-notify'
+import { ticketCategorySchema, type TicketCategoryInput } from '@/lib/forms/ticket-category-schema'
+import type { EventTicketCategoryRow } from '@/lib/tickets/get-event-ticket-categories'
+import { formatIdr } from '@/lib/utils/format-idr'
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { IdrAmountInput } from "@/components/ui/idr-amount-input";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { IdrAmountInput } from '@/components/ui/idr-amount-input'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-type DialogState =
-  | { type: "closed" }
-  | { type: "create" }
-  | { type: "edit"; category: EventTicketCategoryRow };
+type DialogState = { type: 'closed' } | { type: 'create' } | { type: 'edit'; category: EventTicketCategoryRow }
 
 export function TicketCategoriesPanel({
   eventId,
   categories: initialCategories,
 }: {
-  eventId: string;
-  categories: EventTicketCategoryRow[];
+  eventId: string
+  categories: EventTicketCategoryRow[]
 }) {
-  const [categories, setCategories] =
-    useState<EventTicketCategoryRow[]>(initialCategories);
-  const [dialog, setDialog] = useState<DialogState>({ type: "closed" });
-  const [pending, startTransition] = useTransition();
+  const [categories, setCategories] = useState<EventTicketCategoryRow[]>(initialCategories)
+  const [dialog, setDialog] = useState<DialogState>({ type: 'closed' })
+  const [pending, startTransition] = useTransition()
 
-  const isOpen = dialog.type !== "closed";
-  const mode = dialog.type === "edit" ? "edit" : "create";
-  const editingCategory = dialog.type === "edit" ? dialog.category : null;
+  const isOpen = dialog.type !== 'closed'
+  const mode = dialog.type === 'edit' ? 'edit' : 'create'
+  const editingCategory = dialog.type === 'edit' ? dialog.category : null
 
-  const priceLocked =
-    mode === "edit" &&
-    editingCategory !== null &&
-    editingCategory.registrationCount > 0;
+  const priceLocked = mode === 'edit' && editingCategory !== null && editingCategory.registrationCount > 0
 
   const form = useForm<TicketCategoryInput>({
     resolver: zodResolver(ticketCategorySchema as never) as Resolver<TicketCategoryInput>,
     defaultValues: {
-      name: "",
+      name: '',
       regularPrice: 0,
       memberPrice: 0,
       maxQtyPerPerson: null,
     },
-  });
+  })
 
   function openCreate() {
     form.reset({
-      name: "",
+      name: '',
       regularPrice: 0,
       memberPrice: 0,
       maxQtyPerPerson: null,
-    });
-    setDialog({ type: "create" });
+    })
+    setDialog({ type: 'create' })
   }
 
   function openEdit(category: EventTicketCategoryRow) {
@@ -84,21 +68,21 @@ export function TicketCategoriesPanel({
       regularPrice: category.regularPrice,
       memberPrice: category.memberPrice,
       maxQtyPerPerson: category.maxQtyPerPerson,
-    });
-    setDialog({ type: "edit", category });
+    })
+    setDialog({ type: 'edit', category })
   }
 
   function closeDialog() {
-    setDialog({ type: "closed" });
+    setDialog({ type: 'closed' })
   }
 
   function handleSubmit(values: TicketCategoryInput) {
     startTransition(async () => {
-      if (mode === "create") {
-        const res = await createTicketCategory(eventId, values);
+      if (mode === 'create') {
+        const res = await createTicketCategory(eventId, values)
         if (!res.ok) {
-          toastActionErr(res, "Gagal menambah kategori.");
-          return;
+          toastActionErr(res, 'Gagal menambah kategori.')
+          return
         }
         const newRow: EventTicketCategoryRow = {
           id: res.data.id,
@@ -106,21 +90,21 @@ export function TicketCategoriesPanel({
           regularPrice: values.regularPrice,
           memberPrice: values.memberPrice,
           maxQtyPerPerson: values.maxQtyPerPerson,
-          sortOrder: Math.max(...categories.map((c) => c.sortOrder), 0) + 1,
+          sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
           isActive: true,
           registrationCount: 0,
-        };
-        setCategories((prev) => [...prev, newRow]);
-        toastCudSuccess("create", "Kategori berhasil ditambahkan.");
-        closeDialog();
-      } else if (editingCategory) {
-        const res = await updateTicketCategory(editingCategory.id, values);
-        if (!res.ok) {
-          toastActionErr(res, "Gagal memperbarui kategori.");
-          return;
         }
-        setCategories((prev) =>
-          prev.map((c) =>
+        setCategories(prev => [...prev, newRow])
+        toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
+        closeDialog()
+      } else if (editingCategory) {
+        const res = await updateTicketCategory(editingCategory.id, values)
+        if (!res.ok) {
+          toastActionErr(res, 'Gagal memperbarui kategori.')
+          return
+        }
+        setCategories(prev =>
+          prev.map(c =>
             c.id === editingCategory.id
               ? {
                   ...c,
@@ -131,140 +115,98 @@ export function TicketCategoriesPanel({
                 }
               : c,
           ),
-        );
-        toastCudSuccess("update", "Kategori berhasil diperbarui.");
-        closeDialog();
+        )
+        toastCudSuccess('update', 'Kategori berhasil diperbarui.')
+        closeDialog()
       }
-    });
+    })
   }
 
   function handleDelete(categoryId: string) {
     startTransition(async () => {
-      const res = await deleteTicketCategory(categoryId);
+      const res = await deleteTicketCategory(categoryId)
       if (!res.ok) {
-        toastActionErr(res, "Gagal menghapus kategori.");
-        return;
+        toastActionErr(res, 'Gagal menghapus kategori.')
+        return
       }
-      setCategories((prev) => prev.filter((c) => c.id !== categoryId));
-      toastCudSuccess("delete", "Kategori berhasil dihapus.");
-    });
+      setCategories(prev => prev.filter(c => c.id !== categoryId))
+      toastCudSuccess('delete', 'Kategori berhasil dihapus.')
+    })
   }
 
   function handleToggleActive(category: EventTicketCategoryRow) {
     startTransition(async () => {
-      const next = !category.isActive;
-      const res = await toggleTicketCategoryActive(category.id, next);
+      const next = !category.isActive
+      const res = await toggleTicketCategoryActive(category.id, next)
       if (!res.ok) {
-        toastActionErr(
-          res,
-          next ? "Gagal mengaktifkan kategori." : "Gagal menonaktifkan kategori.",
-        );
-        return;
+        toastActionErr(res, next ? 'Gagal mengaktifkan kategori.' : 'Gagal menonaktifkan kategori.')
+        return
       }
-      setCategories((prev) =>
-        prev.map((c) => (c.id === category.id ? { ...c, isActive: next } : c)),
-      );
-      toastCudSuccess(
-        "update",
-        next ? "Kategori diaktifkan." : "Kategori dinonaktifkan.",
-      );
-    });
+      setCategories(prev => prev.map(c => (c.id === category.id ? { ...c, isActive: next } : c)))
+      toastCudSuccess('update', next ? 'Kategori diaktifkan.' : 'Kategori dinonaktifkan.')
+    })
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
-          Kelola kategori tiket untuk acara ini. Harga disimpan sebagai bilangan
-          bulat Rupiah (tanpa desimal).
+    <div className='space-y-3'>
+      <div className='flex items-center justify-between gap-2'>
+        <p className='text-muted-foreground text-xs'>
+          Kelola kategori tiket untuk acara ini. Harga disimpan sebagai bilangan bulat Rupiah (tanpa desimal).
         </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={openCreate}
-          disabled={pending || !eventId}
-        >
+        <Button type='button' size='sm' variant='outline' onClick={openCreate} disabled={pending || !eventId}>
           Tambah kategori
         </Button>
       </div>
 
       {categories.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border p-4 text-sm">
-          Belum ada kategori tiket. Tambah kategori untuk mulai menerima
-          registrasi.
+        <p className='text-muted-foreground rounded-lg border p-4 text-sm'>
+          Belum ada kategori tiket. Tambah kategori untuk mulai menerima registrasi.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+        <div className='overflow-x-auto rounded-lg border'>
+          <table className='w-full text-sm'>
+            <thead className='bg-muted/50'>
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Nama</th>
-                <th className="px-3 py-2 text-right font-medium">
-                  Harga Reguler
-                </th>
-                <th className="px-3 py-2 text-right font-medium">
-                  Harga Member
-                </th>
-                <th className="px-3 py-2 text-right font-medium">
-                  Maks/Orang
-                </th>
-                <th className="px-3 py-2 text-right font-medium">
-                  Registrasi
-                </th>
-                <th className="px-3 py-2 text-right font-medium">Aksi</th>
+                <th className='px-3 py-2 text-left font-medium'>Nama</th>
+                <th className='px-3 py-2 text-right font-medium'>Harga Reguler</th>
+                <th className='px-3 py-2 text-right font-medium'>Harga Member</th>
+                <th className='px-3 py-2 text-right font-medium'>Maks/Orang</th>
+                <th className='px-3 py-2 text-right font-medium'>Registrasi</th>
+                <th className='px-3 py-2 text-right font-medium'>Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
-              {categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-2">
+            <tbody className='divide-y'>
+              {categories.map(cat => (
+                <tr key={cat.id} className='hover:bg-muted/30'>
+                  <td className='px-3 py-2'>
                     <span>{cat.name}</span>
-                    {!cat.isActive ? (
-                      <span className="text-muted-foreground ml-1.5 text-xs">
-                        (nonaktif)
-                      </span>
-                    ) : null}
+                    {!cat.isActive ? <span className='text-muted-foreground ml-1.5 text-xs'>(nonaktif)</span> : null}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono">
-                    {formatIdr(cat.regularPrice)}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono">
-                    {formatIdr(cat.memberPrice)}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {cat.maxQtyPerPerson ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {cat.registrationCount}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        disabled={pending}
-                        onClick={() => openEdit(cat)}
-                      >
+                  <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.regularPrice)}</td>
+                  <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.memberPrice)}</td>
+                  <td className='px-3 py-2 text-right'>{cat.maxQtyPerPerson ?? '—'}</td>
+                  <td className='px-3 py-2 text-right'>{cat.registrationCount}</td>
+                  <td className='px-3 py-2'>
+                    <div className='flex items-center justify-end gap-1.5'>
+                      <Button type='button' size='sm' variant='ghost' disabled={pending} onClick={() => openEdit(cat)}>
                         Edit
                       </Button>
                       <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
+                        type='button'
+                        size='sm'
+                        variant='ghost'
                         disabled={pending}
                         onClick={() => handleToggleActive(cat)}
                       >
-                        {cat.isActive ? "Nonaktifkan" : "Aktifkan"}
+                        {cat.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                       </Button>
                       {cat.registrationCount === 0 ? (
                         <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
+                          type='button'
+                          size='sm'
+                          variant='ghost'
                           disabled={pending}
-                          className="text-destructive hover:text-destructive"
+                          className='text-destructive hover:text-destructive'
                           onClick={() => handleDelete(cat.id)}
                         >
                           Hapus
@@ -279,42 +221,35 @@ export function TicketCategoriesPanel({
         </div>
       )}
 
-      <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
+      <Dialog open={isOpen} onOpenChange={open => !open && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {mode === "create" ? "Tambah Kategori" : "Edit Kategori"}
-            </DialogTitle>
+            <DialogTitle>{mode === 'create' ? 'Tambah Kategori' : 'Edit Kategori'}</DialogTitle>
           </DialogHeader>
 
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="tc-name">Nama kategori</Label>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+            <div className='flex flex-col gap-1'>
+              <Label htmlFor='tc-name'>Nama kategori</Label>
               <Input
-                id="tc-name"
-                {...form.register("name")}
+                id='tc-name'
+                {...form.register('name')}
                 disabled={pending}
-                placeholder="Cth. Tiket Reguler, VIP, …"
+                placeholder='Cth. Tiket Reguler, VIP, …'
               />
               {form.formState.errors.name ? (
-                <p className="text-destructive text-xs">
-                  {form.formState.errors.name.message}
-                </p>
+                <p className='text-destructive text-xs'>{form.formState.errors.name.message}</p>
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="tc-regular-price">Harga Reguler</Label>
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='flex flex-col gap-1'>
+                <Label htmlFor='tc-regular-price'>Harga Reguler</Label>
                 <Controller
                   control={form.control}
-                  name="regularPrice"
+                  name='regularPrice'
                   render={({ field }) => (
                     <IdrAmountInput
-                      id="tc-regular-price"
+                      id='tc-regular-price'
                       disabled={pending || priceLocked}
                       value={field.value}
                       onValueChange={field.onChange}
@@ -322,20 +257,18 @@ export function TicketCategoriesPanel({
                   )}
                 />
                 {form.formState.errors.regularPrice ? (
-                  <p className="text-destructive text-xs">
-                    {form.formState.errors.regularPrice.message}
-                  </p>
+                  <p className='text-destructive text-xs'>{form.formState.errors.regularPrice.message}</p>
                 ) : null}
               </div>
 
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="tc-member-price">Harga Member</Label>
+              <div className='flex flex-col gap-1'>
+                <Label htmlFor='tc-member-price'>Harga Member</Label>
                 <Controller
                   control={form.control}
-                  name="memberPrice"
+                  name='memberPrice'
                   render={({ field }) => (
                     <IdrAmountInput
-                      id="tc-member-price"
+                      id='tc-member-price'
                       disabled={pending || priceLocked}
                       value={field.value}
                       onValueChange={field.onChange}
@@ -343,71 +276,56 @@ export function TicketCategoriesPanel({
                   )}
                 />
                 {form.formState.errors.memberPrice ? (
-                  <p className="text-destructive text-xs">
-                    {form.formState.errors.memberPrice.message}
-                  </p>
+                  <p className='text-destructive text-xs'>{form.formState.errors.memberPrice.message}</p>
                 ) : null}
               </div>
             </div>
 
             {priceLocked ? (
-              <p className="text-muted-foreground text-xs">
-                Harga tidak dapat diubah — sudah ada registrasi.
-              </p>
+              <p className='text-muted-foreground text-xs'>Harga tidak dapat diubah — sudah ada registrasi.</p>
             ) : null}
 
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="tc-max-qty">Maks tiket per orang (opsional)</Label>
+            <div className='flex flex-col gap-1'>
+              <Label htmlFor='tc-max-qty'>Maks tiket per orang (opsional)</Label>
               <Controller
                 control={form.control}
-                name="maxQtyPerPerson"
+                name='maxQtyPerPerson'
                 render={({ field }) => (
                   <Input
-                    id="tc-max-qty"
-                    type="number"
+                    id='tc-max-qty'
+                    type='number'
                     min={1}
                     disabled={pending}
-                    placeholder="Opsional"
-                    value={field.value ?? ""}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "") {
-                        field.onChange(null);
-                        return;
+                    placeholder='Opsional'
+                    value={field.value ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      if (raw === '') {
+                        field.onChange(null)
+                        return
                       }
-                      const n = parseInt(raw, 10);
-                      field.onChange(Number.isNaN(n) ? null : n);
+                      const n = parseInt(raw, 10)
+                      field.onChange(Number.isNaN(n) ? null : n)
                     }}
                   />
                 )}
               />
               {form.formState.errors.maxQtyPerPerson ? (
-                <p className="text-destructive text-xs">
-                  {form.formState.errors.maxQtyPerPerson.message}
-                </p>
+                <p className='text-destructive text-xs'>{form.formState.errors.maxQtyPerPerson.message}</p>
               ) : null}
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeDialog}
-                disabled={pending}
-              >
+              <Button type='button' variant='outline' onClick={closeDialog} disabled={pending}>
                 Batal
               </Button>
-              <Button type="submit" disabled={pending}>
-                {pending
-                  ? "Menyimpan…"
-                  : mode === "create"
-                    ? "Tambah"
-                    : "Simpan"}
+              <Button type='submit' disabled={pending}>
+                {pending ? 'Menyimpan…' : mode === 'create' ? 'Tambah' : 'Simpan'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

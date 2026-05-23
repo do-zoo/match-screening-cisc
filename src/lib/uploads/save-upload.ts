@@ -1,18 +1,18 @@
-import type { UploadPurpose } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import type { UploadPurpose } from '@prisma/client'
+import { prisma } from '@/lib/db/prisma'
 
 export async function saveUploadMetadata(input: {
-  purpose: UploadPurpose;
-  blobUrl: string;
-  blobPath: string;
-  contentType: string;
-  bytes: number;
-  sha256: string;
-  width?: number;
-  height?: number;
-  originalFilename?: string;
-  registrationId?: string;
-  invoiceAdjustmentId?: string;
+  purpose: UploadPurpose
+  blobUrl: string
+  blobPath: string
+  contentType: string
+  bytes: number
+  sha256: string
+  width?: number
+  height?: number
+  originalFilename?: string
+  registrationId?: string
+  invoiceAdjustmentId?: string
 }) {
   return prisma.upload.create({
     data: {
@@ -28,5 +28,5 @@ export async function saveUploadMetadata(input: {
       registrationId: input.registrationId,
       invoiceAdjustmentId: input.invoiceAdjustmentId,
     },
-  });
+  })
 }

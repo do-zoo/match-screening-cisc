@@ -1,76 +1,66 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { useMemo } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { EventStatus } from "@prisma/client";
-import type { VariantProps } from "class-variance-authority";
+import Link from 'next/link'
+import { useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { EventStatus } from '@prisma/client'
+import type { VariantProps } from 'class-variance-authority'
 
-import { Badge, badgeVariants } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
-import { TablePagination } from "@/components/ui/table-pagination";
-import { eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
+import { Badge, badgeVariants } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>
 
-const eventStatusBadge: Record<
-  EventStatus,
-  { label: string; variant: BadgeVariant }
-> = {
-  active: { label: "Aktif", variant: "default" },
-  draft: { label: "Draf", variant: "secondary" },
-  finished: { label: "Selesai", variant: "outline" },
-};
+const eventStatusBadge: Record<EventStatus, { label: string; variant: BadgeVariant }> = {
+  active: { label: 'Aktif', variant: 'default' },
+  draft: { label: 'Draf', variant: 'secondary' },
+  finished: { label: 'Selesai', variant: 'outline' },
+}
 
 export type AdminEventRow = {
-  id: string;
-  slug: string;
-  title: string;
-  status: EventStatus;
-  startAtIso: string;
-  picFullName: string | null;
-  registrationCount: number;
-};
+  id: string
+  slug: string
+  title: string
+  status: EventStatus
+  startAtIso: string
+  picFullName: string | null
+  registrationCount: number
+}
 
 type Props = {
-  events: AdminEventRow[];
-  pathname: string;
+  events: AdminEventRow[]
+  pathname: string
   /** Query string keys to keep on pagination links (e.g. `view`). */
-  preservedQuery?: Record<string, string | undefined>;
+  preservedQuery?: Record<string, string | undefined>
   pagination: {
-    page: number;
-    pageSize: number;
-    totalItems: number;
-  };
-};
+    page: number
+    pageSize: number
+    totalItems: number
+  }
+}
 
-const fmtDay = new Intl.DateTimeFormat("id-ID", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+const fmtDay = new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
 
-const fmtNum = new Intl.NumberFormat("id-ID");
+const fmtNum = new Intl.NumberFormat('id-ID')
 
-export function AdminEventsTable({
-  events,
-  pathname,
-  preservedQuery,
-  pagination,
-}: Props) {
+export function AdminEventsTable({ events, pathname, preservedQuery, pagination }: Props) {
   const columns = useMemo<ColumnDef<AdminEventRow>[]>(
     () => [
       {
-        accessorKey: "title",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Judul" />
-        ),
+        accessorKey: 'title',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Judul' />,
         cell: ({ row }) => (
-          <div className="max-w-[280px]">
+          <div className='max-w-[280px]'>
             <Link
               href={`/admin/events/${row.original.id}/edit`}
-              className="line-clamp-2 font-medium text-foreground hover:underline"
+              className='line-clamp-2 font-medium text-foreground hover:underline'
             >
               {row.original.title}
             </Link>
@@ -78,79 +68,54 @@ export function AdminEventsTable({
         ),
       },
       {
-        accessorKey: "slug",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Slug" />
-        ),
-        cell: ({ row }) => (
-          <span className="font-mono text-xs text-muted-foreground">
-            {row.original.slug}
-          </span>
-        ),
+        accessorKey: 'slug',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Slug' />,
+        cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.slug}</span>,
       },
       {
-        accessorKey: "status",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Status" />
-        ),
+        accessorKey: 'status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
         cell: ({ row }) => {
-          const meta = eventStatusBadge[row.original.status];
-          return <Badge variant={meta.variant}>{meta.label}</Badge>;
+          const meta = eventStatusBadge[row.original.status]
+          return <Badge variant={meta.variant}>{meta.label}</Badge>
         },
       },
       {
-        accessorKey: "startAtIso",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Tanggal mulai" />
-        ),
-        cell: ({ row }) => (
-          <span>{fmtDay.format(new Date(row.original.startAtIso))}</span>
-        ),
-        sortingFn: (a, b) =>
-          a.original.startAtIso.localeCompare(b.original.startAtIso),
+        accessorKey: 'startAtIso',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Tanggal mulai' />,
+        cell: ({ row }) => <span>{fmtDay.format(new Date(row.original.startAtIso))}</span>,
+        sortingFn: (a, b) => a.original.startAtIso.localeCompare(b.original.startAtIso),
       },
       {
-        accessorKey: "picFullName",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="PIC" />
-        ),
-        cell: ({ row }) => (
-          <span className="max-w-[220px] truncate block">
-            {row.original.picFullName ?? "-"}
-          </span>
-        ),
-        sortingFn: (a, b) =>
-          (a.original.picFullName ?? "").localeCompare(
-            b.original.picFullName ?? "",
-            "id",
-          ),
+        accessorKey: 'picFullName',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='PIC' />,
+        cell: ({ row }) => <span className='max-w-[220px] truncate block'>{row.original.picFullName ?? '-'}</span>,
+        sortingFn: (a, b) => (a.original.picFullName ?? '').localeCompare(b.original.picFullName ?? '', 'id'),
       },
       {
-        accessorKey: "registrationCount",
+        accessorKey: 'registrationCount',
         header: ({ column }) => (
-          <div className="text-right">
-            <DataTableColumnHeader column={column} title="Registrasi" />
+          <div className='text-right'>
+            <DataTableColumnHeader column={column} title='Registrasi' />
           </div>
         ),
         cell: ({ row }) => (
-          <div className="text-right tabular-nums">
-            {fmtNum.format(row.original.registrationCount)}
-          </div>
+          <div className='text-right tabular-nums'>{fmtNum.format(row.original.registrationCount)}</div>
         ),
       },
       {
-        id: "actions",
+        id: 'actions',
         enableSorting: false,
         header: () => (
-          <div className="text-right">
-            <span className="sr-only">Aksi</span>
+          <div className='text-right'>
+            <span className='sr-only'>Aksi</span>
           </div>
         ),
         cell: ({ row }) => (
-          <div className="text-right">
+          <div className='text-right'>
             <Link
               href={eventRegistrantsListPath(row.original.id)}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Peserta
             </Link>
@@ -159,10 +124,10 @@ export function AdminEventsTable({
       },
     ],
     [],
-  );
+  )
 
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className='overflow-hidden rounded-lg border'>
       <DataTable columns={columns} data={events} enableSorting={false} />
       <TablePagination
         pathname={pathname}
@@ -172,5 +137,5 @@ export function AdminEventsTable({
         totalItems={pagination.totalItems}
       />
     </div>
-  );
+  )
 }

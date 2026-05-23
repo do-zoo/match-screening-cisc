@@ -12,26 +12,28 @@
 
 ## Peta file (tanggu jawab)
 
-| Area | File |
-|------|------|
-| Sumber kebenaran total bayar | `src/lib/pricing/compute-submit-total.ts`, `src/lib/pricing/compute-submit-total.test.ts` |
-| Snapshot DB saat submit | `src/lib/actions/submit-registration.ts` |
-| Override validasi member / ganti tipe harga | `src/lib/actions/member-validation.ts` |
-| Ringkasan biaya publik | `src/components/public/price-breakdown.tsx`, `src/components/public/registration-form/use-pricing-preview.ts` |
-| Snapshot admin ringkasan | `src/components/admin/registration-detail-panels/tab-summary/price-snapshot-section.tsx` |
-| Settlement & bukti penutupan | `src/lib/reports/settlement-expected-amounts.ts`, `src/lib/reports/settlement-expected-amounts.test.ts`, `src/lib/actions/upload-event-settlement-proof.ts`, `src/app/admin/events/[eventId]/report/page.tsx` |
-| Uji komponen terkait | `src/components/admin/registration-detail.test.ts` (fixture angka snapshot) |
-| Dokumentasi proyek | `CLAUDE.md` (bagian Pricing + laporan keuangan bila perlu) |
+| Area                                        | File                                                                                                                                                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sumber kebenaran total bayar                | `src/lib/pricing/compute-submit-total.ts`, `src/lib/pricing/compute-submit-total.test.ts`                                                                                                                     |
+| Snapshot DB saat submit                     | `src/lib/actions/submit-registration.ts`                                                                                                                                                                      |
+| Override validasi member / ganti tipe harga | `src/lib/actions/member-validation.ts`                                                                                                                                                                        |
+| Ringkasan biaya publik                      | `src/components/public/price-breakdown.tsx`, `src/components/public/registration-form/use-pricing-preview.ts`                                                                                                 |
+| Snapshot admin ringkasan                    | `src/components/admin/registration-detail-panels/tab-summary/price-snapshot-section.tsx`                                                                                                                      |
+| Settlement & bukti penutupan                | `src/lib/reports/settlement-expected-amounts.ts`, `src/lib/reports/settlement-expected-amounts.test.ts`, `src/lib/actions/upload-event-settlement-proof.ts`, `src/app/admin/events/[eventId]/report/page.tsx` |
+| Uji komponen terkait                        | `src/components/admin/registration-detail.test.ts` (fixture angka snapshot)                                                                                                                                   |
+| Dokumentasi proyek                          | `CLAUDE.md` (bagian Pricing + laporan keuangan bila perlu)                                                                                                                                                    |
 
 ---
 
 ### Task 1: `computeSubmitTotal` — total bayar = tiket saja
 
 **Files:**
+
 - Modify: `src/lib/pricing/compute-submit-total.ts`
 - Modify: `src/lib/pricing/compute-submit-total.test.ts`
 
 **Semantik yang dipegang teguh:**
+
 - `primaryTicketPrice` / `partnerTicketPrice`: dari harga tiket acara (sama seperti sekarang).
 - `primaryMenuPrice` / `partnerMenuPrice`: harga referensi item menu wajib dari katalog (sama seperti sekarang).
 - `primaryTotal` / `partnerTotal` / `grandTotal`: **hanya** jumlah tiket (menu **tidak** ditambahkan).
@@ -42,12 +44,12 @@
 Di `compute-submit-total.ts`, ganti perhitungan total:
 
 ```ts
-const primaryTotal = primaryTicket; // was: primaryTicket + primaryMenu
+const primaryTotal = primaryTicket // was: primaryTicket + primaryMenu
 // ...
 const partnerTotal =
   input.partnerMandatoryMenu && input.partnerPriceType
     ? partnerTicket! // was: partnerTicket! + partnerMenu!
-    : undefined;
+    : undefined
 ```
 
 Sesuaikan komentar satu baris di atas tipe `SubmitPricingResult` bahwa `*Total` dan `grandTotal` adalah **nominal yang dibayar peserta**, bukan tiket+menu.
@@ -85,6 +87,7 @@ git commit -m "fix(pricing): total bayar registrasi hanya nominal tiket (menu in
 ### Task 2: Verifikasi `submit-registration` — snapshot mengikuti pricing
 
 **Files:**
+
 - Read-only lalu modify bila perlu: `src/lib/actions/submit-registration.ts`
 
 Tidak perlu mengubah nama field Prisma: `ticketPriceApplied` ← `pricing.primaryTicketPrice`, `mandatoryMenuPriceApplied` ← `pricing.primaryMenuPrice`, `computedTotalAtSubmit` ← `pricing.primaryTotal` (setelah Task 1, `primaryTotal` sudah = tiket saja).
@@ -110,6 +113,7 @@ git commit -m "chore(registration): dokumentasi snapshot selaras tiket inklusif"
 ### Task 3: `overrideMemberValidation` — total setelah override tipe harga
 
 **Files:**
+
 - Modify: `src/lib/actions/member-validation.ts`
 
 Saat ini: `computedTotalAtSubmit: newTicketPrice + reg.mandatoryMenuPriceApplied`.
@@ -130,6 +134,7 @@ git commit -m "fix(admin): override tipe harga tidak menambah menu ke total baya
 ### Task 4: Publik — `PriceBreakdown` selaras dengan `grandTotal`
 
 **Files:**
+
 - Modify: `src/components/public/price-breakdown.tsx`
 
 Masalah sekarang: komponen hanya menampilkan baris `kind === "ticket"` untuk subtotal per peran, tetapi **Total dibayar** memakai `pricing.grandTotal` — setelah Task 1 ketiga angka selaras; tetap periksa apakah perlu menampilkan menu sebagai informasi (tanpa menambah subtotal).
@@ -150,6 +155,7 @@ git commit -m "fix(public): ringkasan biaya jelaskan menu wajib inklusif di tike
 ### Task 5: Admin — `PriceSnapshotSection` (legacy + baru)
 
 **Files:**
+
 - Modify: `src/components/admin/registration-detail-panels/tab-summary/price-snapshot-section.tsx`
 - Modify: `src/components/admin/registration-detail.test.ts` (fixture & assert jika memanggil `buildPriceSnapshotSummary`)
 
@@ -179,6 +185,7 @@ git commit -m "fix(admin): snapshot harga mendukung tiket inklusif dan data lama
 ### Task 6: Settlement — `getSettlementExpectedAmounts` memakai baseline
 
 **Files:**
+
 - Modify: `src/lib/reports/settlement-expected-amounts.ts`
 - Modify: `src/lib/reports/settlement-expected-amounts.test.ts`
 - Modify: `src/lib/actions/upload-event-settlement-proof.ts`
@@ -193,12 +200,12 @@ git commit -m "fix(admin): snapshot harga mendukung tiket inklusif dan data lama
 
 ```ts
 export type SettlementFinanceSnapshot = {
-  baselineTotalApproved: number;
-  menuVenuePayoutApproved: number;
-  adjustmentsPaidTotal: number;
+  baselineTotalApproved: number
+  menuVenuePayoutApproved: number
+  adjustmentsPaidTotal: number
   /** Opsional: disimpan untuk kompatibilitas / logging; tidak dipakai rumus utama. */
-  ticketRevenueApproved?: number;
-};
+  ticketRevenueApproved?: number
+}
 ```
 
 Implementasi:
@@ -207,11 +214,8 @@ Implementasi:
 export function getSettlementExpectedAmounts(f: SettlementFinanceSnapshot) {
   return {
     venueMenuPayout: f.menuVenuePayoutApproved,
-    treasurerMargin:
-      f.baselineTotalApproved -
-      f.menuVenuePayoutApproved +
-      f.adjustmentsPaidTotal,
-  };
+    treasurerMargin: f.baselineTotalApproved - f.menuVenuePayoutApproved + f.adjustmentsPaidTotal,
+  }
 }
 ```
 
@@ -226,7 +230,7 @@ expect(
     menuVenuePayoutApproved: 400_000,
     adjustmentsPaidTotal: 50_000,
   }),
-).toEqual({ venueMenuPayout: 400_000, treasurerMargin: 1_050_000 });
+).toEqual({ venueMenuPayout: 400_000, treasurerMargin: 1_050_000 })
 ```
 
 (Pilih angka konsisten: 1_400_000 − 400_000 + 50_000 = 1_050_000.)
@@ -251,6 +255,7 @@ git commit -m "fix(reports): acuan margin bendahara dari baseline − menu + pen
 ### Task 7: Laporan admin — copy "Keuangan" agar tidak menyesatkan
 
 **Files:**
+
 - Modify: `src/app/admin/events/[eventId]/report/page.tsx`
 
 Setelah perubahan, `baselineTotal` dan agregat `ticketRevenueApproved` bisa sama untuk acara yang seluruhnya snapshot baru. Tambahkan satu kalimat di `CardDescription` blok Keuangan: bahwa **nominal tiket tercatat sudah termasuk menu wajib** untuk pendaftaran baru, sementara **Total Uang Masuk** mengikuti snapshot `computedTotalAtSubmit` per pendaftaran (termasuk data lama).
@@ -269,6 +274,7 @@ git commit -m "docs(ui): jelaskan tiket inklusif di kartu laporan keuangan"
 ### Task 8: CSV & export — header atau dokumentasi kolom
 
 **Files:**
+
 - Modify: `src/lib/reports/csv.ts` (header baris pertama atau komentar modul jika header dihasilkan dinamis)
 
 Pastikan label kolom untuk `mandatoryMenuPriceApplied` menyebut **acuan alokasi / harga referensi menu**, bukan "tambahan dibayar peserta", agar operator tidak salah baca setelah model inklusif.
@@ -287,6 +293,7 @@ git commit -m "docs(csv): klarifikasi kolom menu wajib sebagai acuan alokasi"
 ### Task 9: `CLAUDE.md` — bagian Pricing
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 
 Tambahkan bullet singkat di bagian **Pricing** (atau **Architecture**) yang menyatakan:

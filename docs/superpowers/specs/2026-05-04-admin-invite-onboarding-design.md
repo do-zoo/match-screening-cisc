@@ -1,7 +1,7 @@
 # Admin invite & onboarding (Owner-provisioned credentials)
 
 **Status:** Desain disetujui untuk opsi 1 (tabel undangan + halaman terima + `signUpEmail` server-side).  
-**Tanggal:** 2026-05-04  
+**Tanggal:** 2026-05-04
 
 ## 1. Latar belakang
 
@@ -52,19 +52,19 @@ Alur **Komite & admin** saat ini meminta email yang **sudah** punya baris `User`
 
 ### 4.1 `AdminInvitation` (usulan kolom)
 
-| Kolom | Tipe | Catatan |
-| --- | --- | --- |
-| `id` | cuid | PK |
-| `emailNormalized` | String | lowercase trim; uniqueness untuk **aktif** diatur di §4.3 |
-| `role` | `AdminRole` | Nilai dari undangan |
-| `tokenHash` | String | Hash token acak — **jelas rahasia tidak disimpan plaintext** |
-| `expiresAt` | DateTime | TTL default proposal: **168 jam** (7 hari); boleh konstanta kode |
-| `createdAt` | DateTime | |
-| `createdByAdminProfileId` | String | FK → `AdminProfile`, `onDelete: Restrict` |
-| `consumedAt` | DateTime? | non-null ⇒ sudah onboarding |
-| `revokedAt` | DateTime? | non-null ⇒ dibatalkan Owner |
+| Kolom                     | Tipe        | Catatan                                                          |
+| ------------------------- | ----------- | ---------------------------------------------------------------- |
+| `id`                      | cuid        | PK                                                               |
+| `emailNormalized`         | String      | lowercase trim; uniqueness untuk **aktif** diatur di §4.3        |
+| `role`                    | `AdminRole` | Nilai dari undangan                                              |
+| `tokenHash`               | String      | Hash token acak — **jelas rahasia tidak disimpan plaintext**     |
+| `expiresAt`               | DateTime    | TTL default proposal: **168 jam** (7 hari); boleh konstanta kode |
+| `createdAt`               | DateTime    |                                                                  |
+| `createdByAdminProfileId` | String      | FK → `AdminProfile`, `onDelete: Restrict`                        |
+| `consumedAt`              | DateTime?   | non-null ⇒ sudah onboarding                                      |
+| `revokedAt`               | DateTime?   | non-null ⇒ dibatalkan Owner                                      |
 
- indeks disarankan: `(emailNormalized, consumedAt, revokedAt)` sesuai query “ada undangan aktif?”; `(expiresAt)` untuk pembersihan opsional.
+indeks disarankan: `(emailNormalized, consumedAt, revokedAt)` sesuai query “ada undangan aktif?”; `(expiresAt)` untuk pembersihan opsional.
 
 ### 4.2 Peran yang boleh diundang
 
@@ -80,7 +80,7 @@ Membuat undangan baru untuk email yang masih punya undangan aktif → **gagal** 
 
 - **Rute publik terbatas token:** mis. `/(auth)/admin/invite/[token]/page.tsx` atau `invite/accept` + query — hindari indexer bot dengan `noindex` metadata jika perlu.
 - **Form:** RHF + zod serupa modul lain; tidak mengirim token ke analytics.
-- Halaman Komite:** daftar admin tetap + **bagian Undangan tertunda** (tanggal kedaluwarsa, siapa pembuat, aksi Batalkan).
+- Halaman Komite:** daftar admin tetap + **bagian Undangan tertunda\*\* (tanggal kedaluwarsa, siapa pembuat, aksi Batalkan).
 
 ## 6. Keamanan
 

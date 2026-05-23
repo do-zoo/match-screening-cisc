@@ -13,6 +13,7 @@
 ## File structure (locked)
 
 **Create:**
+
 - `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/README.md` — index page embedding all diagrams
 - `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/erd.mmd` — conceptual ERD / data model
 - `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/registration-status.state.mmd` — registration + attendance state machine
@@ -21,6 +22,7 @@
 - `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/permissions.flow.mmd` — hybrid permissions (global role + PIC helper grant)
 
 **Optional (only if you want local PNG/SVG export):**
+
 - `package.json` (modify) — add `@mermaid-js/mermaid-cli` devDependency + scripts
 
 ---
@@ -28,11 +30,12 @@
 ### Task 1: Create diagrams index (single page)
 
 **Files:**
+
 - Create: `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/README.md`
 
 - [ ] **Step 1: Create the README index**
 
-```markdown
+````markdown
 # Nobar CISC Tangsel — Mermaid Diagrams
 
 Source spec: `docs/superpowers/specs/2026-04-29-nobar-cisc-tangsel-design.md`
@@ -129,6 +132,7 @@ erDiagram
       datetime paidAt
     }
 ```
+````
 
 ## 2) Registration + Attendance Status Machine
 
@@ -253,7 +257,8 @@ flowchart LR
   V --> E2[Can verify registrations,\ncreate adjustments,\nattendance,\ncancel/refund]
   Vx --> E3[Same as Verifier\nbut scoped to Event X]
 ```
-```
+
+````
 
 - [ ] **Step 2: Save file**
 
@@ -268,13 +273,14 @@ Expected: shows new file `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangse
 ```bash
 git add docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/README.md
 git commit -m "docs: add nobar tangsel diagram index"
-```
+````
 
 ---
 
 ### Task 2: Split diagrams into focused `.mmd` files
 
 **Files:**
+
 - Create: `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/erd.mmd`
 - Create: `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/registration-status.state.mmd`
 - Create: `docs/superpowers/diagrams/2026-04-29-nobar-cisc-tangsel/participant-journey.flow.mmd`
@@ -506,6 +512,7 @@ git commit -m "docs: add nobar tangsel mermaid diagrams"
 ### Task 3 (Optional): Add Mermaid CLI for local render/export
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: Add dev dependency + scripts**
@@ -563,8 +570,7 @@ git commit -m "chore(docs): add mermaid cli render script"
 
 Plan complete and saved to `docs/superpowers/plans/2026-04-30-nobar-cisc-tangsel-mermaid-diagrams.md`. Two execution options:
 
-1. **Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration  
+1. **Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 2. **Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
 
 Which approach?
-

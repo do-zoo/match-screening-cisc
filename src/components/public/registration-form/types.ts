@@ -1,5 +1,5 @@
-import type { SerializedEventForRegistration } from "@/components/public/event-serialization";
+import type { SerializedEventForRegistration } from '@/components/public/event-serialization'
 
 export type RegistrationFormProps = {
-  event: SerializedEventForRegistration;
-};
+  event: SerializedEventForRegistration
+}

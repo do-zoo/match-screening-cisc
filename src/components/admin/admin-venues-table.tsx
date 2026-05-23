@@ -1,55 +1,48 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { useMemo } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
+import Link from 'next/link'
+import { useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { TablePagination } from '@/components/ui/table-pagination'
 
-const fmtNum = new Intl.NumberFormat("id-ID");
+const fmtNum = new Intl.NumberFormat('id-ID')
 
 export type AdminVenueRow = {
-  id: string;
-  name: string;
-  address: string;
-  isActive: boolean;
-  menuItemCount: number;
-  eventCount: number;
-};
+  id: string
+  name: string
+  address: string
+  isActive: boolean
+  menuItemCount: number
+  eventCount: number
+}
 
 type Props = {
-  venues: AdminVenueRow[];
-  pathname: string;
-  preservedQuery?: Record<string, string | undefined>;
+  venues: AdminVenueRow[]
+  pathname: string
+  preservedQuery?: Record<string, string | undefined>
   pagination: {
-    page: number;
-    pageSize: number;
-    totalItems: number;
-  };
-};
+    page: number
+    pageSize: number
+    totalItems: number
+  }
+}
 
-export function AdminVenuesTable({
-  venues,
-  pathname,
-  preservedQuery,
-  pagination,
-}: Props) {
+export function AdminVenuesTable({ venues, pathname, preservedQuery, pagination }: Props) {
   const columns = useMemo<ColumnDef<AdminVenueRow>[]>(
     () => [
       {
-        accessorKey: "name",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Nama" />
-        ),
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Nama' />,
         cell: ({ row }) => (
-          <div className="max-w-[240px]">
+          <div className='max-w-[240px]'>
             <Link
               href={`/admin/venues/${row.original.id}/edit`}
-              className="text-foreground line-clamp-2 font-medium hover:underline"
+              className='text-foreground line-clamp-2 font-medium hover:underline'
             >
               {row.original.name}
             </Link>
@@ -57,62 +50,54 @@ export function AdminVenuesTable({
         ),
       },
       {
-        accessorKey: "address",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Alamat" />
-        ),
+        accessorKey: 'address',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Alamat' />,
         cell: ({ row }) => (
-          <span className="text-muted-foreground line-clamp-2 max-w-[320px] text-sm whitespace-pre-wrap">
+          <span className='text-muted-foreground line-clamp-2 max-w-[320px] text-sm whitespace-pre-wrap'>
             {row.original.address}
           </span>
         ),
       },
       {
-        accessorKey: "isActive",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Status" />
-        ),
+        accessorKey: 'isActive',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
         cell: ({ row }) => (
-          <Badge variant={row.original.isActive ? "default" : "secondary"}>
-            {row.original.isActive ? "Aktif" : "Tidak aktif"}
+          <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
+            {row.original.isActive ? 'Aktif' : 'Tidak aktif'}
           </Badge>
         ),
       },
       {
-        accessorKey: "menuItemCount",
+        accessorKey: 'menuItemCount',
         header: ({ column }) => (
-          <div className="text-right">
-            <DataTableColumnHeader column={column} title="Menu" />
+          <div className='text-right'>
+            <DataTableColumnHeader column={column} title='Menu' />
           </div>
         ),
-        cell: ({ row }) => (
-          <div className="text-right tabular-nums">{fmtNum.format(row.original.menuItemCount)}</div>
-        ),
+        cell: ({ row }) => <div className='text-right tabular-nums'>{fmtNum.format(row.original.menuItemCount)}</div>,
       },
       {
-        accessorKey: "eventCount",
+        accessorKey: 'eventCount',
         header: ({ column }) => (
-          <div className="text-right">
-            <DataTableColumnHeader column={column} title="Acara" />
+          <div className='text-right'>
+            <DataTableColumnHeader column={column} title='Acara' />
           </div>
         ),
-        cell: ({ row }) => (
-          <div className="text-right tabular-nums">{fmtNum.format(row.original.eventCount)}</div>
-        ),
+        cell: ({ row }) => <div className='text-right tabular-nums'>{fmtNum.format(row.original.eventCount)}</div>,
       },
       {
-        id: "actions",
+        id: 'actions',
         enableSorting: false,
         header: () => (
-          <div className="text-right">
-            <span className="sr-only">Aksi</span>
+          <div className='text-right'>
+            <span className='sr-only'>Aksi</span>
           </div>
         ),
         cell: ({ row }) => (
-          <div className="text-right">
+          <div className='text-right'>
             <Link
               href={`/admin/venues/${row.original.id}/edit`}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Kelola
             </Link>
@@ -121,10 +106,10 @@ export function AdminVenuesTable({
       },
     ],
     [],
-  );
+  )
 
   return (
-    <div className="bg-card flex flex-col gap-0 overflow-hidden rounded-lg border">
+    <div className='bg-card flex flex-col gap-0 overflow-hidden rounded-lg border'>
       <DataTable columns={columns} data={venues} enableSorting={false} />
       <TablePagination
         pathname={pathname}
@@ -134,5 +119,5 @@ export function AdminVenuesTable({
         totalItems={pagination.totalItems}
       />
     </div>
-  );
+  )
 }

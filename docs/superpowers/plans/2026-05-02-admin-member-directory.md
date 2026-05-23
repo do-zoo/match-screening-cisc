@@ -16,32 +16,33 @@
 
 ## File map
 
-| Path | Responsibility |
-|------|----------------|
-| `package.json` / `pnpm-lock.yaml` | Tambah dependency runtime `papaparse` untuk parse CSV + `Papa.unparse` laporan gagal |
-| `src/lib/members/master-member-csv-constants.ts` | Konstanta nama kolom, batas **`MAX_IMPORT_BYTES`** (2097152) dan **`MAX_DATA_ROWS`** (5000). |
-| `src/lib/members/master-member-csv-boolean.ts` | `interpretMasterMemberCsvBoolean(cell: string \| undefined \| null): boolean \| undefined` — empty/whitespace ⇒ `undefined`; token valid ⇒ booleans Case-insensitive. |
-| `src/lib/members/master-member-csv-boolean.test.ts` | Pengujian token true/false/undefined. |
-| `src/lib/members/master-member-csv-single-line-record.ts` | `assertCsvTextSingleLinePhysicalRecords(csvText: string): void \| never` — lempar jika ada pemisah baris CRLF/LF dalam rentang kutip ganda ASCII (sesuai asumsi **satu rekaman fisik = satu garis**) agar **`baris` = indeks rekaman data + 1** selaras §5.4. |
-| `src/lib/members/master-member-csv-single-line-record.test.ts` | Contoh kutip bermasalah / file valid satu baris. |
-| `src/lib/members/parse-master-member-csv-text.ts` | `parseMasterMemberCsvText(csvText)` ⇒ `{ dataRows }` bertipe `{ lineNumberPhysical: number; cells: Record<string,string> }[]` dibentuk lewat Papa `header:true`, `skipEmptyLines:"greedy"`, `transformHeader` → huruf kecil + trim; map hasil ke **`lineNumberPhysical = dataIndex + 2`**. |
-| `src/lib/members/parse-master-member-csv-text.test.ts` | Header wajib, kolom ekstra diabaikan, baris kosong di-skip. |
-| `src/lib/members/prepare-master-member-csv-row.ts` | Pure: **`prepareMasterMemberCsvRow(...)`** membangun `duplicate \| reject \| ok` dan memelihara `Map` `nomorLower → baris pertama` untuk deteksi duplikat satu file |
-| `src/lib/members/prepare-master-member-csv-row.test.ts` | Dup dalam file; nomor kosong; `maybe` booleans hilang dari patch |
-| `src/lib/members/master-member-csv-prisma-data.ts` | `masterMemberCsvPatchToCreateData(patch, canonicalMemberNumber)` dan **`masterMemberCsvPatchToUpdateData(patch)`** — hanya menyertakan kunci dengan nilai terdefinisi |
-| `src/lib/forms/admin-master-member-schema.ts` | Schema Zod `adminMasterMemberCreateSchema` dan `adminMasterMemberUpdateSchema` — update **tanpa** `memberNumber`; create wajib unik bentuknya cerminan model. |
-| `src/lib/members/query-admin-master-members.ts` | `listMasterMembersForAdmin({ search, activityFilter })` ⇒ `Promise<RowVm[]>` memakai `where` Prisma gabungan substring case-insensitive `memberNumber`, `fullName`, filter `isActive`. |
-| `src/lib/actions/admin-master-members.ts` | `createMasterMember`, `updateMasterMember`, `importMasterMembersCsv` (FormData **`file`**), `generateMasterMemberCsvTemplate` bisa route GET handler atau tombol **`data:text/csv`** — rencana: **server action pengembalian** string template base64 atau client `Papa.unparse` header + contoh dari shared constant untuk mengurangi roundtrip—pilih **`src/lib/members/master-member-csv-template.ts`** export `MASTER_MEMBER_CSV_TEMPLATE` string. |
-| `src/app/admin/anggota/page.tsx` | RSC: ambil rows, serahkan ke wrapper klien. |
-| `src/components/admin/members-admin-page.tsx` | Client: state pencarian, filter, tabel, dialog, impor (satu modul boleh dipecah jika >400 baris). |
-| `src/components/admin/member-form-dialog.tsx` | Form RHF+Zod `adminMasterMember*Schema`, panggil server action. |
-| `src/components/admin/member-csv-import-panel.tsx` | `<input type="file" accept=".csv,text/csv" />`, ringkasan, unduh error blob. |
+| Path                                                           | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `package.json` / `pnpm-lock.yaml`                              | Tambah dependency runtime `papaparse` untuk parse CSV + `Papa.unparse` laporan gagal                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/lib/members/master-member-csv-constants.ts`               | Konstanta nama kolom, batas **`MAX_IMPORT_BYTES`** (2097152) dan **`MAX_DATA_ROWS`** (5000).                                                                                                                                                                                                                                                                                                                                                           |
+| `src/lib/members/master-member-csv-boolean.ts`                 | `interpretMasterMemberCsvBoolean(cell: string \| undefined \| null): boolean \| undefined` — empty/whitespace ⇒ `undefined`; token valid ⇒ booleans Case-insensitive.                                                                                                                                                                                                                                                                                  |
+| `src/lib/members/master-member-csv-boolean.test.ts`            | Pengujian token true/false/undefined.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/lib/members/master-member-csv-single-line-record.ts`      | `assertCsvTextSingleLinePhysicalRecords(csvText: string): void \| never` — lempar jika ada pemisah baris CRLF/LF dalam rentang kutip ganda ASCII (sesuai asumsi **satu rekaman fisik = satu garis**) agar **`baris` = indeks rekaman data + 1** selaras §5.4.                                                                                                                                                                                          |
+| `src/lib/members/master-member-csv-single-line-record.test.ts` | Contoh kutip bermasalah / file valid satu baris.                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/lib/members/parse-master-member-csv-text.ts`              | `parseMasterMemberCsvText(csvText)` ⇒ `{ dataRows }` bertipe `{ lineNumberPhysical: number; cells: Record<string,string> }[]` dibentuk lewat Papa `header:true`, `skipEmptyLines:"greedy"`, `transformHeader` → huruf kecil + trim; map hasil ke **`lineNumberPhysical = dataIndex + 2`**.                                                                                                                                                             |
+| `src/lib/members/parse-master-member-csv-text.test.ts`         | Header wajib, kolom ekstra diabaikan, baris kosong di-skip.                                                                                                                                                                                                                                                                                                                                                                                            |
+| `src/lib/members/prepare-master-member-csv-row.ts`             | Pure: **`prepareMasterMemberCsvRow(...)`** membangun `duplicate \| reject \| ok` dan memelihara `Map` `nomorLower → baris pertama` untuk deteksi duplikat satu file                                                                                                                                                                                                                                                                                    |
+| `src/lib/members/prepare-master-member-csv-row.test.ts`        | Dup dalam file; nomor kosong; `maybe` booleans hilang dari patch                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/lib/members/master-member-csv-prisma-data.ts`             | `masterMemberCsvPatchToCreateData(patch, canonicalMemberNumber)` dan **`masterMemberCsvPatchToUpdateData(patch)`** — hanya menyertakan kunci dengan nilai terdefinisi                                                                                                                                                                                                                                                                                  |
+| `src/lib/forms/admin-master-member-schema.ts`                  | Schema Zod `adminMasterMemberCreateSchema` dan `adminMasterMemberUpdateSchema` — update **tanpa** `memberNumber`; create wajib unik bentuknya cerminan model.                                                                                                                                                                                                                                                                                          |
+| `src/lib/members/query-admin-master-members.ts`                | `listMasterMembersForAdmin({ search, activityFilter })` ⇒ `Promise<RowVm[]>` memakai `where` Prisma gabungan substring case-insensitive `memberNumber`, `fullName`, filter `isActive`.                                                                                                                                                                                                                                                                 |
+| `src/lib/actions/admin-master-members.ts`                      | `createMasterMember`, `updateMasterMember`, `importMasterMembersCsv` (FormData **`file`**), `generateMasterMemberCsvTemplate` bisa route GET handler atau tombol **`data:text/csv`** — rencana: **server action pengembalian** string template base64 atau client `Papa.unparse` header + contoh dari shared constant untuk mengurangi roundtrip—pilih **`src/lib/members/master-member-csv-template.ts`** export `MASTER_MEMBER_CSV_TEMPLATE` string. |
+| `src/app/admin/anggota/page.tsx`                               | RSC: ambil rows, serahkan ke wrapper klien.                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `src/components/admin/members-admin-page.tsx`                  | Client: state pencarian, filter, tabel, dialog, impor (satu modul boleh dipecah jika >400 baris).                                                                                                                                                                                                                                                                                                                                                      |
+| `src/components/admin/member-form-dialog.tsx`                  | Form RHF+Zod `adminMasterMember*Schema`, panggil server action.                                                                                                                                                                                                                                                                                                                                                                                        |
+| `src/components/admin/member-csv-import-panel.tsx`             | `<input type="file" accept=".csv,text/csv" />`, ringkasan, unduh error blob.                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 
 ### Task 1: Tambah `papaparse`
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml` (via install)
 
@@ -66,6 +67,7 @@ git commit -m "chore: add papaparse for admin member CSV import"
 ### Task 2: Boolean CSV + unit test (TDD)
 
 **Files:**
+
 - Create: `src/lib/members/master-member-csv-boolean.ts`
 - Create: `src/lib/members/master-member-csv-boolean.test.ts`
 
@@ -74,34 +76,34 @@ git commit -m "chore: add papaparse for admin member CSV import"
 `src/lib/members/master-member-csv-boolean.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import { interpretMasterMemberCsvBoolean } from "./master-member-csv-boolean";
+import { interpretMasterMemberCsvBoolean } from './master-member-csv-boolean'
 
-describe("interpretMasterMemberCsvBoolean", () => {
-  it("returns undefined for undefined, null, empty, whitespace", () => {
-    expect(interpretMasterMemberCsvBoolean(undefined)).toBeUndefined();
-    expect(interpretMasterMemberCsvBoolean(null)).toBeUndefined();
-    expect(interpretMasterMemberCsvBoolean("")).toBeUndefined();
-    expect(interpretMasterMemberCsvBoolean("   ")).toBeUndefined();
-  });
+describe('interpretMasterMemberCsvBoolean', () => {
+  it('returns undefined for undefined, null, empty, whitespace', () => {
+    expect(interpretMasterMemberCsvBoolean(undefined)).toBeUndefined()
+    expect(interpretMasterMemberCsvBoolean(null)).toBeUndefined()
+    expect(interpretMasterMemberCsvBoolean('')).toBeUndefined()
+    expect(interpretMasterMemberCsvBoolean('   ')).toBeUndefined()
+  })
 
-  it("parses true tokens case-insensitively", () => {
-    for (const t of ["true", "TRUE", "1", "yes", "Y", "iya", "IyA"]) {
-      expect(interpretMasterMemberCsvBoolean(t), t).toBe(true);
+  it('parses true tokens case-insensitively', () => {
+    for (const t of ['true', 'TRUE', '1', 'yes', 'Y', 'iya', 'IyA']) {
+      expect(interpretMasterMemberCsvBoolean(t), t).toBe(true)
     }
-  });
+  })
 
-  it("parses false tokens case-insensitively", () => {
-    for (const t of ["false", "FALSE", "0", "no", "N", "tidak", "Tidak"]) {
-      expect(interpretMasterMemberCsvBoolean(t), t).toBe(false);
+  it('parses false tokens case-insensitively', () => {
+    for (const t of ['false', 'FALSE', '0', 'no', 'N', 'tidak', 'Tidak']) {
+      expect(interpretMasterMemberCsvBoolean(t), t).toBe(false)
     }
-  });
+  })
 
-  it("returns undefined for unknown text (partial update semantics)", () => {
-    expect(interpretMasterMemberCsvBoolean("maybe")).toBeUndefined();
-  });
-});
+  it('returns undefined for unknown text (partial update semantics)', () => {
+    expect(interpretMasterMemberCsvBoolean('maybe')).toBeUndefined()
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan Vitest — harus FAIL**
@@ -121,16 +123,14 @@ Expected: modul tidak ditemukan / fungsi tidak terdefinisi.
  * Sel kosong ⇒ undefined (jangan ubah field).
  * Teks tidak dikenali ⇒ undefined (bukan error), selaras spesifikasi §5.3.
  */
-export function interpretMasterMemberCsvBoolean(
-  cell: string | undefined | null,
-): boolean | undefined {
-  if (cell === undefined || cell === null) return undefined;
-  const t = cell.trim();
-  if (!t) return undefined;
-  const u = t.toLowerCase();
-  if (["true", "1", "yes", "y", "iya"].includes(u)) return true;
-  if (["false", "0", "no", "n", "tidak"].includes(u)) return false;
-  return undefined;
+export function interpretMasterMemberCsvBoolean(cell: string | undefined | null): boolean | undefined {
+  if (cell === undefined || cell === null) return undefined
+  const t = cell.trim()
+  if (!t) return undefined
+  const u = t.toLowerCase()
+  if (['true', '1', 'yes', 'y', 'iya'].includes(u)) return true
+  if (['false', '0', 'no', 'n', 'tidak'].includes(u)) return false
+  return undefined
 }
 ```
 
@@ -152,6 +152,7 @@ git commit -m "feat(members): interpret CSV boolean cells for directory import"
 ### Task 3: Pra-validasi “satu garis fisik per rekaman”
 
 **Files:**
+
 - Create: `src/lib/members/master-member-csv-single-line-record.ts`
 - Create: `src/lib/members/master-member-csv-single-line-record.test.ts`
 
@@ -160,27 +161,21 @@ git commit -m "feat(members): interpret CSV boolean cells for directory import"
 `src/lib/members/master-member-csv-single-line-record.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import { assertCsvTextSingleLinePhysicalRecords } from "./master-member-csv-single-line-record";
+import { assertCsvTextSingleLinePhysicalRecords } from './master-member-csv-single-line-record'
 
-describe("assertCsvTextSingleLinePhysicalRecords", () => {
-  it("allows simple one-line records", () => {
-    expect(() =>
-      assertCsvTextSingleLinePhysicalRecords(
-        "member_number,full_name\n001,Alice\n002,Bob\n",
-      ),
-    ).not.toThrow();
-  });
+describe('assertCsvTextSingleLinePhysicalRecords', () => {
+  it('allows simple one-line records', () => {
+    expect(() => assertCsvTextSingleLinePhysicalRecords('member_number,full_name\n001,Alice\n002,Bob\n')).not.toThrow()
+  })
 
-  it("throws when a quoted field spans a newline", () => {
-    expect(() =>
-      assertCsvTextSingleLinePhysicalRecords(
-        'member_number,full_name\n001,"Line1\nLine2"\n',
-      ),
-    ).toThrow(/multiline tidak didukung/i);
-  });
-});
+  it('throws when a quoted field spans a newline', () => {
+    expect(() => assertCsvTextSingleLinePhysicalRecords('member_number,full_name\n001,"Line1\nLine2"\n')).toThrow(
+      /multiline tidak didukung/i,
+    )
+  })
+})
 ```
 
 - [ ] **Step 2: Implementasi**
@@ -190,22 +185,20 @@ describe("assertCsvTextSingleLinePhysicalRecords", () => {
 ```typescript
 /** Memastikan tidak ada LF/CRLF di dalam kutip ASCII ganda (`"`), agar pemetaan rekaman-ke-baris fisik stabil. */
 export function assertCsvTextSingleLinePhysicalRecords(csvText: string): void {
-  let inQuotes = false;
+  let inQuotes = false
   for (let i = 0; i < csvText.length; i++) {
-    const c = csvText[i];
+    const c = csvText[i]
     if (c === '"') {
-      const next = csvText[i + 1];
+      const next = csvText[i + 1]
       if (inQuotes && next === '"') {
-        i++;
-        continue;
+        i++
+        continue
       }
-      inQuotes = !inQuotes;
-      continue;
+      inQuotes = !inQuotes
+      continue
     }
-    if (inQuotes && (c === "\n" || c === "\r")) {
-      throw new Error(
-        "CSV multiline tidak didukung — hilangkan newline di dalam tanda kutip.",
-      );
+    if (inQuotes && (c === '\n' || c === '\r')) {
+      throw new Error('CSV multiline tidak didukung — hilangkan newline di dalam tanda kutip.')
     }
   }
 }
@@ -229,6 +222,7 @@ git commit -m "feat(members): reject multiline CSV fields for deterministic row 
 ### Task 4: Konstanta kolom + parser teks CSV
 
 **Files:**
+
 - Create: `src/lib/members/master-member-csv-constants.ts`
 - Create: `src/lib/members/parse-master-member-csv-text.ts`
 - Create: `src/lib/members/parse-master-member-csv-text.test.ts`
@@ -240,19 +234,19 @@ git commit -m "feat(members): reject multiline CSV fields for deterministic row 
 ```typescript
 /** Header wajib (setelah normalisasi: lower + trim). */
 export const MASTER_MEMBER_CSV_COLUMNS = [
-  "member_number",
-  "full_name",
-  "whatsapp",
-  "is_active",
-  "is_pengurus",
-  "can_be_pic",
-] as const;
+  'member_number',
+  'full_name',
+  'whatsapp',
+  'is_active',
+  'is_pengurus',
+  'can_be_pic',
+] as const
 
-export type MasterMemberCsvColumn = (typeof MASTER_MEMBER_CSV_COLUMNS)[number];
+export type MasterMemberCsvColumn = (typeof MASTER_MEMBER_CSV_COLUMNS)[number]
 
-export const MAX_MASTER_MEMBER_IMPORT_BYTES = 2097152; // 2 MiB
+export const MAX_MASTER_MEMBER_IMPORT_BYTES = 2097152 // 2 MiB
 
-export const MAX_MASTER_MEMBER_IMPORT_DATA_ROWS = 5000;
+export const MAX_MASTER_MEMBER_IMPORT_DATA_ROWS = 5000
 ```
 
 - [ ] **Step 2: Parser + tes**
@@ -260,63 +254,58 @@ export const MAX_MASTER_MEMBER_IMPORT_DATA_ROWS = 5000;
 Importer `papaparse` di uji dengan string kecil. `parse-master-member-csv-text.ts`:
 
 ```typescript
-import Papa from "papaparse";
+import Papa from 'papaparse'
 
-import {
-  MASTER_MEMBER_CSV_COLUMNS,
-  MAX_MASTER_MEMBER_IMPORT_DATA_ROWS,
-} from "./master-member-csv-constants";
+import { MASTER_MEMBER_CSV_COLUMNS, MAX_MASTER_MEMBER_IMPORT_DATA_ROWS } from './master-member-csv-constants'
 
 export type ParsedMasterMemberCsvRow = {
   /** Baris pertama file header = 1; baris pertama data = 2. */
-  lineNumberPhysical: number;
-  cells: Record<string, string>;
-};
+  lineNumberPhysical: number
+  cells: Record<string, string>
+}
 
 function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().replace(/\s+/g, "_");
+  return h.trim().toLowerCase().replace(/\s+/g, '_')
 }
 
 /** @throws Error Bahasa Indonesia jika struktur kolom salah atau terlalu banyak baris data. */
 export function parseMasterMemberCsvText(csvText: string): {
-  rows: ParsedMasterMemberCsvRow[];
+  rows: ParsedMasterMemberCsvRow[]
 } {
-  const trimmed = csvText.trim();
-  const parsed = Papa.parse<Record<string, string>>(trimmed || "\n", {
+  const trimmed = csvText.trim()
+  const parsed = Papa.parse<Record<string, string>>(trimmed || '\n', {
     header: true,
-    skipEmptyLines: "greedy",
+    skipEmptyLines: 'greedy',
     transformHeader: normalizeHeader,
-  });
+  })
 
-  const fieldsHeader = parsed.meta.fields?.map(normalizeHeader) ?? [];
+  const fieldsHeader = parsed.meta.fields?.map(normalizeHeader) ?? []
   for (const col of MASTER_MEMBER_CSV_COLUMNS) {
     if (!fieldsHeader.includes(col)) {
-      throw new Error(`Kolom CSV wajib tidak ada: "${col}".`);
+      throw new Error(`Kolom CSV wajib tidak ada: "${col}".`)
     }
   }
 
   if (!parsed.data || parsed.data.length === 0) {
-    throw new Error("Tidak ada baris data setelah header.");
+    throw new Error('Tidak ada baris data setelah header.')
   }
 
   if (parsed.data.length > MAX_MASTER_MEMBER_IMPORT_DATA_ROWS) {
-    throw new Error(
-      `Jumlah baris data melebihi batas (${MAX_MASTER_MEMBER_IMPORT_DATA_ROWS.toLocaleString("id-ID")}).`,
-    );
+    throw new Error(`Jumlah baris data melebihi batas (${MAX_MASTER_MEMBER_IMPORT_DATA_ROWS.toLocaleString('id-ID')}).`)
   }
 
   const rows: ParsedMasterMemberCsvRow[] = parsed.data.map((record, i) => {
-    const clean: Record<string, string> = {};
+    const clean: Record<string, string> = {}
     for (const [k, v] of Object.entries(record)) {
-      const nk = normalizeHeader(k);
+      const nk = normalizeHeader(k)
       if (MASTER_MEMBER_CSV_COLUMNS.includes(nk as MasterMemberCsvColumn)) {
-        clean[nk] = typeof v === "string" ? v : String(v ?? "");
+        clean[nk] = typeof v === 'string' ? v : String(v ?? '')
       }
     }
-    return { lineNumberPhysical: i + 2, cells: clean };
-  });
+    return { lineNumberPhysical: i + 2, cells: clean }
+  })
 
-  return { rows };
+  return { rows }
 }
 ```
 
@@ -337,6 +326,7 @@ git commit -m "feat(members): parse member directory CSV with required headers"
 ### Task 5: Siapkan baris CSV (pure) + map duplikat + tes
 
 **Files:**
+
 - Create: `src/lib/members/prepare-master-member-csv-row.ts`
 - Create: `src/lib/members/prepare-master-member-csv-row.test.ts`
 
@@ -345,31 +335,31 @@ git commit -m "feat(members): parse member directory CSV with required headers"
 `src/lib/members/prepare-master-member-csv-row.ts`:
 
 ```typescript
-import { interpretMasterMemberCsvBoolean } from "./master-member-csv-boolean";
+import { interpretMasterMemberCsvBoolean } from './master-member-csv-boolean'
 
 export type MasterMemberCsvWritablePatch = {
-  fullName?: string;
-  whatsapp?: string | null;
-  isPengurus?: boolean;
-  isActive?: boolean;
-  canBePIC?: boolean;
-};
+  fullName?: string
+  whatsapp?: string | null
+  isPengurus?: boolean
+  isActive?: boolean
+  canBePIC?: boolean
+}
 
 export type PreparedMasterMemberCsvRow =
   | {
-      tag: "duplicate";
-      lineNumberPhysical: number;
-      memberNumber: string;
-      firstLineNumber: number;
+      tag: 'duplicate'
+      lineNumberPhysical: number
+      memberNumber: string
+      firstLineNumber: number
     }
-  | { tag: "reject"; lineNumberPhysical: number; reasons: string[] }
+  | { tag: 'reject'; lineNumberPhysical: number; reasons: string[] }
   | {
-      tag: "ok";
-      lineNumberPhysical: number;
-      canonicalMemberNumber: string;
-      patch: MasterMemberCsvWritablePatch;
-      requiresFullNameForCreate: boolean;
-    };
+      tag: 'ok'
+      lineNumberPhysical: number
+      canonicalMemberNumber: string
+      patch: MasterMemberCsvWritablePatch
+      requiresFullNameForCreate: boolean
+    }
 
 /**
  * @param memberNumberFirstLine — `new Map()`; diisi `lowercase(member_number)` → baris pertama file untuk nomor itu.
@@ -379,125 +369,117 @@ export function prepareMasterMemberCsvRow(
   cells: Record<string, string>,
   memberNumberFirstLine: Map<string, number>,
 ): PreparedMasterMemberCsvRow {
-  const rawNum = (cells.member_number ?? "").trim();
+  const rawNum = (cells.member_number ?? '').trim()
   if (!rawNum) {
     return {
-      tag: "reject",
+      tag: 'reject',
       lineNumberPhysical,
-      reasons: ["Nomor member wajib."],
-    };
+      reasons: ['Nomor member wajib.'],
+    }
   }
 
-  const keyLower = rawNum.toLowerCase();
-  const firstLineNumber = memberNumberFirstLine.get(keyLower);
+  const keyLower = rawNum.toLowerCase()
+  const firstLineNumber = memberNumberFirstLine.get(keyLower)
   if (firstLineNumber !== undefined) {
     return {
-      tag: "duplicate",
+      tag: 'duplicate',
       lineNumberPhysical,
       memberNumber: rawNum,
       firstLineNumber,
-    };
+    }
   }
-  memberNumberFirstLine.set(keyLower, lineNumberPhysical);
+  memberNumberFirstLine.set(keyLower, lineNumberPhysical)
 
-  const patch: MasterMemberCsvWritablePatch = {};
-  const nameTrim = (cells.full_name ?? "").trim();
-  if (nameTrim) patch.fullName = nameTrim;
+  const patch: MasterMemberCsvWritablePatch = {}
+  const nameTrim = (cells.full_name ?? '').trim()
+  if (nameTrim) patch.fullName = nameTrim
 
-  const waTrim = (cells.whatsapp ?? "").trim();
-  if (waTrim) patch.whatsapp = waTrim;
+  const waTrim = (cells.whatsapp ?? '').trim()
+  if (waTrim) patch.whatsapp = waTrim
 
-  const active = interpretMasterMemberCsvBoolean(cells.is_active);
-  if (active !== undefined) patch.isActive = active;
-  const pengurus = interpretMasterMemberCsvBoolean(cells.is_pengurus);
-  if (pengurus !== undefined) patch.isPengurus = pengurus;
-  const pic = interpretMasterMemberCsvBoolean(cells.can_be_pic);
-  if (pic !== undefined) patch.canBePIC = pic;
+  const active = interpretMasterMemberCsvBoolean(cells.is_active)
+  if (active !== undefined) patch.isActive = active
+  const pengurus = interpretMasterMemberCsvBoolean(cells.is_pengurus)
+  if (pengurus !== undefined) patch.isPengurus = pengurus
+  const pic = interpretMasterMemberCsvBoolean(cells.can_be_pic)
+  if (pic !== undefined) patch.canBePIC = pic
 
   return {
-    tag: "ok",
+    tag: 'ok',
     lineNumberPhysical,
     canonicalMemberNumber: rawNum,
     patch,
     requiresFullNameForCreate: !nameTrim,
-  };
+  }
 }
 ```
 
 - [ ] **Step 2: Tes Vitest**
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import {
-  prepareMasterMemberCsvRow,
-  type PreparedMasterMemberCsvRow,
-} from "./prepare-master-member-csv-row";
+import { prepareMasterMemberCsvRow, type PreparedMasterMemberCsvRow } from './prepare-master-member-csv-row'
 
-describe("prepareMasterMemberCsvRow", () => {
-  it("records first line and flags second duplicate member_number", () => {
-    const m = new Map<string, number>();
+describe('prepareMasterMemberCsvRow', () => {
+  it('records first line and flags second duplicate member_number', () => {
+    const m = new Map<string, number>()
     const cells = (full_name: string) => ({
-      member_number: "M-01",
+      member_number: 'M-01',
       full_name,
-      whatsapp: "",
-      is_active: "",
-      is_pengurus: "",
-      can_be_pic: "",
-    });
-    const a = prepareMasterMemberCsvRow(2, cells("A"), m);
-    const b = prepareMasterMemberCsvRow(3, cells("B"), m);
-    expect((a as Extract<PreparedMasterMemberCsvRow, { tag: "ok" }>).tag).toBe(
-      "ok",
-    );
+      whatsapp: '',
+      is_active: '',
+      is_pengurus: '',
+      can_be_pic: '',
+    })
+    const a = prepareMasterMemberCsvRow(2, cells('A'), m)
+    const b = prepareMasterMemberCsvRow(3, cells('B'), m)
+    expect((a as Extract<PreparedMasterMemberCsvRow, { tag: 'ok' }>).tag).toBe('ok')
     expect(b).toEqual({
-      tag: "duplicate",
+      tag: 'duplicate',
       lineNumberPhysical: 3,
-      memberNumber: "M-01",
+      memberNumber: 'M-01',
       firstLineNumber: 2,
-    });
-  });
+    })
+  })
 
-  it("rejects empty member_number", () => {
-    const m = new Map<string, number>();
+  it('rejects empty member_number', () => {
+    const m = new Map<string, number>()
     const r = prepareMasterMemberCsvRow(
       2,
       {
-        member_number: "  ",
-        full_name: "",
-        whatsapp: "",
-        is_active: "",
-        is_pengurus: "",
-        can_be_pic: "",
+        member_number: '  ',
+        full_name: '',
+        whatsapp: '',
+        is_active: '',
+        is_pengurus: '',
+        can_be_pic: '',
       },
       m,
-    );
-    expect(r.tag).toBe("reject");
-  });
+    )
+    expect(r.tag).toBe('reject')
+  })
 
-  it("omits unknown boolean token from patch", () => {
-    const m = new Map<string, number>();
+  it('omits unknown boolean token from patch', () => {
+    const m = new Map<string, number>()
     const r = prepareMasterMemberCsvRow(
       2,
       {
-        member_number: "X",
-        full_name: "N",
-        whatsapp: "",
-        is_active: "maybe",
-        is_pengurus: "",
-        can_be_pic: "",
+        member_number: 'X',
+        full_name: 'N',
+        whatsapp: '',
+        is_active: 'maybe',
+        is_pengurus: '',
+        can_be_pic: '',
       },
       m,
-    );
-    expect(r.tag).toBe("ok");
-    expect(
-      Object.prototype.hasOwnProperty.call(
-        (r as { patch: Record<string, unknown> }).patch,
-        "isActive",
-      ),
-    ).toBe(false);
-  });
-});
+    )
+    expect(r.tag).toBe('ok')
+    expect(Object.prototype.hasOwnProperty.call((r as { patch: Record<string, unknown> }).patch, 'isActive')).toBe(
+      false,
+    )
+  })
+})
 ```
 
 - [ ] **Step 3: Vitest + commit**
@@ -513,26 +495,25 @@ git commit -m "feat(members): prepare CSV rows with in-file duplicate detection"
 ### Task 5b: Pemetaan patch CSV → payload Prisma
 
 **Files:**
+
 - Create: `src/lib/members/master-member-csv-prisma-data.ts`
 - Create: `src/lib/members/master-member-csv-prisma-data.test.ts`
 
 - [ ] **Step 1: Implementasi**
 
 ```typescript
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from '@prisma/client'
 
-import type { MasterMemberCsvWritablePatch } from "./prepare-master-member-csv-row";
+import type { MasterMemberCsvWritablePatch } from './prepare-master-member-csv-row'
 
-export function masterMemberCsvPatchToUpdateData(
-  patch: MasterMemberCsvWritablePatch,
-): Prisma.MasterMemberUpdateInput {
-  const data: Prisma.MasterMemberUpdateInput = {};
-  if (patch.fullName !== undefined) data.fullName = patch.fullName;
-  if (patch.whatsapp !== undefined) data.whatsapp = patch.whatsapp;
-  if (patch.isActive !== undefined) data.isActive = patch.isActive;
-  if (patch.isPengurus !== undefined) data.isPengurus = patch.isPengurus;
-  if (patch.canBePIC !== undefined) data.canBePIC = patch.canBePIC;
-  return data;
+export function masterMemberCsvPatchToUpdateData(patch: MasterMemberCsvWritablePatch): Prisma.MasterMemberUpdateInput {
+  const data: Prisma.MasterMemberUpdateInput = {}
+  if (patch.fullName !== undefined) data.fullName = patch.fullName
+  if (patch.whatsapp !== undefined) data.whatsapp = patch.whatsapp
+  if (patch.isActive !== undefined) data.isActive = patch.isActive
+  if (patch.isPengurus !== undefined) data.isPengurus = patch.isPengurus
+  if (patch.canBePIC !== undefined) data.canBePIC = patch.canBePIC
+  return data
 }
 
 export function masterMemberCsvPatchToCreateData(
@@ -540,7 +521,7 @@ export function masterMemberCsvPatchToCreateData(
   canonicalMemberNumber: string,
 ): Prisma.MasterMemberCreateInput {
   if (!patch.fullName?.trim()) {
-    throw new Error("INTERNAL: fullName harus ada sebelum create");
+    throw new Error('INTERNAL: fullName harus ada sebelum create')
   }
   return {
     memberNumber: canonicalMemberNumber,
@@ -549,53 +530,46 @@ export function masterMemberCsvPatchToCreateData(
     ...(patch.isActive !== undefined ? { isActive: patch.isActive } : {}),
     ...(patch.isPengurus !== undefined ? { isPengurus: patch.isPengurus } : {}),
     ...(patch.canBePIC !== undefined ? { canBePIC: patch.canBePIC } : {}),
-  };
+  }
 }
 ```
 
 `master-member-csv-prisma-data.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import {
-  masterMemberCsvPatchToCreateData,
-  masterMemberCsvPatchToUpdateData,
-} from "./master-member-csv-prisma-data";
+import { masterMemberCsvPatchToCreateData, masterMemberCsvPatchToUpdateData } from './master-member-csv-prisma-data'
 
-describe("masterMemberCsvPatchToUpdateData", () => {
-  it("returns empty Prisma fragment for empty patch", () => {
-    expect(masterMemberCsvPatchToUpdateData({})).toEqual({});
-  });
+describe('masterMemberCsvPatchToUpdateData', () => {
+  it('returns empty Prisma fragment for empty patch', () => {
+    expect(masterMemberCsvPatchToUpdateData({})).toEqual({})
+  })
 
-  it("maps only defined scalar keys", () => {
+  it('maps only defined scalar keys', () => {
     expect(
       masterMemberCsvPatchToUpdateData({
-        fullName: "A",
+        fullName: 'A',
         whatsapp: null,
       }),
-    ).toEqual({ fullName: "A", whatsapp: null });
-  });
-});
+    ).toEqual({ fullName: 'A', whatsapp: null })
+  })
+})
 
-describe("masterMemberCsvPatchToCreateData", () => {
-  it("throws if full name missing", () => {
-    expect(() => masterMemberCsvPatchToCreateData({}, "MN-01")).toThrow(
-      /INTERNAL/,
-    );
-  });
+describe('masterMemberCsvPatchToCreateData', () => {
+  it('throws if full name missing', () => {
+    expect(() => masterMemberCsvPatchToCreateData({}, 'MN-01')).toThrow(/INTERNAL/)
+  })
 
-  it("trim fullName and merges optional booleans", () => {
-    expect(
-      masterMemberCsvPatchToCreateData({ fullName: "  X ", isActive: true }, "MN-01"),
-    ).toEqual({
-      memberNumber: "MN-01",
-      fullName: "X",
+  it('trim fullName and merges optional booleans', () => {
+    expect(masterMemberCsvPatchToCreateData({ fullName: '  X ', isActive: true }, 'MN-01')).toEqual({
+      memberNumber: 'MN-01',
+      fullName: 'X',
       whatsapp: null,
       isActive: true,
-    });
-  });
-});
+    })
+  })
+})
 ```
 
 - [ ] **Step 2: Vitest + commit**
@@ -611,40 +585,37 @@ git commit -m "feat(members): map CSV patches to Prisma payloads"
 ### Task 6: Zod form admin
 
 **Files:**
+
 - Create: `src/lib/forms/admin-master-member-schema.ts`
 
 - [ ] **Step 1: Schema**
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod'
 
-const memberNumberSchema = z.string().trim().min(1, "Nomor member wajib.");
-const nameSchema = z.string().trim().min(1, "Nama wajib.");
+const memberNumberSchema = z.string().trim().min(1, 'Nomor member wajib.')
+const nameSchema = z.string().trim().min(1, 'Nama wajib.')
 
 export const adminMasterMemberCreateSchema = z.object({
   memberNumber: memberNumberSchema,
   fullName: nameSchema,
-  whatsapp: z.union([z.string().trim().max(64), z.literal("")]).optional(),
+  whatsapp: z.union([z.string().trim().max(64), z.literal('')]).optional(),
   isActive: z.boolean(),
   isPengurus: z.boolean(),
   canBePIC: z.boolean(),
-});
+})
 
 export const adminMasterMemberUpdateSchema = z.object({
   id: z.string().min(1),
   fullName: nameSchema,
-  whatsapp: z.union([z.string().trim().max(64), z.literal("")]).optional(),
+  whatsapp: z.union([z.string().trim().max(64), z.literal('')]).optional(),
   isActive: z.boolean(),
   isPengurus: z.boolean(),
   canBePIC: z.boolean(),
-});
+})
 
-export type AdminMasterMemberCreateInput = z.infer<
-  typeof adminMasterMemberCreateSchema
->;
-export type AdminMasterMemberUpdateInput = z.infer<
-  typeof adminMasterMemberUpdateSchema
->;
+export type AdminMasterMemberCreateInput = z.infer<typeof adminMasterMemberCreateSchema>
+export type AdminMasterMemberUpdateInput = z.infer<typeof adminMasterMemberUpdateSchema>
 ```
 
 Sesuaikan `max(64)` dengan kebutuhan riil (cek schema Prisma `whatsapp` `String?` tanpa `@db.VarChar` — gunakan batas konservatif mis. 32 atau hilangkan max jika tidak perlu).
@@ -661,6 +632,7 @@ git commit -m "feat(forms): zod schemas for admin master member CRUD"
 ### Task 7: Query daftar + server actions
 
 **Files:**
+
 - Create: `src/lib/members/query-admin-master-members.ts`
 - Create: `src/lib/members/master-member-csv-template.ts`
 - Create: `src/lib/actions/admin-master-members.ts`
@@ -672,21 +644,21 @@ git commit -m "feat(forms): zod schemas for admin master member CRUD"
 Filter `where`:
 
 ```typescript
-const search = q?.trim();
+const search = q?.trim()
 const where = {
   AND: [
-    filter === "active" ? { isActive: true } : {},
-    filter === "inactive" ? { isActive: false } : {},
+    filter === 'active' ? { isActive: true } : {},
+    filter === 'inactive' ? { isActive: false } : {},
     search
       ? {
           OR: [
-            { memberNumber: { contains: search, mode: "insensitive" } },
-            { fullName: { contains: search, mode: "insensitive" } },
+            { memberNumber: { contains: search, mode: 'insensitive' } },
+            { fullName: { contains: search, mode: 'insensitive' } },
           ],
         }
       : {},
   ],
-};
+}
 ```
 
 - [ ] **Step 2: Template CSV**
@@ -694,27 +666,27 @@ const where = {
 `master-member-csv-template.ts`:
 
 ```typescript
-import Papa from "papaparse";
+import Papa from 'papaparse'
 
-import { MASTER_MEMBER_CSV_COLUMNS } from "./master-member-csv-constants";
+import { MASTER_MEMBER_CSV_COLUMNS } from './master-member-csv-constants'
 
 const exampleRow: Record<MasterMemberCsvColumn, string> = {
-  member_number: "CISC-0001",
-  full_name: "Contoh Nama",
-  whatsapp: "6281234567890",
-  is_active: "true",
-  is_pengurus: "false",
-  can_be_pic: "true",
-};
+  member_number: 'CISC-0001',
+  full_name: 'Contoh Nama',
+  whatsapp: '6281234567890',
+  is_active: 'true',
+  is_pengurus: 'false',
+  can_be_pic: 'true',
+}
 
-type MasterMemberCsvColumn = (typeof MASTER_MEMBER_CSV_COLUMNS)[number];
+type MasterMemberCsvColumn = (typeof MASTER_MEMBER_CSV_COLUMNS)[number]
 
 export function buildMasterMemberCsvTemplate(): string {
   return (
     Papa.unparse([exampleRow], {
       columns: [...MASTER_MEMBER_CSV_COLUMNS],
-    }) + "\n"
-  );
+    }) + '\n'
+  )
 }
 ```
 
@@ -725,110 +697,99 @@ Perbaiki urutan tipe — impor `MasterMemberCsvColumn` dari constants.
 `src/lib/actions/admin-master-members.ts` (implementasi utama; pangkas hanya komentar bila Anda ingin lebih ringkas—logika tidak boleh menyimpang dari berikut):
 
 ```typescript
-"use server";
+'use server'
 
-import Papa from "papaparse";
-import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import Papa from 'papaparse'
+import { revalidatePath } from 'next/cache'
+import { Prisma } from '@prisma/client'
 
-import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
-import { prisma } from "@/lib/db/prisma";
-import {
-  adminMasterMemberCreateSchema,
-  adminMasterMemberUpdateSchema,
-} from "@/lib/forms/admin-master-member-schema";
-import { fieldError, ok, rootError, type ActionResult } from "@/lib/forms/action-result";
-import { zodToFieldErrors } from "@/lib/forms/zod";
-import { MAX_MASTER_MEMBER_IMPORT_BYTES } from "@/lib/members/master-member-csv-constants";
+import { guardOwnerOrAdmin, isAuthError } from '@/lib/actions/guard'
+import { prisma } from '@/lib/db/prisma'
+import { adminMasterMemberCreateSchema, adminMasterMemberUpdateSchema } from '@/lib/forms/admin-master-member-schema'
+import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+import { zodToFieldErrors } from '@/lib/forms/zod'
+import { MAX_MASTER_MEMBER_IMPORT_BYTES } from '@/lib/members/master-member-csv-constants'
 import {
   masterMemberCsvPatchToCreateData,
   masterMemberCsvPatchToUpdateData,
-} from "@/lib/members/master-member-csv-prisma-data";
-import { assertCsvTextSingleLinePhysicalRecords } from "@/lib/members/master-member-csv-single-line-record";
-import { parseMasterMemberCsvText } from "@/lib/members/parse-master-member-csv-text";
-import { prepareMasterMemberCsvRow } from "@/lib/members/prepare-master-member-csv-row";
+} from '@/lib/members/master-member-csv-prisma-data'
+import { assertCsvTextSingleLinePhysicalRecords } from '@/lib/members/master-member-csv-single-line-record'
+import { parseMasterMemberCsvText } from '@/lib/members/parse-master-member-csv-text'
+import { prepareMasterMemberCsvRow } from '@/lib/members/prepare-master-member-csv-row'
 
 export type MasterMemberImportResult = {
-  successCount: number;
-  failureCount: number;
-  errorCsvBase64: string | null;
-};
+  successCount: number
+  failureCount: number
+  errorCsvBase64: string | null
+}
 
 type ErrorRowCsv = {
-  baris: number;
-  member_number: string;
-  full_name: string;
-  alasan: string;
-};
+  baris: number
+  member_number: string
+  full_name: string
+  alasan: string
+}
 
 export async function importMasterMembersCsv(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<MasterMemberImportResult>> {
   try {
-    await guardOwnerOrAdmin();
+    await guardOwnerOrAdmin()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
-  const file = formData.get("file");
+  const file = formData.get('file')
   if (!(file instanceof File)) {
-    return rootError("Berkas CSV wajib diunggah.");
+    return rootError('Berkas CSV wajib diunggah.')
   }
   if (file.size > MAX_MASTER_MEMBER_IMPORT_BYTES) {
-    return rootError("Berkas terlalu besar (maks. 2 MiB).");
+    return rootError('Berkas terlalu besar (maks. 2 MiB).')
   }
 
-  const text = await file.text();
+  const text = await file.text()
 
   try {
-    assertCsvTextSingleLinePhysicalRecords(text);
+    assertCsvTextSingleLinePhysicalRecords(text)
   } catch (e) {
-    return rootError(
-      e instanceof Error ? e.message : "Format CSV tidak valid.",
-    );
+    return rootError(e instanceof Error ? e.message : 'Format CSV tidak valid.')
   }
 
-  let rows: ReturnType<typeof parseMasterMemberCsvText>["rows"];
+  let rows: ReturnType<typeof parseMasterMemberCsvText>['rows']
   try {
-    rows = parseMasterMemberCsvText(text).rows;
+    rows = parseMasterMemberCsvText(text).rows
   } catch (e) {
-    return rootError(
-      e instanceof Error ? e.message : "CSV tidak dapat dibaca.",
-    );
+    return rootError(e instanceof Error ? e.message : 'CSV tidak dapat dibaca.')
   }
 
-  const memberFirstLine = new Map<string, number>();
-  const errors: ErrorRowCsv[] = [];
-  let successCount = 0;
+  const memberFirstLine = new Map<string, number>()
+  const errors: ErrorRowCsv[] = []
+  let successCount = 0
 
   for (const row of rows) {
-    const fullNameMirror = row.cells.full_name?.trim() ?? "";
-    const prep = prepareMasterMemberCsvRow(
-      row.lineNumberPhysical,
-      row.cells,
-      memberFirstLine,
-    );
+    const fullNameMirror = row.cells.full_name?.trim() ?? ''
+    const prep = prepareMasterMemberCsvRow(row.lineNumberPhysical, row.cells, memberFirstLine)
 
-    if (prep.tag === "duplicate") {
+    if (prep.tag === 'duplicate') {
       errors.push({
         baris: prep.lineNumberPhysical,
         member_number: prep.memberNumber,
         full_name: fullNameMirror,
         alasan: `Duplikat nomor member dalam berkas (baris pertama: ${prep.firstLineNumber}).`,
-      });
-      continue;
+      })
+      continue
     }
 
-    if (prep.tag === "reject") {
+    if (prep.tag === 'reject') {
       errors.push({
         baris: prep.lineNumberPhysical,
         member_number: fullNameMirror,
         full_name: fullNameMirror,
-        alasan: prep.reasons.join(" "),
-      });
-      continue;
+        alasan: prep.reasons.join(' '),
+      })
+      continue
     }
 
     try {
@@ -836,100 +797,90 @@ export async function importMasterMembersCsv(
         where: {
           memberNumber: {
             equals: prep.canonicalMemberNumber,
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
         select: { id: true },
-      });
+      })
 
       if (existing) {
-        const data = masterMemberCsvPatchToUpdateData(prep.patch);
+        const data = masterMemberCsvPatchToUpdateData(prep.patch)
         if (Object.keys(data).length === 0) {
-          successCount += 1;
+          successCount += 1
         } else {
           await prisma.masterMember.update({
             where: { id: existing.id },
             data,
-          });
-          successCount += 1;
+          })
+          successCount += 1
         }
       } else if (prep.requiresFullNameForCreate) {
         errors.push({
           baris: prep.lineNumberPhysical,
           member_number: prep.canonicalMemberNumber,
           full_name: fullNameMirror,
-          alasan: "Nama wajib untuk anggota baru.",
-        });
+          alasan: 'Nama wajib untuk anggota baru.',
+        })
       } else {
-        const data = masterMemberCsvPatchToCreateData(
-          prep.patch,
-          prep.canonicalMemberNumber,
-        );
-        await prisma.masterMember.create({ data });
-        successCount += 1;
+        const data = masterMemberCsvPatchToCreateData(prep.patch, prep.canonicalMemberNumber)
+        await prisma.masterMember.create({ data })
+        successCount += 1
       }
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         errors.push({
           baris: prep.lineNumberPhysical,
           member_number: prep.canonicalMemberNumber,
           full_name: fullNameMirror,
-          alasan: "Konflik unik pada nomor member (duplikat di basis data).",
-        });
+          alasan: 'Konflik unik pada nomor member (duplikat di basis data).',
+        })
       } else {
         errors.push({
           baris: prep.lineNumberPhysical,
           member_number: prep.canonicalMemberNumber,
           full_name: fullNameMirror,
-          alasan:
-            e instanceof Error ? e.message : "Galat tidak terduga pada basis data.",
-        });
+          alasan: e instanceof Error ? e.message : 'Galat tidak terduga pada basis data.',
+        })
       }
     }
   }
 
-  const failureCount = errors.length;
+  const failureCount = errors.length
   const errorCsvBase64 =
     errors.length === 0
       ? null
       : Buffer.from(
           Papa.unparse(errors, {
-            columns: ["baris", "member_number", "full_name", "alasan"],
+            columns: ['baris', 'member_number', 'full_name', 'alasan'],
           }),
-          "utf8",
-        ).toString("base64");
+          'utf8',
+        ).toString('base64')
 
-  revalidatePath("/admin/anggota");
-  return ok({ successCount, failureCount, errorCsvBase64 });
+  revalidatePath('/admin/anggota')
+  return ok({ successCount, failureCount, errorCsvBase64 })
 }
 
-export async function createMasterMember(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+export async function createMasterMember(_prev: unknown, formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
-    await guardOwnerOrAdmin();
+    await guardOwnerOrAdmin()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
-  const rawPayload = formData.get("payload");
-  let parsed: unknown = null;
-  if (typeof rawPayload === "string") {
+  const rawPayload = formData.get('payload')
+  let parsed: unknown = null
+  if (typeof rawPayload === 'string') {
     try {
-      parsed = JSON.parse(rawPayload) as unknown;
+      parsed = JSON.parse(rawPayload) as unknown
     } catch {
-      parsed = null;
+      parsed = null
     }
   }
-  const z = adminMasterMemberCreateSchema.safeParse(parsed);
-  if (!z.success) return { ok: false, fieldErrors: zodToFieldErrors(z.error) };
+  const z = adminMasterMemberCreateSchema.safeParse(parsed)
+  if (!z.success) return { ok: false, fieldErrors: zodToFieldErrors(z.error) }
 
-  const whatsappStored =
-    z.data.whatsapp && z.data.whatsapp.trim().length > 0
-      ? z.data.whatsapp.trim()
-      : null;
+  const whatsappStored = z.data.whatsapp && z.data.whatsapp.trim().length > 0 ? z.data.whatsapp.trim() : null
 
   try {
     const row = await prisma.masterMember.create({
@@ -942,46 +893,40 @@ export async function createMasterMember(
         canBePIC: z.data.canBePIC,
       },
       select: { id: true },
-    });
-    revalidatePath("/admin/anggota");
-    return ok({ id: row.id });
+    })
+    revalidatePath('/admin/anggota')
+    return ok({ id: row.id })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return fieldError({
-        memberNumber: "Nomor member sudah dipakai.",
-      });
+        memberNumber: 'Nomor member sudah dipakai.',
+      })
     }
-    throw e;
+    throw e
   }
 }
 
-export async function updateMasterMember(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+export async function updateMasterMember(_prev: unknown, formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
-    await guardOwnerOrAdmin();
+    await guardOwnerOrAdmin()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
-  const rawPayload = formData.get("payload");
-  let parsed: unknown = null;
-  if (typeof rawPayload === "string") {
+  const rawPayload = formData.get('payload')
+  let parsed: unknown = null
+  if (typeof rawPayload === 'string') {
     try {
-      parsed = JSON.parse(rawPayload) as unknown;
+      parsed = JSON.parse(rawPayload) as unknown
     } catch {
-      parsed = null;
+      parsed = null
     }
   }
-  const z = adminMasterMemberUpdateSchema.safeParse(parsed);
-  if (!z.success) return { ok: false, fieldErrors: zodToFieldErrors(z.error) };
+  const z = adminMasterMemberUpdateSchema.safeParse(parsed)
+  if (!z.success) return { ok: false, fieldErrors: zodToFieldErrors(z.error) }
 
-  const whatsappStored =
-    z.data.whatsapp && z.data.whatsapp.trim().length > 0
-      ? z.data.whatsapp.trim()
-      : null;
+  const whatsappStored = z.data.whatsapp && z.data.whatsapp.trim().length > 0 ? z.data.whatsapp.trim() : null
 
   await prisma.masterMember.update({
     where: { id: z.data.id },
@@ -993,9 +938,9 @@ export async function updateMasterMember(
       canBePIC: z.data.canBePIC,
     },
     select: { id: true },
-  });
-  revalidatePath("/admin/anggota");
-  return ok({ id: z.data.id });
+  })
+  revalidatePath('/admin/anggota')
+  return ok({ id: z.data.id })
 }
 ```
 
@@ -1018,6 +963,7 @@ git commit -m "feat(admin): master member list query and CSV import actions"
 ### Task 8: UI halaman anggota
 
 **Files:**
+
 - Modify: `src/app/admin/anggota/page.tsx`
 - Create: `src/components/admin/members-admin-page.tsx`
 - Create: `src/components/admin/member-form-dialog.tsx`
@@ -1079,17 +1025,17 @@ pnpm lint
 
 ## Spec coverage checklist (self-review)
 
-| Kebutuhan § | Task |
-|-------------|------|
-| Akses Owner/Admin, `guardOwnerOrAdmin` | Task 7 |
-| `/admin/anggota` daftar+pencarian+filter aktivitas | Task 7 query + Task 8 UI |
-| CRUD anggota, `memberNumber` read-only pada edit | Task 6 schema + Task 7/8 dialog |
-| Impor CSV, upsert parsial, best effort | Task 4–5 + Task 7 |
-| Duplikat nomor satu file → baris berikut gagal | Task 5 `prepareMasterMemberCsvRow` |
-| Upsert parsial → payload Prisma | Task 5b |
-| Lapor error `baris` + nama kolom §5.4 | Task 7 `Papa.unparse` (**asumsi satu garis fisik** § Task 3) |
-| Batas 2 MiB / 5000 baris | Task 1/4/constants + Task 7 pre-check ukuran |
-| Template CSV disarankan | Task 7 template + Task 8 unduh |
+| Kebutuhan §                                        | Task                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| Akses Owner/Admin, `guardOwnerOrAdmin`             | Task 7                                                       |
+| `/admin/anggota` daftar+pencarian+filter aktivitas | Task 7 query + Task 8 UI                                     |
+| CRUD anggota, `memberNumber` read-only pada edit   | Task 6 schema + Task 7/8 dialog                              |
+| Impor CSV, upsert parsial, best effort             | Task 4–5 + Task 7                                            |
+| Duplikat nomor satu file → baris berikut gagal     | Task 5 `prepareMasterMemberCsvRow`                           |
+| Upsert parsial → payload Prisma                    | Task 5b                                                      |
+| Lapor error `baris` + nama kolom §5.4              | Task 7 `Papa.unparse` (**asumsi satu garis fisik** § Task 3) |
+| Batas 2 MiB / 5000 baris                           | Task 1/4/constants + Task 7 pre-check ukuran                 |
+| Template CSV disarankan                            | Task 7 template + Task 8 unduh                               |
 
 **Placeholder scan:** Tidak ada “TBD/TODO”; loop impor lengkap ada di Task 7 Step 3.
 

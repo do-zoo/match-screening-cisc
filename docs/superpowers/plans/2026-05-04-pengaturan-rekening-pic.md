@@ -12,20 +12,20 @@
 
 ## File structure (what changes)
 
-| Path | Responsibility |
-|------|----------------|
-| `src/lib/admin/pic-bank-account-permissions.ts` (**baru**) | Fungsi murni `canViewPicBankList`, `canMutatePicBankForTarget(profileId?, role?, targetOwnerProfileId)`. |
-| `src/lib/forms/pic-bank-account-schema.ts` (**baru**) | Skema FormData/`zod` untuk create/update/nonaktif/hapus. |
-| `src/lib/actions/admin-pic-bank-accounts.ts` (**baru**) | Server actions CRUD-ish + pesan gagal bahasa Indonesia + `appendClubAuditLog` + `revalidatePath`. |
-| `src/lib/actions/admin-pic-bank-accounts.test.ts` (**baru**) | Unit guard + cabang utama tanpa Postgres nyata (`vi.mock prisma`). |
-| `src/lib/audit/club-audit-actions.ts` | Tambah konstante audit PIC bank (created / updated / deactivated / deleted). |
-| `src/lib/admin/load-committee-admin-directory.ts` | Tambah `picBankAccounts` per row (query `picBankAccount.findMany` satu kali → map per owner). |
-| `src/app/admin/settings/layout.tsx` | Lepaskan cek Owner; tetap **`requireAdminSession` + AdminContext ada** atau `notFound()`. |
-| `src/app/admin/settings/page.tsx` | Jadi server async guard Owner-only (`notFound` jika bukan Owner). Opsional pesan lebih ramah bisa ditunda (YAGNI). |
-| `src/app/admin/settings/pricing/layout.tsx` … `security/layout.tsx` (**baru** per folder sensitif | `pricing`, `whatsapp-templates`, `branding`, `notifications`, `operations`, `security`) | Masing‑masing: `await getAdminContext` + kalau tidak `canManageCommitteeAdvancedSettings(role)` → `notFound()`. |
-| `src/app/admin/settings/committee/page.tsx` | Tanpa Owner guard tambahan; **`getAdminContext`** + pass ke panel **kapabilitas** (`role`, `viewerProfileId`). |
-| `src/components/admin/admin-pic-bank-accounts-inline.tsx` (**baru**, `"use client"`) | Expand + daftar bank + tombol/s form terhadap props kapabilitas. |
-| `src/components/admin/committee-admin-settings-panel.tsx` | Props kapabilitas; sembunyikan **Undang** + **Undangan tertunda** + tautan/export yang Owner-only atau sesuai aturan Anda (minimal: tombol CSV & undang Owner-only seperti sekarang untuk export route); expandable row + inline bank UI. |
+| Path                                                                                              | Responsibility                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/lib/admin/pic-bank-account-permissions.ts` (**baru**)                                        | Fungsi murni `canViewPicBankList`, `canMutatePicBankForTarget(profileId?, role?, targetOwnerProfileId)`.                                                                                                                                  |
+| `src/lib/forms/pic-bank-account-schema.ts` (**baru**)                                             | Skema FormData/`zod` untuk create/update/nonaktif/hapus.                                                                                                                                                                                  |
+| `src/lib/actions/admin-pic-bank-accounts.ts` (**baru**)                                           | Server actions CRUD-ish + pesan gagal bahasa Indonesia + `appendClubAuditLog` + `revalidatePath`.                                                                                                                                         |
+| `src/lib/actions/admin-pic-bank-accounts.test.ts` (**baru**)                                      | Unit guard + cabang utama tanpa Postgres nyata (`vi.mock prisma`).                                                                                                                                                                        |
+| `src/lib/audit/club-audit-actions.ts`                                                             | Tambah konstante audit PIC bank (created / updated / deactivated / deleted).                                                                                                                                                              |
+| `src/lib/admin/load-committee-admin-directory.ts`                                                 | Tambah `picBankAccounts` per row (query `picBankAccount.findMany` satu kali → map per owner).                                                                                                                                             |
+| `src/app/admin/settings/layout.tsx`                                                               | Lepaskan cek Owner; tetap **`requireAdminSession` + AdminContext ada** atau `notFound()`.                                                                                                                                                 |
+| `src/app/admin/settings/page.tsx`                                                                 | Jadi server async guard Owner-only (`notFound` jika bukan Owner). Opsional pesan lebih ramah bisa ditunda (YAGNI).                                                                                                                        |
+| `src/app/admin/settings/pricing/layout.tsx` … `security/layout.tsx` (**baru** per folder sensitif | `pricing`, `whatsapp-templates`, `branding`, `notifications`, `operations`, `security`)                                                                                                                                                   | Masing‑masing: `await getAdminContext` + kalau tidak `canManageCommitteeAdvancedSettings(role)` → `notFound()`. |
+| `src/app/admin/settings/committee/page.tsx`                                                       | Tanpa Owner guard tambahan; **`getAdminContext`** + pass ke panel **kapabilitas** (`role`, `viewerProfileId`).                                                                                                                            |
+| `src/components/admin/admin-pic-bank-accounts-inline.tsx` (**baru**, `"use client"`)              | Expand + daftar bank + tombol/s form terhadap props kapabilitas.                                                                                                                                                                          |
+| `src/components/admin/committee-admin-settings-panel.tsx`                                         | Props kapabilitas; sembunyikan **Undang** + **Undangan tertunda** + tautan/export yang Owner-only atau sesuai aturan Anda (minimal: tombol CSV & undang Owner-only seperti sekarang untuk export route); expandable row + inline bank UI. |
 
 **Tanpa mengubah** `schema.prisma`. **`src/app/api/admin/pic-banks/[adminProfileId]/route.ts`** tetap filter `isActive: true` (sudah sesuai spec); verifikasi saja tidak regres.
 
@@ -38,6 +38,7 @@
 ### Task 1: Helper izin rekening (tanpa tes dulu — kecil dan dipanggil tes Task 3)
 
 **Files:**
+
 - Create: `src/lib/admin/pic-bank-account-permissions.ts`
 
 - [ ] **Step 1: Tambah helper**
@@ -45,11 +46,11 @@
 Buat konten tepat seperti berikut:
 
 ```typescript
-import type { AdminRole } from "@/lib/permissions/roles";
+import type { AdminRole } from '@/lib/permissions/roles'
 
 /** Sesuai spec: pembaca bisa semua yang sudah akses konteks Komite — gate dilakukan route. */
 export function canViewPicBankListDetails(_viewerRole: AdminRole): boolean {
-  return true;
+  return true
 }
 
 /**
@@ -63,15 +64,13 @@ export function canMutatePicBankForTarget(
   viewerProfileId: string,
   targetOwnerProfileId: string,
 ): boolean {
-  if (viewerRole === "Viewer") return false;
-  if (viewerRole === "Owner" || viewerRole === "Admin") return true;
-  return viewerProfileId === targetOwnerProfileId;
+  if (viewerRole === 'Viewer') return false
+  if (viewerRole === 'Owner' || viewerRole === 'Admin') return true
+  return viewerProfileId === targetOwnerProfileId
 }
 
-export function viewerMayUseOwnerOnlyCommitteeControls(
-  viewerRole: AdminRole,
-): boolean {
-  return viewerRole === "Owner";
+export function viewerMayUseOwnerOnlyCommitteeControls(viewerRole: AdminRole): boolean {
+  return viewerRole === 'Owner'
 }
 ```
 
@@ -87,6 +86,7 @@ git commit -m "feat(admin): helpers izin mutasi PIC bank per profil"
 ### Task 2: Rute pengaturan — Komite boleh non-Owner; modul lanjutan Owner-only di layout anak
 
 **Files:**
+
 - Modify: `src/app/admin/settings/layout.tsx`
 - Modify: `src/app/admin/settings/page.tsx`
 - Create: `src/app/admin/settings/pricing/layout.tsx`
@@ -101,29 +101,25 @@ git commit -m "feat(admin): helpers izin mutasi PIC bank per profil"
 Ganti seluruh isi **`src/app/admin/settings/layout.tsx`** dengan pola **hanya sesi**:
 
 ```tsx
-import { notFound } from "next/navigation";
+import { notFound } from 'next/navigation'
 
-import { CommitteeSettingsSubnav } from "@/components/admin/committee-settings-subnav";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
+import { CommitteeSettingsSubnav } from '@/components/admin/committee-settings-subnav'
+import { requireAdminSession } from '@/lib/auth/session'
+import { getAdminContext } from '@/lib/auth/admin-context'
 
-export default async function AdminSettingsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
-  if (!ctx) notFound();
+export default async function AdminSettingsLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
+  if (!ctx) notFound()
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:flex-row lg:gap-10 lg:py-10">
-      <aside className="lg:w-56 lg:shrink-0 lg:overflow-visible">
+    <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8 lg:flex-row lg:gap-10 lg:py-10'>
+      <aside className='lg:w-56 lg:shrink-0 lg:overflow-visible'>
         <CommitteeSettingsSubnav />
       </aside>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className='min-w-0 flex-1'>{children}</div>
     </main>
-  );
+  )
 }
 ```
 
@@ -132,95 +128,86 @@ export default async function AdminSettingsLayout({
 Ganti seluruh isi **`src/app/admin/settings/page.tsx`** menjadi:
 
 ```tsx
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { requireAdminSession } from "@/lib/auth/session";
-import { canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { requireAdminSession } from '@/lib/auth/session'
+import { canManageCommitteeAdvancedSettings } from '@/lib/permissions/roles'
 
-export const metadata: Metadata = { title: "Pengaturan" };
+export const metadata: Metadata = { title: 'Pengaturan' }
 
 export default async function AdminSettingsHubPage() {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
   if (!ctx || !canManageCommitteeAdvancedSettings(ctx.role)) {
-    notFound();
+    notFound()
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Pengaturan komite</h1>
-        <p className="text-muted-foreground text-sm">
-          Konfigurasi lanjutan klub — hanya Owner. Pilih modul di atas (seluler: geser), sidebar di
-          layar besar, atau kartu di bawah.
+    <div className='space-y-6'>
+      <header className='flex flex-col gap-2'>
+        <h1 className='text-2xl font-semibold tracking-tight'>Pengaturan komite</h1>
+        <p className='text-muted-foreground text-sm'>
+          Konfigurasi lanjutan klub — hanya Owner. Pilih modul di atas (seluler: geser), sidebar di layar besar, atau
+          kartu di bawah.
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className='grid gap-4 sm:grid-cols-2'>
         <SettingsCard
-          href="/admin/settings/committee"
-          title="Komite & admin"
-          description="Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; rekening PIC dilampirkan ke profil admin."
+          href='/admin/settings/committee'
+          title='Komite & admin'
+          description='Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; rekening PIC dilampirkan ke profil admin.'
         />
         <SettingsCard
-          href="/admin/settings/pricing"
-          title="Harga default"
-          description="Nilai awal tiket saat acara memakai default komite."
+          href='/admin/settings/pricing'
+          title='Harga default'
+          description='Nilai awal tiket saat acara memakai default komite.'
         />
         <SettingsCard
-          href="/admin/settings/whatsapp-templates"
-          title="Template WhatsApp"
-          description="Isi pesan untuk tautan wa.me di admin; placeholder {snake_case}; fallback ke bawaan kode."
+          href='/admin/settings/whatsapp-templates'
+          title='Template WhatsApp'
+          description='Isi pesan untuk tautan wa.me di admin; placeholder {snake_case}; fallback ke bawaan kode.'
         />
         <SettingsCard
-          href="/admin/settings/branding"
-          title="Branding"
-          description="Judul navigasi, logo situs (WebP), dan teks footer untuk halaman publik."
+          href='/admin/settings/branding'
+          title='Branding'
+          description='Judul navigasi, logo situs (WebP), dan teks footer untuk halaman publik.'
         />
         <SettingsCard
-          href="/admin/settings/notifications"
-          title="Notifikasi"
-          description="Mode saluran keluar (stub vs live) dan label internal; terpisah dari pemasangan SMTP/Resend."
+          href='/admin/settings/notifications'
+          title='Notifikasi'
+          description='Mode saluran keluar (stub vs live) dan label internal; terpisah dari pemasangan SMTP/Resend.'
         />
         <SettingsCard
-          href="/admin/settings/operations"
-          title="Operasional"
-          description="Tutup pendaftaran situs secara global dan banner pemeliharaan untuk pengunjung."
+          href='/admin/settings/operations'
+          title='Operasional'
+          description='Tutup pendaftaran situs secara global dan banner pemeliharaan untuk pengunjung.'
         />
         <SettingsCard
-          href="/admin/settings/security"
-          title="Keamanan"
-          description="Log audit konfigurasi komite dan informasi 2FA (Better Auth)."
+          href='/admin/settings/security'
+          title='Keamanan'
+          description='Log audit konfigurasi komite dan informasi 2FA (Better Auth).'
         />
       </div>
     </div>
-  );
+  )
 }
 
-function SettingsCard(props: {
-  href: string;
-  title: string;
-  description: string;
-}) {
+function SettingsCard(props: { href: string; title: string; description: string }) {
   return (
-    <Link href={props.href} className="block">
-      <Card className="h-full transition-colors hover:bg-muted/40">
+    <Link href={props.href} className='block'>
+      <Card className='h-full transition-colors hover:bg-muted/40'>
         <CardHeader>
-          <CardTitle className="text-base">{props.title}</CardTitle>
+          <CardTitle className='text-base'>{props.title}</CardTitle>
           <CardDescription>{props.description}</CardDescription>
         </CardHeader>
       </Card>
     </Link>
-  );
+  )
 }
 ```
 
@@ -229,23 +216,19 @@ function SettingsCard(props: {
 Contoh **`src/app/admin/settings/pricing/layout.tsx`** (ulangi dengan struktur sama untuk enam path modul sensitif dalam tabel struktur atas):
 
 ```tsx
-import { notFound } from "next/navigation";
+import { notFound } from 'next/navigation'
 
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { requireAdminSession } from "@/lib/auth/session";
-import { canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { requireAdminSession } from '@/lib/auth/session'
+import { canManageCommitteeAdvancedSettings } from '@/lib/permissions/roles'
 
-export default async function CommitteePricingGuardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+export default async function CommitteePricingGuardLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
   if (!ctx || !canManageCommitteeAdvancedSettings(ctx.role)) {
-    notFound();
+    notFound()
   }
-  return <>{children}</>;
+  return <>{children}</>
 }
 ```
 
@@ -269,46 +252,45 @@ git commit -m "fix(settings): akses Komite luas untuk profil admin, modul lanjut
 ### Task 3: Tes untuk helper izin (TDD atas Task 1)
 
 **Files:**
+
 - Create: `src/lib/admin/pic-bank-account-permissions.test.ts`
 
 - [ ] **Step 1: Tulis tes yang gagal terlebih dulu**
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
 import {
   canMutatePicBankForTarget,
   viewerMayUseOwnerOnlyCommitteeControls,
-} from "@/lib/admin/pic-bank-account-permissions";
+} from '@/lib/admin/pic-bank-account-permissions'
 
-describe("pic-bank-account-permissions", () => {
-  const self = "profile-self";
-  const other = "profile-other";
+describe('pic-bank-account-permissions', () => {
+  const self = 'profile-self'
+  const other = 'profile-other'
 
-  it("blocks Viewer mutating anybody", () => {
-    expect(
-      canMutatePicBankForTarget("Viewer", self, self),
-    ).toBe(false);
-  });
+  it('blocks Viewer mutating anybody', () => {
+    expect(canMutatePicBankForTarget('Viewer', self, self)).toBe(false)
+  })
 
-  it("allows Owner to mutate anybody", () => {
-    expect(canMutatePicBankForTarget("Owner", self, other)).toBe(true);
-  });
+  it('allows Owner to mutate anybody', () => {
+    expect(canMutatePicBankForTarget('Owner', self, other)).toBe(true)
+  })
 
-  it("allows Admin to mutate anybody", () => {
-    expect(canMutatePicBankForTarget("Admin", self, other)).toBe(true);
-  });
+  it('allows Admin to mutate anybody', () => {
+    expect(canMutatePicBankForTarget('Admin', self, other)).toBe(true)
+  })
 
-  it("Verifier may mutate only own profile-owned banks", () => {
-    expect(canMutatePicBankForTarget("Verifier", self, self)).toBe(true);
-    expect(canMutatePicBankForTarget("Verifier", self, other)).toBe(false);
-  });
+  it('Verifier may mutate only own profile-owned banks', () => {
+    expect(canMutatePicBankForTarget('Verifier', self, self)).toBe(true)
+    expect(canMutatePicBankForTarget('Verifier', self, other)).toBe(false)
+  })
 
-  it("viewerMayUseOwnerOnlyCommitteeControls Owner only", () => {
-    expect(viewerMayUseOwnerOnlyCommitteeControls("Owner")).toBe(true);
-    expect(viewerMayUseOwnerOnlyCommitteeControls("Admin")).toBe(false);
-  });
-});
+  it('viewerMayUseOwnerOnlyCommitteeControls Owner only', () => {
+    expect(viewerMayUseOwnerOnlyCommitteeControls('Owner')).toBe(true)
+    expect(viewerMayUseOwnerOnlyCommitteeControls('Admin')).toBe(false)
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan Vitest sampai PASS**
@@ -335,6 +317,7 @@ git commit -m "test(admin): PIC bank permission helpers"
 ### Task 4: Tambah audit actions + schemas form
 
 **Files:**
+
 - Modify: `src/lib/audit/club-audit-actions.ts`
 - Create: `src/lib/forms/pic-bank-account-schema.ts`
 
@@ -352,27 +335,27 @@ PIC_BANK_DELETED: "pic_bank.deleted",
 - [ ] **Step 2: Schemas**
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod'
 
 export const createPicBankAccountSchema = z.object({
   ownerAdminProfileId: z.string().min(1),
-  bankName: z.string().trim().min(1, "Nama bank wajib diisi."),
-  accountNumber: z.string().trim().min(1, "Nomor rekening wajib diisi."),
-  accountName: z.string().trim().min(1, "Nama pemilik rekening wajib diisi."),
-});
+  bankName: z.string().trim().min(1, 'Nama bank wajib diisi.'),
+  accountNumber: z.string().trim().min(1, 'Nomor rekening wajib diisi.'),
+  accountName: z.string().trim().min(1, 'Nama pemilik rekening wajib diisi.'),
+})
 
 export const updatePicBankAccountSchema = z.object({
   bankAccountId: z.string().min(1),
   ownerAdminProfileId: z.string().min(1),
-  bankName: z.string().trim().min(1, "Nama bank wajib diisi."),
-  accountNumber: z.string().trim().min(1, "Nomor rekening wajib diisi."),
-  accountName: z.string().trim().min(1, "Nama pemilik rekening wajib diisi."),
-});
+  bankName: z.string().trim().min(1, 'Nama bank wajib diisi.'),
+  accountNumber: z.string().trim().min(1, 'Nomor rekening wajib diisi.'),
+  accountName: z.string().trim().min(1, 'Nama pemilik rekening wajib diisi.'),
+})
 
 export const targetPicBankOwnerSchema = z.object({
   bankAccountId: z.string().min(1),
   ownerAdminProfileId: z.string().min(1),
-});
+})
 ```
 
 - [ ] **Step 3: Commit**
@@ -387,6 +370,7 @@ git commit -m "feat(admin): schema & audit PIC bank"
 ### Task 5: Server actions PIC bank (+ unit tests mock Prisma)
 
 **Files:**
+
 - Create: `src/lib/actions/admin-pic-bank-accounts.ts`
 - Create: `src/lib/actions/admin-pic-bank-accounts.test.ts`
 
@@ -395,72 +379,63 @@ git commit -m "feat(admin): schema & audit PIC bank"
 Kerangka wajib (lengkapi impor paralel pola `admin-committee-profiles.ts`):
 
 ```typescript
-"use server";
+'use server'
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from 'next/cache'
 
-import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
-import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
-import { prisma } from "@/lib/db/prisma";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { requireAdminSession } from "@/lib/auth/session";
-import type { AdminRole } from "@/lib/permissions/roles";
-import { canMutatePicBankForTarget } from "@/lib/admin/pic-bank-account-permissions";
+import { appendClubAuditLog } from '@/lib/audit/append-club-audit-log'
+import { CLUB_AUDIT_ACTION } from '@/lib/audit/club-audit-actions'
+import { prisma } from '@/lib/db/prisma'
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { requireAdminSession } from '@/lib/auth/session'
+import type { AdminRole } from '@/lib/permissions/roles'
+import { canMutatePicBankForTarget } from '@/lib/admin/pic-bank-account-permissions'
 import {
   createPicBankAccountSchema,
   targetPicBankOwnerSchema,
   updatePicBankAccountSchema,
-} from "@/lib/forms/pic-bank-account-schema";
-import {
-  fieldError,
-  ok,
-  rootError,
-  type ActionResult,
-} from "@/lib/forms/action-result";
-import { zodToFieldErrors } from "@/lib/forms/zod";
-import { isAuthError } from "@/lib/actions/guard";
+} from '@/lib/forms/pic-bank-account-schema'
+import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+import { zodToFieldErrors } from '@/lib/forms/zod'
+import { isAuthError } from '@/lib/actions/guard'
 
 async function requirePicBankMutationContext(ownerAdminProfileId: string): Promise<
-  ActionResult<never> | {
-    viewerProfileId: string;
-    role: AdminRole;
-    authUserId: string;
-  }
+  | ActionResult<never>
+  | {
+      viewerProfileId: string
+      role: AdminRole
+      authUserId: string
+    }
 > {
   try {
-    const session = await requireAdminSession();
-    const ctx = await getAdminContext(session.user.id);
-    if (!ctx) return rootError("Tidak diizinkan.");
-    if (
-      !canMutatePicBankForTarget(ctx.role, ctx.profileId, ownerAdminProfileId)
-    ) {
-      return rootError("Tidak diizinkan.");
+    const session = await requireAdminSession()
+    const ctx = await getAdminContext(session.user.id)
+    if (!ctx) return rootError('Tidak diizinkan.')
+    if (!canMutatePicBankForTarget(ctx.role, ctx.profileId, ownerAdminProfileId)) {
+      return rootError('Tidak diizinkan.')
     }
     return {
       viewerProfileId: ctx.profileId,
       role: ctx.role,
       authUserId: session.user.id,
-    };
+    }
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 }
 
-export async function createPicBankAccount(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+export async function createPicBankAccount(_prev: unknown, formData: FormData): Promise<ActionResult<{ id: string }>> {
   const parsed = createPicBankAccountSchema.safeParse({
-    ownerAdminProfileId: formData.get("ownerAdminProfileId"),
-    bankName: formData.get("bankName"),
-    accountNumber: formData.get("accountNumber"),
-    accountName: formData.get("accountName"),
-  });
-  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+    ownerAdminProfileId: formData.get('ownerAdminProfileId'),
+    bankName: formData.get('bankName'),
+    accountNumber: formData.get('accountNumber'),
+    accountName: formData.get('accountName'),
+  })
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
 
-  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId);
-  if (!("viewerProfileId" in gate)) return gate;
+  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId)
+  if (!('viewerProfileId' in gate)) return gate
 
   const row = await prisma.picBankAccount.create({
     data: {
@@ -471,37 +446,34 @@ export async function createPicBankAccount(
       isActive: true,
     },
     select: { id: true },
-  });
+  })
 
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.viewerProfileId,
     actorAuthUserId: gate.authUserId,
     action: CLUB_AUDIT_ACTION.PIC_BANK_CREATED,
-    targetType: "pic_bank_account",
+    targetType: 'pic_bank_account',
     targetId: row.id,
     metadata: { ownerAdminProfileId: parsed.data.ownerAdminProfileId },
-  });
+  })
 
-  revalidatePath("/admin/settings/committee");
-  revalidatePath("/admin/events", "layout");
-  return ok({ id: row.id });
+  revalidatePath('/admin/settings/committee')
+  revalidatePath('/admin/events', 'layout')
+  return ok({ id: row.id })
 }
 
-export async function updatePicBankAccount(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ saved: true }>> {
+export async function updatePicBankAccount(_prev: unknown, formData: FormData): Promise<ActionResult<{ saved: true }>> {
   const parsed = updatePicBankAccountSchema.safeParse({
-    bankAccountId: formData.get("bankAccountId"),
-    ownerAdminProfileId: formData.get("ownerAdminProfileId"),
-    bankName: formData.get("bankName"),
-    accountNumber: formData.get("accountNumber"),
-    accountName: formData.get("accountName"),
-  });
-  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+    bankAccountId: formData.get('bankAccountId'),
+    ownerAdminProfileId: formData.get('ownerAdminProfileId'),
+    bankName: formData.get('bankName'),
+    accountNumber: formData.get('accountNumber'),
+    accountName: formData.get('accountName'),
+  })
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
 
-  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId);
-  if (!("viewerProfileId" in gate)) return gate;
+  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId)
+  if (!('viewerProfileId' in gate)) return gate
 
   const existing = await prisma.picBankAccount.findFirst({
     where: {
@@ -509,8 +481,8 @@ export async function updatePicBankAccount(
       ownerAdminProfileId: parsed.data.ownerAdminProfileId,
     },
     select: { id: true },
-  });
-  if (!existing) return rootError("Rekening tidak ditemukan.");
+  })
+  if (!existing) return rootError('Rekening tidak ditemukan.')
 
   await prisma.picBankAccount.update({
     where: { id: parsed.data.bankAccountId },
@@ -519,20 +491,20 @@ export async function updatePicBankAccount(
       accountNumber: parsed.data.accountNumber,
       accountName: parsed.data.accountName,
     },
-  });
+  })
 
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.viewerProfileId,
     actorAuthUserId: gate.authUserId,
     action: CLUB_AUDIT_ACTION.PIC_BANK_UPDATED,
-    targetType: "pic_bank_account",
+    targetType: 'pic_bank_account',
     targetId: parsed.data.bankAccountId,
     metadata: {},
-  });
+  })
 
-  revalidatePath("/admin/settings/committee");
-  revalidatePath("/admin/events", "layout");
-  return ok({ saved: true });
+  revalidatePath('/admin/settings/committee')
+  revalidatePath('/admin/events', 'layout')
+  return ok({ saved: true })
 }
 
 export async function deactivatePicBankAccount(
@@ -540,13 +512,13 @@ export async function deactivatePicBankAccount(
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
   const parsed = targetPicBankOwnerSchema.safeParse({
-    bankAccountId: formData.get("bankAccountId"),
-    ownerAdminProfileId: formData.get("ownerAdminProfileId"),
-  });
-  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+    bankAccountId: formData.get('bankAccountId'),
+    ownerAdminProfileId: formData.get('ownerAdminProfileId'),
+  })
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
 
-  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId);
-  if (!("viewerProfileId" in gate)) return gate;
+  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId)
+  if (!('viewerProfileId' in gate)) return gate
 
   const row = await prisma.picBankAccount.findFirst({
     where: {
@@ -554,26 +526,26 @@ export async function deactivatePicBankAccount(
       ownerAdminProfileId: parsed.data.ownerAdminProfileId,
     },
     select: { id: true },
-  });
-  if (!row) return rootError("Rekening tidak ditemukan.");
+  })
+  if (!row) return rootError('Rekening tidak ditemukan.')
 
   await prisma.picBankAccount.update({
     where: { id: row.id },
     data: { isActive: false },
-  });
+  })
 
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.viewerProfileId,
     actorAuthUserId: gate.authUserId,
     action: CLUB_AUDIT_ACTION.PIC_BANK_DEACTIVATED,
-    targetType: "pic_bank_account",
+    targetType: 'pic_bank_account',
     targetId: row.id,
     metadata: {},
-  });
+  })
 
-  revalidatePath("/admin/settings/committee");
-  revalidatePath("/admin/events", "layout");
-  return ok({ saved: true });
+  revalidatePath('/admin/settings/committee')
+  revalidatePath('/admin/events', 'layout')
+  return ok({ saved: true })
 }
 
 export async function deletePicBankAccountPermanent(
@@ -581,21 +553,21 @@ export async function deletePicBankAccountPermanent(
   formData: FormData,
 ): Promise<ActionResult<{ deleted: true }>> {
   const parsed = targetPicBankOwnerSchema.safeParse({
-    bankAccountId: formData.get("bankAccountId"),
-    ownerAdminProfileId: formData.get("ownerAdminProfileId"),
-  });
-  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error));
+    bankAccountId: formData.get('bankAccountId'),
+    ownerAdminProfileId: formData.get('ownerAdminProfileId'),
+  })
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
 
-  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId);
-  if (!("viewerProfileId" in gate)) return gate;
+  const gate = await requirePicBankMutationContext(parsed.data.ownerAdminProfileId)
+  if (!('viewerProfileId' in gate)) return gate
 
   const used = await prisma.event.count({
     where: { bankAccountId: parsed.data.bankAccountId },
-  });
+  })
   if (used > 0) {
     return rootError(
-      "Rekening masih dipakai oleh satu atau lebih acara. Ganti rekening di acara tersebut atau nonaktifkan saja.",
-    );
+      'Rekening masih dipakai oleh satu atau lebih acara. Ganti rekening di acara tersebut atau nonaktifkan saja.',
+    )
   }
 
   const row = await prisma.picBankAccount.findFirst({
@@ -604,23 +576,23 @@ export async function deletePicBankAccountPermanent(
       ownerAdminProfileId: parsed.data.ownerAdminProfileId,
     },
     select: { id: true },
-  });
-  if (!row) return rootError("Rekening tidak ditemukan.");
+  })
+  if (!row) return rootError('Rekening tidak ditemukan.')
 
-  await prisma.picBankAccount.delete({ where: { id: row.id } });
+  await prisma.picBankAccount.delete({ where: { id: row.id } })
 
   await appendClubAuditLog(prisma, {
     actorProfileId: gate.viewerProfileId,
     actorAuthUserId: gate.authUserId,
     action: CLUB_AUDIT_ACTION.PIC_BANK_DELETED,
-    targetType: "pic_bank_account",
+    targetType: 'pic_bank_account',
     targetId: row.id,
     metadata: {},
-  });
+  })
 
-  revalidatePath("/admin/settings/committee");
-  revalidatePath("/admin/events", "layout");
-  return ok({ deleted: true });
+  revalidatePath('/admin/settings/committee')
+  revalidatePath('/admin/events', 'layout')
+  return ok({ deleted: true })
 }
 ```
 
@@ -641,30 +613,30 @@ Tes minimal yang wajib:
 Contoh blok awal tes (adaptasi mocking internal project):
 
 ```typescript
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-vi.mock("@/lib/auth/session", () => ({
+vi.mock('@/lib/auth/session', () => ({
   requireAdminSession: vi.fn(),
-}));
-vi.mock("@/lib/auth/admin-context", () => ({
+}))
+vi.mock('@/lib/auth/admin-context', () => ({
   getAdminContext: vi.fn(),
-}));
-vi.mock("@/lib/audit/append-club-audit-log", () => ({
+}))
+vi.mock('@/lib/audit/append-club-audit-log', () => ({
   appendClubAuditLog: vi.fn().mockResolvedValue(undefined),
-}));
+}))
 
-const { prisma } = await import("@/lib/db/prisma");
+const { prisma } = await import('@/lib/db/prisma')
 
-describe("admin-pic-bank-accounts", () => {
+describe('admin-pic-bank-accounts', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
-  it("reject Viewer create", async () => {
+  it('reject Viewer create', async () => {
     // set requireAdminSession → { user: { id: "u" } }; getAdminContext → { profileId:"p", role:"Viewer" }
     // expect create tidak dipanggil
-  });
-});
+  })
+})
 ```
 
 Lengkapi stub mock mengikuti gaya tepat **`src/lib/actions/admin-committee-profiles.test.ts`**.
@@ -687,6 +659,7 @@ git commit -m "feat(admin): server actions kelola PIC bank + tests"
 ### Task 6: Muat baris bank ke directory komite
 
 **Files:**
+
 - Modify: `src/lib/admin/load-committee-admin-directory.ts`
 
 - [ ] **Step 1: Perluas VM row**
@@ -695,12 +668,12 @@ Di **`CommitteeAdminDirectoryRowVm`** tambahkan:
 
 ```typescript
 picBankAccounts: Array<{
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-  isActive: boolean;
-}>;
+  id: string
+  bankName: string
+  accountNumber: string
+  accountName: string
+  isActive: boolean
+}>
 ```
 
 - [ ] **Step 2: Query tunggal + map**
@@ -719,6 +692,7 @@ git commit -m "feat(admin): include PIC bank rows in committee directory loader"
 ### Task 7: UI expandable + sub-komponen bank + kapabilitas panel komite
 
 **Files:**
+
 - Create: `src/components/admin/admin-pic-bank-accounts-inline.tsx`
 - Modify: `src/components/admin/committee-admin-settings-panel.tsx`
 - Modify: `src/app/admin/settings/committee/page.tsx`
@@ -728,14 +702,14 @@ git commit -m "feat(admin): include PIC bank rows in committee directory loader"
 Ubah **`src/app/admin/settings/committee/page.tsx`** menjadi mengambil viewer terlebih dulu (**`session.user.id`** seperti sisa codebase), kemudian meneruskan props:
 
 ```tsx
-const session = await requireAdminSession();
-const viewerCtx = await getAdminContext(session.user.id);
+const session = await requireAdminSession()
+const viewerCtx = await getAdminContext(session.user.id)
 // jika viewerCtx null → notFound(); atau blok Alert konsisten pola admin lain Anda
 
 const [directory, pendingInvitations] = await Promise.all([
   loadCommitteeAdminDirectory(),
   loadPendingAdminInvitationsForCommittee(),
-]);
+])
 
 return (
   /* … */
@@ -745,7 +719,7 @@ return (
     directory={directory}
     pendingInvitations={pendingInvitations}
   />
-);
+)
 ```
 
 - [ ] **Step 2: Panel — sembunyikan undang/export untuk non-Owner**
@@ -753,7 +727,7 @@ return (
 Di **`CommitteeAdminSettingsPanel`** import **`viewerMayUseOwnerOnlyCommitteeControls`** dari permisi bank (atau pindahkan helper ke **`roles.ts`** jika Anda ingin pemisahan topik lebih jelas — YAGNI: impor langsung boleh).
 
 ```tsx
-const canInvite = viewerMayUseOwnerOnlyCommitteeControls(viewerRole);
+const canInvite = viewerMayUseOwnerOnlyCommitteeControls(viewerRole)
 // if (!canInvite) jangan render Dialog undang beserta blok undangan tertunda
 // tautan CSV — bungkus `{canInvite && <Link … export …>}`
 ```
@@ -780,14 +754,14 @@ Gunakan pola state **`expandedAdminProfileId: string | null`** di atas tabel uta
 
 2. Jika **`expandedAdminProfileId === row.adminProfileId`**, **`TableRow`** baru dengan **`colSpan={…}`** (hitung **`TableHead`**: saat ini 9 kolom untuk body data + akses kolom baru — sesuaikan; jika Anda menambahkan kolom “Detail”, naikkan colSpan).
 
-`**admin-pic-bank-accounts-inline.tsx`** receives:
+`**admin-pic-bank-accounts-inline.tsx`\*\* receives:
 
 ```typescript
-ownerAdminProfileId: string;
-viewerProfileId: string;
-viewerRole: AdminRole;
-accounts: CommitteeAdminDirectoryRowVm["picBankAccounts"];
-manageKey: number;
+ownerAdminProfileId: string
+viewerProfileId: string
+viewerRole: AdminRole
+accounts: CommitteeAdminDirectoryRowVm['picBankAccounts']
+manageKey: number
 ```
 
 Di dalamnya: daftar kartu/pembagian kecil untuk setiap rekening, dan untuk setiap rekaman **`canMutatePicBankForTarget(viewerRole, viewerProfileId, ownerAdminProfileId)`** bernilai true: form **`update`** (bisa pola dialog **`Dialog`** ringkas sama **`ManageAdminDialogs`**), **`deactivate`** (submit terpisah), **`delete`** (konfirmasi). Untuk rekaman nonaktif, opsi hapus boleh ditampilkan jika Anda ingin mengurangi brak (**YAGNI** — cukup tampilkan status nonaktif + tombol hapus jika **tidak digunakan** atau sembunyikan hapus sampai rekaman menghilang dari daftar aktivasi ulang Anda di iterasi dua).
@@ -796,14 +770,14 @@ Gunakan **`useActionState`** serupa blok undangan Anda dan **`toastCudSuccess`**
 
 - [ ] **Step 5: Form **tambah** rekening** di collapsible yang sama (**hidden input `ownerAdminProfileId`**=`row.adminProfileId`).
 
-- [ ] **Step 6: Setelah berhasil **`create`/`update`/`delete`**, panggil props **`onAnySuccess`** (naik dari panel — sudah ada untuk dialog komite lain) **`+ router.refresh()`** agar SSR ulang **`directory`**.
+- [ ] **Step 6: Setelah berhasil **`create`/`update`/`delete`**, panggil props **`onAnySuccess`** (naik dari panel — sudah ada untuk dialog komite lain) **`+ router.refresh()`** agar SSR ulang **`directory`\*\*.
 
 Panel today:
 
 ```tsx
 const onManageSuccess = useCallback(() => {
-  setManageKey((k) => k + 1);
-}, []);
+  setManageKey(k => k + 1)
+}, [])
 ```
 
 Gabung **`router.refresh()`** di callback yang sama (**`committee-admin-settings-panel`**) agar PIC bank baru muncul.

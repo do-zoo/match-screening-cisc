@@ -1,82 +1,82 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
 import {
   findLockedViolations,
   findMandatoryMenuLockedViolation,
   needsSensitiveAcknowledgement,
   type EventIntegritySnapshot,
-} from "@/lib/events/event-edit-guards";
+} from '@/lib/events/event-edit-guards'
 
 const persisted: EventIntegritySnapshot = {
-  slug: "demo",
-  venueId: "v1",
-  mandatoryMenuItemIds: ["m1"],
-  picAdminProfileId: "a1",
-  bankAccountId: "b1",
-};
+  slug: 'demo',
+  venueId: 'v1',
+  mandatoryMenuItemIds: ['m1'],
+  picAdminProfileId: 'a1',
+  bankAccountId: 'b1',
+}
 
-describe("findLockedViolations", () => {
-  it("allows everything when registrationCount is 0", () => {
+describe('findLockedViolations', () => {
+  it('allows everything when registrationCount is 0', () => {
     expect(
       findLockedViolations({
         registrationCount: 0,
         persisted,
-        candidate: { venueId: "v2" },
+        candidate: { venueId: 'v2' },
       }),
-    ).toEqual([]);
-  });
+    ).toEqual([])
+  })
 
-  it("blocks slug/venue mutations when registrations exist", () => {
+  it('blocks slug/venue mutations when registrations exist', () => {
     expect(
       findLockedViolations({
         registrationCount: 3,
         persisted,
-        candidate: { slug: "new" },
+        candidate: { slug: 'new' },
       }),
-    ).toEqual(["slug"]);
+    ).toEqual(['slug'])
     expect(
       findLockedViolations({
         registrationCount: 3,
         persisted,
-        candidate: { venueId: "v2" },
+        candidate: { venueId: 'v2' },
       }),
-    ).toEqual(["venueId"]);
-  });
-});
+    ).toEqual(['venueId'])
+  })
+})
 
-describe("findMandatoryMenuLockedViolation", () => {
-  it("flags mandatory menu set changes when registrations exist", () => {
+describe('findMandatoryMenuLockedViolation', () => {
+  it('flags mandatory menu set changes when registrations exist', () => {
     expect(
       findMandatoryMenuLockedViolation({
         registrationCount: 3,
         persisted,
-        candidateMandatoryMenuItemIds: ["m2"],
+        candidateMandatoryMenuItemIds: ['m2'],
       }),
-    ).toBe(true);
+    ).toBe(true)
     expect(
       findMandatoryMenuLockedViolation({
         registrationCount: 3,
         persisted,
-        candidateMandatoryMenuItemIds: ["m1"],
+        candidateMandatoryMenuItemIds: ['m1'],
       }),
-    ).toBe(false);
-  });
-});
+    ).toBe(false)
+  })
+})
 
-describe("needsSensitiveAcknowledgement", () => {
-  it("detects finance actor changes but not no-op candidates", () => {
+describe('needsSensitiveAcknowledgement', () => {
+  it('detects finance actor changes but not no-op candidates', () => {
     expect(
       needsSensitiveAcknowledgement({
         persisted,
-        candidate: { picAdminProfileId: "a2" },
+        candidate: { picAdminProfileId: 'a2' },
       }),
-    ).toBe(true);
+    ).toBe(true)
 
     expect(
       needsSensitiveAcknowledgement({
         persisted,
         candidate: {},
       }),
-    ).toBe(false);
-  });
-});
+    ).toBe(false)
+  })
+})

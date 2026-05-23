@@ -1,21 +1,19 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma'
 
 export type PendingAdminInvitationRowVm = {
-  id: string;
-  emailNormalized: string;
-  role: string;
-  expiresAtIso: string;
-  createdAtIso: string;
+  id: string
+  emailNormalized: string
+  role: string
+  expiresAtIso: string
+  createdAtIso: string
   /** Snapshot at committee page load — refresh untuk memperbarui. */
-  isExpired: boolean;
-};
+  isExpired: boolean
+}
 
-export async function loadPendingAdminInvitationsForCommittee(): Promise<
-  PendingAdminInvitationRowVm[]
-> {
+export async function loadPendingAdminInvitationsForCommittee(): Promise<PendingAdminInvitationRowVm[]> {
   const rows = await prisma.adminInvitation.findMany({
     where: { consumedAt: null, revokedAt: null },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       emailNormalized: true,
@@ -23,16 +21,16 @@ export async function loadPendingAdminInvitationsForCommittee(): Promise<
       expiresAt: true,
       createdAt: true,
     },
-  });
+  })
 
-  const nowMs = Date.now();
+  const nowMs = Date.now()
 
-  return rows.map((r) => ({
+  return rows.map(r => ({
     id: r.id,
     emailNormalized: r.emailNormalized,
     role: r.role,
     expiresAtIso: r.expiresAt.toISOString(),
     createdAtIso: r.createdAt.toISOString(),
     isExpired: r.expiresAt.getTime() <= nowMs,
-  }));
+  }))
 }

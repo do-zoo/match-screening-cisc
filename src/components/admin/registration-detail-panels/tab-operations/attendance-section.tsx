@@ -1,10 +1,10 @@
-import { AttendancePanel } from "@/components/admin/attendance-panel";
-import type { DetailRegistration } from "@/components/admin/registration-detail-panels/shared/registration-detail-types";
+import { AttendancePanel } from '@/components/admin/attendance-panel'
+import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 
 type Props = {
-  eventId: string;
-  registration: DetailRegistration;
-};
+  eventId: string
+  registration: DetailRegistration
+}
 
 export function AttendanceSection({ eventId, registration }: Props) {
   return (
@@ -14,5 +14,5 @@ export function AttendanceSection({ eventId, registration }: Props) {
       current={registration.attendanceStatus}
       registrationStatus={registration.status}
     />
-  );
+  )
 }

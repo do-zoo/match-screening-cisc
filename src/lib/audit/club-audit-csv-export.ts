@@ -1,24 +1,18 @@
-import Papa from "papaparse";
+import Papa from 'papaparse'
 
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma'
 
-import {
-  buildClubAuditWhere,
-  type ClubAuditListFilters,
-  type ClubAuditRowVm,
-} from "./load-recent-club-audit";
+import { buildClubAuditWhere, type ClubAuditListFilters, type ClubAuditRowVm } from './load-recent-club-audit'
 
-export const CLUB_AUDIT_EXPORT_MAX_ROWS = 10_000;
+export const CLUB_AUDIT_EXPORT_MAX_ROWS = 10_000
 
-export type ClubAuditExportFilters = ClubAuditListFilters;
+export type ClubAuditExportFilters = ClubAuditListFilters
 
-export async function loadClubAuditLogsForCsvExport(
-  filters: ClubAuditExportFilters,
-): Promise<ClubAuditRowVm[]> {
-  const where = buildClubAuditWhere(filters);
+export async function loadClubAuditLogsForCsvExport(filters: ClubAuditExportFilters): Promise<ClubAuditRowVm[]> {
+  const where = buildClubAuditWhere(filters)
   const rows = await prisma.clubAuditLog.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: CLUB_AUDIT_EXPORT_MAX_ROWS,
     select: {
       id: true,
@@ -29,9 +23,9 @@ export async function loadClubAuditLogsForCsvExport(
       createdAt: true,
       actorAuthUserId: true,
     },
-  });
+  })
 
-  return rows.map((r) => ({
+  return rows.map(r => ({
     id: r.id,
     action: r.action,
     targetType: r.targetType,
@@ -39,32 +33,24 @@ export async function loadClubAuditLogsForCsvExport(
     metadata: r.metadata,
     createdAtIso: r.createdAt.toISOString(),
     actorAuthUserId: r.actorAuthUserId,
-  }));
+  }))
 }
 
 export function buildClubAuditExportCsv(rows: ClubAuditRowVm[]): string {
-  const records = rows.map((r) => ({
+  const records = rows.map(r => ({
     id: r.id,
     created_at_utc: r.createdAtIso,
     action: r.action,
     actor_auth_user_id: r.actorAuthUserId,
-    target_type: r.targetType ?? "",
-    target_id: r.targetId ?? "",
+    target_type: r.targetType ?? '',
+    target_id: r.targetId ?? '',
     metadata_json: JSON.stringify(r.metadata ?? null),
-  }));
+  }))
 
   const body =
     Papa.unparse(records, {
-      columns: [
-        "id",
-        "created_at_utc",
-        "action",
-        "actor_auth_user_id",
-        "target_type",
-        "target_id",
-        "metadata_json",
-      ],
-    }) + "\n";
+      columns: ['id', 'created_at_utc', 'action', 'actor_auth_user_id', 'target_type', 'target_id', 'metadata_json'],
+    }) + '\n'
 
-  return `\ufeff${body}`;
+  return `\ufeff${body}`
 }

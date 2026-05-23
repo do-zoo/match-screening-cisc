@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma'
 
 /**
  * Active directory row for a member number, or null if unknown/inactive.
@@ -6,24 +6,22 @@ import { prisma } from "@/lib/db/prisma";
  */
 export type ActiveMasterMemberRow = {
   /** Nilai persis di kolom DB (sumber kanonis untuk penyimpanan & konsistensi direktori). */
-  memberNumber: string;
-  isManagementMember: boolean;
-  fullName: string;
-  whatsapp: string | null;
-};
+  memberNumber: string
+  isManagementMember: boolean
+  fullName: string
+  whatsapp: string | null
+}
 
-export async function getActiveMasterMemberByMemberNumber(
-  memberNumber: string,
-): Promise<ActiveMasterMemberRow | null> {
-  const trimmed = memberNumber.trim();
-  if (!trimmed) return null;
+export async function getActiveMasterMemberByMemberNumber(memberNumber: string): Promise<ActiveMasterMemberRow | null> {
+  const trimmed = memberNumber.trim()
+  if (!trimmed) return null
 
   return prisma.masterMember.findFirst({
     where: {
       isActive: true,
       memberNumber: {
         equals: trimmed,
-        mode: "insensitive",
+        mode: 'insensitive',
       },
     },
     select: {
@@ -32,5 +30,5 @@ export async function getActiveMasterMemberByMemberNumber(
       fullName: true,
       whatsapp: true,
     },
-  });
+  })
 }

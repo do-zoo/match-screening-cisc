@@ -1,23 +1,23 @@
-import { cache } from "react";
+import { cache } from 'react'
 
-import type { SerializedEventForRegistration } from "@/components/public/event-serialization";
-import { prisma } from "@/lib/db/prisma";
-import { mergeGlobalRegistrationClosure } from "@/lib/public/club-operational-policy";
-import { loadClubOperationalSettings } from "@/lib/public/load-club-operational-settings";
-import { sanitizePublicEventDescriptionHtml } from "@/lib/public/sanitize-event-description";
+import type { SerializedEventForRegistration } from '@/components/public/event-serialization'
+import { prisma } from '@/lib/db/prisma'
+import { mergeGlobalRegistrationClosure } from '@/lib/public/club-operational-policy'
+import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-settings'
+import { sanitizePublicEventDescriptionHtml } from '@/lib/public/sanitize-event-description'
 
 import {
   countRegistrationsTowardQuota,
   isRegistrationOpenForEvent,
   registrationBlockMessageForPublic,
-} from "./registration-window";
+} from './registration-window'
 
-import { flattenedMenuRowsFromEventVenueLinks } from "./flatten-event-venue-menu";
+import { flattenedMenuRowsFromEventVenueLinks } from './flatten-event-venue-menu'
 
 /** Deduped per request — detail, register route, metadata */
 export const getActiveEventRegistrationPageData = cache(async (slug: string) =>
   prisma.event.findFirst({
-    where: { slug, status: "active" },
+    where: { slug, status: 'active' },
     include: {
       bankAccount: true,
       venue: true,
@@ -26,7 +26,7 @@ export const getActiveEventRegistrationPageData = cache(async (slug: string) =>
       },
       ticketCategories: {
         where: { isActive: true },
-        orderBy: { sortOrder: "asc" },
+        orderBy: { sortOrder: 'asc' },
         select: {
           id: true,
           name: true,
@@ -37,21 +37,18 @@ export const getActiveEventRegistrationPageData = cache(async (slug: string) =>
       },
     },
   }),
-);
+)
 
 export const getSerializedEventForPublicRegistration = cache(
   async (slug: string): Promise<SerializedEventForRegistration | null> => {
-    const event = await getActiveEventRegistrationPageData(slug);
-    if (!event) return null;
+    const event = await getActiveEventRegistrationPageData(slug)
+    if (!event) return null
 
-    const registrationsTowardQuota = await countRegistrationsTowardQuota(
-      prisma,
-      event.id,
-    );
+    const registrationsTowardQuota = await countRegistrationsTowardQuota(prisma, event.id)
     let registrationOpen = isRegistrationOpenForEvent({
       event,
       registrationsTowardQuota,
-    });
+    })
     let registrationClosedMessage = registrationOpen
       ? null
       : registrationBlockMessageForPublic({
@@ -61,17 +58,17 @@ export const getSerializedEventForPublicRegistration = cache(
           registrationsTowardQuota,
           openRegistrationAt: event.openRegistrationAt,
           closeRegistrationAt: event.closeRegistrationAt,
-        });
+        })
 
-    const ops = await loadClubOperationalSettings();
+    const ops = await loadClubOperationalSettings()
     const merged = mergeGlobalRegistrationClosure({
       registrationOpen,
       registrationClosedMessage,
       registrationGloballyDisabled: ops.registrationGloballyDisabled,
       globalRegistrationClosedMessage: ops.globalRegistrationClosedMessage,
-    });
-    registrationOpen = merged.registrationOpen;
-    registrationClosedMessage = merged.registrationClosedMessage;
+    })
+    registrationOpen = merged.registrationOpen
+    registrationClosedMessage = merged.registrationClosedMessage
 
     return {
       id: event.id,
@@ -90,7 +87,7 @@ export const getSerializedEventForPublicRegistration = cache(
       registrationOpen,
       registrationClosedMessage,
       mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
-      ticketCategories: event.ticketCategories.map((c) => ({
+      ticketCategories: event.ticketCategories.map(c => ({
         id: c.id,
         name: c.name,
         regularPrice: c.regularPrice,
@@ -104,9 +101,9 @@ export const getSerializedEventForPublicRegistration = cache(
         accountName: event.bankAccount.accountName,
       },
       menuItems: flattenedMenuRowsFromEventVenueLinks(event.eventVenueMenuItems),
-      mandatoryMenuItems: flattenedMenuRowsFromEventVenueLinks(
-        event.eventVenueMenuItems,
-      ).filter((row) => event.mandatoryMenuItemIds.includes(row.id)),
-    };
+      mandatoryMenuItems: flattenedMenuRowsFromEventVenueLinks(event.eventVenueMenuItems).filter(row =>
+        event.mandatoryMenuItemIds.includes(row.id),
+      ),
+    }
   },
-);
+)

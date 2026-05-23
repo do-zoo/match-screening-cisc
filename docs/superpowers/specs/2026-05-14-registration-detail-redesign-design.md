@@ -101,12 +101,12 @@ Satu `Card` tab, tiga section dipisah `Separator`:
 
 ### Default tab
 
-| Status registrasi | Default tab |
-|-------------------|---------------|
+| Status registrasi                              | Default tab  |
+| ---------------------------------------------- | ------------ |
 | `submitted`, `pending_review`, `payment_issue` | `verifikasi` |
-| `approved` (tanpa unpaid adjustment) | `ringkasan` |
-| `approved` (≥ 1 unpaid adjustment) | `operasi` |
-| `rejected`, `cancelled`, `refunded` | `ringkasan` |
+| `approved` (tanpa unpaid adjustment)           | `ringkasan`  |
+| `approved` (≥ 1 unpaid adjustment)             | `operasi`    |
+| `rejected`, `cancelled`, `refunded`            | `ringkasan`  |
 
 ### Badge
 
@@ -136,22 +136,20 @@ src/lib/admin/event-registration-detail-tab.test.ts   (BARU)
 Ekspor:
 
 ```ts
-export type RegistrationDetailTab = "ringkasan" | "verifikasi" | "operasi";
+export type RegistrationDetailTab = 'ringkasan' | 'verifikasi' | 'operasi'
 
-export function parseRegistrationDetailTab(
-  raw: string | string[] | undefined,
-): RegistrationDetailTab | null;
+export function parseRegistrationDetailTab(raw: string | string[] | undefined): RegistrationDetailTab | null
 
 export function defaultRegistrationDetailTab(input: {
-  status: RegistrationStatus;
-  hasUnpaidAdjustment: boolean;
-}): RegistrationDetailTab;
+  status: RegistrationStatus
+  hasUnpaidAdjustment: boolean
+}): RegistrationDetailTab
 
 export function buildRegistrationDetailPath(
   eventId: string,
   registrationId: string,
   tab?: RegistrationDetailTab,
-): string;
+): string
 ```
 
 ### Komponen
@@ -201,14 +199,14 @@ File lama yang dihapus pada PR yang sama (atau menjadi re-export tipis selama tr
 - Hitung `hasUnpaidAdjustment` dari `registration.adjustments`.
 - Pilih tab dan kanonikalisasi URL:
   ```ts
-  const parsed = parseRegistrationDetailTab(rawTab);
+  const parsed = parseRegistrationDetailTab(rawTab)
   const fallback = defaultRegistrationDetailTab({
     status: registration.status,
     hasUnpaidAdjustment,
-  });
-  const tab = parsed ?? fallback;
+  })
+  const tab = parsed ?? fallback
   if (rawTab !== tab) {
-    redirect(buildRegistrationDetailPath(eventId, registrationId, tab));
+    redirect(buildRegistrationDetailPath(eventId, registrationId, tab))
   }
   ```
 - **Kanonikalisasi:** URL selalu menyertakan `?tab=<effective>` setelah resolusi (mirip pola indeks acara yang memastikan `tab=active` selalu eksplisit). `buildRegistrationDetailPath` dengan `tab` undefined menghasilkan URL tanpa query — dipakai untuk pemanggil eksternal (link konflik nomor, breadcrumb) sehingga halaman tujuan-lah yang melakukan redirect kanonikal.
@@ -237,12 +235,12 @@ Tidak ada tes komponen UI; smoke melalui `pnpm build` + `pnpm lint`.
 
 ## Risiko & mitigasi
 
-| Risiko | Mitigasi |
-|--------|---------|
-| Pemisahan file bertumpuk-tumpuk → import noise. | Folder per-tab membuat lokasi prediktif; section diekspor flat lewat barrel `index.ts` opsional bila terbukti perlu (default: tanpa barrel). |
-| Sticky TabList bentrok dengan top bar admin shell. | Offset `top-` disesuaikan dengan tinggi shell; verifikasi visual saat implementasi. |
-| Pengguna desktop terganggu dengan tab (klik ekstra). | Default tab status-aware mendaratkan pengguna ke tab paling relevan tanpa klik ekstra di 90% kasus operasional. |
-| Tab `?tab=` membingungkan saat di-share. | Slug bahasa Indonesia mudah diingat; redirect kanonikal menjaga URL stabil. |
+| Risiko                                               | Mitigasi                                                                                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pemisahan file bertumpuk-tumpuk → import noise.      | Folder per-tab membuat lokasi prediktif; section diekspor flat lewat barrel `index.ts` opsional bila terbukti perlu (default: tanpa barrel). |
+| Sticky TabList bentrok dengan top bar admin shell.   | Offset `top-` disesuaikan dengan tinggi shell; verifikasi visual saat implementasi.                                                          |
+| Pengguna desktop terganggu dengan tab (klik ekstra). | Default tab status-aware mendaratkan pengguna ke tab paling relevan tanpa klik ekstra di 90% kasus operasional.                              |
+| Tab `?tab=` membingungkan saat di-share.             | Slug bahasa Indonesia mudah diingat; redirect kanonikal menjaga URL stabil.                                                                  |
 
 ## Definition of Done
 

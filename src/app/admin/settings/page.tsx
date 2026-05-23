@@ -1,85 +1,76 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { requireAdminSession } from '@/lib/auth/session'
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { canManageCommitteeAdvancedSettings } from '@/lib/permissions/roles'
 
-export const metadata: Metadata = { title: "Pengaturan" };
+export const metadata: Metadata = { title: 'Pengaturan' }
 
 export default async function AdminSettingsHubPage() {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
   if (!ctx || !canManageCommitteeAdvancedSettings(ctx.role)) {
-    notFound();
+    notFound()
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Pengaturan komite</h1>
-        <p className="text-muted-foreground text-sm">
-          Konfigurasi lanjutan klub — hanya Owner. Pilih modul di atas (seluler: geser), sidebar di
-          layar besar, atau kartu di bawah.
+    <div className='space-y-6'>
+      <header className='flex flex-col gap-2'>
+        <h1 className='text-2xl font-semibold tracking-tight'>Pengaturan komite</h1>
+        <p className='text-muted-foreground text-sm'>
+          Konfigurasi lanjutan klub — hanya Owner. Pilih modul di atas (seluler: geser), sidebar di layar besar, atau
+          kartu di bawah.
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className='grid gap-4 sm:grid-cols-2'>
         <SettingsCard
-          href="/admin/settings/committee"
-          title="Komite & admin"
-          description="Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; rekening PIC dilampirkan ke profil admin."
+          href='/admin/settings/committee'
+          title='Komite & admin'
+          description='Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; rekening PIC dilampirkan ke profil admin.'
         />
         <SettingsCard
-          href="/admin/settings/whatsapp-templates"
-          title="Template WhatsApp"
-          description="Isi pesan untuk tautan wa.me di admin; placeholder {snake_case}; fallback ke bawaan kode."
+          href='/admin/settings/whatsapp-templates'
+          title='Template WhatsApp'
+          description='Isi pesan untuk tautan wa.me di admin; placeholder {snake_case}; fallback ke bawaan kode.'
         />
         <SettingsCard
-          href="/admin/settings/branding"
-          title="Branding"
-          description="Judul navigasi, logo situs (WebP), dan teks footer untuk halaman publik."
+          href='/admin/settings/branding'
+          title='Branding'
+          description='Judul navigasi, logo situs (WebP), dan teks footer untuk halaman publik.'
         />
         <SettingsCard
-          href="/admin/settings/notifications"
-          title="Notifikasi"
-          description="Mode saluran keluar (stub vs live) dan label internal; terpisah dari pemasangan SMTP/Resend."
+          href='/admin/settings/notifications'
+          title='Notifikasi'
+          description='Mode saluran keluar (stub vs live) dan label internal; terpisah dari pemasangan SMTP/Resend.'
         />
         <SettingsCard
-          href="/admin/settings/operations"
-          title="Operasional"
-          description="Tutup pendaftaran situs secara global dan banner pemeliharaan untuk pengunjung."
+          href='/admin/settings/operations'
+          title='Operasional'
+          description='Tutup pendaftaran situs secara global dan banner pemeliharaan untuk pengunjung.'
         />
         <SettingsCard
-          href="/admin/settings/security"
-          title="Keamanan"
-          description="Log audit konfigurasi komite dan informasi 2FA (Better Auth)."
+          href='/admin/settings/security'
+          title='Keamanan'
+          description='Log audit konfigurasi komite dan informasi 2FA (Better Auth).'
         />
       </div>
     </div>
-  );
+  )
 }
 
-function SettingsCard(props: {
-  href: string;
-  title: string;
-  description: string;
-}) {
+function SettingsCard(props: { href: string; title: string; description: string }) {
   return (
-    <Link href={props.href} className="block">
-      <Card className="h-full transition-colors hover:bg-muted/40">
+    <Link href={props.href} className='block'>
+      <Card className='h-full transition-colors hover:bg-muted/40'>
         <CardHeader>
-          <CardTitle className="text-base">{props.title}</CardTitle>
+          <CardTitle className='text-base'>{props.title}</CardTitle>
           <CardDescription>{props.description}</CardDescription>
         </CardHeader>
       </Card>
     </Link>
-  );
+  )
 }

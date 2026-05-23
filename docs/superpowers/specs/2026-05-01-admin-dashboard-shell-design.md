@@ -33,14 +33,14 @@ Bahasa UI untuk PIC yang ditampilkan di permukaan baru: **Bahasa Indonesia**.
 
 ## 3) Locked product decisions
 
-| Topic | Decision |
-|--------|-----------|
-| Rangka kerja utama (dari brainstorming) | **C**: Dashboard beranda **dan** shell admin dalam satu rangkaian. |
+| Topic                                        | Decision                                                                                                                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rangka kerja utama (dari brainstorming)      | **C**: Dashboard beranda **dan** shell admin dalam satu rangkaian.                                                                                                |
 | Definisi “Menunggu tindakan” (kartu + rekap) | Hanya count **`pending_review`** (strict). **`submitted`** dan **`payment_issue`** tidak termasuk KPI utama ini (tetap terlihat lewat inbox/laporan operasional). |
-| Rekap atas daftar kartu | **Ya**: satu ringkasan agregat **total `pending_review`** di seluruh event yang user boleh akses (label konsisten dengan “menunggu tinjauan”). |
-| Filter status event pada dashboard | Tab/pill **Semua · Aktif · Draf · Selesai**; **default: Aktif** (`EventStatus.active`). |
-| Kartu event — aksi | **Ya**: **Inbox** (primer) + **Laporan** (sekunder), selaras pola link inbox → laporan hari ini. |
-| Sidebar — daftar event | **Tidak** sebagai daftar penuh; hanya tautan struktural (mis. **Beranda**) + konteks halaman; detail event dari dashboard. |
+| Rekap atas daftar kartu                      | **Ya**: satu ringkasan agregat **total `pending_review`** di seluruh event yang user boleh akses (label konsisten dengan “menunggu tinjauan”).                    |
+| Filter status event pada dashboard           | Tab/pill **Semua · Aktif · Draf · Selesai**; **default: Aktif** (`EventStatus.active`).                                                                           |
+| Kartu event — aksi                           | **Ya**: **Inbox** (primer) + **Laporan** (sekunder), selaras pola link inbox → laporan hari ini.                                                                  |
+| Sidebar — daftar event                       | **Tidak** sebagai daftar penuh; hanya tautan struktural (mis. **Beranda**) + konteks halaman; detail event dari dashboard.                                        |
 
 ## 4) Data & authorization
 
@@ -67,11 +67,11 @@ Di dalam tiap kelompok, urut **`startAt`** sehingga PIC melihat agenda terdekat 
 
 Minimal:
 
-| Kolom VM | Makna |
-|----------|--------|
+| Kolom VM         | Makna                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------- |
 | `pending_review` | Count registrasi **`status === pending_review`**. (**Label UI: Menunggu tindakan**) |
-| `approved` | Count **`status === approved`**. |
-| `total` | Total registrasi untuk event tersebut (semua status). |
+| `approved`       | Count **`status === approved`**.                                                    |
+| `total`          | Total registrasi untuk event tersebut (semua status).                               |
 
 Tidak wajib menampilkan `rejected` / `cancelled` / `refunded` di kartu pertama.
 
@@ -106,13 +106,13 @@ Cover mini **opsional** fase dua jika mempengaruhi performa/layout; jika digunak
 
 ## 6) Failure & empty states
 
-| Situasi | Perilaku |
-|---------|-----------|
-| Tidak ada `AdminProfile` | Sama pola inbox kini: blok peringatan (copy Indonesia setara **Missing AdminProfile**); jangan jalankan aggregasi sensitif. |
-| `AdminProfile` ada, tetapi **tidak ada event** setelah filter akses | **Empty state** berisi penjelasan (Viewer tanpa tugas helper, dll.). |
-| Sesi hilang | Tetap bergantung **middleware/`proxy`** → `/admin/sign-in` (tidak mengubah kontrak sekarang). |
-| Deep link ke resource tanpa izin | Tetap **`notFound()`**. |
-| Kegagalan database | Fallback error UI atau error boundary tidak membisu; menyebut gagal muat sarankan percobaan ulang. |
+| Situasi                                                             | Perilaku                                                                                                                    |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Tidak ada `AdminProfile`                                            | Sama pola inbox kini: blok peringatan (copy Indonesia setara **Missing AdminProfile**); jangan jalankan aggregasi sensitif. |
+| `AdminProfile` ada, tetapi **tidak ada event** setelah filter akses | **Empty state** berisi penjelasan (Viewer tanpa tugas helper, dll.).                                                        |
+| Sesi hilang                                                         | Tetap bergantung **middleware/`proxy`** → `/admin/sign-in` (tidak mengubah kontrak sekarang).                               |
+| Deep link ke resource tanpa izin                                    | Tetap **`notFound()`**.                                                                                                     |
+| Kegagalan database                                                  | Fallback error UI atau error boundary tidak membisu; menyebut gagal muat sarankan percobaan ulang.                          |
 
 ## 7) Technical notes
 

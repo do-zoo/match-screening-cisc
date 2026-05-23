@@ -63,10 +63,10 @@ Better Auth persists users outside Prisma `AdminProfile`; the admin home screen 
 - Alternative one-off script:
 
 ```ts
-import { prisma } from "./src/lib/db/prisma";
+import { prisma } from './src/lib/db/prisma'
 await prisma.adminProfile.create({
-  data: { authUserId: "<paste-auth-user-id-here>", role: "Owner" },
-});
+  data: { authUserId: '<paste-auth-user-id-here>', role: 'Owner' },
+})
 ```
 
 If you need PIC-helper verification tests, set `memberId` to the seeded PIC `MasterMember` id and insert `EventPicHelper` rows for the demo event.
@@ -173,49 +173,42 @@ git commit -m "feat(db): add EventMenuItem and TicketMenuSelection for menu slic
 Create `src/lib/pricing/compute-submit-total.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
-import {
-  computeSubmitTotal,
-  type SubmitPricingInput,
-} from "@/lib/pricing/compute-submit-total";
+import { describe, expect, it } from 'vitest'
+import { computeSubmitTotal, type SubmitPricingInput } from '@/lib/pricing/compute-submit-total'
 
 const baseEvent = {
   ticketMemberPrice: 100_000,
   ticketNonMemberPrice: 150_000,
-  menuMode: "PRESELECT" as const,
+  menuMode: 'PRESELECT' as const,
   voucherPrice: null as number | null,
-};
+}
 
-describe("computeSubmitTotal", () => {
-  it("single non-member PRESELECT sums ticket + menu", () => {
+describe('computeSubmitTotal', () => {
+  it('single non-member PRESELECT sums ticket + menu', () => {
     const input: SubmitPricingInput = {
-      event: { ...baseEvent, menuMode: "PRESELECT", voucherPrice: null },
-      primaryPriceType: "non_member",
+      event: { ...baseEvent, menuMode: 'PRESELECT', voucherPrice: null },
+      primaryPriceType: 'non_member',
       includePartner: false,
-      perTicketMenu: [
-        { mode: "PRESELECT", selectedMenuItems: [{ price: 50_000 }] },
-      ],
-    };
+      perTicketMenu: [{ mode: 'PRESELECT', selectedMenuItems: [{ price: 50_000 }] }],
+    }
     expect(computeSubmitTotal(input)).toEqual({
       ticketMemberPriceApplied: 100_000,
       ticketNonMemberPriceApplied: 150_000,
       voucherPriceApplied: null,
       computedTotalAtSubmit: 200_000,
-    });
-  });
+    })
+  })
 
-  it("member + partner privilege uses member price for partner ticket (voucher mode)", () => {
+  it('member + partner privilege uses member price for partner ticket (voucher mode)', () => {
     const input: SubmitPricingInput = {
-      event: { ...baseEvent, menuMode: "VOUCHER", voucherPrice: 75_000 },
-      primaryPriceType: "member",
+      event: { ...baseEvent, menuMode: 'VOUCHER', voucherPrice: 75_000 },
+      primaryPriceType: 'member',
       includePartner: true,
-      perTicketMenu: [{ mode: "VOUCHER" }, { mode: "VOUCHER" }],
-    };
-    expect(computeSubmitTotal(input).computedTotalAtSubmit).toBe(
-      100_000 + 75_000 + 100_000 + 75_000
-    );
-  });
-});
+      perTicketMenu: [{ mode: 'VOUCHER' }, { mode: 'VOUCHER' }],
+    }
+    expect(computeSubmitTotal(input).computedTotalAtSubmit).toBe(100_000 + 75_000 + 100_000 + 75_000)
+  })
+})
 ```
 
 Run:
@@ -231,95 +224,83 @@ Expected: FAIL — module missing.
 Create `src/lib/pricing/compute-submit-total.ts`:
 
 ```ts
-import type { MenuMode, TicketPriceType } from "@prisma/client";
+import type { MenuMode, TicketPriceType } from '@prisma/client'
 
 export type SubmitPricingInput = {
   event: {
-    ticketMemberPrice: number;
-    ticketNonMemberPrice: number;
-    menuMode: MenuMode;
-    voucherPrice: number | null;
-  };
-  primaryPriceType: Extract<TicketPriceType, "member" | "non_member">;
-  includePartner: boolean;
-  perTicketMenu: Array<
-    | { mode: "PRESELECT"; selectedMenuItems: { price: number }[] }
-    | { mode: "VOUCHER" }
-  >;
-};
+    ticketMemberPrice: number
+    ticketNonMemberPrice: number
+    menuMode: MenuMode
+    voucherPrice: number | null
+  }
+  primaryPriceType: Extract<TicketPriceType, 'member' | 'non_member'>
+  includePartner: boolean
+  perTicketMenu: Array<{ mode: 'PRESELECT'; selectedMenuItems: { price: number }[] } | { mode: 'VOUCHER' }>
+}
 
 export type SubmitPricingResult = {
-  ticketMemberPriceApplied: number;
-  ticketNonMemberPriceApplied: number;
-  voucherPriceApplied: number | null;
-  computedTotalAtSubmit: number;
-};
+  ticketMemberPriceApplied: number
+  ticketNonMemberPriceApplied: number
+  voucherPriceApplied: number | null
+  computedTotalAtSubmit: number
+}
 
 function ticketLineRupiah(
   input: SubmitPricingInput,
   ticket: {
-    role: "primary" | "partner";
-    priceType: TicketPriceType;
-  }
+    role: 'primary' | 'partner'
+    priceType: TicketPriceType
+  },
 ): number {
-  const { event } = input;
-  if (ticket.priceType === "non_member") return event.ticketNonMemberPrice;
-  if (ticket.priceType === "member") return event.ticketMemberPrice;
-  return event.ticketMemberPrice;
+  const { event } = input
+  if (ticket.priceType === 'non_member') return event.ticketNonMemberPrice
+  if (ticket.priceType === 'member') return event.ticketMemberPrice
+  return event.ticketMemberPrice
 }
 
-function menuLineRupiah(
-  event: SubmitPricingInput["event"],
-  ent: SubmitPricingInput["perTicketMenu"][number]
-): number {
-  if (event.menuMode === "VOUCHER") {
+function menuLineRupiah(event: SubmitPricingInput['event'], ent: SubmitPricingInput['perTicketMenu'][number]): number {
+  if (event.menuMode === 'VOUCHER') {
     if (event.voucherPrice == null) {
-      throw new Error("voucherPrice required for VOUCHER menu mode");
+      throw new Error('voucherPrice required for VOUCHER menu mode')
     }
-    return event.voucherPrice;
+    return event.voucherPrice
   }
-  if (ent.mode !== "PRESELECT") {
-    throw new Error("PRESELECT requires selected menus per ticket");
+  if (ent.mode !== 'PRESELECT') {
+    throw new Error('PRESELECT requires selected menus per ticket')
   }
-  return ent.selectedMenuItems.reduce((s, i) => s + i.price, 0);
+  return ent.selectedMenuItems.reduce((s, i) => s + i.price, 0)
 }
 
-export function computeSubmitTotal(
-  input: SubmitPricingInput
-): SubmitPricingResult {
-  const ticketMemberPriceApplied = input.event.ticketMemberPrice;
-  const ticketNonMemberPriceApplied = input.event.ticketNonMemberPrice;
-  const voucherPriceApplied =
-    input.event.menuMode === "VOUCHER" ? input.event.voucherPrice : null;
+export function computeSubmitTotal(input: SubmitPricingInput): SubmitPricingResult {
+  const ticketMemberPriceApplied = input.event.ticketMemberPrice
+  const ticketNonMemberPriceApplied = input.event.ticketNonMemberPrice
+  const voucherPriceApplied = input.event.menuMode === 'VOUCHER' ? input.event.voucherPrice : null
 
-  const primaryType: TicketPriceType =
-    input.primaryPriceType === "member" ? "member" : "non_member";
+  const primaryType: TicketPriceType = input.primaryPriceType === 'member' ? 'member' : 'non_member'
 
-  const lines: number[] = [];
+  const lines: number[] = []
 
-  lines.push(
-    ticketLineRupiah(input, { role: "primary", priceType: primaryType })
-  );
-  lines.push(menuLineRupiah(input.event, input.perTicketMenu[0]));
+  lines.push(ticketLineRupiah(input, { role: 'primary', priceType: primaryType }))
+  lines.push(menuLineRupiah(input.event, input.perTicketMenu[0]))
 
   if (input.includePartner) {
     lines.push(
       ticketLineRupiah(input, {
-        role: "partner",
-        priceType: "privilege_partner_member_price",
-      })
-    );
-    lines.push(menuLineRupiah(input.event, input.perTicketMenu[1]));
+        role: 'partner',
+        priceType: 'privilege_partner_member_price',
+      }),
+    )
+    lines.push(menuLineRupiah(input.event, input.perTicketMenu[1]))
   }
 
-  const computedTotalAtSubmit = lines.reduce((a, b) => a + b, 0);
+  const computedTotalAtSubmit = lines.reduce((a, b) => a + b, 0)
 
   return {
     ticketMemberPriceApplied,
     ticketNonMemberPriceApplied,
     voucherPriceApplied,
     computedTotalAtSubmit,
-  };
+  }
 }
 ```
 
@@ -357,16 +338,16 @@ Create `src/lib/wa-templates/encode.ts`:
  * Normalize Indonesian WhatsApp digits to international form without '+' (wa.me expects country code numeric only).
  */
 export function normalizeIdPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("62")) return digits;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.length >= 9) return `62${digits}`;
-  return digits;
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('62')) return digits
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  if (digits.length >= 9) return `62${digits}`
+  return digits
 }
 
 export function waMeLink(phone: string, message: string): string {
-  const n = normalizeIdPhone(phone);
-  return `https://wa.me/${n}?text=${encodeURIComponent(message)}`;
+  const n = normalizeIdPhone(phone)
+  return `https://wa.me/${n}?text=${encodeURIComponent(message)}`
 }
 ```
 
@@ -376,18 +357,18 @@ Create `src/lib/wa-templates/messages.ts`:
 
 ```ts
 export type RegistrationMessageCtx = {
-  contactName: string;
-  eventTitle: string;
-  registrationId: string;
-  computedTotalIdr: number;
-};
+  contactName: string
+  eventTitle: string
+  registrationId: string
+  computedTotalIdr: number
+}
 
 const idr = (n: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
     maximumFractionDigits: 0,
-  }).format(n);
+  }).format(n)
 
 export function templateReceipt(c: RegistrationMessageCtx): string {
   return [
@@ -397,7 +378,7 @@ export function templateReceipt(c: RegistrationMessageCtx): string {
     `ID: \`${c.registrationId}\``,
     `Total (snapshot): *${idr(c.computedTotalIdr)}*`,
     `Status: *menunggu verifikasi admin*.`,
-  ].join("\n");
+  ].join('\n')
 }
 
 export function templatePaymentIssue(reason: string): string {
@@ -408,33 +389,24 @@ export function templatePaymentIssue(reason: string): string {
     reason,
     ``,
     `Mohon balas pesan ini setelah menyesuaikan / mengunggah ulang bukti sesuai arahan.`,
-  ].join("\n");
+  ].join('\n')
 }
 
-export function templateApproved(
-  eventTitle: string,
-  venue: string,
-  startAtIso: string
-): string {
-  const when = new Date(startAtIso).toLocaleString("id-ID", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+export function templateApproved(eventTitle: string, venue: string, startAtIso: string): string {
+  const when = new Date(startAtIso).toLocaleString('id-ID', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+  })
   return [
     `Selamat — pendaftaran untuk *${eventTitle}* *disetujui*.`,
     ``,
     `Detail acara: ${venue}`,
     `Waktu: ${when}`,
-  ].join("\n");
+  ].join('\n')
 }
 
 export function templateRejected(reason: string): string {
-  return [
-    `Mohon maaf, pendaftaran belum dapat kami proses.`,
-    ``,
-    `Alasan:`,
-    reason,
-  ].join("\n");
+  return [`Mohon maaf, pendaftaran belum dapat kami proses.`, ``, `Alasan:`, reason].join('\n')
 }
 ```
 
@@ -443,28 +415,28 @@ export function templateRejected(reason: string): string {
 Create `src/lib/wa-templates/messages.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
-import { templateReceipt } from "@/lib/wa-templates/messages";
-import { waMeLink } from "@/lib/wa-templates/encode";
+import { describe, expect, it } from 'vitest'
+import { templateReceipt } from '@/lib/wa-templates/messages'
+import { waMeLink } from '@/lib/wa-templates/encode'
 
-describe("wa templates", () => {
-  it("builds wa.me with encoded text", () => {
-    const url = waMeLink("081234567890", "Halo & test");
-    expect(url).toMatch(/^https:\/\/wa\.me\/6281234567890\?text=/);
-    expect(decodeURIComponent(url.split("text=")[1])).toBe("Halo & test");
-  });
+describe('wa templates', () => {
+  it('builds wa.me with encoded text', () => {
+    const url = waMeLink('081234567890', 'Halo & test')
+    expect(url).toMatch(/^https:\/\/wa\.me\/6281234567890\?text=/)
+    expect(decodeURIComponent(url.split('text=')[1])).toBe('Halo & test')
+  })
 
-  it("includes registration id in receipt", () => {
+  it('includes registration id in receipt', () => {
     const body = templateReceipt({
-      contactName: "A",
-      eventTitle: "Final UCL",
-      registrationId: "reg_1",
+      contactName: 'A',
+      eventTitle: 'Final UCL',
+      registrationId: 'reg_1',
       computedTotalIdr: 250000,
-    });
-    expect(body).toContain("reg_1");
-    expect(body).toContain("menunggu verifikasi");
-  });
-});
+    })
+    expect(body).toContain('reg_1')
+    expect(body).toContain('menunggu verifikasi')
+  })
+})
 ```
 
 Run:
@@ -496,13 +468,11 @@ git commit -m "feat(wa): add wa.me encoding and admin message templates"
 Create `src/lib/auth/admin-context.ts`:
 
 ```ts
-import type { AdminContext } from "@/lib/permissions/guards";
-import type { AdminRole } from "@/lib/permissions/roles";
-import { prisma } from "@/lib/db/prisma";
+import type { AdminContext } from '@/lib/permissions/guards'
+import type { AdminRole } from '@/lib/permissions/roles'
+import { prisma } from '@/lib/db/prisma'
 
-export async function getAdminContext(
-  authUserId: string
-): Promise<AdminContext | null> {
+export async function getAdminContext(authUserId: string): Promise<AdminContext | null> {
   const profile = await prisma.adminProfile.findUnique({
     where: { authUserId },
     include: {
@@ -512,16 +482,15 @@ export async function getAdminContext(
         },
       },
     },
-  });
-  if (!profile) return null;
+  })
+  if (!profile) return null
 
-  const helperEventIds =
-    profile.member?.eventsAsHelper.map((e) => e.eventId) ?? [];
+  const helperEventIds = profile.member?.eventsAsHelper.map(e => e.eventId) ?? []
 
   return {
     role: profile.role as AdminRole,
     helperEventIds,
-  };
+  }
 }
 ```
 
@@ -557,30 +526,28 @@ git commit -m "feat(auth): load admin context with PIC helper event ids"
 Create `src/lib/registrations/duplicate-members.test.ts`:
 
 ```ts
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-vi.mock("@/lib/db/prisma", () => ({
+vi.mock('@/lib/db/prisma', () => ({
   prisma: {
     ticket: { findMany: vi.fn() },
   },
-}));
+}))
 
-import { prisma } from "@/lib/db/prisma";
-import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
+import { prisma } from '@/lib/db/prisma'
+import { findDuplicateMemberNumbers } from '@/lib/registrations/duplicate-members'
 
-describe("findDuplicateMemberNumbers", () => {
+describe('findDuplicateMemberNumbers', () => {
   beforeEach(() => {
-    vi.mocked(prisma.ticket.findMany).mockReset();
-  });
+    vi.mocked(prisma.ticket.findMany).mockReset()
+  })
 
-  it("returns duplicates when DB has same member on event", async () => {
-    vi.mocked(prisma.ticket.findMany).mockResolvedValueOnce([
-      { memberNumber: "123" } as never,
-    ]);
-    const d = await findDuplicateMemberNumbers("evt", ["123"]);
-    expect(d).toEqual(["123"]);
-  });
-});
+  it('returns duplicates when DB has same member on event', async () => {
+    vi.mocked(prisma.ticket.findMany).mockResolvedValueOnce([{ memberNumber: '123' } as never])
+    const d = await findDuplicateMemberNumbers('evt', ['123'])
+    expect(d).toEqual(['123'])
+  })
+})
 ```
 
 Run `npm test -- src/lib/registrations/duplicate-members.test.ts` — expect FAIL (missing export).
@@ -590,24 +557,19 @@ Run `npm test -- src/lib/registrations/duplicate-members.test.ts` — expect FAI
 Create `src/lib/registrations/duplicate-members.ts`:
 
 ```ts
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma'
 
-export async function findDuplicateMemberNumbers(
-  eventId: string,
-  candidates: string[]
-): Promise<string[]> {
-  const nums = [...new Set(candidates.filter(Boolean))];
-  if (nums.length === 0) return [];
+export async function findDuplicateMemberNumbers(eventId: string, candidates: string[]): Promise<string[]> {
+  const nums = [...new Set(candidates.filter(Boolean))]
+  if (nums.length === 0) return []
 
   const existing = await prisma.ticket.findMany({
     where: { eventId, memberNumber: { in: nums } },
     select: { memberNumber: true },
-  });
+  })
 
-  const set = new Set(
-    existing.map((e) => e.memberNumber).filter(Boolean) as string[]
-  );
-  return nums.filter((n) => set.has(n));
+  const set = new Set(existing.map(e => e.memberNumber).filter(Boolean) as string[])
+  return nums.filter(n => set.has(n))
 }
 ```
 
@@ -637,27 +599,22 @@ This task is long; keep **one** Server Action file with Zod schema co-located.
 Create `src/lib/actions/submit-registration.ts` with the following complete content:
 
 ```ts
-"use server";
+'use server'
 
-import { z } from "zod";
-import { MenuMode, MenuSelection, RegistrationStatus } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
-import { computeSubmitTotal } from "@/lib/pricing/compute-submit-total";
-import { findDuplicateMemberNumbers } from "@/lib/registrations/duplicate-members";
-import { uploadImageForRegistration } from "@/lib/uploads/upload-image";
-import {
-  ok,
-  fieldError,
-  rootError,
-  type ActionResult,
-} from "@/lib/forms/action-result";
-import { del } from "@vercel/blob";
+import { z } from 'zod'
+import { MenuMode, MenuSelection, RegistrationStatus } from '@prisma/client'
+import { prisma } from '@/lib/db/prisma'
+import { computeSubmitTotal } from '@/lib/pricing/compute-submit-total'
+import { findDuplicateMemberNumbers } from '@/lib/registrations/duplicate-members'
+import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
+import { ok, fieldError, rootError, type ActionResult } from '@/lib/forms/action-result'
+import { del } from '@vercel/blob'
 
-const phone = z.string().trim().min(8, "WhatsApp wajib diisi");
+const phone = z.string().trim().min(8, 'WhatsApp wajib diisi')
 
 const baseSchema = z.object({
   slug: z.string().trim().min(1),
-  contactName: z.string().trim().min(2, "Nama wajib diisi"),
+  contactName: z.string().trim().min(2, 'Nama wajib diisi'),
   contactWhatsapp: phone,
   claimedMemberNumber: z.string().trim().optional(),
   qtyPartner: z.union([z.literal(0), z.literal(1)]),
@@ -665,129 +622,118 @@ const baseSchema = z.object({
   partnerWhatsapp: z.string().trim().optional(),
   partnerMemberNumber: z.string().trim().optional(),
   selectedMenuItemIds: z.array(z.string()).optional(),
-});
+})
 
-export type SubmitRegistrationInput = z.infer<typeof baseSchema>;
+export type SubmitRegistrationInput = z.infer<typeof baseSchema>
 
 export async function submitRegistration(
   _prev: unknown,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionResult<{ registrationId: string }>> {
-  const raw = Object.fromEntries(formData.entries());
-  const qtyPartnerNorm: 0 | 1 =
-    String(raw.qtyPartner ?? "0").trim() === "1" ? 1 : 0;
-  const selectedMenuItemIds = formData
-    .getAll("selectedMenuItemIds")
-    .map(String)
-    .filter(Boolean);
+  const raw = Object.fromEntries(formData.entries())
+  const qtyPartnerNorm: 0 | 1 = String(raw.qtyPartner ?? '0').trim() === '1' ? 1 : 0
+  const selectedMenuItemIds = formData.getAll('selectedMenuItemIds').map(String).filter(Boolean)
 
   const parsed = baseSchema.safeParse({
     ...raw,
     qtyPartner: qtyPartnerNorm,
     selectedMenuItemIds,
-  });
+  })
 
   if (!parsed.success) {
-    const fe: Record<string, string> = {};
+    const fe: Record<string, string> = {}
     for (const issue of parsed.error.issues) {
-      const p = issue.path[0];
-      if (typeof p === "string") fe[p] = issue.message;
+      const p = issue.path[0]
+      if (typeof p === 'string') fe[p] = issue.message
     }
-    return fieldError(fe);
+    return fieldError(fe)
   }
 
-  const data = parsed.data;
+  const data = parsed.data
 
   const event = await prisma.event.findFirst({
-    where: { slug: data.slug, status: "active" },
-    include: { menuItems: { orderBy: { sortOrder: "asc" } } },
-  });
+    where: { slug: data.slug, status: 'active' },
+    include: { menuItems: { orderBy: { sortOrder: 'asc' } } },
+  })
   if (!event) {
-    return rootError("Event tidak tersedia atau belum aktif.");
+    return rootError('Event tidak tersedia atau belum aktif.')
   }
 
-  const transferProof = formData.get("transferProof");
-  const memberCard = formData.get("memberCardPhoto");
+  const transferProof = formData.get('transferProof')
+  const memberCard = formData.get('memberCardPhoto')
 
   if (!(transferProof instanceof File) || transferProof.size === 0) {
-    return fieldError({ transferProof: "Unggah bukti transfer wajib." });
+    return fieldError({ transferProof: 'Unggah bukti transfer wajib.' })
   }
 
-  const claimingMember = Boolean(data.claimedMemberNumber?.trim());
+  const claimingMember = Boolean(data.claimedMemberNumber?.trim())
   if (claimingMember) {
     if (!(memberCard instanceof File) || memberCard.size === 0) {
       return fieldError({
-        memberCardPhoto: "Foto kartu member wajib jika nomor member diisi.",
-      });
+        memberCardPhoto: 'Foto kartu member wajib jika nomor member diisi.',
+      })
     }
   }
 
-  const primaryMemberNumber = data.claimedMemberNumber?.trim() || undefined;
-  const partnerMemberNumber = data.partnerMemberNumber?.trim() || undefined;
+  const primaryMemberNumber = data.claimedMemberNumber?.trim() || undefined
+  const partnerMemberNumber = data.partnerMemberNumber?.trim() || undefined
 
-  const candidates = [primaryMemberNumber, partnerMemberNumber].filter(
-    Boolean
-  ) as string[];
+  const candidates = [primaryMemberNumber, partnerMemberNumber].filter(Boolean) as string[]
 
-  const dup = await findDuplicateMemberNumbers(event.id, candidates);
+  const dup = await findDuplicateMemberNumbers(event.id, candidates)
   if (dup.length > 0) {
-    return rootError(
-      `Nomor member berikut sudah terdaftar untuk acara ini: ${dup.join(", ")}`
-    );
+    return rootError(`Nomor member berikut sudah terdaftar untuk acara ini: ${dup.join(', ')}`)
   }
 
-  let picMaster = null as { isPengurus: boolean } | null;
+  let picMaster = null as { isPengurus: boolean } | null
   if (primaryMemberNumber) {
     picMaster = await prisma.masterMember.findFirst({
       where: { memberNumber: primaryMemberNumber, isActive: true },
       select: { isPengurus: true },
-    });
+    })
   }
 
   if (data.qtyPartner === 1) {
     if (!data.partnerName?.trim()) {
       return fieldError({
-        partnerName: "Nama partner wajib jika membawa partner.",
-      });
+        partnerName: 'Nama partner wajib jika membawa partner.',
+      })
     }
     if (!picMaster?.isPengurus) {
-      return rootError(
-        "Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama."
-      );
+      return rootError('Tiket partner hanya untuk pengurus (komite) — validasi nomor member utama.')
     }
   }
 
-  const primaryIsMemberPrice = Boolean(primaryMemberNumber);
+  const primaryIsMemberPrice = Boolean(primaryMemberNumber)
 
-  const menuParts: Parameters<typeof computeSubmitTotal>[0]["perTicketMenu"] =
-    [];
+  const menuParts: Parameters<typeof computeSubmitTotal>[0]['perTicketMenu'] = []
 
   if (event.menuMode === MenuMode.VOUCHER) {
-    menuParts.push({ mode: "VOUCHER" });
-    if (data.qtyPartner === 1) menuParts.push({ mode: "VOUCHER" });
+    menuParts.push({ mode: 'VOUCHER' })
+    if (data.qtyPartner === 1) menuParts.push({ mode: 'VOUCHER' })
   } else {
-    const ids = data.selectedMenuItemIds ?? [];
+    const ids = data.selectedMenuItemIds ?? []
     if (event.menuSelection === MenuSelection.SINGLE && ids.length !== 1) {
       return fieldError({
-        selectedMenuItemIds: "Pilih tepat satu menu.",
-      });
+        selectedMenuItemIds: 'Pilih tepat satu menu.',
+      })
     }
     if (event.menuSelection === MenuSelection.MULTI && ids.length < 1) {
-      return fieldError({ selectedMenuItemIds: "Pilih minimal satu menu." });
+      return fieldError({ selectedMenuItemIds: 'Pilih minimal satu menu.' })
     }
-    const items = event.menuItems.filter((m) => ids.includes(m.id));
+    const items = event.menuItems.filter(m => ids.includes(m.id))
     if (items.length !== ids.length) {
-      return rootError("Menu tidak valid untuk acara ini.");
+      return rootError('Menu tidak valid untuk acara ini.')
     }
     menuParts.push({
-      mode: "PRESELECT",
-      selectedMenuItems: items.map((i) => ({ price: i.price })),
-    });
+      mode: 'PRESELECT',
+      selectedMenuItems: items.map(i => ({ price: i.price })),
+    })
     if (data.qtyPartner === 1) {
       menuParts.push({
-        mode: "PRESELECT",
-        selectedMenuItems: items.map((i) => ({ price: i.price })),
-      });
+        mode: 'PRESELECT',
+        selectedMenuItems: items.map(i => ({ price: i.price })),
+      })
     }
   }
 
@@ -798,15 +744,15 @@ export async function submitRegistration(
       menuMode: event.menuMode,
       voucherPrice: event.voucherPrice,
     },
-    primaryPriceType: primaryIsMemberPrice ? "member" : "non_member",
+    primaryPriceType: primaryIsMemberPrice ? 'member' : 'non_member',
     includePartner: data.qtyPartner === 1,
     perTicketMenu: menuParts,
-  });
+  })
 
-  let registrationId = "";
+  let registrationId = ''
 
   try {
-    const reg = await prisma.$transaction(async (tx) => {
+    const reg = await prisma.$transaction(async tx => {
       const registration = await tx.registration.create({
         data: {
           eventId: event.id,
@@ -819,92 +765,90 @@ export async function submitRegistration(
           computedTotalAtSubmit: pricing.computedTotalAtSubmit,
           status: RegistrationStatus.submitted,
         },
-      });
+      })
 
-      registrationId = registration.id;
+      registrationId = registration.id
 
       await tx.ticket.create({
         data: {
           registrationId: registration.id,
           eventId: event.id,
-          role: "primary",
+          role: 'primary',
           fullName: data.contactName,
           whatsapp: data.contactWhatsapp,
           memberNumber: primaryMemberNumber ?? null,
-          ticketPriceType: primaryIsMemberPrice ? "member" : "non_member",
+          ticketPriceType: primaryIsMemberPrice ? 'member' : 'non_member',
         },
-      });
+      })
 
       if (data.qtyPartner === 1 && data.partnerName) {
         await tx.ticket.create({
           data: {
             registrationId: registration.id,
             eventId: event.id,
-            role: "partner",
+            role: 'partner',
             fullName: data.partnerName.trim(),
             whatsapp: data.partnerWhatsapp?.trim() || null,
             memberNumber: partnerMemberNumber ?? null,
-            ticketPriceType: "privilege_partner_member_price",
+            ticketPriceType: 'privilege_partner_member_price',
           },
-        });
+        })
       }
 
       if (event.menuMode === MenuMode.PRESELECT) {
         const tickets = await tx.ticket.findMany({
           where: { registrationId: registration.id },
-        });
-        const idsMenu = data.selectedMenuItemIds ?? [];
+        })
+        const idsMenu = data.selectedMenuItemIds ?? []
         for (const t of tickets) {
           for (const mid of idsMenu) {
             await tx.ticketMenuSelection.create({
               data: { ticketId: t.id, menuItemId: mid },
-            });
+            })
           }
         }
       }
 
-      return registration;
-    });
+      return registration
+    })
 
     await uploadImageForRegistration({
-      purpose: "transfer_proof",
+      purpose: 'transfer_proof',
       registrationId: reg.id,
       file: transferProof,
-    });
+    })
 
     if (claimingMember && memberCard instanceof File) {
       await uploadImageForRegistration({
-        purpose: "member_card_photo",
+        purpose: 'member_card_photo',
         registrationId: reg.id,
         file: memberCard,
-      });
+      })
     }
 
     await prisma.registration.update({
       where: { id: reg.id },
       data: { status: RegistrationStatus.pending_review },
-    });
+    })
 
-    return ok({ registrationId: reg.id });
+    return ok({ registrationId: reg.id })
   } catch (e) {
     if (registrationId) {
       const uploads = await prisma.upload.findMany({
         where: { registrationId },
         select: { blobUrl: true },
-      });
+      })
       for (const u of uploads) {
         try {
-          await del(u.blobUrl);
+          await del(u.blobUrl)
         } catch {
           /* best-effort */
         }
       }
-      await prisma.registration
-        .delete({ where: { id: registrationId } })
-        .catch(() => {});
+      await prisma.registration.delete({ where: { id: registrationId } }).catch(() => {})
     }
-    console.error(e);
-    return rootError("Gagal menyimpan pendaftaran. Coba lagi.");
+    console.error(e)
+    return rootError('Gagal menyimpan pendaftaran. Coba lagi.')
   }
 }
 ```
@@ -942,55 +886,49 @@ git commit -m "feat(actions): submit registration with uploads and pending_revie
 `src/app/(public)/page.tsx`:
 
 ```tsx
-import Link from "next/link";
-import { prisma } from "@/lib/db/prisma";
+import Link from 'next/link'
+import { prisma } from '@/lib/db/prisma'
 
 export default async function PublicHomePage() {
   const events = await prisma.event.findMany({
-    where: { status: "active" },
-    orderBy: { startAt: "asc" },
+    where: { status: 'active' },
+    orderBy: { startAt: 'asc' },
     select: {
       slug: true,
       title: true,
       startAt: true,
       venueName: true,
     },
-  });
+  })
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-12">
+    <main className='mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-12'>
       <div>
-        <h1 className="font-semibold text-2xl tracking-tight">
-          Nobar — acara aktif
-        </h1>
-        <p className="mt-2 text-muted-foreground text-sm">
-          Pilih acara untuk mendaftar.
-        </p>
+        <h1 className='font-semibold text-2xl tracking-tight'>Nobar — acara aktif</h1>
+        <p className='mt-2 text-muted-foreground text-sm'>Pilih acara untuk mendaftar.</p>
       </div>
-      <ul className="flex flex-col gap-3">
-        {events.map((e) => (
+      <ul className='flex flex-col gap-3'>
+        {events.map(e => (
           <li key={e.slug}>
             <Link
-              className="block rounded-lg border border-border bg-card p-4 hover:bg-accent/40"
+              className='block rounded-lg border border-border bg-card p-4 hover:bg-accent/40'
               href={`/events/${e.slug}`}
             >
-              <div className="font-medium">{e.title}</div>
-              <div className="mt-1 text-muted-foreground text-sm">
-                {e.venueName} ·{" "}
-                {new Date(e.startAt).toLocaleString("id-ID", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
+              <div className='font-medium'>{e.title}</div>
+              <div className='mt-1 text-muted-foreground text-sm'>
+                {e.venueName} ·{' '}
+                {new Date(e.startAt).toLocaleString('id-ID', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
                 })}
               </div>
             </Link>
           </li>
         ))}
       </ul>
-      {events.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Belum ada acara aktif.</p>
-      ) : null}
+      {events.length === 0 ? <p className='text-muted-foreground text-sm'>Belum ada acara aktif.</p> : null}
     </main>
-  );
+  )
 }
 ```
 
@@ -1084,37 +1022,37 @@ git commit -m "feat(admin): event registration inbox list and detail"
 Create `src/lib/actions/verify-registration.ts`:
 
 ```ts
-"use server";
+'use server'
 
-import { revalidatePath } from "next/cache";
-import { RegistrationStatus } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { canVerifyEvent } from "@/lib/permissions/guards";
-import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
+import { revalidatePath } from 'next/cache'
+import { RegistrationStatus } from '@prisma/client'
+import { prisma } from '@/lib/db/prisma'
+import { requireAdminSession } from '@/lib/auth/session'
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { canVerifyEvent } from '@/lib/permissions/guards'
+import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 
 async function guard(eventId: string) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
-  if (!ctx) throw new Error("NO_PROFILE");
-  if (!canVerifyEvent(ctx, eventId)) throw new Error("FORBIDDEN");
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
+  if (!ctx) throw new Error('NO_PROFILE')
+  if (!canVerifyEvent(ctx, eventId)) throw new Error('FORBIDDEN')
 }
 
 export async function approveRegistration(
   eventId: string,
-  registrationId: string
+  registrationId: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
-    await guard(eventId);
+    await guard(eventId)
   } catch {
-    return rootError("Tidak diizinkan.");
+    return rootError('Tidak diizinkan.')
   }
 
   const r = await prisma.registration.findFirst({
     where: { id: registrationId, eventId },
-  });
-  if (!r) return rootError("Pendaftaran tidak ditemukan.");
+  })
+  if (!r) return rootError('Pendaftaran tidak ditemukan.')
 
   await prisma.registration.update({
     where: { id: registrationId },
@@ -1123,26 +1061,26 @@ export async function approveRegistration(
       rejectionReason: null,
       paymentIssueReason: null,
     },
-  });
+  })
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
-  return ok({ ok: true });
+  revalidatePath(`/admin/events/${eventId}/inbox`)
+  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`)
+  return ok({ ok: true })
 }
 
 export async function rejectRegistration(
   eventId: string,
   registrationId: string,
-  reason: string
+  reason: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
-    await guard(eventId);
+    await guard(eventId)
   } catch {
-    return rootError("Tidak diizinkan.");
+    return rootError('Tidak diizinkan.')
   }
 
-  const trimmed = reason.trim();
-  if (!trimmed) return rootError("Alasan penolakan wajib diisi.");
+  const trimmed = reason.trim()
+  if (!trimmed) return rootError('Alasan penolakan wajib diisi.')
 
   await prisma.registration.update({
     where: { id: registrationId, eventId },
@@ -1151,26 +1089,26 @@ export async function rejectRegistration(
       rejectionReason: trimmed,
       paymentIssueReason: null,
     },
-  });
+  })
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
-  return ok({ ok: true });
+  revalidatePath(`/admin/events/${eventId}/inbox`)
+  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`)
+  return ok({ ok: true })
 }
 
 export async function markPaymentIssue(
   eventId: string,
   registrationId: string,
-  reason: string
+  reason: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
-    await guard(eventId);
+    await guard(eventId)
   } catch {
-    return rootError("Tidak diizinkan.");
+    return rootError('Tidak diizinkan.')
   }
 
-  const trimmed = reason.trim();
-  if (!trimmed) return rootError("Alasan masalah pembayaran wajib diisi.");
+  const trimmed = reason.trim()
+  if (!trimmed) return rootError('Alasan masalah pembayaran wajib diisi.')
 
   await prisma.registration.update({
     where: { id: registrationId, eventId },
@@ -1179,11 +1117,11 @@ export async function markPaymentIssue(
       paymentIssueReason: trimmed,
       rejectionReason: null,
     },
-  });
+  })
 
-  revalidatePath(`/admin/events/${eventId}/inbox`);
-  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`);
-  return ok({ ok: true });
+  revalidatePath(`/admin/events/${eventId}/inbox`)
+  revalidatePath(`/admin/events/${eventId}/inbox/${registrationId}`)
+  return ok({ ok: true })
 }
 ```
 
@@ -1246,49 +1184,43 @@ npm i -D tsx
 Use this complete script (updates emails if collision — engineer may tweak names):
 
 ```ts
-import "dotenv/config";
-import {
-  PrismaClient,
-  EventStatus,
-  MenuMode,
-  MenuSelection,
-  PricingSource,
-} from "@prisma/client";
+import 'dotenv/config'
+import { PrismaClient, EventStatus, MenuMode, MenuSelection, PricingSource } from '@prisma/client'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
   const pic = await prisma.masterMember.upsert({
-    where: { memberNumber: "CISC-DEMO-PIC-1" },
+    where: { memberNumber: 'CISC-DEMO-PIC-1' },
     update: {},
     create: {
-      memberNumber: "CISC-DEMO-PIC-1",
-      fullName: "Demo PIC Pengurus",
+      memberNumber: 'CISC-DEMO-PIC-1',
+      fullName: 'Demo PIC Pengurus',
       isActive: true,
       isPengurus: true,
       canBePIC: true,
     },
-  });
+  })
 
   const bank = await prisma.picBankAccount.create({
     data: {
       ownerMemberId: pic.id,
-      bankName: "BCA",
-      accountNumber: "1234567890",
-      accountName: "Demo CISC Tangsel",
+      bankName: 'BCA',
+      accountNumber: '1234567890',
+      accountName: 'Demo CISC Tangsel',
       isActive: true,
     },
-  });
+  })
 
   const event = await prisma.event.upsert({
-    where: { slug: "demo-final-ucl-2026" },
+    where: { slug: 'demo-final-ucl-2026' },
     update: {},
     create: {
-      slug: "demo-final-ucl-2026",
-      title: "Demo — Final Watch Party",
-      startAt: new Date("2026-05-20T18:30:00+07:00"),
-      venueName: "Venue Demo",
-      venueAddress: "Jl. Demo No. 1, Tangerang Selatan",
+      slug: 'demo-final-ucl-2026',
+      title: 'Demo — Final Watch Party',
+      startAt: new Date('2026-05-20T18:30:00+07:00'),
+      venueName: 'Venue Demo',
+      venueAddress: 'Jl. Demo No. 1, Tangerang Selatan',
       status: EventStatus.active,
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
@@ -1299,38 +1231,38 @@ async function main() {
       picMasterMemberId: pic.id,
       bankAccountId: bank.id,
     },
-  });
+  })
 
-  await prisma.eventMenuItem.deleteMany({ where: { eventId: event.id } });
+  await prisma.eventMenuItem.deleteMany({ where: { eventId: event.id } })
   await prisma.eventMenuItem.createMany({
     data: [
       {
         eventId: event.id,
-        name: "Paket Burger",
+        name: 'Paket Burger',
         price: 55_000,
         sortOrder: 1,
         voucherEligible: true,
       },
       {
         eventId: event.id,
-        name: "Paket Nasi",
+        name: 'Paket Nasi',
         price: 50_000,
         sortOrder: 2,
         voucherEligible: true,
       },
     ],
-  });
+  })
 
-  console.log("Seed OK:", event.slug);
+  console.log('Seed OK:', event.slug)
 }
 
 main()
   .then(() => prisma.$disconnect())
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+  .catch(async e => {
+    console.error(e)
+    await prisma.$disconnect()
+    process.exit(1)
+  })
 ```
 
 If `upsert` fails on second run due to orphaned `PicBankAccount` rows, simplify by using `await prisma.event.deleteMany()` in dev seeds only or always `upsert` bank by a stable synthetic id pattern — OK for MVP to reset DB with `migrate reset` during development.

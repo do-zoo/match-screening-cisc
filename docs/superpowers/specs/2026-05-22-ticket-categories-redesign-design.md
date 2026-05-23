@@ -60,12 +60,14 @@ model RegistrationHolder {
 ### `Event` — changes
 
 Add:
+
 ```prisma
 multiCategoryPurchase Boolean @default(false)  // allow buying across categories in one transaction
 ticketCategories      EventTicketCategory[]
 ```
 
 Remove:
+
 ```prisma
 ticketMemberPrice     Int   // DELETED
 ticketNonMemberPrice  Int   // DELETED
@@ -74,6 +76,7 @@ ticketNonMemberPrice  Int   // DELETED
 ### `Registration` — changes
 
 Add:
+
 ```prisma
 ticketCategoryId      String
 ticketCategory        EventTicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Restrict)
@@ -82,6 +85,7 @@ holders               RegistrationHolder[]
 ```
 
 Remove:
+
 ```prisma
 primaryRegistrationId         // DELETED — no partner concept
 primaryRegistration           // DELETED
@@ -112,11 +116,11 @@ claimedManagementPublicCode   // DELETED
 
 ### Tab structure (revised)
 
-| Tab | Content |
-|---|---|
-| Dasar | Info dasar, cover, timeline, kapasitas |
-| Harga & Tiket | Kategori tiket (CRUD) + settings pembelian |
-| Venue & Menu | Pilih venue + konfigurasi menu (→ spec: menu-configuration) |
+| Tab           | Content                                                     |
+| ------------- | ----------------------------------------------------------- |
+| Dasar         | Info dasar, cover, timeline, kapasitas                      |
+| Harga & Tiket | Kategori tiket (CRUD) + settings pembelian                  |
+| Venue & Menu  | Pilih venue + konfigurasi menu (→ spec: menu-configuration) |
 
 ### Harga & Tiket tab
 
@@ -153,6 +157,7 @@ While filling form: show estimated price based on whether member number is enter
 ## Server Action
 
 `submitRegistration` updated:
+
 - Receives: `eventId`, `ticketCategoryId`, `ticketQty`, `holders[]` (holderName, claimedMemberNumber?, menuItemId?)
 - Validates `ticketQty ≤ category.maxQtyPerPerson` (if set)
 - Validates `holders.length === ticketQty`

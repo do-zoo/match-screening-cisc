@@ -12,16 +12,16 @@
 
 ## Inventaris Select berbasis ID (calon migrasi)
 
-| File | Field | Nilai tersimpan | Label yang ditampilkan |
-|------|--------|-----------------|-------------------------|
-| `src/components/admin/forms/event-admin-form.tsx` | `venueId` | venue id | `venue.name` |
-| Sama | `picAdminProfileId` | admin profile id | `p.label` |
-| Sama | `bankAccountId` | bank row id | `b.label` |
-| `src/components/admin/voucher-redemption-panel.tsx` | pilihan per tiket | `menuItemId` | nama + harga IDR |
-| `src/components/admin/management-member-form-dialog.tsx` | `masterMemberId` | member id atau sentinel | `memberNumber — fullName` / placeholder tautan |
-| `src/components/admin/management-assignment-form-dialog.tsx` | `managementMemberId` | management member id | nama + kode publik |
-| Sama | `boardRoleId` | role id | `r.title` (opsional combobox; daftar bisa panjang) |
-| `src/components/admin/management-role-form-dialog.tsx` | `parentRoleId` | role id atau sentinel | judul jabatan / "Tidak ada induk" |
+| File                                                         | Field                | Nilai tersimpan         | Label yang ditampilkan                             |
+| ------------------------------------------------------------ | -------------------- | ----------------------- | -------------------------------------------------- |
+| `src/components/admin/forms/event-admin-form.tsx`            | `venueId`            | venue id                | `venue.name`                                       |
+| Sama                                                         | `picAdminProfileId`  | admin profile id        | `p.label`                                          |
+| Sama                                                         | `bankAccountId`      | bank row id             | `b.label`                                          |
+| `src/components/admin/voucher-redemption-panel.tsx`          | pilihan per tiket    | `menuItemId`            | nama + harga IDR                                   |
+| `src/components/admin/management-member-form-dialog.tsx`     | `masterMemberId`     | member id atau sentinel | `memberNumber — fullName` / placeholder tautan     |
+| `src/components/admin/management-assignment-form-dialog.tsx` | `managementMemberId` | management member id    | nama + kode publik                                 |
+| Sama                                                         | `boardRoleId`        | role id                 | `r.title` (opsional combobox; daftar bisa panjang) |
+| `src/components/admin/management-role-form-dialog.tsx`       | `parentRoleId`       | role id atau sentinel   | judul jabatan / "Tidak ada induk"                  |
 
 **Tidak dimigrasi (tetap Select):** `member-validation-panel.tsx`, filter di `management-*-page.tsx`, enum di `event-admin-form.tsx` (status, pricing, menu mode), `club-audit-log-action-select.tsx`, `isUnique` di `management-role-form-dialog.tsx`.
 
@@ -29,22 +29,23 @@
 
 ## Peta file
 
-| Aksi | File | Tanggung jawab |
-|------|------|----------------|
-| **Create** | `src/lib/ui/entity-combobox-label.ts` | Lookup label dari opsi untuk nilai yang dipilih (murni, mudah ditest). |
-| **Create** | `src/lib/ui/entity-combobox-label.test.ts` | Vitest untuk lookup + edge case UUID tak dikenal. |
-| **Create** | `src/components/ui/entity-combobox.tsx` | Komponen `EntityCombobox` + opsi sentinel / nullable. |
-| **Modify** | `src/components/admin/forms/event-admin-form.tsx` | Ganti 3 Select entitas dengan `EntityCombobox` + Controller / setValue seperti sekarang. |
-| **Modify** | `src/components/admin/voucher-redemption-panel.tsx` | Ganti Select per tiket; state: `undefined`/`null` vs string id (bukan `""`). |
-| **Modify** | `src/components/admin/management-member-form-dialog.tsx` | Ganti Select master member. |
-| **Modify** | `src/components/admin/management-assignment-form-dialog.tsx` | Ganti Select pengurus; opsional role. |
-| **Modify** | `src/components/admin/management-role-form-dialog.tsx` | Ganti Select jabatan induk. |
+| Aksi       | File                                                         | Tanggung jawab                                                                           |
+| ---------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **Create** | `src/lib/ui/entity-combobox-label.ts`                        | Lookup label dari opsi untuk nilai yang dipilih (murni, mudah ditest).                   |
+| **Create** | `src/lib/ui/entity-combobox-label.test.ts`                   | Vitest untuk lookup + edge case UUID tak dikenal.                                        |
+| **Create** | `src/components/ui/entity-combobox.tsx`                      | Komponen `EntityCombobox` + opsi sentinel / nullable.                                    |
+| **Modify** | `src/components/admin/forms/event-admin-form.tsx`            | Ganti 3 Select entitas dengan `EntityCombobox` + Controller / setValue seperti sekarang. |
+| **Modify** | `src/components/admin/voucher-redemption-panel.tsx`          | Ganti Select per tiket; state: `undefined`/`null` vs string id (bukan `""`).             |
+| **Modify** | `src/components/admin/management-member-form-dialog.tsx`     | Ganti Select master member.                                                              |
+| **Modify** | `src/components/admin/management-assignment-form-dialog.tsx` | Ganti Select pengurus; opsional role.                                                    |
+| **Modify** | `src/components/admin/management-role-form-dialog.tsx`       | Ganti Select jabatan induk.                                                              |
 
 ---
 
 ### Task 1: Util lookup label
 
 **Files:**
+
 - Create: `src/lib/ui/entity-combobox-label.ts`
 - Create: `src/lib/ui/entity-combobox-label.test.ts`
 
@@ -53,27 +54,27 @@
 Buat `src/lib/ui/entity-combobox-label.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
-import { labelForOptionValue } from "./entity-combobox-label";
+import { describe, expect, it } from 'vitest'
+import { labelForOptionValue } from './entity-combobox-label'
 
-describe("labelForOptionValue", () => {
+describe('labelForOptionValue', () => {
   const opts = [
-    { value: "a", label: "Satu" },
-    { value: "b", label: "Dua", keywords: "alias" },
-  ];
+    { value: 'a', label: 'Satu' },
+    { value: 'b', label: 'Dua', keywords: 'alias' },
+  ]
 
-  it("returns null when value is null", () => {
-    expect(labelForOptionValue(opts, null)).toBeNull();
-  });
+  it('returns null when value is null', () => {
+    expect(labelForOptionValue(opts, null)).toBeNull()
+  })
 
-  it("returns label for known value", () => {
-    expect(labelForOptionValue(opts, "a")).toBe("Satu");
-  });
+  it('returns label for known value', () => {
+    expect(labelForOptionValue(opts, 'a')).toBe('Satu')
+  })
 
-  it("returns null for unknown value so UI can show placeholder not raw id", () => {
-    expect(labelForOptionValue(opts, "unknown-uuid")).toBeNull();
-  });
-});
+  it('returns null for unknown value so UI can show placeholder not raw id', () => {
+    expect(labelForOptionValue(opts, 'unknown-uuid')).toBeNull()
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan tes — harus gagal**
@@ -92,19 +93,16 @@ Buat `src/lib/ui/entity-combobox-label.ts`:
 
 ```typescript
 export type EntityComboboxOptionRow = {
-  value: string;
-  label: string;
+  value: string
+  label: string
   /** Teks tambahan untuk filter (tidak ditampilkan sebagai label utama). */
-  keywords?: string;
-};
+  keywords?: string
+}
 
-export function labelForOptionValue(
-  options: readonly EntityComboboxOptionRow[],
-  value: string | null,
-): string | null {
-  if (value === null) return null;
-  const hit = options.find((o) => o.value === value);
-  return hit?.label ?? null;
+export function labelForOptionValue(options: readonly EntityComboboxOptionRow[], value: string | null): string | null {
+  if (value === null) return null
+  const hit = options.find(o => o.value === value)
+  return hit?.label ?? null
 }
 ```
 
@@ -128,6 +126,7 @@ git commit -m "test(ui): entity combobox label lookup helper"
 ### Task 2: Komponen `EntityCombobox`
 
 **Files:**
+
 - Create: `src/components/ui/entity-combobox.tsx`
 
 **Catatan:** Primitif proyek memakai `ComboboxInput` dengan `render={<InputGroupInput .../>}` — ikuti gaya tersebut. Untuk aksesibilitas, set `id` / `aria-invalid` pada input grup jika ada.
@@ -137,9 +136,9 @@ git commit -m "test(ui): entity combobox label lookup helper"
 Buat `src/components/ui/entity-combobox.tsx`:
 
 ```tsx
-"use client";
+'use client'
 
-import * as React from "react";
+import * as React from 'react'
 import {
   Combobox,
   ComboboxContent,
@@ -148,77 +147,74 @@ import {
   ComboboxItem,
   ComboboxList,
   ComboboxValue,
-} from "@/components/ui/combobox";
-import { cn } from "@/lib/utils";
-import {
-  labelForOptionValue,
-  type EntityComboboxOptionRow,
-} from "@/lib/ui/entity-combobox-label";
+} from '@/components/ui/combobox'
+import { cn } from '@/lib/utils'
+import { labelForOptionValue, type EntityComboboxOptionRow } from '@/lib/ui/entity-combobox-label'
 
 function matchQuery(row: EntityComboboxOptionRow, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (needle === "") return true;
-  const hay = `${row.label} ${row.keywords ?? ""}`.toLowerCase();
-  return hay.includes(needle);
+  const needle = q.trim().toLowerCase()
+  if (needle === '') return true
+  const hay = `${row.label} ${row.keywords ?? ''}`.toLowerCase()
+  return hay.includes(needle)
 }
 
 export type EntityComboboxProps = {
-  id?: string;
-  className?: string;
-  disabled?: boolean;
-  placeholder?: string;
+  id?: string
+  className?: string
+  disabled?: boolean
+  placeholder?: string
   /** null = belum memilih; jangan gunakan "" */
-  value: string | null;
-  onValueChange: (next: string | null) => void;
-  options: readonly EntityComboboxOptionRow[];
-  "aria-invalid"?: boolean;
-};
+  value: string | null
+  onValueChange: (next: string | null) => void
+  options: readonly EntityComboboxOptionRow[]
+  'aria-invalid'?: boolean
+}
 
 export function EntityCombobox({
   id,
   className,
   disabled,
-  placeholder = "Pilih…",
+  placeholder = 'Pilih…',
   value,
   onValueChange,
   options,
-  "aria-invalid": ariaInvalid,
+  'aria-invalid': ariaInvalid,
 }: EntityComboboxProps) {
   return (
     <Combobox
       value={value}
       onValueChange={(next, _eventDetail) => {
-        onValueChange((next ?? null) as string | null);
+        onValueChange((next ?? null) as string | null)
       }}
       disabled={disabled}
       filter={(itemValue: string, query: string) => {
-        const row = options.find((o) => o.value === itemValue);
-        if (!row) return false;
-        return matchQuery(row, query);
+        const row = options.find(o => o.value === itemValue)
+        if (!row) return false
+        return matchQuery(row, query)
       }}
-      items={options.map((o) => o.value)}
-      autoComplete="list"
+      items={options.map(o => o.value)}
+      autoComplete='list'
       modal={false}
-      className={cn("w-full", className)}
+      className={cn('w-full', className)}
     >
       <ComboboxInput
         id={id}
         showClear={value !== null}
         disabled={disabled}
-        className="w-full"
+        className='w-full'
         aria-invalid={ariaInvalid}
       >
         <ComboboxValue placeholder={placeholder}>
           {(selected: unknown) => {
-            const idStr = typeof selected === "string" ? selected : null;
-            const label = labelForOptionValue(options, idStr);
-            return label ?? placeholder;
+            const idStr = typeof selected === 'string' ? selected : null
+            const label = labelForOptionValue(options, idStr)
+            return label ?? placeholder
           }}
         </ComboboxValue>
       </ComboboxInput>
-      <ComboboxContent className="w-[var(--anchor-width)] min-w-[var(--anchor-width)]">
+      <ComboboxContent className='w-[var(--anchor-width)] min-w-[var(--anchor-width)]'>
         <ComboboxList>
-          {options.map((row) => (
+          {options.map(row => (
             <ComboboxItem key={row.value} value={row.value} disabled={disabled}>
               {row.label}
             </ComboboxItem>
@@ -227,7 +223,7 @@ export function EntityCombobox({
         <ComboboxEmpty>Tidak ada hasil.</ComboboxEmpty>
       </ComboboxContent>
     </Combobox>
-  );
+  )
 }
 ```
 
@@ -254,6 +250,7 @@ git commit -m "feat(ui): EntityCombobox for id-backed options with labels"
 ### Task 3: `event-admin-form.tsx` — venue, PIC, rekening
 
 **Files:**
+
 - Modify: `src/components/admin/forms/event-admin-form.tsx` (impor + tiga field)
 
 - [ ] **Step 1: Bangun opsi untuk `EntityCombobox` dari data yang sudah ada**
@@ -263,33 +260,33 @@ Di dalam komponen (dekat `venueOptions`, `props.picOptions`, `bankChoices`), tam
 ```tsx
 const venueComboboxOptions = React.useMemo(
   () =>
-    venueOptions.map((v) => ({
+    venueOptions.map(v => ({
       value: v.id,
       label: v.name,
       keywords: v.name,
     })),
   [venueOptions],
-);
+)
 
 const picComboboxOptions = React.useMemo(
   () =>
-    props.picOptions.map((p) => ({
+    props.picOptions.map(p => ({
       value: p.id,
       label: p.label,
       keywords: p.label,
     })),
   [props.picOptions],
-);
+)
 
 const bankComboboxOptions = React.useMemo(
   () =>
-    bankChoices.map((b) => ({
+    bankChoices.map(b => ({
       value: b.id,
       label: b.label,
       keywords: b.label,
     })),
   [bankChoices],
-);
+)
 ```
 
 - [ ] **Step 2: Ganti Controller `venueId`**
@@ -299,16 +296,16 @@ Ganti blok `<Select>…</Select>` venue dengan:
 ```tsx
 <Controller
   control={form.control}
-  name="venueId"
+  name='venueId'
   render={({ field }) => (
     <EntityCombobox
-      disabled={pending || lockedMenuKeys.includes("venueId")}
-      placeholder="Pilih venue"
+      disabled={pending || lockedMenuKeys.includes('venueId')}
+      placeholder='Pilih venue'
       value={field.value}
-      onValueChange={(next) => {
-        if (next === null) return;
-        field.onChange(next);
-        setLinkedVenueMenusFromVenueSelection(next);
+      onValueChange={next => {
+        if (next === null) return
+        field.onChange(next)
+        setLinkedVenueMenusFromVenueSelection(next)
       }}
       options={venueComboboxOptions}
     />
@@ -325,13 +322,13 @@ Untuk PIC:
 ```tsx
 <EntityCombobox
   disabled={pending}
-  placeholder="Pilih PIC"
-  value={picId === "" ? null : picId}
-  onValueChange={(next) => {
-    if (next === null) return;
-    form.setValue("picAdminProfileId", next, { shouldDirty: true });
-    const first = props.banksByPic[next]?.[0]?.id ?? "";
-    form.setValue("bankAccountId", first, { shouldDirty: true });
+  placeholder='Pilih PIC'
+  value={picId === '' ? null : picId}
+  onValueChange={next => {
+    if (next === null) return
+    form.setValue('picAdminProfileId', next, { shouldDirty: true })
+    const first = props.banksByPic[next]?.[0]?.id ?? ''
+    form.setValue('bankAccountId', first, { shouldDirty: true })
   }}
   options={picComboboxOptions}
 />
@@ -342,11 +339,11 @@ Untuk rekening:
 ```tsx
 <EntityCombobox
   disabled={pending || bankChoices.length === 0}
-  placeholder="Pilih rekening"
-  value={bankAccountId === "" ? null : bankAccountId}
-  onValueChange={(next) => {
-    if (next === null) return;
-    form.setValue("bankAccountId", next, { shouldDirty: true });
+  placeholder='Pilih rekening'
+  value={bankAccountId === '' ? null : bankAccountId}
+  onValueChange={next => {
+    if (next === null) return
+    form.setValue('bankAccountId', next, { shouldDirty: true })
   }}
   options={bankComboboxOptions}
 />
@@ -376,6 +373,7 @@ git commit -m "feat(admin): use EntityCombobox for venue PIC and bank on event f
 ### Task 4: `voucher-redemption-panel.tsx`
 
 **Files:**
+
 - Modify: `src/components/admin/voucher-redemption-panel.tsx`
 
 - [ ] **Step 1: State seleksi tanpa string kosong**
@@ -383,7 +381,7 @@ git commit -m "feat(admin): use EntityCombobox for venue PIC and bank on event f
 Ganti `useState<Record<string, string>>` menjadi `Record<string, string | undefined>` atau simpan hanya id yang dipilih:
 
 ```tsx
-const [selections, setSelections] = useState<Record<string, string | undefined>>({});
+const [selections, setSelections] = useState<Record<string, string | undefined>>({})
 ```
 
 Pada redeem, tetap validasi:
@@ -398,13 +396,13 @@ if (!menuItemId) { ... }
 ```tsx
 const options = React.useMemo(
   () =>
-    menuItems.map((m) => ({
+    menuItems.map(m => ({
       value: m.id,
       label: `${m.name} — ${idr(m.price)}`,
       keywords: `${m.name} ${m.price}`,
     })),
   [menuItems],
-);
+)
 ```
 
 - [ ] **Step 3: Render `EntityCombobox` per tiket**
@@ -412,11 +410,9 @@ const options = React.useMemo(
 ```tsx
 <EntityCombobox
   disabled={isPending}
-  placeholder="Pilih menu…"
+  placeholder='Pilih menu…'
   value={selections[ticket.id] ?? null}
-  onValueChange={(next) =>
-    setSelections((prev) => ({ ...prev, [ticket.id]: next ?? undefined }))
-  }
+  onValueChange={next => setSelections(prev => ({ ...prev, [ticket.id]: next ?? undefined }))}
   options={options}
 />
 ```
@@ -433,6 +429,7 @@ git commit -m "feat(admin): EntityCombobox for voucher menu redemption"
 ### Task 5: `management-member-form-dialog.tsx` — tautan anggota
 
 **Files:**
+
 - Modify: `src/components/admin/management-member-form-dialog.tsx`
 
 - [ ] **Step 1: Opsi sentinel + anggota**
@@ -442,15 +439,15 @@ Asumsikan konstanta `NO_LINK` string sudah ada. Bangun:
 ```tsx
 const masterMemberOptions = React.useMemo(
   () => [
-    { value: NO_LINK, label: "Tidak ditautkan", keywords: "tidak" },
-    ...availableMasterMembers.map((m) => ({
+    { value: NO_LINK, label: 'Tidak ditautkan', keywords: 'tidak' },
+    ...availableMasterMembers.map(m => ({
       value: m.id,
       label: `${m.memberNumber} — ${m.fullName}`,
       keywords: `${m.memberNumber} ${m.fullName}`,
     })),
   ],
   [availableMasterMembers],
-);
+)
 ```
 
 - [ ] **Step 2: Ganti `Controller` untuk `masterMemberId`**
@@ -458,16 +455,16 @@ const masterMemberOptions = React.useMemo(
 ```tsx
 <Controller
   control={form.control}
-  name="masterMemberId"
+  name='masterMemberId'
   render={({ field }) => (
     <EntityCombobox
-      id="mm-master-member"
+      id='mm-master-member'
       disabled={isPending}
-      placeholder="Tidak ditautkan"
+      placeholder='Tidak ditautkan'
       value={field.value ?? NO_LINK}
-      onValueChange={(next) => {
-        if (next === null) return;
-        field.onChange(next === NO_LINK ? null : next);
+      onValueChange={next => {
+        if (next === null) return
+        field.onChange(next === NO_LINK ? null : next)
       }}
       options={masterMemberOptions}
       aria-invalid={Boolean(form.formState.errors.masterMemberId)}
@@ -490,6 +487,7 @@ git commit -m "feat(admin): EntityCombobox for management member master link"
 ### Task 6: `management-assignment-form-dialog.tsx`
 
 **Files:**
+
 - Modify: `src/components/admin/management-assignment-form-dialog.tsx`
 
 - [ ] **Step 1: Opsi pengurus**
@@ -497,40 +495,40 @@ git commit -m "feat(admin): EntityCombobox for management member master link"
 ```tsx
 const memberOptions = React.useMemo(
   () =>
-    availableMembers.map((m) => ({
+    availableMembers.map(m => ({
       value: m.id,
       label: `${m.fullName} (${m.publicCode})`,
       keywords: `${m.fullName} ${m.publicCode}`,
     })),
   [availableMembers],
-);
+)
 
 const roleOptions = React.useMemo(
   () =>
-    availableRoles.map((r) => ({
+    availableRoles.map(r => ({
       value: r.id,
       label: r.title,
       keywords: r.title,
     })),
   [availableRoles],
-);
+)
 ```
 
 - [ ] **Step 2: Ganti Select pengurus (mode create)**
 
 ```tsx
 <EntityCombobox
-  id="assign-member"
+  id='assign-member'
   disabled={isPending}
-  placeholder="Pilih pengurus…"
+  placeholder='Pilih pengurus…'
   value={field.value}
-  onValueChange={(next) => {
-    if (next === null) return;
-    field.onChange(next);
+  onValueChange={next => {
+    if (next === null) return
+    field.onChange(next)
   }}
   options={memberOptions}
   aria-invalid={fieldState.invalid}
-  className="min-w-0"
+  className='min-w-0'
 />
 ```
 
@@ -548,6 +546,7 @@ git commit -m "feat(admin): EntityCombobox for management assignment picks"
 ### Task 7: `management-role-form-dialog.tsx` — jabatan induk
 
 **Files:**
+
 - Modify: `src/components/admin/management-role-form-dialog.tsx`
 
 - [ ] **Step 1: Opsi dengan sentinel `ROLE_PARENT_NONE`**
@@ -557,32 +556,32 @@ const parentRoleOptions = React.useMemo(
   () => [
     {
       value: ROLE_PARENT_NONE,
-      label: "— Tidak ada induk —",
-      keywords: "induk",
+      label: '— Tidak ada induk —',
+      keywords: 'induk',
     },
     ...allRoles
-      .filter((r) => r.id !== role?.id)
-      .map((r) => ({
+      .filter(r => r.id !== role?.id)
+      .map(r => ({
         value: r.id,
         label: r.title,
         keywords: r.title,
       })),
   ],
   [allRoles, role?.id],
-);
+)
 ```
 
 - [ ] **Step 2: Controller `parentRoleId`**
 
 ```tsx
 <EntityCombobox
-  id="role-parent"
+  id='role-parent'
   disabled={isPending}
-  placeholder="— Tidak ada induk —"
+  placeholder='— Tidak ada induk —'
   value={field.value ?? ROLE_PARENT_NONE}
-  onValueChange={(next) => {
-    if (next === null) return;
-    field.onChange(next);
+  onValueChange={next => {
+    if (next === null) return
+    field.onChange(next)
   }}
   options={parentRoleOptions}
 />

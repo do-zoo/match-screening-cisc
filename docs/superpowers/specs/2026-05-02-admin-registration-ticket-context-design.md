@@ -30,11 +30,11 @@ On the **admin registration detail** page, give verifiers **read-only context** 
 
 ## 3) Locked product decisions
 
-| Topic | Decision |
-|--------|-----------|
-| Approve/reject UX | No extra gates (user chose **inform-only**). |
+| Topic              | Decision                                                                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approve/reject UX  | No extra gates (user chose **inform-only**).                                                                                                                                           |
 | Conflict detection | Consider **every** `Ticket` row on **other** registrations for the same `eventId` that shares the same non-null `memberNumber`, **without** filtering by parent `Registration.status`. |
-| Rationale | Rejected/cancelled/refunded rows can still reveal **data inconsistency** worth surfacing; hiding them would miss orphan or historical collisions. |
+| Rationale          | Rejected/cancelled/refunded rows can still reveal **data inconsistency** worth surfacing; hiding them would miss orphan or historical collisions.                                      |
 
 ## 4) Behaviour
 

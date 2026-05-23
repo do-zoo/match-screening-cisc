@@ -34,10 +34,12 @@ Combines venue selection and menu configuration in one tab (merged from two tabs
 ### Layout
 
 **Venue**
+
 - Dropdown/search to select venue (existing behaviour)
 - Map preview (existing)
 
 **Menu**
+
 - Toggle: `menuRequired` — "Pilihan menu wajib diisi"
   - When OFF: menu section hidden on public form; `mandatoryMenuItemId` stored as null on all holders
 - Number input: `menuMinSelections` (visible only when `menuRequired = true`)

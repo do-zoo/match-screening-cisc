@@ -23,11 +23,11 @@ Parent context: [`2026-04-29-nobar-cisc-tangsel-design.md`](./2026-04-29-nobar-c
 
 ## 4) Information architecture
 
-| Route | Purpose |
-|-------|---------|
-| `/admin/events` | Table of events: status, date range, slug, PIC title; search/filter; **Create event**. |
-| `/admin/events/new` | Creation form → redirect to `/admin/events/[id]/…` after success (e.g. inbox or edit). |
-| `/admin/events/[eventId]/edit` | Edit form (distinct from inbox to avoid mixing operations and verification). |
+| Route                          | Purpose                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| `/admin/events`                | Table of events: status, date range, slug, PIC title; search/filter; **Create event**. |
+| `/admin/events/new`            | Creation form → redirect to `/admin/events/[id]/…` after success (e.g. inbox or edit). |
+| `/admin/events/[eventId]/edit` | Edit form (distinct from inbox to avoid mixing operations and verification).           |
 
 Links to existing per-event areas (inbox, report) stay as they are; optional cross-links from list rows.
 
@@ -54,20 +54,20 @@ Let `registrationCount = count(Registration where eventId = …)`.
 
 ### 6.1 Hard lock (server rejects; disable in UI)
 
-| Field | Rationale |
-|-------|-----------|
-| `slug` | Public URLs and bookmarks; changing breaks links. |
-| `menuMode` | Switches PRESELECT vs VOUCHER — incompatible participant semantics. |
+| Field           | Rationale                                                           |
+| --------------- | ------------------------------------------------------------------- |
+| `slug`          | Public URLs and bookmarks; changing breaks links.                   |
+| `menuMode`      | Switches PRESELECT vs VOUCHER — incompatible participant semantics. |
 | `menuSelection` | SINGLE vs MULTI changes selection rules for existing and new flows. |
 
 ### 6.2 Confirmation required (server + UI)
 
 User must complete a dedicated acknowledgment (e.g. modal with checkbox and short warning). Server accepts only if an explicit `acknowledgeSensitiveChange` (or per-domain flags) is present **and** the operation is allowed.
 
-| Field | Rationale |
-|-------|-----------|
-| `ticketMemberPrice`, `ticketNonMemberPrice`, `voucherPrice`, `pricingSource` | Operational risk; does not rewrite past snapshots but misleads operators if changed carelessly. |
-| `picMasterMemberId`, `bankAccountId` | Payment context for **new** registrants; historical registrations keep their own financial snapshot but instructions for new users change. |
+| Field                                                                        | Rationale                                                                                                                                  |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ticketMemberPrice`, `ticketNonMemberPrice`, `voucherPrice`, `pricingSource` | Operational risk; does not rewrite past snapshots but misleads operators if changed carelessly.                                            |
+| `picMasterMemberId`, `bankAccountId`                                         | Payment context for **new** registrants; historical registrations keep their own financial snapshot but instructions for new users change. |
 
 ### 6.3 Free edit (normal validation)
 
@@ -104,11 +104,11 @@ User must complete a dedicated acknowledgment (e.g. modal with checkbox and shor
 
 ## 11) Approaches considered
 
-| # | Approach | Notes |
-|---|------------|-------|
-| 1 | Server-enforced tiers + mirror in UI (**chosen**) | Single source of truth; testable; optional modals only for tier 6.2. |
-| 2 | Draft-diff “review screen” before apply | Transparent but heavier UX/state; defer. |
-| 3 | Fork/version events for structural edits | Too heavy for current scope. |
+| #   | Approach                                          | Notes                                                                |
+| --- | ------------------------------------------------- | -------------------------------------------------------------------- |
+| 1   | Server-enforced tiers + mirror in UI (**chosen**) | Single source of truth; testable; optional modals only for tier 6.2. |
+| 2   | Draft-diff “review screen” before apply           | Transparent but heavier UX/state; defer.                             |
+| 3   | Fork/version events for structural edits          | Too heavy for current scope.                                         |
 
 ## 12) Open items for implementation plan only
 

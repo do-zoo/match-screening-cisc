@@ -12,35 +12,35 @@
 
 ## File map (create / modify / delete)
 
-| Path | Aksi |
-|------|------|
-| `src/lib/admin/event-registration-detail-tab.ts` | Create |
-| `src/lib/admin/event-registration-detail-tab.test.ts` | Create |
-| `src/components/admin/registration-detail-panels/shared/registration-detail-types.ts` | Create |
-| `src/components/admin/registration-detail-panels/shared/format.ts` | Create |
-| `src/components/admin/registration-detail-panels/registration-detail-header.tsx` | Create |
-| `src/components/admin/registration-detail-panels/registration-detail-tabs.tsx` | Create |
-| `src/components/admin/registration-detail-panels/registration-detail-shell.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-summary/summary-tab.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-summary/identity-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-summary/relations-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-summary/tickets-and-menu-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-summary/price-snapshot-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-summary/event-context-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-verification/verification-tab.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-verification/decision-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-verification/evidence-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-verification/communication-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-operations/operations-tab.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-operations/attendance-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-operations/invoice-adjustments-section.tsx` | Create |
-| `src/components/admin/registration-detail-panels/tab-operations/cancel-refund-section.tsx` | Create |
-| `src/app/admin/events/[eventId]/registrants/[registrationId]/page.tsx` | Modify |
-| `src/components/admin/registration-detail.tsx` | Delete |
-| `src/components/admin/registration-detail-panels/registration-status-panel.tsx` | Delete |
-| `src/components/admin/registration-detail-panels/registration-relations-card.tsx` | Delete |
-| `src/components/admin/registration-detail.test.ts` | Modify (impor helper dari `shared/format`) |
-| `CLAUDE.md` | Modify |
+| Path                                                                                             | Aksi                                       |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `src/lib/admin/event-registration-detail-tab.ts`                                                 | Create                                     |
+| `src/lib/admin/event-registration-detail-tab.test.ts`                                            | Create                                     |
+| `src/components/admin/registration-detail-panels/shared/registration-detail-types.ts`            | Create                                     |
+| `src/components/admin/registration-detail-panels/shared/format.ts`                               | Create                                     |
+| `src/components/admin/registration-detail-panels/registration-detail-header.tsx`                 | Create                                     |
+| `src/components/admin/registration-detail-panels/registration-detail-tabs.tsx`                   | Create                                     |
+| `src/components/admin/registration-detail-panels/registration-detail-shell.tsx`                  | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-summary/summary-tab.tsx`                    | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-summary/identity-section.tsx`               | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-summary/relations-section.tsx`              | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-summary/tickets-and-menu-section.tsx`       | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-summary/price-snapshot-section.tsx`         | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-summary/event-context-section.tsx`          | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-verification/verification-tab.tsx`          | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-verification/decision-section.tsx`          | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-verification/evidence-section.tsx`          | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-verification/communication-section.tsx`     | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-operations/operations-tab.tsx`              | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-operations/attendance-section.tsx`          | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-operations/invoice-adjustments-section.tsx` | Create                                     |
+| `src/components/admin/registration-detail-panels/tab-operations/cancel-refund-section.tsx`       | Create                                     |
+| `src/app/admin/events/[eventId]/registrants/[registrationId]/page.tsx`                           | Modify                                     |
+| `src/components/admin/registration-detail.tsx`                                                   | Delete                                     |
+| `src/components/admin/registration-detail-panels/registration-status-panel.tsx`                  | Delete                                     |
+| `src/components/admin/registration-detail-panels/registration-relations-card.tsx`                | Delete                                     |
+| `src/components/admin/registration-detail.test.ts`                                               | Modify (impor helper dari `shared/format`) |
+| `CLAUDE.md`                                                                                      | Modify                                     |
 
 ---
 
@@ -56,23 +56,21 @@
 Isi `src/lib/admin/event-registration-detail-tab.ts` sementara (supaya TypeScript compile; tes akan gagal pada assertion):
 
 ```ts
-import type { RegistrationStatus } from "@prisma/client";
+import type { RegistrationStatus } from '@prisma/client'
 
-import { eventRegistrationDetailPath } from "@/lib/admin/event-registrants-paths";
+import { eventRegistrationDetailPath } from '@/lib/admin/event-registrants-paths'
 
-export type RegistrationDetailTab = "ringkasan" | "verifikasi" | "operasi";
+export type RegistrationDetailTab = 'ringkasan' | 'verifikasi' | 'operasi'
 
-export function parseRegistrationDetailTab(
-  _raw: string | string[] | undefined,
-): RegistrationDetailTab | null {
-  return null;
+export function parseRegistrationDetailTab(_raw: string | string[] | undefined): RegistrationDetailTab | null {
+  return null
 }
 
 export function defaultRegistrationDetailTab(_input: {
-  status: RegistrationStatus;
-  hasUnpaidAdjustment: boolean;
+  status: RegistrationStatus
+  hasUnpaidAdjustment: boolean
 }): RegistrationDetailTab {
-  return "ringkasan";
+  return 'ringkasan'
 }
 
 export function buildRegistrationDetailPath(
@@ -80,43 +78,43 @@ export function buildRegistrationDetailPath(
   registrationId: string,
   tab?: RegistrationDetailTab,
 ): string {
-  const base = eventRegistrationDetailPath(eventId, registrationId);
-  if (tab === undefined) return base;
-  return `${base}?tab=${tab}`;
+  const base = eventRegistrationDetailPath(eventId, registrationId)
+  if (tab === undefined) return base
+  return `${base}?tab=${tab}`
 }
 ```
 
 Isi penuh `src/lib/admin/event-registration-detail-tab.test.ts`:
 
 ```ts
-import { RegistrationStatus } from "@prisma/client";
-import { describe, expect, test } from "vitest";
+import { RegistrationStatus } from '@prisma/client'
+import { describe, expect, test } from 'vitest'
 
 import {
   buildRegistrationDetailPath,
   defaultRegistrationDetailTab,
   parseRegistrationDetailTab,
-} from "@/lib/admin/event-registration-detail-tab";
+} from '@/lib/admin/event-registration-detail-tab'
 
-describe("parseRegistrationDetailTab", () => {
-  test("returns null for undefined, empty, or unknown", () => {
-    expect(parseRegistrationDetailTab(undefined)).toBeNull();
-    expect(parseRegistrationDetailTab("")).toBeNull();
-    expect(parseRegistrationDetailTab([])).toBeNull();
-    expect(parseRegistrationDetailTab([""])).toBeNull();
-    expect(parseRegistrationDetailTab("foo")).toBeNull();
-  });
+describe('parseRegistrationDetailTab', () => {
+  test('returns null for undefined, empty, or unknown', () => {
+    expect(parseRegistrationDetailTab(undefined)).toBeNull()
+    expect(parseRegistrationDetailTab('')).toBeNull()
+    expect(parseRegistrationDetailTab([])).toBeNull()
+    expect(parseRegistrationDetailTab([''])).toBeNull()
+    expect(parseRegistrationDetailTab('foo')).toBeNull()
+  })
 
-  test("accepts valid slugs", () => {
-    expect(parseRegistrationDetailTab("ringkasan")).toBe("ringkasan");
-    expect(parseRegistrationDetailTab("verifikasi")).toBe("verifikasi");
-    expect(parseRegistrationDetailTab("operasi")).toBe("operasi");
-    expect(parseRegistrationDetailTab(["operasi"])).toBe("operasi");
-  });
-});
+  test('accepts valid slugs', () => {
+    expect(parseRegistrationDetailTab('ringkasan')).toBe('ringkasan')
+    expect(parseRegistrationDetailTab('verifikasi')).toBe('verifikasi')
+    expect(parseRegistrationDetailTab('operasi')).toBe('operasi')
+    expect(parseRegistrationDetailTab(['operasi'])).toBe('operasi')
+  })
+})
 
-describe("defaultRegistrationDetailTab", () => {
-  test("submitted, pending_review, payment_issue → verifikasi", () => {
+describe('defaultRegistrationDetailTab', () => {
+  test('submitted, pending_review, payment_issue → verifikasi', () => {
     for (const status of [
       RegistrationStatus.submitted,
       RegistrationStatus.pending_review,
@@ -127,60 +125,54 @@ describe("defaultRegistrationDetailTab", () => {
           status,
           hasUnpaidAdjustment: false,
         }),
-      ).toBe("verifikasi");
+      ).toBe('verifikasi')
     }
-  });
+  })
 
-  test("approved without unpaid → ringkasan", () => {
+  test('approved without unpaid → ringkasan', () => {
     expect(
       defaultRegistrationDetailTab({
         status: RegistrationStatus.approved,
         hasUnpaidAdjustment: false,
       }),
-    ).toBe("ringkasan");
-  });
+    ).toBe('ringkasan')
+  })
 
-  test("approved with unpaid → operasi", () => {
+  test('approved with unpaid → operasi', () => {
     expect(
       defaultRegistrationDetailTab({
         status: RegistrationStatus.approved,
         hasUnpaidAdjustment: true,
       }),
-    ).toBe("operasi");
-  });
+    ).toBe('operasi')
+  })
 
-  test("rejected, cancelled, refunded → ringkasan", () => {
-    for (const status of [
-      RegistrationStatus.rejected,
-      RegistrationStatus.cancelled,
-      RegistrationStatus.refunded,
-    ]) {
+  test('rejected, cancelled, refunded → ringkasan', () => {
+    for (const status of [RegistrationStatus.rejected, RegistrationStatus.cancelled, RegistrationStatus.refunded]) {
       expect(
         defaultRegistrationDetailTab({
           status,
           hasUnpaidAdjustment: false,
         }),
-      ).toBe("ringkasan");
+      ).toBe('ringkasan')
     }
-  });
-});
+  })
+})
 
-describe("buildRegistrationDetailPath", () => {
-  const eventId = "evt_1";
-  const registrationId = "reg_1";
+describe('buildRegistrationDetailPath', () => {
+  const eventId = 'evt_1'
+  const registrationId = 'reg_1'
 
-  test("without tab omits query string", () => {
-    expect(buildRegistrationDetailPath(eventId, registrationId)).toBe(
-      "/admin/events/evt_1/registrants/reg_1",
-    );
-  });
+  test('without tab omits query string', () => {
+    expect(buildRegistrationDetailPath(eventId, registrationId)).toBe('/admin/events/evt_1/registrants/reg_1')
+  })
 
-  test("with tab appends ?tab=", () => {
-    expect(buildRegistrationDetailPath(eventId, registrationId, "verifikasi")).toBe(
-      "/admin/events/evt_1/registrants/reg_1?tab=verifikasi",
-    );
-  });
-});
+  test('with tab appends ?tab=', () => {
+    expect(buildRegistrationDetailPath(eventId, registrationId, 'verifikasi')).toBe(
+      '/admin/events/evt_1/registrants/reg_1?tab=verifikasi',
+    )
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan tes — expect FAIL pada parse/default**
@@ -211,45 +203,43 @@ git commit -m "test: add registration detail tab URL helpers (failing)"
 - [ ] **Step 1: Ganti isi file dengan implementasi final**
 
 ```ts
-import { RegistrationStatus } from "@prisma/client";
+import { RegistrationStatus } from '@prisma/client'
 
-import { eventRegistrationDetailPath } from "@/lib/admin/event-registrants-paths";
+import { eventRegistrationDetailPath } from '@/lib/admin/event-registrants-paths'
 
-export type RegistrationDetailTab = "ringkasan" | "verifikasi" | "operasi";
+export type RegistrationDetailTab = 'ringkasan' | 'verifikasi' | 'operasi'
 
-const TABS = new Set<RegistrationDetailTab>(["ringkasan", "verifikasi", "operasi"]);
+const TABS = new Set<RegistrationDetailTab>(['ringkasan', 'verifikasi', 'operasi'])
 
 function firstString(raw: string | string[] | undefined): string | undefined {
-  if (raw === undefined) return undefined;
-  if (Array.isArray(raw)) return raw[0];
-  return raw;
+  if (raw === undefined) return undefined
+  if (Array.isArray(raw)) return raw[0]
+  return raw
 }
 
-export function parseRegistrationDetailTab(
-  raw: string | string[] | undefined,
-): RegistrationDetailTab | null {
-  const v = firstString(raw);
-  if (!v || v.trim() === "") return null;
-  if (!TABS.has(v as RegistrationDetailTab)) return null;
-  return v as RegistrationDetailTab;
+export function parseRegistrationDetailTab(raw: string | string[] | undefined): RegistrationDetailTab | null {
+  const v = firstString(raw)
+  if (!v || v.trim() === '') return null
+  if (!TABS.has(v as RegistrationDetailTab)) return null
+  return v as RegistrationDetailTab
 }
 
 export function defaultRegistrationDetailTab(input: {
-  status: RegistrationStatus;
-  hasUnpaidAdjustment: boolean;
+  status: RegistrationStatus
+  hasUnpaidAdjustment: boolean
 }): RegistrationDetailTab {
-  const { status, hasUnpaidAdjustment } = input;
+  const { status, hasUnpaidAdjustment } = input
 
   if (
     status === RegistrationStatus.submitted ||
     status === RegistrationStatus.pending_review ||
     status === RegistrationStatus.payment_issue
   ) {
-    return "verifikasi";
+    return 'verifikasi'
   }
 
   if (status === RegistrationStatus.approved) {
-    return hasUnpaidAdjustment ? "operasi" : "ringkasan";
+    return hasUnpaidAdjustment ? 'operasi' : 'ringkasan'
   }
 
   if (
@@ -257,10 +247,10 @@ export function defaultRegistrationDetailTab(input: {
     status === RegistrationStatus.cancelled ||
     status === RegistrationStatus.refunded
   ) {
-    return "ringkasan";
+    return 'ringkasan'
   }
 
-  return "ringkasan";
+  return 'ringkasan'
 }
 
 export function buildRegistrationDetailPath(
@@ -268,9 +258,9 @@ export function buildRegistrationDetailPath(
   registrationId: string,
   tab?: RegistrationDetailTab,
 ): string {
-  const base = eventRegistrationDetailPath(eventId, registrationId);
-  if (tab === undefined) return base;
-  return `${base}?tab=${tab}`;
+  const base = eventRegistrationDetailPath(eventId, registrationId)
+  if (tab === undefined) return base
+  return `${base}?tab=${tab}`
 }
 ```
 
@@ -310,29 +300,28 @@ Buat `registration-detail-types.ts` yang mengekspor `export type DetailRegistrat
 - [ ] **Step 2: Buat `format.ts`**
 
 ```ts
-import type { UploadPurpose } from "@prisma/client";
+import type { UploadPurpose } from '@prisma/client'
 
 export function formatCurrencyIdr(n: number): string {
-  const formatted = new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
+  const formatted = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
     maximumFractionDigits: 0,
-  }).format(n);
-  return formatted.replace(/\s+/g, "");
+  }).format(n)
+  return formatted.replace(/\s+/g, '')
 }
 
 export function formatUploadPurpose(purpose: UploadPurpose): string {
-  if (purpose === "transfer_proof") return "Bukti transfer";
-  if (purpose === "member_card_photo") return "Foto kartu member";
-  if (purpose === "partner_member_card_photo")
-    return "Foto kartu member (partner)";
-  return "Bukti penyesuaian invoice";
+  if (purpose === 'transfer_proof') return 'Bukti transfer'
+  if (purpose === 'member_card_photo') return 'Foto kartu member'
+  if (purpose === 'partner_member_card_photo') return 'Foto kartu member (partner)'
+  return 'Bukti penyesuaian invoice'
 }
 
-export const registrationDetailDateFormatter = new Intl.DateTimeFormat("id-ID", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+export const registrationDetailDateFormatter = new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
 ```
 
 - [ ] **Step 3: Ubah impor di `registration-detail.test.ts`**
@@ -340,19 +329,13 @@ export const registrationDetailDateFormatter = new Intl.DateTimeFormat("id-ID", 
 Ganti:
 
 ```ts
-import {
-  formatCurrencyIdr,
-  formatUploadPurpose,
-} from "@/components/admin/registration-detail";
+import { formatCurrencyIdr, formatUploadPurpose } from '@/components/admin/registration-detail'
 ```
 
 menjadi:
 
 ```ts
-import {
-  formatCurrencyIdr,
-  formatUploadPurpose,
-} from "@/components/admin/registration-detail-panels/shared/format";
+import { formatCurrencyIdr, formatUploadPurpose } from '@/components/admin/registration-detail-panels/shared/format'
 ```
 
 - [ ] **Step 4: Jalankan tes helper**
@@ -507,82 +490,73 @@ Props:
 
 ```ts
 type Props = {
-  eventId: string;
-  registrationId: string;
-  tab: RegistrationDetailTab;
-  showOperasiBadge: boolean;
+  eventId: string
+  registrationId: string
+  tab: RegistrationDetailTab
+  showOperasiBadge: boolean
   children: {
-    ringkasan: React.ReactNode;
-    verifikasi: React.ReactNode;
-    operasi: React.ReactNode;
-  };
-};
+    ringkasan: React.ReactNode
+    verifikasi: React.ReactNode
+    operasi: React.ReactNode
+  }
+}
 ```
 
 Implementasi:
 
 ```tsx
-"use client";
+'use client'
 
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation'
 
-import type { RegistrationDetailTab } from "@/lib/admin/event-registration-detail-tab";
-import { buildRegistrationDetailPath } from "@/lib/admin/event-registration-detail-tab";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import type { RegistrationDetailTab } from '@/lib/admin/event-registration-detail-tab'
+import { buildRegistrationDetailPath } from '@/lib/admin/event-registration-detail-tab'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 
 export function RegistrationDetailTabs(props: Props) {
-  const router = useRouter();
-  const { eventId, registrationId, tab, showOperasiBadge, children } = props;
+  const router = useRouter()
+  const { eventId, registrationId, tab, showOperasiBadge, children } = props
 
   return (
     <Tabs
       value={tab}
-      onValueChange={(next) => {
-        router.replace(
-          buildRegistrationDetailPath(
-            eventId,
-            registrationId,
-            next as RegistrationDetailTab,
-          ),
-        );
+      onValueChange={next => {
+        router.replace(buildRegistrationDetailPath(eventId, registrationId, next as RegistrationDetailTab))
       }}
-      className="gap-0"
+      className='gap-0'
     >
       <div
         className={cn(
-          "sticky z-10 -mx-6 border-b border-border/60 bg-background/95 px-6 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
-          "top-0",
+          'sticky z-10 -mx-6 border-b border-border/60 bg-background/95 px-6 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80',
+          'top-0',
         )}
       >
         <TabsList
-          variant="line"
-          className="h-auto w-full min-w-0 flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0"
+          variant='line'
+          className='h-auto w-full min-w-0 flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0'
         >
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="verifikasi">Verifikasi & Komunikasi</TabsTrigger>
-          <TabsTrigger value="operasi" className="relative">
+          <TabsTrigger value='ringkasan'>Ringkasan</TabsTrigger>
+          <TabsTrigger value='verifikasi'>Verifikasi & Komunikasi</TabsTrigger>
+          <TabsTrigger value='operasi' className='relative'>
             Operasi
             {showOperasiBadge ? (
-              <span
-                className="absolute right-1 top-1 size-2 rounded-full bg-destructive"
-                aria-hidden
-              />
+              <span className='absolute right-1 top-1 size-2 rounded-full bg-destructive' aria-hidden />
             ) : null}
           </TabsTrigger>
         </TabsList>
       </div>
-      <TabsContent value="ringkasan" className="mt-4 max-w-3xl self-center">
+      <TabsContent value='ringkasan' className='mt-4 max-w-3xl self-center'>
         {children.ringkasan}
       </TabsContent>
-      <TabsContent value="verifikasi" className="mt-4 max-w-3xl self-center">
+      <TabsContent value='verifikasi' className='mt-4 max-w-3xl self-center'>
         {children.verifikasi}
       </TabsContent>
-      <TabsContent value="operasi" className="mt-4 max-w-3xl self-center">
+      <TabsContent value='operasi' className='mt-4 max-w-3xl self-center'>
         {children.operasi}
       </TabsContent>
     </Tabs>
-  );
+  )
 }
 ```
 
@@ -622,17 +596,13 @@ Di dalam `page.tsx` (atau fungsi lokal di atas default export):
 
 ```ts
 function firstString(param: string | string[] | undefined): string | undefined {
-  if (param === undefined) return undefined;
-  if (Array.isArray(param)) return param[0];
-  return param;
+  if (param === undefined) return undefined
+  if (Array.isArray(param)) return param[0]
+  return param
 }
 
 function tabParamMissing(param: string | string[] | undefined): boolean {
-  return (
-    param === undefined ||
-    param === "" ||
-    (Array.isArray(param) && (param.length === 0 || param[0] === ""))
-  );
+  return param === undefined || param === '' || (Array.isArray(param) && (param.length === 0 || param[0] === ''))
 }
 ```
 
@@ -643,10 +613,10 @@ export default async function AdminEventRegistrantsDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ eventId: string; registrationId: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ eventId: string; registrationId: string }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const sp = (await searchParams) ?? {};
+  const sp = (await searchParams) ?? {}
   // ...
 }
 ```
@@ -654,37 +624,35 @@ export default async function AdminEventRegistrantsDetailPage({
 - [ ] **Step 3: Setelah `registration` di-load dari Prisma, hitung**
 
 ```ts
-import { InvoiceAdjustmentStatus, RegistrationStatus } from "@prisma/client";
-import { redirect } from "next/navigation";
+import { InvoiceAdjustmentStatus, RegistrationStatus } from '@prisma/client'
+import { redirect } from 'next/navigation'
 
 import {
   buildRegistrationDetailPath,
   defaultRegistrationDetailTab,
   parseRegistrationDetailTab,
-} from "@/lib/admin/event-registration-detail-tab";
-import { RegistrationDetailShell } from "@/components/admin/registration-detail-panels/registration-detail-shell";
-import type { DetailRegistration } from "@/components/admin/registration-detail-panels/shared/registration-detail-types";
+} from '@/lib/admin/event-registration-detail-tab'
+import { RegistrationDetailShell } from '@/components/admin/registration-detail-panels/registration-detail-shell'
+import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 
-const hasUnpaidAdjustment = registration.adjustments.some(
-  (a) => a.status === InvoiceAdjustmentStatus.unpaid,
-);
+const hasUnpaidAdjustment = registration.adjustments.some(a => a.status === InvoiceAdjustmentStatus.unpaid)
 
 const fallbackTab = defaultRegistrationDetailTab({
   status: registration.status,
   hasUnpaidAdjustment,
-});
+})
 
 if (tabParamMissing(sp.tab)) {
-  redirect(buildRegistrationDetailPath(eventId, registrationId, fallbackTab));
+  redirect(buildRegistrationDetailPath(eventId, registrationId, fallbackTab))
 }
 
-const rawTab = firstString(sp.tab);
-const parsedTab = parseRegistrationDetailTab(rawTab);
+const rawTab = firstString(sp.tab)
+const parsedTab = parseRegistrationDetailTab(rawTab)
 if (parsedTab === null) {
-  redirect(buildRegistrationDetailPath(eventId, registrationId, fallbackTab));
+  redirect(buildRegistrationDetailPath(eventId, registrationId, fallbackTab))
 }
 
-const tab = parsedTab;
+const tab = parsedTab
 ```
 
 - [ ] **Step 4: Ganti JSX akhir**
@@ -746,21 +714,21 @@ git commit -m "docs: update CLAUDE for registration detail redesign"
 
 ## Self-review (plan vs spec)
 
-| Requirement spec | Task |
-|--------------------|------|
-| Header ringkas + status + meta + banner | Task 4 (`registration-detail-header`) |
-| 3 tab + `?tab=` + redirect missing/invalid | Task 2, 7 |
-| Default tab status-aware + approved+unpaid→operasi | Task 2, 7 |
-| Badge Operasi unpaid | Task 6 (`showOperasiBadge`) |
-| Sticky TabList | Task 6 |
-| Ringkasan: identitas, relasi, tiket+menu mobile, harga, acara+bank salin | Task 4 |
-| Verifikasi: actions + terminal gate + member validation details | Task 5 |
-| Bukti: uploads grid square + ticket context flat | Task 5 |
-| WA chips + underpayment loop | Task 5 |
-| Operasi: attendance, adjustment, cancel | Task 6 |
-| Hapus monolit + relations/status panel cards | Task 7 |
-| Tes murni tab URL | Task 1–2 |
-| CLAUDE update | Task 8 |
+| Requirement spec                                                         | Task                                  |
+| ------------------------------------------------------------------------ | ------------------------------------- |
+| Header ringkas + status + meta + banner                                  | Task 4 (`registration-detail-header`) |
+| 3 tab + `?tab=` + redirect missing/invalid                               | Task 2, 7                             |
+| Default tab status-aware + approved+unpaid→operasi                       | Task 2, 7                             |
+| Badge Operasi unpaid                                                     | Task 6 (`showOperasiBadge`)           |
+| Sticky TabList                                                           | Task 6                                |
+| Ringkasan: identitas, relasi, tiket+menu mobile, harga, acara+bank salin | Task 4                                |
+| Verifikasi: actions + terminal gate + member validation details          | Task 5                                |
+| Bukti: uploads grid square + ticket context flat                         | Task 5                                |
+| WA chips + underpayment loop                                             | Task 5                                |
+| Operasi: attendance, adjustment, cancel                                  | Task 6                                |
+| Hapus monolit + relations/status panel cards                             | Task 7                                |
+| Tes murni tab URL                                                        | Task 1–2                              |
+| CLAUDE update                                                            | Task 8                                |
 
 **Placeholder scan:** tidak ada TBD/TODO dalam rencana ini.
 

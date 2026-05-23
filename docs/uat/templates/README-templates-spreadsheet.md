@@ -4,12 +4,12 @@ Paket ini melengkapi [**`pengurus-runbook-uat.md`**](../pengurus-runbook-uat.md)
 
 ## Berkas di folder ini
 
-| Berkas | Kegunaan |
-| --- | --- |
+| Berkas                            | Kegunaan                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `uat-hasil-skenario.template.csv` | Satu baris per skenario `UAT-*`; isi kolom `hasil_uat`, `penguji`, `tanggal_YYYY_MM_DD`, `catatan`. |
-| `uat-lingkungan.template.csv` | Salin nilai konfigurasi dari runbook §2 (BASE_URL, email akun uji, **tanpa** kata sandi). |
-| `uat-log-defek.template.csv` | Satu baris per temuan **Gagal**; duplikasi baris template kosong bila perlu. |
-| `uat-tanda-tangan.template.csv` | Dua baris: Eksekutor utama dan Penanggung jawab bisnis. |
+| `uat-lingkungan.template.csv`     | Salin nilai konfigurasi dari runbook §2 (BASE_URL, email akun uji, **tanpa** kata sandi).           |
+| `uat-log-defek.template.csv`      | Satu baris per temuan **Gagal**; duplikasi baris template kosong bila perlu.                        |
+| `uat-tanda-tangan.template.csv`   | Dua baris: Eksekutor utama dan Penanggung jawab bisnis.                                             |
 
 ## Cara impor (ringkas)
 

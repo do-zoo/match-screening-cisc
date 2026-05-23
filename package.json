@@ -18,7 +18,11 @@
     "lint": "eslint",
     "test": "vitest run",
     "check-types": "tsc --noEmit",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "agent:run": "npx better-auth-agent run",
+    "agent:skills": "npx better-auth-agent skills",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -81,6 +85,7 @@
     "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "prettier": "^3.8.3",
     "shadcn": "^4.6.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",

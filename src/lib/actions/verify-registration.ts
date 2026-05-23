@@ -1,52 +1,49 @@
-"use server";
+'use server'
 
-import { revalidatePath } from "next/cache";
-import { Prisma, RegistrationStatus } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { canVerifyEvent } from "@/lib/permissions/guards";
-import { eventRegistrationDetailPath, eventRegistrantsListPath } from "@/lib/admin/event-registrants-paths";
-import { ok, rootError, type ActionResult } from "@/lib/forms/action-result";
+import { revalidatePath } from 'next/cache'
+import { Prisma, RegistrationStatus } from '@prisma/client'
+import { prisma } from '@/lib/db/prisma'
+import { requireAdminSession } from '@/lib/auth/session'
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { canVerifyEvent } from '@/lib/permissions/guards'
+import { eventRegistrationDetailPath, eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
+import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 
 async function guard(eventId: string) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
-  if (!ctx) throw new Error("NO_PROFILE");
-  if (!canVerifyEvent(ctx, eventId)) throw new Error("FORBIDDEN");
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
+  if (!ctx) throw new Error('NO_PROFILE')
+  if (!canVerifyEvent(ctx, eventId)) throw new Error('FORBIDDEN')
 }
 
 const ALLOWED_TRANSITION_STATUSES: RegistrationStatus[] = [
   RegistrationStatus.submitted,
   RegistrationStatus.pending_review,
-];
+]
 
 export async function approveRegistration(
   eventId: string,
   registrationId: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
-    await guard(eventId);
+    await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
-      (e.message === "NO_PROFILE" ||
-        e.message === "FORBIDDEN" ||
-        e.message === "UNAUTHENTICATED")
+      (e.message === 'NO_PROFILE' || e.message === 'FORBIDDEN' || e.message === 'UNAUTHENTICATED')
     ) {
-      return rootError("Tidak diizinkan.");
+      return rootError('Tidak diizinkan.')
     }
-    throw e;
+    throw e
   }
 
   const existing = await prisma.registration.findUnique({
     where: { id: registrationId },
     select: { status: true, eventId: true },
-  });
-  if (!existing || existing.eventId !== eventId)
-    return rootError("Pendaftaran tidak ditemukan.");
+  })
+  if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
   if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
-    return rootError("Status tidak valid untuk aksi ini.");
+    return rootError('Status tidak valid untuk aksi ini.')
   }
 
   try {
@@ -57,20 +54,17 @@ export async function approveRegistration(
         rejectionReason: null,
         paymentIssueReason: null,
       },
-    });
+    })
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
-    ) {
-      return rootError("Pendaftaran tidak ditemukan.");
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      return rootError('Pendaftaran tidak ditemukan.')
     }
-    throw e;
+    throw e
   }
 
-revalidatePath(eventRegistrantsListPath(eventId));
-    revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
-  return ok({ ok: true });
+  revalidatePath(eventRegistrantsListPath(eventId))
+  revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
+  return ok({ ok: true })
 }
 
 export async function rejectRegistration(
@@ -79,30 +73,27 @@ export async function rejectRegistration(
   reason: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
-    await guard(eventId);
+    await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
-      (e.message === "NO_PROFILE" ||
-        e.message === "FORBIDDEN" ||
-        e.message === "UNAUTHENTICATED")
+      (e.message === 'NO_PROFILE' || e.message === 'FORBIDDEN' || e.message === 'UNAUTHENTICATED')
     ) {
-      return rootError("Tidak diizinkan.");
+      return rootError('Tidak diizinkan.')
     }
-    throw e;
+    throw e
   }
 
-  const trimmed = reason.trim();
-  if (!trimmed) return rootError("Alasan penolakan wajib diisi.");
+  const trimmed = reason.trim()
+  if (!trimmed) return rootError('Alasan penolakan wajib diisi.')
 
   const existing = await prisma.registration.findUnique({
     where: { id: registrationId },
     select: { status: true, eventId: true },
-  });
-  if (!existing || existing.eventId !== eventId)
-    return rootError("Pendaftaran tidak ditemukan.");
+  })
+  if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
   if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
-    return rootError("Status tidak valid untuk aksi ini.");
+    return rootError('Status tidak valid untuk aksi ini.')
   }
 
   await prisma.registration.update({
@@ -112,11 +103,11 @@ export async function rejectRegistration(
       rejectionReason: trimmed,
       paymentIssueReason: null,
     },
-  });
+  })
 
-revalidatePath(eventRegistrantsListPath(eventId));
-    revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
-  return ok({ ok: true });
+  revalidatePath(eventRegistrantsListPath(eventId))
+  revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
+  return ok({ ok: true })
 }
 
 export async function markPaymentIssue(
@@ -125,30 +116,27 @@ export async function markPaymentIssue(
   reason: string,
 ): Promise<ActionResult<{ ok: true }>> {
   try {
-    await guard(eventId);
+    await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
-      (e.message === "NO_PROFILE" ||
-        e.message === "FORBIDDEN" ||
-        e.message === "UNAUTHENTICATED")
+      (e.message === 'NO_PROFILE' || e.message === 'FORBIDDEN' || e.message === 'UNAUTHENTICATED')
     ) {
-      return rootError("Tidak diizinkan.");
+      return rootError('Tidak diizinkan.')
     }
-    throw e;
+    throw e
   }
 
-  const trimmed = reason.trim();
-  if (!trimmed) return rootError("Alasan masalah pembayaran wajib diisi.");
+  const trimmed = reason.trim()
+  if (!trimmed) return rootError('Alasan masalah pembayaran wajib diisi.')
 
   const existing = await prisma.registration.findUnique({
     where: { id: registrationId },
     select: { status: true, eventId: true },
-  });
-  if (!existing || existing.eventId !== eventId)
-    return rootError("Pendaftaran tidak ditemukan.");
+  })
+  if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
   if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
-    return rootError("Status tidak valid untuk aksi ini.");
+    return rootError('Status tidak valid untuk aksi ini.')
   }
 
   await prisma.registration.update({
@@ -158,9 +146,9 @@ export async function markPaymentIssue(
       paymentIssueReason: trimmed,
       rejectionReason: null,
     },
-  });
+  })
 
-revalidatePath(eventRegistrantsListPath(eventId));
-    revalidatePath(eventRegistrationDetailPath(eventId, registrationId));
-  return ok({ ok: true });
+  revalidatePath(eventRegistrantsListPath(eventId))
+  revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
+  return ok({ ok: true })
 }

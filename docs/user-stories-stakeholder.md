@@ -12,7 +12,7 @@ Dokumen ini menjelaskan **apa yang bisa dilakukan pengguna** melalui aplikasi, d
 
 Setiap story memakai pola:
 
-- **Sebagai** *peran*, **saya ingin** *aksi atau informasi*, **agar** *manfaat bisnis*.
+- **Sebagai** _peran_, **saya ingin** _aksi atau informasi_, **agar** _manfaat bisnis_.
 - **Kriteria penerimaan:** bullet yang bisa diverifikasi secara operasional (manual atau melalui laporan), **tanpa** menyebut nama teknis framework.
 
 ## Ringkasan produk (satu paragraf)
@@ -21,17 +21,17 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 
 ## Glosarium singkat
 
-| Istilah | Arti untuk stakeholder |
-| --- | --- |
-| Acara (event) | Kegiatan klub yang dibuka pendaftarannya; punya harga, jadwal registrasi, dan konfigurasi menu. |
-| Registrasi | Satu pengajuan peserta untuk satu acara; punya status alur persetujuan. |
-| Tiket utama / partner | Peserta utama (biasanya anggota) dan peserta pendamping jika aturan acara mengizinkan kursi partner. |
-| Bukti transfer | Unggahan bukti pembayaran yang dilampirkan pendaftar. |
-| Status registrasi | Alur umum: **terkirim** → **menunggu tinjauan** → **disetujui**, **ditolak**, atau **kendala pembayaran**. Setelah disetujui, kehadiran dan invoice penyesuaian dikelola di jalur lain. Akhir periode bisa **dibatalkan** atau **refund** (terminal). |
-| Mode menu | Cara acara menangani pilihan makan/minum: pilihan di muka (**prapilih**) atau **voucher** yang dicatat saat acara. |
-| Direktori anggota | Basis data anggota klub yang dipakai untuk validasi nomor anggota dan kelayakan tertentu. |
-| Peran admin | **Pemilik (Owner)** dan **Admin** mengoperasikan hampir semua modul; **Verifier** fokus meninjau pendaftaran; **Viewer** hanya melihat sesuai izin. |
-| Kepengurusan | Struktur periode dewan/jabatan yang mempengaruhi flag tertentu di direktori (misalnya kelayakan partner untuk periode aktif). |
+| Istilah               | Arti untuk stakeholder                                                                                                                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Acara (event)         | Kegiatan klub yang dibuka pendaftarannya; punya harga, jadwal registrasi, dan konfigurasi menu.                                                                                                                                                       |
+| Registrasi            | Satu pengajuan peserta untuk satu acara; punya status alur persetujuan.                                                                                                                                                                               |
+| Tiket utama / partner | Peserta utama (biasanya anggota) dan peserta pendamping jika aturan acara mengizinkan kursi partner.                                                                                                                                                  |
+| Bukti transfer        | Unggahan bukti pembayaran yang dilampirkan pendaftar.                                                                                                                                                                                                 |
+| Status registrasi     | Alur umum: **terkirim** → **menunggu tinjauan** → **disetujui**, **ditolak**, atau **kendala pembayaran**. Setelah disetujui, kehadiran dan invoice penyesuaian dikelola di jalur lain. Akhir periode bisa **dibatalkan** atau **refund** (terminal). |
+| Mode menu             | Cara acara menangani pilihan makan/minum: pilihan di muka (**prapilih**) atau **voucher** yang dicatat saat acara.                                                                                                                                    |
+| Direktori anggota     | Basis data anggota klub yang dipakai untuk validasi nomor anggota dan kelayakan tertentu.                                                                                                                                                             |
+| Peran admin           | **Pemilik (Owner)** dan **Admin** mengoperasikan hampir semua modul; **Verifier** fokus meninjau pendaftaran; **Viewer** hanya melihat sesuai izin.                                                                                                   |
+| Kepengurusan          | Struktur periode dewan/jabatan yang mempengaruhi flag tertentu di direktori (misalnya kelayakan partner untuk periode aktif).                                                                                                                         |
 
 ## Epik: Pengunjung dan pendaftar (publik)
 
@@ -226,6 +226,6 @@ Aplikasi ini mendukung **pendaftaran acara** untuk anggota dan non-anggota: peng
 
 ## Riwayat dokumen
 
-| Versi | Tanggal | Catatan |
-| --- | --- | --- |
-| 1.0 | 2026-05-04 | Rilis awal berdasarkan rencana stakeholder dan pemetaan traceability internal. |
+| Versi | Tanggal    | Catatan                                                                        |
+| ----- | ---------- | ------------------------------------------------------------------------------ |
+| 1.0   | 2026-05-04 | Rilis awal berdasarkan rencana stakeholder dan pemetaan traceability internal. |

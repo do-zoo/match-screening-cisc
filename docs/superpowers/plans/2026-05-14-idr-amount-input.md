@@ -12,14 +12,14 @@
 
 ## File Map
 
-| File | Tanggung jawab |
-|------|------------------|
-| `src/lib/utils/idr-input.ts` | `parseIdrDigitsToInt` |
-| `src/lib/utils/idr-input.test.ts` | Unit test parser |
-| `src/components/ui/idr-amount-input.tsx` | Input teks format Rupiah |
-| `src/components/admin/forms/event-admin-form.tsx` | Tiket member/non-member |
-| `src/components/admin/venues/venue-catalog-editor.tsx` | Harga menu kanonik |
-| `src/components/admin/invoice-adjustment-panel.tsx` | Jumlah penyesuaian + DRY `formatIdr` |
+| File                                                   | Tanggung jawab                       |
+| ------------------------------------------------------ | ------------------------------------ |
+| `src/lib/utils/idr-input.ts`                           | `parseIdrDigitsToInt`                |
+| `src/lib/utils/idr-input.test.ts`                      | Unit test parser                     |
+| `src/components/ui/idr-amount-input.tsx`               | Input teks format Rupiah             |
+| `src/components/admin/forms/event-admin-form.tsx`      | Tiket member/non-member              |
+| `src/components/admin/venues/venue-catalog-editor.tsx` | Harga menu kanonik                   |
+| `src/components/admin/invoice-adjustment-panel.tsx`    | Jumlah penyesuaian + DRY `formatIdr` |
 
 ---
 

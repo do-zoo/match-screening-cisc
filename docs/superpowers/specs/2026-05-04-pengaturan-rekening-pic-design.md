@@ -18,11 +18,11 @@ Ruang lingkup MVP:
 
 ## Kebijakan akses
 
-| Aksi | Siapa |
-|------|--------|
-| Baca daftar/detail rekening suatu profil | Semua role yang sudah boleh mengakses area yang menampilkan blok tersebut (minimal **Verifier** dan **Viewer** untuk koordinasi, **tanpa tombol murasi**) |
-| Tambah / ubah / nonaktifkan | **Pemilik profil itu** (**session** `AdminProfile` yang sama dengan `targetAdminProfileId`) **atau** **Owner / Admin** (sama pola “kelola orang lain” dengan fitur komite lain) |
-| Hapus permanen | Ketentuan yang sama seperti mutasi lain; dibatasi pula oleh aturan FK (lihat di bawah) |
+| Aksi                                     | Siapa                                                                                                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baca daftar/detail rekening suatu profil | Semua role yang sudah boleh mengakses area yang menampilkan blok tersebut (minimal **Verifier** dan **Viewer** untuk koordinasi, **tanpa tombol murasi**)                       |
+| Tambah / ubah / nonaktifkan              | **Pemilik profil itu** (**session** `AdminProfile` yang sama dengan `targetAdminProfileId`) **atau** **Owner / Admin** (sama pola “kelola orang lain” dengan fitur komite lain) |
+| Hapus permanen                           | Ketentuan yang sama seperti mutasi lain; dibatasi pula oleh aturan FK (lihat di bawah)                                                                                          |
 
 Jika pola guard routing/halaman pengaturan komite saat ini **tidak** memasukkan Verifier atau Viewer tetapi produk mengharuskan mereka **membaca** rekening di konteks tersebut, penyelarasan **satu definisi akses halaman/route** menjadi bagian pekerjaan implementasi ini (tanpa memberi mereka tombol tulis).
 

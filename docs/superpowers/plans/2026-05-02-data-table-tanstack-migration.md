@@ -12,17 +12,17 @@
 
 ## File map
 
-| File | Responsibility |
-|------|----------------|
-| `src/components/ui/data-table-column-header.tsx` | Client helper: sortable header with `Button` + Lucide sort icons; no-op layout when `column.getCanSort()` is false. |
-| `src/components/ui/data-table.tsx` | Client generic table: `useReactTable` + `flexRender` + empty row; wraps existing `Table`/`TableRow`/etc. |
-| `src/components/admin/inbox-table.tsx` | Add `"use client"`; define `InboxRegistrationRow` (serializable); `columns`; use `DataTable`. |
-| `src/app/admin/events/[eventId]/inbox/page.tsx` | Serialize `createdAt` to ISO string before passing registrations to client table. |
-| `src/components/admin/members-admin-page.tsx` | Replace manual `<Table>` with `columns` + `DataTable`; keep filtering UI unchanged. |
-| `src/app/admin/events/page.tsx` | Map Prisma rows to plain `AdminEventRow` (dates as ISO strings); render new client `AdminEventsTable`. |
-| `src/components/admin/admin-events-table.tsx` | **Create** — `"use client"`; events list columns + `DataTable`. |
-| `src/components/admin/registration-tickets-table.tsx` | **Create** — `"use client"`; ticket rows built from props (menu text precomputed in RSC parent). |
-| `src/components/admin/registration-detail.tsx` | Swap tickets `<Table>` block for `<RegistrationTicketsTable rows={…} />`; map ticket → row on server. |
+| File                                                  | Responsibility                                                                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `src/components/ui/data-table-column-header.tsx`      | Client helper: sortable header with `Button` + Lucide sort icons; no-op layout when `column.getCanSort()` is false. |
+| `src/components/ui/data-table.tsx`                    | Client generic table: `useReactTable` + `flexRender` + empty row; wraps existing `Table`/`TableRow`/etc.            |
+| `src/components/admin/inbox-table.tsx`                | Add `"use client"`; define `InboxRegistrationRow` (serializable); `columns`; use `DataTable`.                       |
+| `src/app/admin/events/[eventId]/inbox/page.tsx`       | Serialize `createdAt` to ISO string before passing registrations to client table.                                   |
+| `src/components/admin/members-admin-page.tsx`         | Replace manual `<Table>` with `columns` + `DataTable`; keep filtering UI unchanged.                                 |
+| `src/app/admin/events/page.tsx`                       | Map Prisma rows to plain `AdminEventRow` (dates as ISO strings); render new client `AdminEventsTable`.              |
+| `src/components/admin/admin-events-table.tsx`         | **Create** — `"use client"`; events list columns + `DataTable`.                                                     |
+| `src/components/admin/registration-tickets-table.tsx` | **Create** — `"use client"`; ticket rows built from props (menu text precomputed in RSC parent).                    |
+| `src/components/admin/registration-detail.tsx`        | Swap tickets `<Table>` block for `<RegistrationTicketsTable rows={…} />`; map ticket → row on server.               |
 
 ---
 
@@ -39,19 +39,18 @@
 Create `src/components/ui/data-table-column-header.tsx`:
 
 ```tsx
-"use client";
+'use client'
 
-import type { Column } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import type { Column } from '@tanstack/react-table'
+import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
-type DataTableColumnHeaderProps<TData, TValue> =
-  React.HTMLAttributes<HTMLDivElement> & {
-    column: Column<TData, TValue>;
-    title: string;
-  };
+type DataTableColumnHeaderProps<TData, TValue> = React.HTMLAttributes<HTMLDivElement> & {
+  column: Column<TData, TValue>
+  title: string
+}
 
 export function DataTableColumnHeader<TData, TValue>({
   className,
@@ -59,29 +58,29 @@ export function DataTableColumnHeader<TData, TValue>({
   title,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort()) {
-    return <div className={cn(className)}>{title}</div>;
+    return <div className={cn(className)}>{title}</div>
   }
 
   return (
-    <div className={cn("flex items-center", className)}>
+    <div className={cn('flex items-center', className)}>
       <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="-ms-2 h-8 gap-1"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        type='button'
+        variant='ghost'
+        size='sm'
+        className='-ms-2 h-8 gap-1'
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         <span>{title}</span>
-        {column.getIsSorted() === "desc" ? (
-          <ArrowDown className="size-4 shrink-0" />
-        ) : column.getIsSorted() === "asc" ? (
-          <ArrowUp className="size-4 shrink-0" />
+        {column.getIsSorted() === 'desc' ? (
+          <ArrowDown className='size-4 shrink-0' />
+        ) : column.getIsSorted() === 'asc' ? (
+          <ArrowUp className='size-4 shrink-0' />
         ) : (
-          <ChevronsUpDown className="size-4 shrink-0 opacity-60" />
+          <ChevronsUpDown className='size-4 shrink-0 opacity-60' />
         )}
       </Button>
     </div>
-  );
+  )
 }
 ```
 
@@ -121,9 +120,9 @@ git commit -m "feat(ui): add DataTableColumnHeader for TanStack sorting"
 Create `src/components/ui/data-table.tsx`:
 
 ```tsx
-"use client";
+'use client'
 
-import * as React from "react";
+import * as React from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -131,29 +130,22 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
-} from "@tanstack/react-table";
+} from '@tanstack/react-table'
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type DataTableProps<TData, TValue> = {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
-  emptyMessage?: string;
-};
+  columns: ColumnDef<TData, TValue>[]
+  data: TData[]
+  emptyMessage?: string
+}
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  emptyMessage = "No results.",
+  emptyMessage = 'No results.',
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([])
 
   const table = useReactTable({
     data,
@@ -164,21 +156,16 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
     },
-  });
+  })
 
   return (
     <Table>
       <TableHeader>
-        {table.getHeaderGroups().map((headerGroup) => (
+        {table.getHeaderGroups().map(headerGroup => (
           <TableRow key={headerGroup.id}>
-            {headerGroup.headers.map((header) => (
+            {headerGroup.headers.map(header => (
               <TableHead key={header.id}>
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
+                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
               </TableHead>
             ))}
           </TableRow>
@@ -186,28 +173,23 @@ export function DataTable<TData, TValue>({
       </TableHeader>
       <TableBody>
         {table.getRowModel().rows.length ? (
-          table.getRowModel().rows.map((row) => (
+          table.getRowModel().rows.map(row => (
             <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
+              {row.getVisibleCells().map(cell => (
+                <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
               ))}
             </TableRow>
           ))
         ) : (
           <TableRow>
-            <TableCell
-              colSpan={columns.length}
-              className="h-24 text-center text-muted-foreground"
-            >
+            <TableCell colSpan={columns.length} className='h-24 text-center text-muted-foreground'>
               {emptyMessage}
             </TableCell>
           </TableRow>
         )}
       </TableBody>
     </Table>
-  );
+  )
 }
 ```
 
@@ -245,10 +227,10 @@ git commit -m "feat(ui): add reusable DataTable with TanStack Table"
 In `src/app/admin/events/[eventId]/inbox/page.tsx`, after `Promise.all`, map registrations so `createdAt` is an ISO string (Client Components cannot receive `Date`):
 
 ```tsx
-const registrationRows = registrations.map((r) => ({
+const registrationRows = registrations.map(r => ({
   ...r,
   createdAt: r.createdAt.toISOString(),
-}));
+}))
 ```
 
 Pass `registrationRows` to `<InboxTable … registrations={registrationRows} />` instead of `registrations`.
@@ -260,23 +242,17 @@ At the top of `src/components/admin/inbox-table.tsx` add `"use client";`.
 Imports to add/remove:
 
 ```tsx
-"use client";
+'use client'
 
-import Link from "next/link";
-import { useMemo } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { RegistrationStatus, TicketRole } from "@prisma/client";
+import Link from 'next/link'
+import { useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { RegistrationStatus, TicketRole } from '@prisma/client'
 
-import { RegistrationStatusBadge } from "@/components/admin/registration-status-badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import { RegistrationStatusBadge } from '@/components/admin/registration-status-badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 ```
 
 Remove imports of `Table`, `TableBody`, `TableCell`, `TableHead`, `TableHeader`, `TableRow` from `@/components/ui/table`.
@@ -285,29 +261,29 @@ Replace the `InboxRegistration` type with a serializable row type:
 
 ```tsx
 type InboxRegistrationRow = {
-  id: string;
-  createdAt: string;
-  contactName: string;
-  contactWhatsapp: string;
-  claimedMemberNumber: string | null;
-  computedTotalAtSubmit: number;
-  status: RegistrationStatus;
+  id: string
+  createdAt: string
+  contactName: string
+  contactWhatsapp: string
+  claimedMemberNumber: string | null
+  computedTotalAtSubmit: number
+  status: RegistrationStatus
   tickets: Array<{
-    role: TicketRole;
-    fullName: string;
-    whatsapp: string | null;
-    memberNumber: string | null;
-  }>;
-};
+    role: TicketRole
+    fullName: string
+    whatsapp: string | null
+    memberNumber: string | null
+  }>
+}
 ```
 
 Update props:
 
 ```tsx
 type InboxTableProps = {
-  eventId: string;
-  registrations: InboxRegistrationRow[];
-};
+  eventId: string
+  registrations: InboxRegistrationRow[]
+}
 ```
 
 Inside the component, after the formatters, define columns:
@@ -316,84 +292,66 @@ Inside the component, after the formatters, define columns:
 const columns = useMemo<ColumnDef<InboxRegistrationRow>[]>(
   () => [
     {
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Submitted" />
-      ),
+      accessorKey: 'createdAt',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Submitted' />,
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {dateFormatter.format(new Date(row.original.createdAt))}
-        </span>
+        <span className='text-muted-foreground'>{dateFormatter.format(new Date(row.original.createdAt))}</span>
       ),
     },
     {
-      id: "contact",
-      accessorFn: (row) => row.contactName,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Contact" />
-      ),
+      id: 'contact',
+      accessorFn: row => row.contactName,
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Contact' />,
       cell: ({ row }) => {
-        const r = row.original;
+        const r = row.original
         return (
           <div>
             <Link
               href={`/admin/events/${eventId}/inbox/${r.id}`}
-              className="font-medium underline-offset-4 hover:underline"
+              className='font-medium underline-offset-4 hover:underline'
             >
               {r.contactName}
             </Link>
-            <div className="font-mono text-xs text-muted-foreground">
-              {r.contactWhatsapp}
-            </div>
+            <div className='font-mono text-xs text-muted-foreground'>{r.contactWhatsapp}</div>
           </div>
-        );
+        )
       },
     },
     {
-      id: "primaryTicket",
-      header: "Primary ticket",
+      id: 'primaryTicket',
+      header: 'Primary ticket',
       enableSorting: false,
       cell: ({ row }) => {
-        const primaryTicket = row.original.tickets.find(
-          (t) => t.role === "primary",
-        );
+        const primaryTicket = row.original.tickets.find(t => t.role === 'primary')
         return (
           <div>
-            <div>{primaryTicket?.fullName ?? "-"}</div>
-            <div className="font-mono text-xs text-muted-foreground">
-              {primaryTicket?.memberNumber ??
-                row.original.claimedMemberNumber ??
-                "non-member"}
+            <div>{primaryTicket?.fullName ?? '-'}</div>
+            <div className='font-mono text-xs text-muted-foreground'>
+              {primaryTicket?.memberNumber ?? row.original.claimedMemberNumber ?? 'non-member'}
             </div>
           </div>
-        );
+        )
       },
     },
     {
-      accessorKey: "status",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
-      cell: ({ row }) => (
-        <RegistrationStatusBadge status={row.original.status} />
-      ),
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
+      cell: ({ row }) => <RegistrationStatusBadge status={row.original.status} />,
     },
     {
-      accessorKey: "computedTotalAtSubmit",
+      accessorKey: 'computedTotalAtSubmit',
       header: ({ column }) => (
-        <div className="text-right">
-          <DataTableColumnHeader column={column} title="Total" />
+        <div className='text-right'>
+          <DataTableColumnHeader column={column} title='Total' />
         </div>
       ),
       cell: ({ row }) => (
-        <div className="text-right font-mono">
-          {idrFormatter.format(row.original.computedTotalAtSubmit)}
-        </div>
+        <div className='text-right font-mono'>{idrFormatter.format(row.original.computedTotalAtSubmit)}</div>
       ),
     },
   ],
   [eventId],
-);
+)
 ```
 
 When `registrations.length === 0`, keep the existing dashed empty card (do **not** mount `DataTable` with zero rows unless you prefer a single empty message — keeping the dashed box preserves current UX).
@@ -438,28 +396,16 @@ Keep `"use client"` and existing filter state/UI.
 Replace `Table*` imports from `@/components/ui/table` with:
 
 ```tsx
-import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import type { ColumnDef } from '@tanstack/react-table'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 ```
 
 After `dateFormatter` constant, add a small helper (stays in file):
 
 ```tsx
-function BooleanBadge({
-  value,
-  trueLabel,
-  falseLabel,
-}: {
-  value: boolean;
-  trueLabel: string;
-  falseLabel: string;
-}) {
-  return (
-    <Badge variant={value ? "secondary" : "outline"}>
-      {value ? trueLabel : falseLabel}
-    </Badge>
-  );
+function BooleanBadge({ value, trueLabel, falseLabel }: { value: boolean; trueLabel: string; falseLabel: string }) {
+  return <Badge variant={value ? 'secondary' : 'outline'}>{value ? trueLabel : falseLabel}</Badge>
 }
 ```
 
@@ -471,89 +417,50 @@ Inside `MembersAdminPage`, after `filteredRows` / before `return`, add:
 const columns = useMemo<ColumnDef<AdminMasterMemberRowVm>[]>(
   () => [
     {
-      accessorKey: "memberNumber",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Nomor member" />
-      ),
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.memberNumber}</span>
-      ),
+      accessorKey: 'memberNumber',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Nomor member' />,
+      cell: ({ row }) => <span className='font-medium'>{row.original.memberNumber}</span>,
     },
     {
-      accessorKey: "fullName",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Nama" />
-      ),
+      accessorKey: 'fullName',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Nama' />,
     },
     {
-      accessorKey: "whatsapp",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="WhatsApp" />
-      ),
-      cell: ({ row }) => <span>{row.original.whatsapp ?? "-"}</span>,
-      sortingFn: (a, b) =>
-        (a.original.whatsapp ?? "").localeCompare(
-          b.original.whatsapp ?? "",
-          "id",
-        ),
+      accessorKey: 'whatsapp',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='WhatsApp' />,
+      cell: ({ row }) => <span>{row.original.whatsapp ?? '-'}</span>,
+      sortingFn: (a, b) => (a.original.whatsapp ?? '').localeCompare(b.original.whatsapp ?? '', 'id'),
     },
     {
-      accessorKey: "isActive",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Aktif" />
-      ),
-      cell: ({ row }) => (
-        <BooleanBadge
-          value={row.original.isActive}
-          trueLabel="Aktif"
-          falseLabel="Nonaktif"
-        />
-      ),
+      accessorKey: 'isActive',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Aktif' />,
+      cell: ({ row }) => <BooleanBadge value={row.original.isActive} trueLabel='Aktif' falseLabel='Nonaktif' />,
     },
     {
-      accessorKey: "isPengurus",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Pengurus" />
-      ),
-      cell: ({ row }) => (
-        <BooleanBadge
-          value={row.original.isPengurus}
-          trueLabel="Ya"
-          falseLabel="Tidak"
-        />
-      ),
+      accessorKey: 'isPengurus',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Pengurus' />,
+      cell: ({ row }) => <BooleanBadge value={row.original.isPengurus} trueLabel='Ya' falseLabel='Tidak' />,
     },
     {
-      accessorKey: "canBePIC",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="PIC siap" />
-      ),
-      cell: ({ row }) => (
-        <BooleanBadge
-          value={row.original.canBePIC}
-          trueLabel="Siap"
-          falseLabel="Tidak"
-        />
-      ),
+      accessorKey: 'canBePIC',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='PIC siap' />,
+      cell: ({ row }) => <BooleanBadge value={row.original.canBePIC} trueLabel='Siap' falseLabel='Tidak' />,
     },
     {
-      accessorKey: "updatedAt",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Terakhir diubah" />
-      ),
+      accessorKey: 'updatedAt',
+      header: ({ column }) => <DataTableColumnHeader column={column} title='Terakhir diubah' />,
       cell: ({ row }) => <span>{formatDate(row.original.updatedAt)}</span>,
-      sortingFn: (a, b) =>
-        a.original.updatedAt.localeCompare(b.original.updatedAt),
+      sortingFn: (a, b) => a.original.updatedAt.localeCompare(b.original.updatedAt),
     },
     {
-      id: "actions",
+      id: 'actions',
       enableSorting: false,
-      header: () => <span className="sr-only">Aksi</span>,
+      header: () => <span className='sr-only'>Aksi</span>,
       cell: ({ row }) => (
         <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
+          type='button'
+          variant='ghost'
+          size='icon-sm'
           onClick={() => setEditingMember(row.original)}
           aria-label={`Edit ${row.original.fullName}`}
         >
@@ -563,18 +470,14 @@ const columns = useMemo<ColumnDef<AdminMasterMemberRowVm>[]>(
     },
   ],
   [],
-);
+)
 ```
 
 Replace the `<div className="rounded-lg border"><Table>…` block with:
 
 ```tsx
-<div className="rounded-lg border">
-  <DataTable
-    columns={columns}
-    data={filteredRows}
-    emptyMessage="Tidak ada anggota yang cocok dengan filter."
-  />
+<div className='rounded-lg border'>
+  <DataTable columns={columns} data={filteredRows} emptyMessage='Tidak ada anggota yang cocok dengan filter.' />
 </div>
 ```
 
@@ -614,64 +517,59 @@ git commit -m "feat(admin): migrate members table to DataTable"
 Create `src/components/admin/admin-events-table.tsx`:
 
 ```tsx
-"use client";
+'use client'
 
-import Link from "next/link";
-import { useMemo } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { EventStatus } from "@prisma/client";
-import type { VariantProps } from "class-variance-authority";
+import Link from 'next/link'
+import { useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { EventStatus } from '@prisma/client'
+import type { VariantProps } from 'class-variance-authority'
 
-import { Badge, badgeVariants } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import { Badge, badgeVariants } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>
 
-const eventStatusBadge: Record<
-  EventStatus,
-  { label: string; variant: BadgeVariant }
-> = {
-  active: { label: "Aktif", variant: "default" },
-  draft: { label: "Draf", variant: "secondary" },
-  finished: { label: "Selesai", variant: "outline" },
-};
+const eventStatusBadge: Record<EventStatus, { label: string; variant: BadgeVariant }> = {
+  active: { label: 'Aktif', variant: 'default' },
+  draft: { label: 'Draf', variant: 'secondary' },
+  finished: { label: 'Selesai', variant: 'outline' },
+}
 
 export type AdminEventRow = {
-  id: string;
-  slug: string;
-  title: string;
-  status: EventStatus;
-  startAtIso: string;
-  picFullName: string | null;
-  registrationCount: number;
-};
+  id: string
+  slug: string
+  title: string
+  status: EventStatus
+  startAtIso: string
+  picFullName: string | null
+  registrationCount: number
+}
 
 type Props = {
-  events: AdminEventRow[];
-};
+  events: AdminEventRow[]
+}
 
-const fmtDay = new Intl.DateTimeFormat("id-ID", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+const fmtDay = new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
 
-const fmtNum = new Intl.NumberFormat("id-ID");
+const fmtNum = new Intl.NumberFormat('id-ID')
 
 export function AdminEventsTable({ events }: Props) {
   const columns = useMemo<ColumnDef<AdminEventRow>[]>(
     () => [
       {
-        accessorKey: "title",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Judul" />
-        ),
+        accessorKey: 'title',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Judul' />,
         cell: ({ row }) => (
-          <div className="max-w-[280px]">
+          <div className='max-w-[280px]'>
             <Link
               href={`/admin/events/${row.original.id}/edit`}
-              className="line-clamp-2 font-medium text-foreground hover:underline"
+              className='line-clamp-2 font-medium text-foreground hover:underline'
             >
               {row.original.title}
             </Link>
@@ -679,79 +577,54 @@ export function AdminEventsTable({ events }: Props) {
         ),
       },
       {
-        accessorKey: "slug",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Slug" />
-        ),
-        cell: ({ row }) => (
-          <span className="font-mono text-xs text-muted-foreground">
-            {row.original.slug}
-          </span>
-        ),
+        accessorKey: 'slug',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Slug' />,
+        cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.slug}</span>,
       },
       {
-        accessorKey: "status",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Status" />
-        ),
+        accessorKey: 'status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
         cell: ({ row }) => {
-          const meta = eventStatusBadge[row.original.status];
-          return <Badge variant={meta.variant}>{meta.label}</Badge>;
+          const meta = eventStatusBadge[row.original.status]
+          return <Badge variant={meta.variant}>{meta.label}</Badge>
         },
       },
       {
-        accessorKey: "startAtIso",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Tanggal mulai" />
-        ),
-        cell: ({ row }) => (
-          <span>{fmtDay.format(new Date(row.original.startAtIso))}</span>
-        ),
-        sortingFn: (a, b) =>
-          a.original.startAtIso.localeCompare(b.original.startAtIso),
+        accessorKey: 'startAtIso',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Tanggal mulai' />,
+        cell: ({ row }) => <span>{fmtDay.format(new Date(row.original.startAtIso))}</span>,
+        sortingFn: (a, b) => a.original.startAtIso.localeCompare(b.original.startAtIso),
       },
       {
-        accessorKey: "picFullName",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="PIC" />
-        ),
-        cell: ({ row }) => (
-          <span className="max-w-[220px] truncate block">
-            {row.original.picFullName ?? "-"}
-          </span>
-        ),
-        sortingFn: (a, b) =>
-          (a.original.picFullName ?? "").localeCompare(
-            b.original.picFullName ?? "",
-            "id",
-          ),
+        accessorKey: 'picFullName',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='PIC' />,
+        cell: ({ row }) => <span className='max-w-[220px] truncate block'>{row.original.picFullName ?? '-'}</span>,
+        sortingFn: (a, b) => (a.original.picFullName ?? '').localeCompare(b.original.picFullName ?? '', 'id'),
       },
       {
-        accessorKey: "registrationCount",
+        accessorKey: 'registrationCount',
         header: ({ column }) => (
-          <div className="text-right">
-            <DataTableColumnHeader column={column} title="Registrasi" />
+          <div className='text-right'>
+            <DataTableColumnHeader column={column} title='Registrasi' />
           </div>
         ),
         cell: ({ row }) => (
-          <div className="text-right tabular-nums">
-            {fmtNum.format(row.original.registrationCount)}
-          </div>
+          <div className='text-right tabular-nums'>{fmtNum.format(row.original.registrationCount)}</div>
         ),
       },
       {
-        id: "actions",
+        id: 'actions',
         enableSorting: false,
         header: () => (
-          <div className="text-right">
-            <span className="sr-only">Aksi</span>
+          <div className='text-right'>
+            <span className='sr-only'>Aksi</span>
           </div>
         ),
         cell: ({ row }) => (
-          <div className="text-right">
+          <div className='text-right'>
             <Link
               href={`/admin/events/${row.original.id}/inbox`}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Inbox
             </Link>
@@ -760,9 +633,9 @@ export function AdminEventsTable({ events }: Props) {
       },
     ],
     [],
-  );
+  )
 
-  return <DataTable columns={columns} data={events} />;
+  return <DataTable columns={columns} data={events} />
 }
 ```
 
@@ -777,13 +650,13 @@ In `src/app/admin/events/page.tsx`:
 Add:
 
 ```tsx
-import { AdminEventsTable } from "@/components/admin/admin-events-table";
+import { AdminEventsTable } from '@/components/admin/admin-events-table'
 ```
 
 After the `events` query, map to rows:
 
 ```tsx
-const eventRows = events.map((event) => ({
+const eventRows = events.map(event => ({
   id: event.id,
   slug: event.slug,
   title: event.title,
@@ -791,7 +664,7 @@ const eventRows = events.map((event) => ({
   startAtIso: event.startAt.toISOString(),
   picFullName: event.picMasterMember?.fullName ?? null,
   registrationCount: event._count.registrations,
-}));
+}))
 ```
 
 In the JSX branch where `events.length > 0`, replace the `<Table>…` with:
@@ -832,95 +705,71 @@ git commit -m "feat(admin): migrate events index to DataTable"
 Create `src/components/admin/registration-tickets-table.tsx`:
 
 ```tsx
-"use client";
+'use client'
 
-import { useMemo } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { TicketRole } from "@prisma/client";
+import { useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import type { TicketRole } from '@prisma/client'
 
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import { Badge } from '@/components/ui/badge'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 
 export type RegistrationTicketRow = {
-  id: string;
-  role: TicketRole;
-  fullName: string;
-  whatsapp: string | null;
-  memberNumber: string | null;
-  menuSummary: string;
-};
+  id: string
+  role: TicketRole
+  fullName: string
+  whatsapp: string | null
+  memberNumber: string | null
+  menuSummary: string
+}
 
 function TicketRoleBadge({ role }: { role: TicketRole }) {
   return (
-    <Badge variant="secondary" className="capitalize">
+    <Badge variant='secondary' className='capitalize'>
       {role}
     </Badge>
-  );
+  )
 }
 
 type Props = {
-  tickets: RegistrationTicketRow[];
-};
+  tickets: RegistrationTicketRow[]
+}
 
 export function RegistrationTicketsTable({ tickets }: Props) {
   const columns = useMemo<ColumnDef<RegistrationTicketRow>[]>(
     () => [
       {
-        accessorKey: "role",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Role" />
-        ),
+        accessorKey: 'role',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Role' />,
         cell: ({ row }) => <TicketRoleBadge role={row.original.role} />,
       },
       {
-        accessorKey: "fullName",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Name" />
-        ),
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.fullName}</span>
-        ),
+        accessorKey: 'fullName',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Name' />,
+        cell: ({ row }) => <span className='font-medium'>{row.original.fullName}</span>,
       },
       {
-        accessorKey: "whatsapp",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="WhatsApp" />
-        ),
-        cell: ({ row }) => (
-          <span className="font-mono text-xs">
-            {row.original.whatsapp ?? "-"}
-          </span>
-        ),
+        accessorKey: 'whatsapp',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='WhatsApp' />,
+        cell: ({ row }) => <span className='font-mono text-xs'>{row.original.whatsapp ?? '-'}</span>,
       },
       {
-        accessorKey: "memberNumber",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Member #" />
-        ),
-        cell: ({ row }) => (
-          <span className="font-mono text-xs">
-            {row.original.memberNumber ?? "-"}
-          </span>
-        ),
+        accessorKey: 'memberNumber',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Member #' />,
+        cell: ({ row }) => <span className='font-mono text-xs'>{row.original.memberNumber ?? '-'}</span>,
       },
       {
-        id: "menu",
-        accessorKey: "menuSummary",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Menu" />
-        ),
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">
-            {row.original.menuSummary}
-          </span>
-        ),
+        id: 'menu',
+        accessorKey: 'menuSummary',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Menu' />,
+        cell: ({ row }) => <span className='text-muted-foreground'>{row.original.menuSummary}</span>,
       },
     ],
     [],
-  );
+  )
 
-  return <DataTable columns={columns} data={tickets} />;
+  return <DataTable columns={columns} data={tickets} />
 }
 ```
 
@@ -931,28 +780,20 @@ export function RegistrationTicketsTable({ tickets }: Props) {
 - Add:
 
 ```tsx
-import {
-  RegistrationTicketsTable,
-  type RegistrationTicketRow,
-} from "@/components/admin/registration-tickets-table";
+import { RegistrationTicketsTable, type RegistrationTicketRow } from '@/components/admin/registration-tickets-table'
 ```
 
 Inside `RegistrationDetail`, before `return`, build rows:
 
 ```tsx
-const ticketRows: RegistrationTicketRow[] = registration.tickets.map(
-  (ticket) => ({
-    id: ticket.id,
-    role: ticket.role,
-    fullName: ticket.fullName,
-    whatsapp: ticket.whatsapp,
-    memberNumber: ticket.memberNumber,
-    menuSummary:
-      ticket.menuSelections.length === 0
-        ? "-"
-        : ticket.menuSelections.map((s) => s.menuItem.name).join(", "),
-  }),
-);
+const ticketRows: RegistrationTicketRow[] = registration.tickets.map(ticket => ({
+  id: ticket.id,
+  role: ticket.role,
+  fullName: ticket.fullName,
+  whatsapp: ticket.whatsapp,
+  memberNumber: ticket.memberNumber,
+  menuSummary: ticket.menuSelections.length === 0 ? '-' : ticket.menuSelections.map(s => s.menuItem.name).join(', '),
+}))
 ```
 
 Remove the local `TicketRoleBadge` function from `registration-detail.tsx` (it moves to `registration-tickets-table.tsx`).
@@ -984,15 +825,15 @@ git commit -m "feat(admin): migrate registration tickets table to DataTable"
 
 ## Spec coverage (self-review)
 
-| Requirement | Task |
-|-------------|------|
-| Reusable table on TanStack + shadcn `Table` shell | Task 1–2 |
-| Migrate inbox | Task 3 |
-| Migrate members | Task 4 |
-| Migrate events index | Task 5 |
-| Migrate registration tickets | Task 6 |
-| Base UI / project patterns (`Button` from `@base-ui/react`, no `asChild` Radix) | Headers use `Button` directly |
-| No new shadcn registry deps | No `DropdownMenu` / `Checkbox` column added |
+| Requirement                                                                     | Task                                        |
+| ------------------------------------------------------------------------------- | ------------------------------------------- |
+| Reusable table on TanStack + shadcn `Table` shell                               | Task 1–2                                    |
+| Migrate inbox                                                                   | Task 3                                      |
+| Migrate members                                                                 | Task 4                                      |
+| Migrate events index                                                            | Task 5                                      |
+| Migrate registration tickets                                                    | Task 6                                      |
+| Base UI / project patterns (`Button` from `@base-ui/react`, no `asChild` Radix) | Headers use `Button` directly               |
+| No new shadcn registry deps                                                     | No `DropdownMenu` / `Checkbox` column added |
 
 **Placeholder scan:** None — all steps include concrete code and commands.
 

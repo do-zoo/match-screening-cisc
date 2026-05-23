@@ -1,10 +1,7 @@
-import type { WaTemplateKey } from "@prisma/client";
+import type { WaTemplateKey } from '@prisma/client'
 
-import { formatWaIdr } from "@/lib/wa-templates/format-wa-idr";
-import type {
-  RegistrationMessageCtx,
-  UnderpaymentInvoiceCtx,
-} from "@/lib/wa-templates/messages";
+import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
+import type { RegistrationMessageCtx, UnderpaymentInvoiceCtx } from '@/lib/wa-templates/messages'
 import {
   templateApproved,
   templateCancelled,
@@ -13,35 +10,32 @@ import {
   templateRejected,
   templateRefunded,
   templateUnderpaymentInvoice,
-} from "@/lib/wa-templates/messages";
-import { applyWaPlaceholders } from "@/lib/wa-templates/wa-placeholder";
+} from '@/lib/wa-templates/messages'
+import { applyWaPlaceholders } from '@/lib/wa-templates/wa-placeholder'
 
-export type ClubWaBodies = Partial<Record<WaTemplateKey, string | null>>;
+export type ClubWaBodies = Partial<Record<WaTemplateKey, string | null>>
 
-function safeApply(
-  body: string | null | undefined,
-  vars: Record<string, string>,
-  fallback: () => string,
-): string {
-  const t = typeof body === "string" ? body.trim() : "";
-  if (!t) return fallback();
+function safeApply(body: string | null | undefined, vars: Record<string, string>, fallback: () => string): string {
+  const t = typeof body === 'string' ? body.trim() : ''
+  if (!t) return fallback()
   try {
-    return applyWaPlaceholders(t, vars);
+    return applyWaPlaceholders(t, vars)
   } catch {
-    return fallback();
+    return fallback()
   }
 }
 
-export function renderReceiptMessage(
-  bodyFromDb: string | null | undefined,
-  ctx: RegistrationMessageCtx,
-): string {
-  return safeApply(bodyFromDb, {
-    contact_name: ctx.contactName,
-    event_title: ctx.eventTitle,
-    registration_id: ctx.registrationId,
-    computed_total_idr: formatWaIdr(ctx.computedTotalIdr),
-  }, () => templateReceipt(ctx));
+export function renderReceiptMessage(bodyFromDb: string | null | undefined, ctx: RegistrationMessageCtx): string {
+  return safeApply(
+    bodyFromDb,
+    {
+      contact_name: ctx.contactName,
+      event_title: ctx.eventTitle,
+      registration_id: ctx.registrationId,
+      computed_total_idr: formatWaIdr(ctx.computedTotalIdr),
+    },
+    () => templateReceipt(ctx),
+  )
 }
 
 export function renderApprovedMessage(
@@ -50,11 +44,11 @@ export function renderApprovedMessage(
   venue: string,
   startAtIso: string,
 ): string {
-  const when = new Date(startAtIso).toLocaleString("id-ID", {
-    timeZone: "Asia/Jakarta",
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const when = new Date(startAtIso).toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    dateStyle: 'long',
+    timeStyle: 'short',
+  })
   return safeApply(
     bodyFromDb,
     {
@@ -63,25 +57,15 @@ export function renderApprovedMessage(
       start_at_formatted: when,
     },
     () => templateApproved(eventTitle, venue, startAtIso),
-  );
+  )
 }
 
-export function renderRejectedMessage(
-  bodyFromDb: string | null | undefined,
-  reason: string,
-): string {
-  return safeApply(bodyFromDb, { reason }, () =>
-    templateRejected(reason),
-  );
+export function renderRejectedMessage(bodyFromDb: string | null | undefined, reason: string): string {
+  return safeApply(bodyFromDb, { reason }, () => templateRejected(reason))
 }
 
-export function renderPaymentIssueMessage(
-  bodyFromDb: string | null | undefined,
-  reason: string,
-): string {
-  return safeApply(bodyFromDb, { reason }, () =>
-    templatePaymentIssue(reason),
-  );
+export function renderPaymentIssueMessage(bodyFromDb: string | null | undefined, reason: string): string {
+  return safeApply(bodyFromDb, { reason }, () => templatePaymentIssue(reason))
 }
 
 export function renderCancelledMessage(
@@ -89,10 +73,14 @@ export function renderCancelledMessage(
   contactName: string,
   eventTitle: string,
 ): string {
-  return safeApply(bodyFromDb, {
-    contact_name: contactName,
-    event_title: eventTitle,
-  }, () => templateCancelled(contactName, eventTitle));
+  return safeApply(
+    bodyFromDb,
+    {
+      contact_name: contactName,
+      event_title: eventTitle,
+    },
+    () => templateCancelled(contactName, eventTitle),
+  )
 }
 
 export function renderRefundedMessage(
@@ -100,10 +88,14 @@ export function renderRefundedMessage(
   contactName: string,
   eventTitle: string,
 ): string {
-  return safeApply(bodyFromDb, {
-    contact_name: contactName,
-    event_title: eventTitle,
-  }, () => templateRefunded(contactName, eventTitle));
+  return safeApply(
+    bodyFromDb,
+    {
+      contact_name: contactName,
+      event_title: eventTitle,
+    },
+    () => templateRefunded(contactName, eventTitle),
+  )
 }
 
 export function renderUnderpaymentInvoiceMessage(
@@ -121,5 +113,5 @@ export function renderUnderpaymentInvoiceMessage(
       account_name: c.accountName,
     },
     () => templateUnderpaymentInvoice(c),
-  );
+  )
 }

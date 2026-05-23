@@ -18,9 +18,9 @@ The sanitizer strips anything outside: `p br strong b em i u s ul ol li a h2 h3 
 
 ## File Map
 
-| Action | File |
-|--------|------|
-| **Create** | `src/components/ui/rich-text-editor.tsx` |
+| Action     | File                                                            |
+| ---------- | --------------------------------------------------------------- |
+| **Create** | `src/components/ui/rich-text-editor.tsx`                        |
 | **Modify** | `src/components/admin/forms/event-admin-form.tsx` lines 208–217 |
 
 ---
@@ -28,6 +28,7 @@ The sanitizer strips anything outside: `p br strong b em i u s ul ol li a h2 h3 
 ### Task 1: Install Tiptap packages
 
 **Files:**
+
 - No files created — only `package.json` / `pnpm-lock.yaml` change.
 
 - [ ] **Step 1: Install**
@@ -61,6 +62,7 @@ git commit -m "chore: install tiptap for wysiwyg event description"
 ### Task 2: Create `RichTextEditor` component
 
 **Files:**
+
 - Create: `src/components/ui/rich-text-editor.tsx`
 
 - [ ] **Step 1: Create the file**
@@ -68,13 +70,13 @@ git commit -m "chore: install tiptap for wysiwyg event description"
 Create `src/components/ui/rich-text-editor.tsx` with the full content below.
 
 ```tsx
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
+import { useEffect } from 'react'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Underline from '@tiptap/extension-underline'
+import Link from '@tiptap/extension-link'
 import {
   Bold,
   Italic,
@@ -88,14 +90,14 @@ import {
   Quote,
   Link as LinkIcon,
   Pilcrow,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type RichTextEditorProps = {
-  value: string;
-  onChange: (html: string) => void;
-  disabled?: boolean;
-};
+  value: string
+  onChange: (html: string) => void
+  disabled?: boolean
+}
 
 export function RichTextEditor({ value, onChange, disabled = false }: RichTextEditorProps) {
   const editor = useEditor({
@@ -105,154 +107,144 @@ export function RichTextEditor({ value, onChange, disabled = false }: RichTextEd
       Underline,
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
+        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
       }),
     ],
-    content: value || "<p></p>",
+    content: value || '<p></p>',
     editable: !disabled,
     onUpdate({ editor }) {
-      onChange(editor.getHTML());
+      onChange(editor.getHTML())
     },
-  });
+  })
 
   // Sync external value changes (e.g., form reset from parent)
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editor || editor.isDestroyed) return
     if (editor.getHTML() !== value) {
-      editor.commands.setContent(value || "<p></p>", false);
+      editor.commands.setContent(value || '<p></p>', false)
     }
-  }, [editor, value]);
+  }, [editor, value])
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
-    editor.setEditable(!disabled);
-  }, [editor, disabled]);
+    if (!editor || editor.isDestroyed) return
+    editor.setEditable(!disabled)
+  }, [editor, disabled])
 
   const handleSetLink = () => {
-    if (!editor) return;
-    const prev = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("URL:", prev ?? "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().unsetLink().run();
-      return;
+    if (!editor) return
+    const prev = editor.getAttributes('link').href as string | undefined
+    const url = window.prompt('URL:', prev ?? 'https://')
+    if (url === null) return
+    if (url === '') {
+      editor.chain().focus().unsetLink().run()
+      return
     }
-    editor.chain().focus().setLink({ href: url, target: "_blank" }).run();
-  };
+    editor.chain().focus().setLink({ href: url, target: '_blank' }).run()
+  }
 
   return (
-    <div
-      className={cn(
-        "rounded-md border border-input bg-background shadow-xs",
-        disabled && "opacity-50",
-      )}
-    >
+    <div className={cn('rounded-md border border-input bg-background shadow-xs', disabled && 'opacity-50')}>
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-0.5 border-b border-input p-1.5">
+      <div className='flex flex-wrap gap-0.5 border-b border-input p-1.5'>
         <ToolbarButton
-          title="Paragraf"
-          active={editor?.isActive("paragraph")}
+          title='Paragraf'
+          active={editor?.isActive('paragraph')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().setParagraph().run()}
         >
-          <Pilcrow className="h-4 w-4" />
+          <Pilcrow className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Judul 2"
-          active={editor?.isActive("heading", { level: 2 })}
+          title='Judul 2'
+          active={editor?.isActive('heading', { level: 2 })}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
         >
-          <Heading2 className="h-4 w-4" />
+          <Heading2 className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Judul 3"
-          active={editor?.isActive("heading", { level: 3 })}
+          title='Judul 3'
+          active={editor?.isActive('heading', { level: 3 })}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
         >
-          <Heading3 className="h-4 w-4" />
+          <Heading3 className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Judul 4"
-          active={editor?.isActive("heading", { level: 4 })}
+          title='Judul 4'
+          active={editor?.isActive('heading', { level: 4 })}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 4 }).run()}
         >
-          <Heading4 className="h-4 w-4" />
+          <Heading4 className='h-4 w-4' />
         </ToolbarButton>
 
         <Separator />
 
         <ToolbarButton
-          title="Tebal"
-          active={editor?.isActive("bold")}
+          title='Tebal'
+          active={editor?.isActive('bold')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleBold().run()}
         >
-          <Bold className="h-4 w-4" />
+          <Bold className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Miring"
-          active={editor?.isActive("italic")}
+          title='Miring'
+          active={editor?.isActive('italic')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
-          <Italic className="h-4 w-4" />
+          <Italic className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Garis bawah"
-          active={editor?.isActive("underline")}
+          title='Garis bawah'
+          active={editor?.isActive('underline')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
         >
-          <UnderlineIcon className="h-4 w-4" />
+          <UnderlineIcon className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Coret"
-          active={editor?.isActive("strike")}
+          title='Coret'
+          active={editor?.isActive('strike')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleStrike().run()}
         >
-          <Strikethrough className="h-4 w-4" />
+          <Strikethrough className='h-4 w-4' />
         </ToolbarButton>
 
         <Separator />
 
         <ToolbarButton
-          title="Daftar poin"
-          active={editor?.isActive("bulletList")}
+          title='Daftar poin'
+          active={editor?.isActive('bulletList')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
         >
-          <List className="h-4 w-4" />
+          <List className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Daftar bernomor"
-          active={editor?.isActive("orderedList")}
+          title='Daftar bernomor'
+          active={editor?.isActive('orderedList')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
         >
-          <ListOrdered className="h-4 w-4" />
+          <ListOrdered className='h-4 w-4' />
         </ToolbarButton>
         <ToolbarButton
-          title="Kutipan"
-          active={editor?.isActive("blockquote")}
+          title='Kutipan'
+          active={editor?.isActive('blockquote')}
           disabled={disabled}
           onClick={() => editor?.chain().focus().toggleBlockquote().run()}
         >
-          <Quote className="h-4 w-4" />
+          <Quote className='h-4 w-4' />
         </ToolbarButton>
 
         <Separator />
 
-        <ToolbarButton
-          title="Tautan"
-          active={editor?.isActive("link")}
-          disabled={disabled}
-          onClick={handleSetLink}
-        >
-          <LinkIcon className="h-4 w-4" />
+        <ToolbarButton title='Tautan' active={editor?.isActive('link')} disabled={disabled} onClick={handleSetLink}>
+          <LinkIcon className='h-4 w-4' />
         </ToolbarButton>
       </div>
 
@@ -260,21 +252,21 @@ export function RichTextEditor({ value, onChange, disabled = false }: RichTextEd
       <EditorContent
         editor={editor}
         className={cn(
-          "[&_.tiptap]:min-h-[10rem] [&_.tiptap]:px-3 [&_.tiptap]:py-2 [&_.tiptap]:text-sm [&_.tiptap]:outline-none",
-          "[&_.tiptap_h2]:mb-2 [&_.tiptap_h2]:mt-4 [&_.tiptap_h2]:text-xl [&_.tiptap_h2]:font-semibold",
-          "[&_.tiptap_h3]:mb-1 [&_.tiptap_h3]:mt-3 [&_.tiptap_h3]:text-lg [&_.tiptap_h3]:font-semibold",
-          "[&_.tiptap_h4]:mb-1 [&_.tiptap_h4]:mt-2 [&_.tiptap_h4]:font-semibold",
-          "[&_.tiptap_p]:mb-2",
-          "[&_.tiptap_ul]:mb-2 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5",
-          "[&_.tiptap_ol]:mb-2 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5",
-          "[&_.tiptap_li]:mb-0.5",
-          "[&_.tiptap_blockquote]:my-2 [&_.tiptap_blockquote]:border-l-4 [&_.tiptap_blockquote]:border-border [&_.tiptap_blockquote]:pl-4 [&_.tiptap_blockquote]:italic [&_.tiptap_blockquote]:text-muted-foreground",
-          "[&_.tiptap_a]:text-primary [&_.tiptap_a]:underline [&_.tiptap_a]:underline-offset-2",
-          "[&_.tiptap_strong]:font-semibold",
+          '[&_.tiptap]:min-h-[10rem] [&_.tiptap]:px-3 [&_.tiptap]:py-2 [&_.tiptap]:text-sm [&_.tiptap]:outline-none',
+          '[&_.tiptap_h2]:mb-2 [&_.tiptap_h2]:mt-4 [&_.tiptap_h2]:text-xl [&_.tiptap_h2]:font-semibold',
+          '[&_.tiptap_h3]:mb-1 [&_.tiptap_h3]:mt-3 [&_.tiptap_h3]:text-lg [&_.tiptap_h3]:font-semibold',
+          '[&_.tiptap_h4]:mb-1 [&_.tiptap_h4]:mt-2 [&_.tiptap_h4]:font-semibold',
+          '[&_.tiptap_p]:mb-2',
+          '[&_.tiptap_ul]:mb-2 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5',
+          '[&_.tiptap_ol]:mb-2 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5',
+          '[&_.tiptap_li]:mb-0.5',
+          '[&_.tiptap_blockquote]:my-2 [&_.tiptap_blockquote]:border-l-4 [&_.tiptap_blockquote]:border-border [&_.tiptap_blockquote]:pl-4 [&_.tiptap_blockquote]:italic [&_.tiptap_blockquote]:text-muted-foreground',
+          '[&_.tiptap_a]:text-primary [&_.tiptap_a]:underline [&_.tiptap_a]:underline-offset-2',
+          '[&_.tiptap_strong]:font-semibold',
         )}
       />
     </div>
-  );
+  )
 }
 
 function ToolbarButton({
@@ -284,33 +276,33 @@ function ToolbarButton({
   title,
   children,
 }: {
-  onClick: () => void;
-  active?: boolean;
-  disabled?: boolean;
-  title: string;
-  children: React.ReactNode;
+  onClick: () => void
+  active?: boolean
+  disabled?: boolean
+  title: string
+  children: React.ReactNode
 }) {
   return (
     <button
-      type="button"
+      type='button'
       title={title}
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded p-1.5 transition-colors",
+        'rounded p-1.5 transition-colors',
         active
-          ? "bg-accent text-accent-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-        disabled && "pointer-events-none opacity-50",
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        disabled && 'pointer-events-none opacity-50',
       )}
     >
       {children}
     </button>
-  );
+  )
 }
 
 function Separator() {
-  return <div className="mx-1 self-stretch w-px bg-border" aria-hidden />;
+  return <div className='mx-1 self-stretch w-px bg-border' aria-hidden />
 }
 ```
 
@@ -337,6 +329,7 @@ git commit -m "feat(ui): add RichTextEditor component (Tiptap)"
 ### Task 3: Wire `RichTextEditor` into `EventAdminForm`
 
 **Files:**
+
 - Modify: `src/components/admin/forms/event-admin-form.tsx`
 
 **Context:** The form already imports `Controller` from `react-hook-form` (line 10) and uses it elsewhere (e.g., `registrationCapacity` at line 251). The textarea for `descriptionHtml` is at lines 208–217.
@@ -346,7 +339,7 @@ git commit -m "feat(ui): add RichTextEditor component (Tiptap)"
 In `src/components/admin/forms/event-admin-form.tsx`, add the import directly after the existing `import { cn } from "@/lib/utils";` line (line 40):
 
 ```tsx
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 ```
 
 - [ ] **Step 2: Replace the textarea**
@@ -354,34 +347,28 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 Find this block (lines 208–217):
 
 ```tsx
-          <Field label="Deskripsi (HTML)">
-            <textarea
-              {...form.register("descriptionHtml")}
-              rows={8}
-              disabled={pending}
-              className={cn(
-                "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]",
-              )}
-            />
-          </Field>
+<Field label='Deskripsi (HTML)'>
+  <textarea
+    {...form.register('descriptionHtml')}
+    rows={8}
+    disabled={pending}
+    className={cn(
+      'border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]',
+    )}
+  />
+</Field>
 ```
 
 Replace it with:
 
 ```tsx
-          <Field label="Deskripsi">
-            <Controller
-              control={form.control}
-              name="descriptionHtml"
-              render={({ field }) => (
-                <RichTextEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={pending}
-                />
-              )}
-            />
-          </Field>
+<Field label='Deskripsi'>
+  <Controller
+    control={form.control}
+    name='descriptionHtml'
+    render={({ field }) => <RichTextEditor value={field.value} onChange={field.onChange} disabled={pending} />}
+  />
+</Field>
 ```
 
 - [ ] **Step 3: Verify TypeScript**
@@ -436,6 +423,7 @@ pnpm dev
 Open `http://localhost:3000/admin/events/new` in a browser.
 
 Verify:
+
 1. The description field shows a toolbar (H2 H3 H4 | Bold Italic Underline Strike | List OrderedList Quote | Link) and a blank editable area below it.
 2. Clicking **Bold** and typing text renders `<strong>` output.
 3. Clicking **Tautan (Link)** prompts for a URL and wraps selection in an `<a>` tag.

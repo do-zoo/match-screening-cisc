@@ -1,18 +1,14 @@
-import { notFound } from "next/navigation";
+import { notFound } from 'next/navigation'
 
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { requireAdminSession } from "@/lib/auth/session";
-import { canManageCommitteeAdvancedSettings } from "@/lib/permissions/roles";
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { requireAdminSession } from '@/lib/auth/session'
+import { canManageCommitteeAdvancedSettings } from '@/lib/permissions/roles'
 
-export default async function CommitteeSecurityGuardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+export default async function CommitteeSecurityGuardLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
   if (!ctx || !canManageCommitteeAdvancedSettings(ctx.role)) {
-    notFound();
+    notFound()
   }
-  return <>{children}</>;
+  return <>{children}</>
 }

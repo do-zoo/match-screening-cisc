@@ -1,53 +1,43 @@
-"use server";
+'use server'
 
-import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { revalidatePath } from 'next/cache'
+import { Prisma } from '@prisma/client'
 
-import { appendClubAuditLog } from "@/lib/audit/append-club-audit-log";
-import { CLUB_AUDIT_ACTION } from "@/lib/audit/club-audit-actions";
-import { guardOwnerOrAdmin, isAuthError } from "@/lib/actions/guard";
-import { requireAdminSession } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
+import { appendClubAuditLog } from '@/lib/audit/append-club-audit-log'
+import { CLUB_AUDIT_ACTION } from '@/lib/audit/club-audit-actions'
+import { guardOwnerOrAdmin, isAuthError } from '@/lib/actions/guard'
+import { requireAdminSession } from '@/lib/auth/session'
+import { prisma } from '@/lib/db/prisma'
 import {
   adminBoardRoleCreateSchema,
   adminBoardRoleUpdateSchema,
   deleteBoardRoleSchema,
-} from "@/lib/forms/admin-board-role-schema";
-import {
-  ok,
-  rootError,
-  type ActionResult,
-} from "@/lib/forms/action-result";
-import { zodToFieldErrors } from "@/lib/forms/zod";
+} from '@/lib/forms/admin-board-role-schema'
+import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+import { zodToFieldErrors } from '@/lib/forms/zod'
 
 function parseJsonPayload<T>(formData: FormData): T | null {
-  const raw = formData.get("payload");
-  if (typeof raw !== "string") return null;
+  const raw = formData.get('payload')
+  if (typeof raw !== 'string') return null
   try {
-    return JSON.parse(raw) as T;
+    return JSON.parse(raw) as T
   } catch {
-    return null;
+    return null
   }
 }
 
-export async function createBoardRole(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+export async function createBoardRole(_prev: unknown, formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
-    await guardOwnerOrAdmin();
+    await guardOwnerOrAdmin()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
-  const session = await requireAdminSession();
+  const session = await requireAdminSession()
 
-  const parsed = adminBoardRoleCreateSchema.safeParse(
-    parseJsonPayload(formData),
-  );
-  if (!parsed.success)
-    return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) };
+  const parsed = adminBoardRoleCreateSchema.safeParse(parseJsonPayload(formData))
+  if (!parsed.success) return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) }
 
   const row = await prisma.boardRole.create({
     data: {
@@ -57,64 +47,57 @@ export async function createBoardRole(
       parentRoleId: parsed.data.parentRoleId ?? null,
     },
     select: { id: true },
-  });
+  })
 
   const ctx = await prisma.adminProfile.findUnique({
     where: { authUserId: session.user.id },
     select: { id: true },
-  });
+  })
   if (ctx) {
     await appendClubAuditLog(prisma, {
       actorProfileId: ctx.id,
       actorAuthUserId: session.user.id,
       action: CLUB_AUDIT_ACTION.BOARD_ROLE_CREATED,
-      targetType: "board_role",
+      targetType: 'board_role',
       targetId: row.id,
       metadata: { title: parsed.data.title },
-    });
+    })
   }
 
-  revalidatePath("/admin/management");
-  return ok({ id: row.id });
+  revalidatePath('/admin/management')
+  return ok({ id: row.id })
 }
 
-export async function updateBoardRole(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+export async function updateBoardRole(_prev: unknown, formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
-    await guardOwnerOrAdmin();
+    await guardOwnerOrAdmin()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
-  const session = await requireAdminSession();
+  const session = await requireAdminSession()
 
-  const parsed = adminBoardRoleUpdateSchema.safeParse(
-    parseJsonPayload(formData),
-  );
-  if (!parsed.success)
-    return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) };
+  const parsed = adminBoardRoleUpdateSchema.safeParse(parseJsonPayload(formData))
+  if (!parsed.success) return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) }
 
   if (parsed.data.parentRoleId) {
     if (parsed.data.parentRoleId === parsed.data.id) {
-      return rootError("Jabatan tidak dapat menjadi induk dari dirinya sendiri.");
+      return rootError('Jabatan tidak dapat menjadi induk dari dirinya sendiri.')
     }
-    let cursor: string | null = parsed.data.parentRoleId;
-    let hops = 0;
+    let cursor: string | null = parsed.data.parentRoleId
+    let hops = 0
     while (cursor !== null && hops < 64) {
-      hops += 1;
+      hops += 1
       if (cursor === parsed.data.id) {
-        return rootError("Jabatan tidak dapat menjadi induk dari turunannya sendiri.");
+        return rootError('Jabatan tidak dapat menjadi induk dari turunannya sendiri.')
       }
-      const parentRow: { parentRoleId: string | null } | null =
-        await prisma.boardRole.findUnique({
-          where: { id: cursor },
-          select: { parentRoleId: true },
-        });
-      if (!parentRow) break;
-      cursor = parentRow.parentRoleId;
+      const parentRow: { parentRoleId: string | null } | null = await prisma.boardRole.findUnique({
+        where: { id: cursor },
+        select: { parentRoleId: true },
+      })
+      if (!parentRow) break
+      cursor = parentRow.parentRoleId
     }
   }
 
@@ -127,94 +110,82 @@ export async function updateBoardRole(
         isUnique: parsed.data.isUnique ?? true,
         parentRoleId: parsed.data.parentRoleId ?? null,
       },
-    });
+    })
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
-    ) {
-      return rootError("Jabatan tidak ditemukan.");
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      return rootError('Jabatan tidak ditemukan.')
     }
-    throw e;
+    throw e
   }
 
   const ctx = await prisma.adminProfile.findUnique({
     where: { authUserId: session.user.id },
     select: { id: true },
-  });
+  })
   if (ctx) {
     await appendClubAuditLog(prisma, {
       actorProfileId: ctx.id,
       actorAuthUserId: session.user.id,
       action: CLUB_AUDIT_ACTION.BOARD_ROLE_UPDATED,
-      targetType: "board_role",
+      targetType: 'board_role',
       targetId: parsed.data.id,
       metadata: { title: parsed.data.title },
-    });
+    })
   }
 
-  revalidatePath("/admin/management");
-  return ok({ id: parsed.data.id });
+  revalidatePath('/admin/management')
+  return ok({ id: parsed.data.id })
 }
 
-export async function deactivateBoardRole(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+export async function deactivateBoardRole(_prev: unknown, formData: FormData): Promise<ActionResult<{ id: string }>> {
   try {
-    await guardOwnerOrAdmin();
+    await guardOwnerOrAdmin()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
-  const session = await requireAdminSession();
+  const session = await requireAdminSession()
 
-  const parsed = deleteBoardRoleSchema.safeParse(
-    parseJsonPayload(formData),
-  );
-  if (!parsed.success)
-    return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) };
+  const parsed = deleteBoardRoleSchema.safeParse(parseJsonPayload(formData))
+  if (!parsed.success) return { ok: false, fieldErrors: zodToFieldErrors(parsed.error) }
 
   const assignCount = await prisma.boardAssignment.count({
     where: { boardRoleId: parsed.data.id },
-  });
+  })
   if (assignCount > 0) {
     return rootError(
       `Jabatan masih dipakai di ${assignCount} penugasan. Hapus atau pindahkan penugasan terlebih dahulu.`,
-    );
+    )
   }
 
   try {
     await prisma.boardRole.update({
       where: { id: parsed.data.id },
       data: { isActive: false },
-    });
+    })
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
-    ) {
-      return rootError("Jabatan tidak ditemukan.");
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      return rootError('Jabatan tidak ditemukan.')
     }
-    throw e;
+    throw e
   }
 
   const ctx = await prisma.adminProfile.findUnique({
     where: { authUserId: session.user.id },
     select: { id: true },
-  });
+  })
   if (ctx) {
     await appendClubAuditLog(prisma, {
       actorProfileId: ctx.id,
       actorAuthUserId: session.user.id,
       action: CLUB_AUDIT_ACTION.BOARD_ROLE_DEACTIVATED,
-      targetType: "board_role",
+      targetType: 'board_role',
       targetId: parsed.data.id,
       metadata: {},
-    });
+    })
   }
 
-  revalidatePath("/admin/management");
-  return ok({ id: parsed.data.id });
+  revalidatePath('/admin/management')
+  return ok({ id: parsed.data.id })
 }

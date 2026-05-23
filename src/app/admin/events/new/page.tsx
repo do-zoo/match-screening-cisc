@@ -1,61 +1,60 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from 'node:crypto'
 
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-export const metadata: Metadata = { title: "Buat Acara" };
+export const metadata: Metadata = { title: 'Buat Acara' }
 
-import { EventAdminForm } from "@/components/admin/forms/event-admin-form";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { buttonVariants } from "@/components/ui/button";
-import { loadPicAdminProfileOptionsForEvents } from "@/lib/admin/pic-options-for-event";
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { requireAdminSession } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
-import type { AdminEventUpsertInput } from "@/lib/forms/admin-event-form-schema";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
-import { signDescriptionAssetEventId } from "@/lib/public/description-asset-token";
-import { cn } from "@/lib/utils";
+import { EventAdminForm } from '@/components/admin/forms/event-admin-form'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { buttonVariants } from '@/components/ui/button'
+import { loadPicAdminProfileOptionsForEvents } from '@/lib/admin/pic-options-for-event'
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { requireAdminSession } from '@/lib/auth/session'
+import { prisma } from '@/lib/db/prisma'
+import type { AdminEventUpsertInput } from '@/lib/forms/admin-event-form-schema'
+import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
+import { signDescriptionAssetEventId } from '@/lib/public/description-asset-token'
+import { cn } from '@/lib/utils'
 
 export default async function AdminNewEventPage() {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
 
   if (!ctx) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
-        <Alert variant="destructive">
+      <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-10'>
+        <h1 className='text-2xl font-semibold tracking-tight'>Buat acara</h1>
+        <Alert variant='destructive'>
           <AlertTitle>Profil admin belum ada</AlertTitle>
           <AlertDescription>
-            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk
-            aktivasi akses PIC.
+            Akun Anda belum dikaitkan ke AdminProfile. Hubungi Owner untuk aktivasi akses PIC.
           </AlertDescription>
         </Alert>
       </main>
-    );
+    )
   }
 
   if (!hasOperationalOwnerParity(ctx.role)) {
-    notFound();
+    notFound()
   }
 
   const venuesRaw = await prisma.venue.findMany({
     where: { isActive: true },
-    orderBy: { name: "asc" },
+    orderBy: { name: 'asc' },
     select: {
       id: true,
       name: true,
-      menuItems: { orderBy: { sortOrder: "asc" } },
+      menuItems: { orderBy: { sortOrder: 'asc' } },
     },
-  });
+  })
 
   const [picOptions, banks] = await Promise.all([
     loadPicAdminProfileOptionsForEvents(),
     prisma.picBankAccount.findMany({
       where: { isActive: true },
-      orderBy: { bankName: "asc" },
+      orderBy: { bankName: 'asc' },
       select: {
         id: true,
         ownerAdminProfileId: true,
@@ -64,41 +63,38 @@ export default async function AdminNewEventPage() {
         accountName: true,
       },
     }),
-  ]);
+  ])
 
-  const banksByPic: Record<string, Array<{ id: string; label: string }>> = {};
+  const banksByPic: Record<string, Array<{ id: string; label: string }>> = {}
   for (const b of banks) {
-    const list = banksByPic[b.ownerAdminProfileId] ?? [];
+    const list = banksByPic[b.ownerAdminProfileId] ?? []
     list.push({
       id: b.id,
       label: `${b.bankName} — ${b.accountNumber} (${b.accountName})`,
-    });
-    banksByPic[b.ownerAdminProfileId] = list;
+    })
+    banksByPic[b.ownerAdminProfileId] = list
   }
 
-  const helperAdminOptions = picOptions;
+  const helperAdminOptions = picOptions
 
-  const venueOptions = venuesRaw.map((v) => ({
+  const venueOptions = venuesRaw.map(v => ({
     id: v.id,
     name: v.name,
-    menuItems: v.menuItems.map((m) => ({
+    menuItems: v.menuItems.map(m => ({
       id: m.id,
       name: m.name,
       price: m.price,
       sortOrder: m.sortOrder,
     })),
-  }));
+  }))
 
-  const firstPicId = picOptions[0]?.id;
-  const firstBankId =
-    firstPicId && banksByPic[firstPicId]?.[0]?.id
-      ? banksByPic[firstPicId]![0]!.id
-      : "";
+  const firstPicId = picOptions[0]?.id
+  const firstBankId = firstPicId && banksByPic[firstPicId]?.[0]?.id ? banksByPic[firstPicId]![0]!.id : ''
 
-  const now = new Date();
-  const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const now = new Date()
+  const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-  const firstVenue = venueOptions[0];
+  const firstVenue = venueOptions[0]
   const defaultLinked =
     firstVenue != null
       ? [...firstVenue.menuItems]
@@ -107,20 +103,19 @@ export default async function AdminNewEventPage() {
             venueMenuItemId: m.id,
             sortOrder: idx,
           }))
-      : [];
+      : []
 
-  const defaultMandatory =
-    defaultLinked.length > 0 ? [defaultLinked[0]!.venueMenuItemId] : [];
+  const defaultMandatory = defaultLinked.length > 0 ? [defaultLinked[0]!.venueMenuItemId] : []
 
-  const openReg = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  const closeReg = new Date(inOneWeek.getTime() - 60 * 60 * 1000);
-  const openGate = new Date(inOneWeek.getTime() - 30 * 60 * 1000);
+  const openReg = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+  const closeReg = new Date(inOneWeek.getTime() - 60 * 60 * 1000)
+  const openGate = new Date(inOneWeek.getTime() - 30 * 60 * 1000)
 
   const defaults: AdminEventUpsertInput = {
-    title: "",
-    summary: "",
-    descriptionHtml: "<p></p>",
-    venueId: firstVenue?.id ?? "",
+    title: '',
+    summary: '',
+    descriptionHtml: '<p></p>',
+    venueId: firstVenue?.id ?? '',
     linkedVenueMenuItems: defaultLinked,
     openRegistrationAtIso: openReg.toISOString(),
     closeRegistrationAtIso: closeReg.toISOString(),
@@ -129,102 +124,74 @@ export default async function AdminNewEventPage() {
     mandatoryMenuItemIds: defaultMandatory,
     registrationCapacity: null,
     registrationManualClosed: false,
-    status: "draft",
+    status: 'draft',
     multiCategoryPurchase: false,
-    picAdminProfileId: firstPicId ?? "",
+    picAdminProfileId: firstPicId ?? '',
     bankAccountId: firstBankId,
     helperAdminProfileIds: [],
-  };
+  }
 
-  if (
-    venueOptions.length === 0 ||
-    venueOptions.every((v) => v.menuItems.length === 0)
-  ) {
+  if (venueOptions.length === 0 || venueOptions.every(v => v.menuItems.length === 0)) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
-        <header className="flex flex-col gap-2">
-          <Link
-            href="/admin/events"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "w-fit px-0",
-            )}
-          >
+      <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10'>
+        <header className='flex flex-col gap-2'>
+          <Link href='/admin/events' className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit px-0')}>
             ← Kembali ke daftar acara
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
+          <h1 className='text-2xl font-semibold tracking-tight'>Buat acara</h1>
         </header>
         <Alert>
           <AlertTitle>Venue atau menu venue belum siap</AlertTitle>
           <AlertDescription>
-            Buat minimal satu venue yang memiliki setidaknya satu item menu di{" "}
-            <Link
-              href="/admin/venues"
-              className="font-medium underline underline-offset-4"
-            >
+            Buat minimal satu venue yang memiliki setidaknya satu item menu di{' '}
+            <Link href='/admin/venues' className='font-medium underline underline-offset-4'>
               pengelola venue
-            </Link>{" "}
+            </Link>{' '}
             sebelum membuat acara.
           </AlertDescription>
         </Alert>
       </main>
-    );
+    )
   }
 
   if (!firstPicId || !firstBankId) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
-        <header className="flex flex-col gap-2">
-          <Link
-            href="/admin/events"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "w-fit px-0",
-            )}
-          >
+      <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10'>
+        <header className='flex flex-col gap-2'>
+          <Link href='/admin/events' className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit px-0')}>
             ← Kembali ke daftar acara
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
+          <h1 className='text-2xl font-semibold tracking-tight'>Buat acara</h1>
         </header>
         <Alert>
           <AlertTitle>Belum siap membuat acara</AlertTitle>
           <AlertDescription>
-            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar{" "}
-            <strong>dan</strong> setidaknya satu rekening PIC aktif milik admin
-            tersebut. Pastikan rekening bank dipasangkan ke profil admin di
-            pengaturan komite, lalu coba lagi.
+            Perlu minimal satu admin (bukan Viewer) dengan profil terdaftar <strong>dan</strong> setidaknya satu
+            rekening PIC aktif milik admin tersebut. Pastikan rekening bank dipasangkan ke profil admin di pengaturan
+            komite, lalu coba lagi.
           </AlertDescription>
         </Alert>
       </main>
-    );
+    )
   }
 
-  const descriptionAssetClientEventId = randomUUID();
-  const descriptionAssetToken = signDescriptionAssetEventId(
-    descriptionAssetClientEventId,
-  );
+  const descriptionAssetClientEventId = randomUUID()
+  const descriptionAssetToken = signDescriptionAssetEventId(descriptionAssetClientEventId)
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10">
-      <header className="flex flex-col gap-2">
-        <Link
-          href="/admin/events"
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "w-fit px-0",
-          )}
-        >
+    <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 py-8 lg:py-10'>
+      <header className='flex flex-col gap-2'>
+        <Link href='/admin/events' className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit px-0')}>
           ← Kembali ke daftar acara
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Buat acara</h1>
-        <p className="text-muted-foreground text-sm">
-          Isi detail acara, menu, PIC, dan unggah sampul. Slug URL dibuat
-          otomatis dari judul.
+        <h1 className='text-2xl font-semibold tracking-tight'>Buat acara</h1>
+        <p className='text-muted-foreground text-sm'>
+          Isi detail acara, menu, PIC, dan unggah sampul. Slug URL dibuat otomatis dari judul.
         </p>
       </header>
 
       <EventAdminForm
-        mode="create"
+        mode='create'
         defaults={defaults}
         picOptions={picOptions}
         banksByPic={banksByPic}
@@ -237,5 +204,5 @@ export default async function AdminNewEventPage() {
         }}
       />
     </main>
-  );
+  )
 }

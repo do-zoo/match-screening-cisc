@@ -18,12 +18,12 @@
 
 ## 2. Istilah & pemisahan konsep
 
-| Konsep | Arti di sistem |
-|--------|----------------|
-| **Admin (`AdminProfile`)** | Akses panel; **PIC keuangan acara** dipilih di event dari profil admin (bukan dari flag direktori). |
-| **`MasterMember`** | Direktori anggota klub; `isManagementMember` menyatakan **eligible** sesuai aturan bisnis (tiket partner, dll.) — **bukan** “jabatan organisasi” secara resmi. |
-| **`ManagementMember`** | Orang dalam struktur kepengurusan resmi; boleh tidak punya baris `MasterMember`; punya **kode publik** untuk identitas di form publik. |
-| **Kepengurusan / pengurus (UI)** | Modul admin **menu setara Anggota** (bukan subhalaman hanya di master anggota). |
+| Konsep                           | Arti di sistem                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Admin (`AdminProfile`)**       | Akses panel; **PIC keuangan acara** dipilih di event dari profil admin (bukan dari flag direktori).                                                            |
+| **`MasterMember`**               | Direktori anggota klub; `isManagementMember` menyatakan **eligible** sesuai aturan bisnis (tiket partner, dll.) — **bukan** “jabatan organisasi” secara resmi. |
+| **`ManagementMember`**           | Orang dalam struktur kepengurusan resmi; boleh tidak punya baris `MasterMember`; punya **kode publik** untuk identitas di form publik.                         |
+| **Kepengurusan / pengurus (UI)** | Modul admin **menu setara Anggota** (bukan subhalaman hanya di master anggota).                                                                                |
 
 ## 3. Kebijakan produk yang disepakati
 
@@ -107,12 +107,12 @@ Tambah konstanta aksi (contoh nama, final saat coding):
 
 ## 10. Risiko & mitigasi
 
-| Risiko | Mitigasi |
-|--------|----------|
-| Overlap periode | Validasi di server action + constraint / partial unique jika didukung |
-| Duplikasi kode publik | Unique DB + pesan error bahasa Indonesia |
-| Admin menghapus tautan `masterMemberId` | Recompute set `isManagementMember` untuk member tersebut |
-| Kebingungan PIC acara vs pengurus klub | Dokumentasi UI singkat; PIC hanya di editor acara (`AdminProfile`) |
+| Risiko                                  | Mitigasi                                                              |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| Overlap periode                         | Validasi di server action + constraint / partial unique jika didukung |
+| Duplikasi kode publik                   | Unique DB + pesan error bahasa Indonesia                              |
+| Admin menghapus tautan `masterMemberId` | Recompute set `isManagementMember` untuk member tersebut              |
+| Kebingungan PIC acara vs pengurus klub  | Dokumentasi UI singkat; PIC hanya di editor acara (`AdminProfile`)    |
 
 ---
 

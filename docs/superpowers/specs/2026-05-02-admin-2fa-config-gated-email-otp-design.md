@@ -7,16 +7,16 @@
 
 Plugin **`twoFactor`** Better Auth sudah aktif di server (`issuer: "match-screening"`). Halaman **`/admin/settings/security`** berisi copy pembantu yang mengarahkan ke **`/admin/account`** dan dokumentasi Better Auth; **`twoFactorClient`** dan alur enrol/verifikasi penuh **belum** diimplementasi. Sign-in admin memakai `createAuthClient()` tanpa menangani **`twoFactorRedirect`**.
 
-Kirim email transaksional untuk auth (magic link) saat ini masih *no-op* / `console.log` — sehingga **OTP email** hanya masuk akal setelah **konfigurasi pengiriman** siap. SMS tidak diminta pada fase ini.
+Kirim email transaksional untuk auth (magic link) saat ini masih _no-op_ / `console.log` — sehingga **OTP email** hanya masuk akal setelah **konfigurasi pengiriman** siap. SMS tidak diminta pada fase ini.
 
 ## 2. Tujuan
 
-| Kode | Tujuan |
-|------|--------|
-| **A** | **TOTP** (aplikasi authenticator) + **kode cadangan** + **verifikasi 2FA setelah sign-in** (kredensial) sesuai dokumentasi Better Auth. |
+| Kode  | Tujuan                                                                                                                                                                                        |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** | **TOTP** (aplikasi authenticator) + **kode cadangan** + **verifikasi 2FA setelah sign-in** (kredensial) sesuai dokumentasi Better Auth.                                                       |
 | **B** | **OTP email** (kode sekali pakai) sebagai metode verifikasi kedua **hanya bila** konfigurasi pengiriman valid; jika tidak, fitur ini **absen** dari API dan UI (bukan hanya error saat klik). |
-| **C** | **Pengalaman terpusat** di **`/admin/account`** untuk mengelola 2FA; **`/admin/settings/security`** memperbarui copy agar konsisten (tanpa menduplikasi form enrol penuh). |
-| **D** | Mempersiapkan **satu helper** pengirim email terpusat yang dapat dipakai ulang untuk OTP dan alur notifikasi/auth di masa depan. |
+| **C** | **Pengalaman terpusat** di **`/admin/account`** untuk mengelola 2FA; **`/admin/settings/security`** memperbarui copy agar konsisten (tanpa menduplikasi form enrol penuh).                    |
+| **D** | Mempersiapkan **satu helper** pengirim email terpusat yang dapat dipakai ulang untuk OTP dan alur notifikasi/auth di masa depan.                                                              |
 
 ## 3. Bukan ruang lingkup (YAGNI)
 
@@ -37,17 +37,17 @@ Sumber kebenaran yang sama dipakai pada **Server Components** atau endpoint ring
 
 ### 4.3 Alternatif yang ditolak untuk MVP
 
-| Alternatif | Alasan penolakan |
-|------------|------------------|
+| Alternatif                                          | Alasan penolakan                                              |
+| --------------------------------------------------- | ------------------------------------------------------------- |
 | **`sendOTP` selalu terpasang**, guard di dalam saja | Risiko ketidakselarasan endpoint/klien dengan dukungan nyata. |
-| **Hanya UI yang disembunyikan** | Server tetap mengiklankan kemampuan OTP tanpa backend layak. |
+| **Hanya UI yang disembunyikan**                     | Server tetap mengiklankan kemampuan OTP tanpa backend layak.  |
 
 ## 5. Perilaku fungsional
 
 ### 5.1 Enrol dan pengelolaan (Akun)
 
 - Dari **`/admin/account`**, pengguna dengan **email/password** dapat: mengaktifkan 2FA (aluran Better Auth: verifikasi password → setup TOTP → verifikasi pertama → penyimpanan secret), melihat/mencetak ulang **kode cadangan** sesuai API plugin, menonaktifkan 2FA dengan konfirmasi password.
-- **OTP email** tidak dipakai untuk *enrol* TOTP; OTP email adalah **metode verifikasi saat login** bila dikonfigurasi (selaras dokumentasi Better Auth).
+- **OTP email** tidak dipakai untuk _enrol_ TOTP; OTP email adalah **metode verifikasi saat login** bila dikonfigurasi (selaras dokumentasi Better Auth).
 
 ### 5.2 Sign-in dan redirect
 
@@ -65,7 +65,7 @@ Sumber kebenaran yang sama dipakai pada **Server Components** atau endpoint ring
 
 ### 5.5 Komite & admin (transparansi)
 
-- Tabel komite yang menampilkan **`twoFactorEnabled`** tetap konsisten dengan model Better Auth; tidak mengubah spesifikasi komite kecuali penyesuaian copy silang (*opsional*).
+- Tabel komite yang menampilkan **`twoFactorEnabled`** tetap konsisten dengan model Better Auth; tidak mengubah spesifikasi komite kecuali penyesuaian copy silang (_opsional_).
 
 ## 6. Keamanan dan pesan error
 

@@ -25,7 +25,7 @@ Dokumen ini **melengkapi** [shell dashboard 2026-05-01](2026-05-01-admin-dashboa
    - **Mobile:** `Sheet` isi menu dan header strip atas **selaras** warna/tipografi dengan desktop (judul sheet, spacing, tombol Keluar).
    - **Scope token:** semua overrides warna tambahan dibatasi subtree admin (mis. `data-admin-shell` atau `className` pada root wrapper shell) — **tidak** mengubah `:root` global sedemikian rupa hingga mengubah tampilan rute **`(public)`** tanpa tinjauan eksplisit terpisah.
 
-2. **Krom jalur event** *(pendekatan “shell + event” yang disetujui)*
+2. **Krom jalur event** _(pendekatan “shell + event” yang disetujui)_
    - **`src/app/admin/events/[eventId]/layout.tsx`** — padding/wrapper utama event: sama-sama memakai latar bermeterai konsisten dengan area konten shell (mis. sama `muted`/`background` pola).
    - **`src/components/admin/admin-event-breadcrumbs.tsx`** dan **`src/components/admin/admin-event-subnav.tsx`** — penyelarasan ringan: satu bahasa visual (ketebalan garis pemisah, jarak vertikal, aksen halus sekunder/`primary` pada tab aktif) **tanpa** mengubah URL atau struktur sub-nav dari spek IA v1.
 
@@ -38,13 +38,13 @@ Dokumen ini **melengkapi** [shell dashboard 2026-05-01](2026-05-01-admin-dashboa
 
 ## 3) Locked visual decisions
 
-| Topik | Keputusan |
-|--------|-----------|
-| Arah brainstorming | **B** — identitas CISC lebih kental pada shell. |
+| Topik                        | Keputusan                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| Arah brainstorming           | **B** — identitas CISC lebih kental pada shell.                                           |
 | Cakupan implementasi pertama | **Shell global + penyelarasan strip event** (breadcrumb + subnav + wrapper layout event). |
-| Token global vs scoped | Overrides bermerek dibatasi **subtree admin**; hindari dampak pada publik. |
-| Navigasi | Tetap pola link dan **`deriveGlobalSidebarNav`**; hanya tambah ikon dan gaya. |
-| Bahasa UI | Indonesia, selaras dokumen PIC lainnya. |
+| Token global vs scoped       | Overrides bermerek dibatasi **subtree admin**; hindari dampak pada publik.                |
+| Navigasi                     | Tetap pola link dan **`deriveGlobalSidebarNav`**; hanya tambah ikon dan gaya.             |
+| Bahasa UI                    | Indonesia, selaras dokumen PIC lainnya.                                                   |
 
 ## 4) Components & structure
 
@@ -56,10 +56,10 @@ Satu **wrapper aksesibel** disarankan pada elemen luar `AdminAppShell` atau root
 
 ### 4.2 Logo slot
 
-| Kondisi | Perilaku |
-|---------|----------|
-| Belum ada aset di `public/` untuk logo klub | Tampilkan **fallback mark** statis (mis. kotak/`div` bermeterai atau satu huruf grup) tetap konsisten tinggi dengan baris judul — **tidak** memblokir merge. |
-| Aset ditambahkan kemudian | Satu lokasi konfiguratif (mis. konstante path string atau komponen `AdminBrandMark`) mengimpor **`next/image`** bila Cocok CSP/domain; **`alt`** deskriptif singkat bahasa Indonesia. |
+| Kondisi                                     | Perilaku                                                                                                                                                                              |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Belum ada aset di `public/` untuk logo klub | Tampilkan **fallback mark** statis (mis. kotak/`div` bermeterai atau satu huruf grup) tetap konsisten tinggi dengan baris judul — **tidak** memblokir merge.                          |
+| Aset ditambahkan kemudian                   | Satu lokasi konfiguratif (mis. konstante path string atau komponen `AdminBrandMark`) mengimpor **`next/image`** bila Cocok CSP/domain; **`alt`** deskriptif singkat bahasa Indonesia. |
 
 ### 4.3 Item navigasi
 
@@ -74,27 +74,27 @@ Satu **wrapper aksesibel** disarankan pada elemen luar `AdminAppShell` atau root
 
 ## 5) Behaviour & responsiveness
 
-| Breakpoint | Ekspektasi |
-|------------|------------|
-| **≥ lg** | Sidebar tetap kolom kiri tetap (~ lebar bisa sedikit lebih lebar dari 220px bila dibutuhkan untuk ikon+teks tanpa truncation berlebihan, maks konservatif ~260px). |
-| **< lg** | Header atas + Sheet; konten utama full width seperti sekarang; tidak mengorbankan tap target minimal **44×44** untuk kontrol pembuka menu. |
+| Breakpoint | Ekspektasi                                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **≥ lg**   | Sidebar tetap kolom kiri tetap (~ lebar bisa sedikit lebih lebar dari 220px bila dibutuhkan untuk ikon+teks tanpa truncation berlebihan, maks konservatif ~260px). |
+| **< lg**   | Header atas + Sheet; konten utama full width seperti sekarang; tidak mengorbankan tap target minimal **44×44** untuk kontrol pembuka menu.                         |
 
 Tidak ada perubahan **Server Action**, **middleware**, atau **session**.
 
 ## 6) Failure & accessibility
 
-| Area | Perlakuan |
-|------|-----------|
-| Email panjang | Tetap **`truncate`** + **`title`** tooltip seperti sekarang. |
-| Landmark | Pertahankan **`aria-label`** pada **`<aside>`**, **`<nav>`**, sheet title. |
-| Kontras | Audit cepat aktif/nav teks pada `sidebar` dan sub-nav selepas implementasi (perbaiki kelas Tailwind jika gagal AA). |
+| Area          | Perlakuan                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Email panjang | Tetap **`truncate`** + **`title`** tooltip seperti sekarang.                                                        |
+| Landmark      | Pertahankan **`aria-label`** pada **`<aside>`**, **`<nav>`**, sheet title.                                          |
+| Kontras       | Audit cepat aktif/nav teks pada `sidebar` dan sub-nav selepas implementasi (perbaiki kelas Tailwind jika gagal AA). |
 
 ## 7) Testing
 
-| Jenis | Cakupan |
-|-------|---------|
+| Jenis        | Cakupan                                                                                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Manual smoke | Sidebar + semua kombinasi item nav yang mungkin oleh flags; membuka jalur **`/admin/events/[eventId]/inbox`** dan **`/report`**; mobile Sheet buka/tutup; Keluar. |
-| Automatisasi | Tidak mensyaratkan tes baru untuk iterasi pertama; regressions ditangkap lint + tinjauan visual. |
+| Automatisasi | Tidak mensyaratkan tes baru untuk iterasi pertama; regressions ditangkap lint + tinjauan visual.                                                                  |
 
 ## 8) Success criteria
 

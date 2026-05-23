@@ -1,8 +1,8 @@
-import type { AdminRole } from "@/lib/permissions/roles";
+import type { AdminRole } from '@/lib/permissions/roles'
 
 /** Sesuai spec: pembaca bisa semua yang sudah akses konteks Komite — gate pada route/halaman. */
 export function canViewPicBankListDetails(_viewerRole: AdminRole): boolean {
-  return true;
+  return true
 }
 
 /**
@@ -16,13 +16,11 @@ export function canMutatePicBankForTarget(
   viewerProfileId: string,
   targetOwnerProfileId: string,
 ): boolean {
-  if (viewerRole === "Viewer") return false;
-  if (viewerRole === "Owner" || viewerRole === "Admin") return true;
-  return viewerProfileId === targetOwnerProfileId;
+  if (viewerRole === 'Viewer') return false
+  if (viewerRole === 'Owner' || viewerRole === 'Admin') return true
+  return viewerProfileId === targetOwnerProfileId
 }
 
-export function viewerMayUseOwnerOnlyCommitteeControls(
-  viewerRole: AdminRole,
-): boolean {
-  return viewerRole === "Owner";
+export function viewerMayUseOwnerOnlyCommitteeControls(viewerRole: AdminRole): boolean {
+  return viewerRole === 'Owner'
 }

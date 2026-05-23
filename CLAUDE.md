@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **New environment variable** → add to the environment variable table
 - **New CLI command or script** → add to "Commands"
 
-Do **not** document ephemeral implementation details (local variable names, internal function bodies). Document only things that a future agent needs to understand *before* reading the code — cross-file invariants, non-obvious constraints, and conventions that would take multiple file reads to discover.
+Do **not** document ephemeral implementation details (local variable names, internal function bodies). Document only things that a future agent needs to understand _before_ reading the code — cross-file invariants, non-obvious constraints, and conventions that would take multiple file reads to discover.
 
 ## Commands
 
@@ -52,15 +52,15 @@ All commands need Node 24 active. See AGENTS.md for the `nvm use` bootstrap patt
 
 Copy `.env.example` to `.env.local` and fill in for local development. Optionally keep `.env.prod` on your machine **only** for operator commands targeting production Postgres (never commit; `.env*` is gitignored):
 
-| Variable                | Purpose                                                                                                                                                                                                               |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MATCH_DB_PROFILE`      | Optional for **local CLI only**: unset / `development` / `dev` → load `.env` then `.env.local`; `production` / `prod` → `.env` then `.env.prod`. Ignored on Vercel.                                                   |
-| `DATABASE_URL`          | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
-| `DATABASE_URL_UNPOOLED` | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
-| `BETTER_AUTH_SECRET`    | Min 32-char secret for Better Auth; juga dipakai untuk menandatangani token unggah gambar deskripsi acara bila `DESCRIPTION_ASSET_SIGNING_SECRET` tidak diatur |
-| `DESCRIPTION_ASSET_SIGNING_SECRET` | Opsional: secret terpisah untuk HMAC token unggah gambar di editor deskripsi (`signDescriptionAssetEventId`); jika kosong dipakai `BETTER_AUTH_SECRET`. |
-| `BETTER_AUTH_URL`       | App origin (e.g. `http://localhost:3000`)                                                                                                                                                                             |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for file uploads                                                                                                                                                                                    |
+| Variable                           | Purpose                                                                                                                                                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MATCH_DB_PROFILE`                 | Optional for **local CLI only**: unset / `development` / `dev` → load `.env` then `.env.local`; `production` / `prod` → `.env` then `.env.prod`. Ignored on Vercel.                                                   |
+| `DATABASE_URL`                     | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
+| `DATABASE_URL_UNPOOLED`            | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
+| `BETTER_AUTH_SECRET`               | Min 32-char secret for Better Auth; juga dipakai untuk menandatangani token unggah gambar deskripsi acara bila `DESCRIPTION_ASSET_SIGNING_SECRET` tidak diatur                                                        |
+| `DESCRIPTION_ASSET_SIGNING_SECRET` | Opsional: secret terpisah untuk HMAC token unggah gambar di editor deskripsi (`signDescriptionAssetEventId`); jika kosong dipakai `BETTER_AUTH_SECRET`.                                                               |
+| `BETTER_AUTH_URL`                  | App origin (e.g. `http://localhost:3000`)                                                                                                                                                                             |
+| `BLOB_READ_WRITE_TOKEN`            | Vercel Blob token for file uploads                                                                                                                                                                                    |
 
 On **Vercel**, add **`DATABASE_URL_UNPOOLED`** (Neon non-pooler connection string) for Production and Preview so `scripts/vercel-migrate.mjs` runs `prisma migrate deploy` against a direct endpoint.
 
@@ -97,12 +97,12 @@ An event registration system for a members-only social club (CISC). Members and 
 
 ### Role permission model
 
-| Capability | Owner | Admin | Verifier | Viewer |
-| --- | --- | --- | --- | --- |
-| Verify/edit registrations on all events | ✓ | ✓ | ✓ | — |
-| Verify/edit registrations on assigned events | ✓ | ✓ | ✓ | ✓ (via `EventPicHelper`) |
-| Operational management (members, events, venues, management) | ✓ | ✓ | — | — |
-| Committee advanced settings (WA templates, branding, security) | ✓ | — | — | — |
+| Capability                                                     | Owner | Admin | Verifier | Viewer                   |
+| -------------------------------------------------------------- | ----- | ----- | -------- | ------------------------ |
+| Verify/edit registrations on all events                        | ✓     | ✓     | ✓        | —                        |
+| Verify/edit registrations on assigned events                   | ✓     | ✓     | ✓        | ✓ (via `EventPicHelper`) |
+| Operational management (members, events, venues, management)   | ✓     | ✓     | —        | —                        |
+| Committee advanced settings (WA templates, branding, security) | ✓     | —     | —        | —                        |
 
 `lib/permissions/roles.ts` exports `hasGlobalVerifierAccess`, `hasOperationalOwnerParity`, and `canManageCommitteeAdvancedSettings`. Use these functions rather than comparing role strings directly. Guard functions in `lib/actions/guard.ts` wrap these for server actions.
 
@@ -193,7 +193,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 
 ```tsx
-<DialogTrigger disabled={isPending} render={<Button variant="outline" />}>
+<DialogTrigger disabled={isPending} render={<Button variant='outline' />}>
   Open
 </DialogTrigger>
 ```

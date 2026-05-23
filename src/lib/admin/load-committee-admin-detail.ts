@@ -1,34 +1,32 @@
-import type { EventStatus } from "@prisma/client";
+import type { EventStatus } from '@prisma/client'
 
-import type { CommitteeAdminDirectoryPicBankVm } from "@/lib/admin/load-committee-admin-directory";
-import { prisma } from "@/lib/db/prisma";
+import type { CommitteeAdminDirectoryPicBankVm } from '@/lib/admin/load-committee-admin-directory'
+import { prisma } from '@/lib/db/prisma'
 
 export type EventAsPicVm = {
-  eventId: string;
-  name: string;
-  startAtIso: string;
-  status: EventStatus;
-};
+  eventId: string
+  name: string
+  startAtIso: string
+  status: EventStatus
+}
 
 export type CommitteeAdminDetailVm = {
-  adminProfileId: string;
-  authUserId: string;
-  email: string;
-  displayName: string;
-  role: string;
-  managementMemberId: string | null;
-  memberSummary: string | null;
-  twoFactorEnabled: boolean;
-  lastSessionActivityAtIso: string | null;
-  picBankAccounts: CommitteeAdminDirectoryPicBankVm[];
-  eventsAsPic: EventAsPicVm[];
-  memberOptions: { id: string; label: string }[];
-};
+  adminProfileId: string
+  authUserId: string
+  email: string
+  displayName: string
+  role: string
+  managementMemberId: string | null
+  memberSummary: string | null
+  twoFactorEnabled: boolean
+  lastSessionActivityAtIso: string | null
+  picBankAccounts: CommitteeAdminDirectoryPicBankVm[]
+  eventsAsPic: EventAsPicVm[]
+  memberOptions: { id: string; label: string }[]
+}
 
-export async function loadCommitteeAdminDetail(
-  adminProfileId: string,
-): Promise<CommitteeAdminDetailVm | null> {
-  const now = new Date();
+export async function loadCommitteeAdminDetail(adminProfileId: string): Promise<CommitteeAdminDetailVm | null> {
+  const now = new Date()
 
   const [profile, memberOptionsRaw, eventsRaw] = await Promise.all([
     prisma.adminProfile.findUnique({
@@ -42,7 +40,7 @@ export async function loadCommitteeAdminDetail(
           select: { publicCode: true, fullName: true },
         },
         ownedPicBankAccounts: {
-          orderBy: { bankName: "asc" },
+          orderBy: { bankName: 'asc' },
           select: {
             id: true,
             bankName: true,
@@ -54,17 +52,17 @@ export async function loadCommitteeAdminDetail(
       },
     }),
     prisma.managementMember.findMany({
-      orderBy: { fullName: "asc" },
+      orderBy: { fullName: 'asc' },
       select: { id: true, publicCode: true, fullName: true },
     }),
     prisma.event.findMany({
       where: { picAdminProfileId: adminProfileId },
-      orderBy: { kickOffAt: "desc" },
+      orderBy: { kickOffAt: 'desc' },
       select: { id: true, title: true, kickOffAt: true, status: true },
     }),
-  ]);
+  ])
 
-  if (!profile) return null;
+  if (!profile) return null
 
   const [user, lastSession] = await Promise.all([
     prisma.user.findUnique({
@@ -73,16 +71,16 @@ export async function loadCommitteeAdminDetail(
     }),
     prisma.session.findFirst({
       where: { userId: profile.authUserId, expiresAt: { gt: now } },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
       select: { updatedAt: true },
     }),
-  ]);
+  ])
 
   return {
     adminProfileId: profile.id,
     authUserId: profile.authUserId,
     email: user?.email ?? profile.authUserId,
-    displayName: user?.name ?? "—",
+    displayName: user?.name ?? '—',
     role: profile.role,
     managementMemberId: profile.managementMemberId,
     memberSummary: profile.managementMember
@@ -91,15 +89,15 @@ export async function loadCommitteeAdminDetail(
     twoFactorEnabled: Boolean(user?.twoFactorEnabled),
     lastSessionActivityAtIso: lastSession ? lastSession.updatedAt.toISOString() : null,
     picBankAccounts: profile.ownedPicBankAccounts,
-    eventsAsPic: eventsRaw.map((e) => ({
+    eventsAsPic: eventsRaw.map(e => ({
       eventId: e.id,
       name: e.title,
       startAtIso: e.kickOffAt.toISOString(),
       status: e.status,
     })),
-    memberOptions: memberOptionsRaw.map((m) => ({
+    memberOptions: memberOptionsRaw.map(m => ({
       id: m.id,
       label: `${m.publicCode} — ${m.fullName}`,
     })),
-  };
+  }
 }

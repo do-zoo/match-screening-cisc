@@ -1,65 +1,57 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
-import { requireAdminSession } from "@/lib/auth/session";
+import { requireAdminSession } from '@/lib/auth/session'
 
-export const metadata: Metadata = { title: "Jabatan" };
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
+export const metadata: Metadata = { title: 'Jabatan' }
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
 import {
   countBoardRolesByTabForAdmin,
   countBoardRolesForAdmin,
   listAllBoardRolesForAdminTree,
   listBoardRolesForAdmin,
   type BoardRoleAdminFilter,
-} from "@/lib/management/query-admin-board-roles";
-import {
-  ADMIN_TABLE_PAGE_SIZE,
-  parseAdminTablePage,
-  resolveClampedPage,
-} from "@/lib/table/admin-pagination";
-import { prisma } from "@/lib/db/prisma";
-import { ManagementRolesPage } from "@/components/admin/management-roles-page";
+} from '@/lib/management/query-admin-board-roles'
+import { ADMIN_TABLE_PAGE_SIZE, parseAdminTablePage, resolveClampedPage } from '@/lib/table/admin-pagination'
+import { prisma } from '@/lib/db/prisma'
+import { ManagementRolesPage } from '@/components/admin/management-roles-page'
 
 function firstString(param: string | string[] | undefined): string | undefined {
-  if (param === undefined) return undefined;
-  if (Array.isArray(param)) return param[0];
-  return param;
+  if (param === undefined) return undefined
+  if (Array.isArray(param)) return param[0]
+  return param
 }
 
 function parseFilter(v: string | undefined): BoardRoleAdminFilter {
-  if (v === "active" || v === "inactive") return v;
-  return "all";
+  if (v === 'active' || v === 'inactive') return v
+  return 'all'
 }
 
 export default async function AdminManagementRolesPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
 
   if (!ctx || !hasOperationalOwnerParity(ctx.role)) {
-    notFound();
+    notFound()
   }
 
-  const sp = (await searchParams) ?? {};
-  const filter = parseFilter(firstString(sp.filter));
-  const qRaw = firstString(sp.q) ?? "";
-  const q = qRaw.trim().slice(0, 200) || undefined;
+  const sp = (await searchParams) ?? {}
+  const filter = parseFilter(firstString(sp.filter))
+  const qRaw = firstString(sp.q) ?? ''
+  const q = qRaw.trim().slice(0, 200) || undefined
 
-  const requestedPage = parseAdminTablePage(sp.page);
+  const requestedPage = parseAdminTablePage(sp.page)
 
-  const totalItems = await countBoardRolesForAdmin({ filter, q });
-  const page = resolveClampedPage(
-    requestedPage,
-    totalItems,
-    ADMIN_TABLE_PAGE_SIZE,
-  );
-  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
+  const totalItems = await countBoardRolesForAdmin({ filter, q })
+  const page = resolveClampedPage(requestedPage, totalItems, ADMIN_TABLE_PAGE_SIZE)
+  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE
 
-  const isTreeMode = filter === "all" && !q;
+  const isTreeMode = filter === 'all' && !q
 
   const [roles, tabCounts, totalInDb, allRolesForTree] = await Promise.all([
     listBoardRolesForAdmin({
@@ -71,7 +63,7 @@ export default async function AdminManagementRolesPage({
     countBoardRolesByTabForAdmin({ q }),
     prisma.boardRole.count(),
     isTreeMode ? listAllBoardRolesForAdminTree() : Promise.resolve([]),
-  ]);
+  ])
 
   return (
     <ManagementRolesPage
@@ -84,8 +76,8 @@ export default async function AdminManagementRolesPage({
         totalItems,
       }}
       filter={filter}
-      searchQuery={q ?? ""}
+      searchQuery={q ?? ''}
       tabCounts={tabCounts}
     />
-  );
+  )
 }

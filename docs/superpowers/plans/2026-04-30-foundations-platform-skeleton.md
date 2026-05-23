@@ -13,6 +13,7 @@
 ## File structure (locked)
 
 **Create:**
+
 - `components/ui/button.tsx` — shadcn Button primitive
 - `components/ui/input.tsx` — shadcn Input primitive
 - `components/ui/label.tsx` — shadcn Label primitive
@@ -41,6 +42,7 @@
 - `tests/unit/permissions.test.ts` — permission guard tests (pure functions)
 
 **Modify:**
+
 - `package.json` — add deps + scripts
 - `app/layout.tsx` — fonts + theme tokens alignment (minimal; no design polish yet)
 - `app/globals.css` — shadcn-compatible CSS vars baseline + focus ring
@@ -50,6 +52,7 @@
 ### Task 1: Add test runner + core dependencies (Vitest, Zod, RHF, Prisma, Blob, Sharp)
 
 **Files:**
+
 - Modify: `package.json`
 - Create: `vitest.config.ts`
 - Create: `tests/vitest.setup.ts`
@@ -85,24 +88,24 @@ Expected: install completes, `package-lock.json` updated.
 - [ ] **Step 3: Create `vitest.config.ts`**
 
 ```ts
-import { defineConfig } from "vitest/config";
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    environment: "node",
-    setupFiles: ["./tests/vitest.setup.ts"],
+    environment: 'node',
+    setupFiles: ['./tests/vitest.setup.ts'],
   },
-});
+})
 ```
 
 - [ ] **Step 4: Create `tests/vitest.setup.ts`**
 
 ```ts
-import { afterEach } from "vitest";
+import { afterEach } from 'vitest'
 
 afterEach(() => {
   // Keep as a hook point for later (e.g. resetting mocks).
-});
+})
 ```
 
 - [ ] **Step 5: Run tests (should be empty but succeed)**
@@ -122,6 +125,7 @@ git commit -m "chore: add vitest and core dependencies"
 ### Task 2: shadcn form primitives + CSS token baseline (to enforce RHF+shadcn rules)
 
 **Files:**
+
 - Modify: `app/globals.css`
 - Create: `components/ui/button.tsx`
 - Create: `components/ui/input.tsx`
@@ -133,7 +137,7 @@ git commit -m "chore: add vitest and core dependencies"
 Replace file content with:
 
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   /* Brand-ish neutrals (foundation). Design system plan will refine later. */
@@ -214,100 +218,87 @@ body {
 - [ ] **Step 2: Create `components/ui/button.tsx`**
 
 ```tsx
-import * as React from "react";
+import * as React from 'react'
 
-import { cn } from "@/lib/utils/cn";
+import { cn } from '@/lib/utils/cn'
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "default" | "secondary" | "destructive" | "ghost";
-  size?: "default" | "sm" | "lg";
-};
+  variant?: 'default' | 'secondary' | 'destructive' | 'ghost'
+  size?: 'default' | 'sm' | 'lg'
+}
 
-export function Button({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: ButtonProps) {
+export function Button({ className, variant = 'default', size = 'default', ...props }: ButtonProps) {
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium",
-        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]",
-        "disabled:pointer-events-none disabled:opacity-50",
-        variant === "default" &&
-          "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90",
-        variant === "secondary" &&
-          "bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:opacity-90",
-        variant === "destructive" &&
-          "bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] hover:opacity-90",
-        variant === "ghost" && "hover:bg-[hsl(var(--accent))]",
-        size === "default" && "h-10 px-4 py-2",
-        size === "sm" && "h-9 px-3",
-        size === "lg" && "h-11 px-8",
+        'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium',
+        'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]',
+        'disabled:pointer-events-none disabled:opacity-50',
+        variant === 'default' && 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90',
+        variant === 'secondary' &&
+          'bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:opacity-90',
+        variant === 'destructive' &&
+          'bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] hover:opacity-90',
+        variant === 'ghost' && 'hover:bg-[hsl(var(--accent))]',
+        size === 'default' && 'h-10 px-4 py-2',
+        size === 'sm' && 'h-9 px-3',
+        size === 'lg' && 'h-11 px-8',
         className,
       )}
       {...props}
     />
-  );
+  )
 }
 ```
 
 - [ ] **Step 3: Create `components/ui/input.tsx`**
 
 ```tsx
-import * as React from "react";
+import * as React from 'react'
 
-import { cn } from "@/lib/utils/cn";
+import { cn } from '@/lib/utils/cn'
 
-export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement>
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
-    return (
-      <input
-        ref={ref}
-        type={type}
-        className={cn(
-          "flex h-10 w-full rounded-md border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          className,
-        )}
-        {...props}
-      />
-    );
-  },
-);
-Input.displayName = "Input";
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => {
+  return (
+    <input
+      ref={ref}
+      type={type}
+      className={cn(
+        'flex h-10 w-full rounded-md border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    />
+  )
+})
+Input.displayName = 'Input'
 ```
 
 - [ ] **Step 4: Create `components/ui/label.tsx`**
 
 ```tsx
-import * as React from "react";
+import * as React from 'react'
 
-import { cn } from "@/lib/utils/cn";
+import { cn } from '@/lib/utils/cn'
 
-export const Label = React.forwardRef<
-  HTMLLabelElement,
-  React.LabelHTMLAttributes<HTMLLabelElement>
->(({ className, ...props }, ref) => (
-  <label
-    ref={ref}
-    className={cn("text-sm font-medium leading-none", className)}
-    {...props}
-  />
-));
-Label.displayName = "Label";
+export const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
+  ({ className, ...props }, ref) => (
+    <label ref={ref} className={cn('text-sm font-medium leading-none', className)} {...props} />
+  ),
+)
+Label.displayName = 'Label'
 ```
 
 - [ ] **Step 5: Create `components/ui/form.tsx` (RHF + shadcn composition primitives)**
 
 ```tsx
-"use client";
+'use client'
 
-import * as React from "react";
+import * as React from 'react'
 import {
   Controller,
   FormProvider,
@@ -315,22 +306,20 @@ import {
   type ControllerProps,
   type FieldPath,
   type FieldValues,
-} from "react-hook-form";
+} from 'react-hook-form'
 
-import { cn } from "@/lib/utils/cn";
+import { cn } from '@/lib/utils/cn'
 
-const Form = FormProvider;
+const Form = FormProvider
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = {
-  name: TName;
-};
+  name: TName
+}
 
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue,
-);
+const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue)
 
 function FormField<
   TFieldValues extends FieldValues = FieldValues,
@@ -340,28 +329,28 @@ function FormField<
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
-  );
+  )
 }
 
-const FormItemContext = React.createContext<{ id: string }>({ id: "" });
+const FormItemContext = React.createContext<{ id: string }>({ id: '' })
 
 function FormItem({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const id = React.useId();
+  const id = React.useId()
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div className={cn("space-y-2", className)} {...props} />
+      <div className={cn('space-y-2', className)} {...props} />
     </FormItemContext.Provider>
-  );
+  )
 }
 
 function useFormField() {
-  const fieldContext = React.useContext(FormFieldContext);
-  const itemContext = React.useContext(FormItemContext);
-  const { getFieldState, formState } = useFormContext();
+  const fieldContext = React.useContext(FormFieldContext)
+  const itemContext = React.useContext(FormItemContext)
+  const { getFieldState, formState } = useFormContext()
 
-  const fieldState = getFieldState(fieldContext.name, formState);
+  const fieldState = getFieldState(fieldContext.name, formState)
 
-  const id = itemContext.id;
+  const id = itemContext.id
   return {
     id,
     name: fieldContext.name,
@@ -369,16 +358,16 @@ function useFormField() {
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
-  };
+  }
 }
 
 function FormLabel({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  const { formItemId } = useFormField();
-  return <label className={cn("text-sm font-medium", className)} htmlFor={formItemId} {...props} />;
+  const { formItemId } = useFormField()
+  return <label className={cn('text-sm font-medium', className)} htmlFor={formItemId} {...props} />
 }
 
 function FormControl({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const { formItemId, formDescriptionId, formMessageId, error } = useFormField();
+  const { formItemId, formDescriptionId, formMessageId, error } = useFormField()
   return (
     <div
       id={formItemId}
@@ -387,36 +376,28 @@ function FormControl({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
       className={cn(className)}
       {...props}
     />
-  );
+  )
 }
 
 function FormDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  const { formDescriptionId } = useFormField();
+  const { formDescriptionId } = useFormField()
   return (
-    <p
-      id={formDescriptionId}
-      className={cn("text-sm text-[hsl(var(--muted-foreground))]", className)}
-      {...props}
-    />
-  );
+    <p id={formDescriptionId} className={cn('text-sm text-[hsl(var(--muted-foreground))]', className)} {...props} />
+  )
 }
 
 function FormMessage({ className, children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  const { error, formMessageId } = useFormField();
-  const body = error ? String(error.message ?? "") : children;
-  if (!body) return null;
+  const { error, formMessageId } = useFormField()
+  const body = error ? String(error.message ?? '') : children
+  if (!body) return null
   return (
-    <p
-      id={formMessageId}
-      className={cn("text-sm font-medium text-[hsl(var(--destructive))]", className)}
-      {...props}
-    >
+    <p id={formMessageId} className={cn('text-sm font-medium text-[hsl(var(--destructive))]', className)} {...props}>
       {body}
     </p>
-  );
+  )
 }
 
-export { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, useFormField };
+export { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, useFormField }
 ```
 
 - [ ] **Step 6: Create `lib/utils/cn.ts` (tiny classnames helper)**
@@ -425,7 +406,7 @@ Create `lib/utils/cn.ts`:
 
 ```ts
 export function cn(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
+  return values.filter(Boolean).join(' ')
 }
 ```
 
@@ -446,6 +427,7 @@ git commit -m "feat(ui): add minimal shadcn-style form primitives and tokens"
 ### Task 3: Prisma schema (domain + constraints + enums) + Prisma client
 
 **Files:**
+
 - Create: `prisma/schema.prisma`
 - Create: `lib/db/prisma.ts`
 
@@ -760,20 +742,20 @@ model AdminProfile {
 - [ ] **Step 2: Create `lib/db/prisma.ts`**
 
 ```ts
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client'
 
 declare global {
   // eslint-disable-next-line no-var
-  var __prisma__: PrismaClient | undefined;
+  var __prisma__: PrismaClient | undefined
 }
 
 export const prisma: PrismaClient =
   globalThis.__prisma__ ??
   new PrismaClient({
-    log: ["error", "warn"],
-  });
+    log: ['error', 'warn'],
+  })
 
-if (process.env.NODE_ENV !== "production") globalThis.__prisma__ = prisma;
+if (process.env.NODE_ENV !== 'production') globalThis.__prisma__ = prisma
 ```
 
 - [ ] **Step 3: Add `.env.example`**
@@ -811,6 +793,7 @@ git commit -m "feat(db): add prisma domain schema with core constraints"
 ### Task 4: Better Auth (admin-only) + route handler + `/admin/**` middleware gate
 
 **Files:**
+
 - Create: `lib/auth/auth.ts`
 - Create: `lib/auth/session.ts`
 - Create: `app/api/auth/[...all]/route.ts`
@@ -821,17 +804,17 @@ git commit -m "feat(db): add prisma domain schema with core constraints"
 - [ ] **Step 1: Create `lib/auth/auth.ts`**
 
 ```ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-import { nextCookies } from "better-auth/next-js";
-import { magicLink } from "better-auth/plugins/magic-link";
+import { betterAuth } from 'better-auth'
+import { Pool } from 'pg'
+import { nextCookies } from 'better-auth/next-js'
+import { magicLink } from 'better-auth/plugins/magic-link'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-});
+})
 
 export const auth = betterAuth({
-  appName: "match-screening",
+  appName: 'match-screening',
   database: pool,
   plugins: [
     nextCookies(),
@@ -839,197 +822,190 @@ export const auth = betterAuth({
       // For foundations: keep email sending as a no-op.
       // In later plans, replace with Resend and real templates.
       sendMagicLink: async ({ email, url }) => {
-        console.log("[magicLink]", { email, url });
+        console.log('[magicLink]', { email, url })
       },
     }),
   ],
   emailAndPassword: {
     enabled: true,
   },
-});
+})
 
-export type AuthSession = typeof auth.$Infer.Session;
+export type AuthSession = typeof auth.$Infer.Session
 ```
 
 - [ ] **Step 2: Create `app/api/auth/[...all]/route.ts`**
 
 ```ts
-import { toNextJsHandler } from "better-auth/next-js";
-import { auth } from "@/lib/auth/auth";
+import { toNextJsHandler } from 'better-auth/next-js'
+import { auth } from '@/lib/auth/auth'
 
-export const { GET, POST } = toNextJsHandler(auth);
+export const { GET, POST } = toNextJsHandler(auth)
 ```
 
 - [ ] **Step 3: Create `lib/auth/session.ts`**
 
 ```ts
-import { headers } from "next/headers";
-import { auth, type AuthSession } from "@/lib/auth/auth";
+import { headers } from 'next/headers'
+import { auth, type AuthSession } from '@/lib/auth/auth'
 
 export async function getAdminSession(): Promise<AuthSession | null> {
   const session = await auth.api.getSession({
     headers: await headers(),
-  });
-  return session ?? null;
+  })
+  return session ?? null
 }
 
 export async function requireAdminSession(): Promise<AuthSession> {
-  const session = await getAdminSession();
+  const session = await getAdminSession()
   if (!session) {
-    throw new Error("UNAUTHENTICATED");
+    throw new Error('UNAUTHENTICATED')
   }
-  return session;
+  return session
 }
 ```
 
-- [ ] **Step 4: Create `middleware.ts` (coarse `/admin/**` gate)**
+- [ ] **Step 4: Create `middleware.ts` (coarse `/admin/**` gate)\*\*
 
 ```ts
-import { NextResponse, type NextRequest } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { NextResponse, type NextRequest } from 'next/server'
+import { auth } from '@/lib/auth/auth'
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  if (!pathname.startsWith("/admin")) return NextResponse.next();
+  const { pathname } = req.nextUrl
+  if (!pathname.startsWith('/admin')) return NextResponse.next()
 
   const session = await auth.api.getSession({
     headers: req.headers,
-  });
+  })
 
   if (!session) {
-    const url = new URL("/admin/sign-in", req.url);
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    const url = new URL('/admin/sign-in', req.url)
+    url.searchParams.set('next', pathname)
+    return NextResponse.redirect(url)
   }
 
-  return NextResponse.next();
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
-};
+  matcher: ['/admin/:path*'],
+}
 ```
 
 - [ ] **Step 5: Create minimal sign-in page `app/(auth)/admin/sign-in/page.tsx`**
 
 ```tsx
-"use client";
+'use client'
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createAuthClient } from "better-auth/react";
+import { useMemo, useState, useTransition } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createAuthClient } from 'better-auth/react'
 
-const authClient = createAuthClient();
+const authClient = createAuthClient()
 
 export default function AdminSignInPage() {
-  const router = useRouter();
-  const search = useSearchParams();
-  const next = useMemo(() => search.get("next") ?? "/admin", [search]);
+  const router = useRouter()
+  const search = useSearchParams()
+  const next = useMemo(() => search.get('next') ?? '/admin', [search])
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Admin sign in</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Use email + password. Magic link will be enabled later.
-      </p>
+    <main className='mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12'>
+      <h1 className='text-2xl font-semibold tracking-tight'>Admin sign in</h1>
+      <p className='mt-2 text-sm text-zinc-600'>Use email + password. Magic link will be enabled later.</p>
 
       <form
-        className="mt-8 space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setError(null);
+        className='mt-8 space-y-4'
+        onSubmit={e => {
+          e.preventDefault()
+          setError(null)
           startTransition(async () => {
             const res = await authClient.signIn.email({
               email,
               password,
-            });
+            })
             if (res.error) {
-              setError(res.error.message ?? "Sign in failed.");
-              return;
+              setError(res.error.message ?? 'Sign in failed.')
+              return
             }
-            router.push(next);
-          });
+            router.push(next)
+          })
         }}
       >
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Email</span>
+        <label className='block space-y-1'>
+          <span className='text-sm font-medium'>Email</span>
           <input
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            autoComplete="email"
-            className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-400"
+            onChange={e => setEmail(e.target.value)}
+            type='email'
+            autoComplete='email'
+            className='h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-400'
             required
           />
         </label>
 
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Password</span>
+        <label className='block space-y-1'>
+          <span className='text-sm font-medium'>Password</span>
           <input
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-400"
+            onChange={e => setPassword(e.target.value)}
+            type='password'
+            autoComplete='current-password'
+            className='h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-400'
             required
           />
         </label>
 
         {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </p>
+          <p className='rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800'>{error}</p>
         ) : null}
 
         <button
-          type="submit"
+          type='submit'
           disabled={isPending}
-          className="inline-flex h-10 w-full items-center justify-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white disabled:opacity-60"
+          className='inline-flex h-10 w-full items-center justify-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white disabled:opacity-60'
         >
-          {isPending ? "Signing in…" : "Sign in"}
+          {isPending ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
     </main>
-  );
+  )
 }
 ```
 
 - [ ] **Step 6: Create minimal admin page `app/admin/page.tsx`**
 
 ```tsx
-import { getAdminSession } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
+import { getAdminSession } from '@/lib/auth/session'
+import { prisma } from '@/lib/db/prisma'
 
 export default async function AdminHomePage() {
-  const session = await getAdminSession();
-  const authUserId = session?.user?.id ?? null;
+  const session = await getAdminSession()
+  const authUserId = session?.user?.id ?? null
 
-  const admin =
-    authUserId
-      ? await prisma.adminProfile.findUnique({ where: { authUserId } })
-      : null;
+  const admin = authUserId ? await prisma.adminProfile.findUnique({ where: { authUserId } }) : null
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Authenticated as <span className="font-mono">{session?.user?.email}</span>
+    <main className='mx-auto w-full max-w-3xl flex-1 px-6 py-10'>
+      <h1 className='text-2xl font-semibold tracking-tight'>Admin</h1>
+      <p className='mt-2 text-sm text-zinc-600'>
+        Authenticated as <span className='font-mono'>{session?.user?.email}</span>
       </p>
-      <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-4">
-        <div className="text-sm">
+      <div className='mt-6 rounded-lg border border-zinc-200 bg-white p-4'>
+        <div className='text-sm'>
           <div>
-            <span className="text-zinc-500">Role:</span>{" "}
-            <span className="font-mono">{admin?.role ?? "UNKNOWN (no AdminProfile)"}</span>
+            <span className='text-zinc-500'>Role:</span>{' '}
+            <span className='font-mono'>{admin?.role ?? 'UNKNOWN (no AdminProfile)'}</span>
           </div>
         </div>
       </div>
     </main>
-  );
+  )
 }
 ```
 
@@ -1061,6 +1037,7 @@ git commit -m "feat(auth): add admin-only better-auth with /admin middleware gat
 ### Task 5: Permissions model (roles + PIC helper) for Server Actions
 
 **Files:**
+
 - Create: `lib/permissions/roles.ts`
 - Create: `lib/permissions/guards.ts`
 - Test: `tests/unit/permissions.test.ts`
@@ -1068,36 +1045,32 @@ git commit -m "feat(auth): add admin-only better-auth with /admin middleware gat
 - [ ] **Step 1: Write failing tests `tests/unit/permissions.test.ts`**
 
 ```ts
-import { describe, expect, test } from "vitest";
-import { canVerifyEvent, type AdminContext } from "@/lib/permissions/guards";
+import { describe, expect, test } from 'vitest'
+import { canVerifyEvent, type AdminContext } from '@/lib/permissions/guards'
 
 const base: AdminContext = {
-  role: "Viewer",
+  role: 'Viewer',
   helperEventIds: [],
-};
+}
 
-describe("permissions: canVerifyEvent", () => {
-  test("Owner can verify any event", () => {
-    expect(canVerifyEvent({ ...base, role: "Owner" }, "e1")).toBe(true);
-  });
+describe('permissions: canVerifyEvent', () => {
+  test('Owner can verify any event', () => {
+    expect(canVerifyEvent({ ...base, role: 'Owner' }, 'e1')).toBe(true)
+  })
 
-  test("Verifier can verify any event", () => {
-    expect(canVerifyEvent({ ...base, role: "Verifier" }, "e1")).toBe(true);
-  });
+  test('Verifier can verify any event', () => {
+    expect(canVerifyEvent({ ...base, role: 'Verifier' }, 'e1')).toBe(true)
+  })
 
-  test("Viewer cannot verify without PIC helper grant", () => {
-    expect(canVerifyEvent({ ...base, role: "Viewer" }, "e1")).toBe(false);
-  });
+  test('Viewer cannot verify without PIC helper grant', () => {
+    expect(canVerifyEvent({ ...base, role: 'Viewer' }, 'e1')).toBe(false)
+  })
 
-  test("Viewer can verify for assigned event only", () => {
-    expect(
-      canVerifyEvent({ ...base, role: "Viewer", helperEventIds: ["e1"] }, "e1"),
-    ).toBe(true);
-    expect(
-      canVerifyEvent({ ...base, role: "Viewer", helperEventIds: ["e1"] }, "e2"),
-    ).toBe(false);
-  });
-});
+  test('Viewer can verify for assigned event only', () => {
+    expect(canVerifyEvent({ ...base, role: 'Viewer', helperEventIds: ['e1'] }, 'e1')).toBe(true)
+    expect(canVerifyEvent({ ...base, role: 'Viewer', helperEventIds: ['e1'] }, 'e2')).toBe(false)
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests to verify RED**
@@ -1108,23 +1081,23 @@ Expected: FAIL with module import error (guards not implemented yet).
 - [ ] **Step 3: Implement `lib/permissions/roles.ts`**
 
 ```ts
-export type AdminRole = "Owner" | "Verifier" | "Viewer";
+export type AdminRole = 'Owner' | 'Verifier' | 'Viewer'
 ```
 
 - [ ] **Step 4: Implement `lib/permissions/guards.ts`**
 
 ```ts
-import type { AdminRole } from "@/lib/permissions/roles";
+import type { AdminRole } from '@/lib/permissions/roles'
 
 export type AdminContext = {
-  role: AdminRole;
-  helperEventIds: string[];
-};
+  role: AdminRole
+  helperEventIds: string[]
+}
 
 export function canVerifyEvent(ctx: AdminContext, eventId: string): boolean {
-  if (ctx.role === "Owner") return true;
-  if (ctx.role === "Verifier") return true;
-  return ctx.helperEventIds.includes(eventId);
+  if (ctx.role === 'Owner') return true
+  if (ctx.role === 'Verifier') return true
+  return ctx.helperEventIds.includes(eventId)
 }
 ```
 
@@ -1145,6 +1118,7 @@ git commit -m "feat(permissions): add role + PIC helper guard primitives"
 ### Task 6: Upload pipeline foundations (validate → WebP convert → Blob put → metadata DB) with retry + recovery
 
 **Files:**
+
 - Create: `lib/uploads/errors.ts`
 - Create: `lib/uploads/retry.ts`
 - Create: `lib/uploads/images.ts`
@@ -1156,39 +1130,39 @@ git commit -m "feat(permissions): add role + PIC helper guard primitives"
 - [ ] **Step 1: Write failing tests for retry `tests/unit/retry.test.ts`**
 
 ```ts
-import { describe, expect, test } from "vitest";
-import { retry } from "@/lib/uploads/retry";
+import { describe, expect, test } from 'vitest'
+import { retry } from '@/lib/uploads/retry'
 
-describe("uploads: retry", () => {
-  test("retries until success", async () => {
-    let attempts = 0;
+describe('uploads: retry', () => {
+  test('retries until success', async () => {
+    let attempts = 0
     const result = await retry(
       async () => {
-        attempts++;
-        if (attempts < 3) throw new Error("fail");
-        return "ok";
+        attempts++
+        if (attempts < 3) throw new Error('fail')
+        return 'ok'
       },
       { maxAttempts: 3 },
-    );
+    )
 
-    expect(result).toBe("ok");
-    expect(attempts).toBe(3);
-  });
+    expect(result).toBe('ok')
+    expect(attempts).toBe(3)
+  })
 
-  test("throws last error after max attempts", async () => {
-    let attempts = 0;
+  test('throws last error after max attempts', async () => {
+    let attempts = 0
     await expect(
       retry(
         async () => {
-          attempts++;
-          throw new Error("nope");
+          attempts++
+          throw new Error('nope')
         },
         { maxAttempts: 2 },
       ),
-    ).rejects.toThrow("nope");
-    expect(attempts).toBe(2);
-  });
-});
+    ).rejects.toThrow('nope')
+    expect(attempts).toBe(2)
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests to verify RED**
@@ -1199,22 +1173,19 @@ Expected: FAIL (missing `retry`).
 - [ ] **Step 3: Implement `lib/uploads/retry.ts`**
 
 ```ts
-export async function retry<T>(
-  fn: () => Promise<T>,
-  opts: { maxAttempts: number; delayMs?: number },
-): Promise<T> {
-  let lastError: unknown;
+export async function retry<T>(fn: () => Promise<T>, opts: { maxAttempts: number; delayMs?: number }): Promise<T> {
+  let lastError: unknown
   for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
     try {
-      return await fn();
+      return await fn()
     } catch (err) {
-      lastError = err;
+      lastError = err
       if (attempt < opts.maxAttempts && opts.delayMs) {
-        await new Promise((r) => setTimeout(r, opts.delayMs));
+        await new Promise(r => setTimeout(r, opts.delayMs))
       }
     }
   }
-  throw lastError;
+  throw lastError
 }
 ```
 
@@ -1222,74 +1193,74 @@ export async function retry<T>(
 
 ```ts
 export class UploadError extends Error {
-  readonly code: string;
-  readonly recoverable: boolean;
+  readonly code: string
+  readonly recoverable: boolean
 
   constructor(message: string, opts: { code: string; recoverable: boolean }) {
-    super(message);
-    this.code = opts.code;
-    this.recoverable = opts.recoverable;
+    super(message)
+    this.code = opts.code
+    this.recoverable = opts.recoverable
   }
 }
 
 export function isUploadError(err: unknown): err is UploadError {
-  return err instanceof UploadError;
+  return err instanceof UploadError
 }
 ```
 
 - [ ] **Step 5: Implement WebP conversion `lib/uploads/images.ts`**
 
 ```ts
-import sharp from "sharp";
-import { UploadError } from "@/lib/uploads/errors";
+import sharp from 'sharp'
+import { UploadError } from '@/lib/uploads/errors'
 
 export type WebpOutput = {
-  bytes: Buffer;
-  width: number;
-  height: number;
-  sha256: string;
-};
+  bytes: Buffer
+  width: number
+  height: number
+  sha256: string
+}
 
 async function sha256Hex(buf: Buffer): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-256", buf);
+  const hash = await crypto.subtle.digest('SHA-256', buf)
   return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 export async function toWebp(input: Buffer, opts: { maxDim: number; quality: number }): Promise<WebpOutput> {
   try {
-    const image = sharp(input, { failOn: "none" });
-    const meta = await image.metadata();
+    const image = sharp(input, { failOn: 'none' })
+    const meta = await image.metadata()
     if (!meta.width || !meta.height) {
-      throw new UploadError("File is not a valid image.", {
-        code: "invalid_image",
+      throw new UploadError('File is not a valid image.', {
+        code: 'invalid_image',
         recoverable: true,
-      });
+      })
     }
 
     const resized = image.resize({
       width: opts.maxDim,
       height: opts.maxDim,
-      fit: "inside",
+      fit: 'inside',
       withoutEnlargement: true,
-    });
+    })
 
-    const bytes = await resized.webp({ quality: opts.quality }).toBuffer();
-    const outMeta = await sharp(bytes).metadata();
+    const bytes = await resized.webp({ quality: opts.quality }).toBuffer()
+    const outMeta = await sharp(bytes).metadata()
 
     return {
       bytes,
       width: outMeta.width ?? meta.width,
       height: outMeta.height ?? meta.height,
       sha256: await sha256Hex(bytes),
-    };
+    }
   } catch (err) {
-    if (err instanceof UploadError) throw err;
-    throw new UploadError("Failed to process image.", {
-      code: "image_processing_failed",
+    if (err instanceof UploadError) throw err
+    throw new UploadError('Failed to process image.', {
+      code: 'image_processing_failed',
       recoverable: true,
-    });
+    })
   }
 }
 ```
@@ -1297,25 +1268,22 @@ export async function toWebp(input: Buffer, opts: { maxDim: number; quality: num
 - [ ] **Step 6: Implement Blob put `lib/uploads/blob.ts`**
 
 ```ts
-import { put } from "@vercel/blob";
-import { UploadError } from "@/lib/uploads/errors";
+import { put } from '@vercel/blob'
+import { UploadError } from '@/lib/uploads/errors'
 
-export async function putWebpToBlob(opts: {
-  path: string;
-  bytes: Buffer;
-}): Promise<{ url: string; pathname: string }> {
+export async function putWebpToBlob(opts: { path: string; bytes: Buffer }): Promise<{ url: string; pathname: string }> {
   try {
     const res = await put(opts.path, opts.bytes, {
-      access: "public",
-      contentType: "image/webp",
+      access: 'public',
+      contentType: 'image/webp',
       addRandomSuffix: false,
-    });
-    return { url: res.url, pathname: res.pathname };
+    })
+    return { url: res.url, pathname: res.pathname }
   } catch {
-    throw new UploadError("Upload failed. Please retry.", {
-      code: "blob_put_failed",
+    throw new UploadError('Upload failed. Please retry.', {
+      code: 'blob_put_failed',
       recoverable: true,
-    });
+    })
   }
 }
 ```
@@ -1323,21 +1291,21 @@ export async function putWebpToBlob(opts: {
 - [ ] **Step 7: Implement metadata persistence `lib/uploads/save-upload.ts`**
 
 ```ts
-import type { UploadPurpose } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import type { UploadPurpose } from '@prisma/client'
+import { prisma } from '@/lib/db/prisma'
 
 export async function saveUploadMetadata(input: {
-  purpose: UploadPurpose;
-  blobUrl: string;
-  blobPath: string;
-  contentType: string;
-  bytes: number;
-  sha256: string;
-  width?: number;
-  height?: number;
-  originalFilename?: string;
-  registrationId?: string;
-  invoiceAdjustmentId?: string;
+  purpose: UploadPurpose
+  blobUrl: string
+  blobPath: string
+  contentType: string
+  bytes: number
+  sha256: string
+  width?: number
+  height?: number
+  originalFilename?: string
+  registrationId?: string
+  invoiceAdjustmentId?: string
 }) {
   return prisma.upload.create({
     data: {
@@ -1353,55 +1321,55 @@ export async function saveUploadMetadata(input: {
       registrationId: input.registrationId,
       invoiceAdjustmentId: input.invoiceAdjustmentId,
     },
-  });
+  })
 }
 ```
 
 - [ ] **Step 8: Orchestrate pipeline `lib/uploads/upload-image.ts`**
 
 ```ts
-import type { UploadPurpose } from "@prisma/client";
-import { retry } from "@/lib/uploads/retry";
-import { toWebp } from "@/lib/uploads/images";
-import { putWebpToBlob } from "@/lib/uploads/blob";
-import { saveUploadMetadata } from "@/lib/uploads/save-upload";
-import { UploadError } from "@/lib/uploads/errors";
+import type { UploadPurpose } from '@prisma/client'
+import { retry } from '@/lib/uploads/retry'
+import { toWebp } from '@/lib/uploads/images'
+import { putWebpToBlob } from '@/lib/uploads/blob'
+import { saveUploadMetadata } from '@/lib/uploads/save-upload'
+import { UploadError } from '@/lib/uploads/errors'
 
 export async function uploadImageForRegistration(input: {
-  purpose: Extract<UploadPurpose, "transfer_proof" | "member_card_photo">;
-  registrationId: string;
-  file: File;
+  purpose: Extract<UploadPurpose, 'transfer_proof' | 'member_card_photo'>
+  registrationId: string
+  file: File
 }): Promise<{ uploadId: string; url: string }> {
-  if (!input.file.type.startsWith("image/")) {
-    throw new UploadError("File must be an image.", {
-      code: "invalid_content_type",
+  if (!input.file.type.startsWith('image/')) {
+    throw new UploadError('File must be an image.', {
+      code: 'invalid_content_type',
       recoverable: true,
-    });
+    })
   }
 
-  const raw = Buffer.from(await input.file.arrayBuffer());
-  const webp = await toWebp(raw, { maxDim: 1600, quality: 80 });
+  const raw = Buffer.from(await input.file.arrayBuffer())
+  const webp = await toWebp(raw, { maxDim: 1600, quality: 80 })
 
-  const blobPath = `registrations/${input.registrationId}/${input.purpose}.webp`;
-  const putRes = await retry(
-    () => putWebpToBlob({ path: blobPath, bytes: webp.bytes }),
-    { maxAttempts: 3, delayMs: 250 },
-  );
+  const blobPath = `registrations/${input.registrationId}/${input.purpose}.webp`
+  const putRes = await retry(() => putWebpToBlob({ path: blobPath, bytes: webp.bytes }), {
+    maxAttempts: 3,
+    delayMs: 250,
+  })
 
   const row = await saveUploadMetadata({
     purpose: input.purpose,
     registrationId: input.registrationId,
     blobUrl: putRes.url,
     blobPath: putRes.pathname,
-    contentType: "image/webp",
+    contentType: 'image/webp',
     bytes: webp.bytes.length,
     sha256: webp.sha256,
     width: webp.width,
     height: webp.height,
     originalFilename: input.file.name,
-  });
+  })
 
-  return { uploadId: row.id, url: row.blobUrl };
+  return { uploadId: row.id, url: row.blobUrl }
 }
 ```
 
@@ -1422,6 +1390,7 @@ git commit -m "feat(uploads): add webp+blob upload pipeline primitives with retr
 ### Task 7: Form + validation contract foundations (RHF + shadcn + Zod; server error mapping)
 
 **Files:**
+
 - Create: `lib/forms/action-result.ts`
 - Create: `lib/forms/zod.ts`
 - Test: `tests/unit/zod-error-mapping.test.ts`
@@ -1429,26 +1398,26 @@ git commit -m "feat(uploads): add webp+blob upload pipeline primitives with retr
 - [ ] **Step 1: Write failing test `tests/unit/zod-error-mapping.test.ts`**
 
 ```ts
-import { describe, expect, test } from "vitest";
-import { z } from "zod";
-import { zodToFieldErrors } from "@/lib/forms/zod";
+import { describe, expect, test } from 'vitest'
+import { z } from 'zod'
+import { zodToFieldErrors } from '@/lib/forms/zod'
 
-describe("forms: zodToFieldErrors", () => {
-  test("maps nested zod issues to dot-path keys", () => {
+describe('forms: zodToFieldErrors', () => {
+  test('maps nested zod issues to dot-path keys', () => {
     const S = z.object({
       contact: z.object({
-        name: z.string().min(1, "Required"),
+        name: z.string().min(1, 'Required'),
       }),
-    });
+    })
 
-    const res = S.safeParse({ contact: { name: "" } });
-    if (res.success) throw new Error("expected failure");
+    const res = S.safeParse({ contact: { name: '' } })
+    if (res.success) throw new Error('expected failure')
 
     expect(zodToFieldErrors(res.error)).toEqual({
-      "contact.name": "Required",
-    });
-  });
-});
+      'contact.name': 'Required',
+    })
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests to verify RED**
@@ -1459,39 +1428,39 @@ Expected: FAIL (missing `zodToFieldErrors`).
 - [ ] **Step 3: Implement `lib/forms/action-result.ts`**
 
 ```ts
-export type FieldErrors = Record<string, string>;
+export type FieldErrors = Record<string, string>
 
-export type ActionOk<T> = { ok: true; data: T };
-export type ActionErr = { ok: false; fieldErrors?: FieldErrors; rootError?: string };
+export type ActionOk<T> = { ok: true; data: T }
+export type ActionErr = { ok: false; fieldErrors?: FieldErrors; rootError?: string }
 
-export type ActionResult<T> = ActionOk<T> | ActionErr;
+export type ActionResult<T> = ActionOk<T> | ActionErr
 
 export function ok<T>(data: T): ActionOk<T> {
-  return { ok: true, data };
+  return { ok: true, data }
 }
 
 export function fieldError(fieldErrors: FieldErrors, rootError?: string): ActionErr {
-  return { ok: false, fieldErrors, rootError };
+  return { ok: false, fieldErrors, rootError }
 }
 
 export function rootError(rootError: string): ActionErr {
-  return { ok: false, rootError };
+  return { ok: false, rootError }
 }
 ```
 
 - [ ] **Step 4: Implement `lib/forms/zod.ts`**
 
 ```ts
-import type { ZodError } from "zod";
+import type { ZodError } from 'zod'
 
 export function zodToFieldErrors(err: ZodError): Record<string, string> {
-  const out: Record<string, string> = {};
+  const out: Record<string, string> = {}
   for (const issue of err.issues) {
-    const key = issue.path.join(".");
-    if (!key) continue;
-    if (!out[key]) out[key] = issue.message;
+    const key = issue.path.join('.')
+    if (!key) continue
+    if (!out[key]) out[key] = issue.message
   }
-  return out;
+  return out
 }
 ```
 
@@ -1514,30 +1483,31 @@ git commit -m "feat(forms): add server action result + zod error mapping helpers
 **Why:** The schema enforces “one ticket per member per event” via `Ticket(eventId, memberNumber)` unique, which requires `eventId` to always match the parent registration’s event. This task adds a minimal helper that must be used whenever tickets are created.
 
 **Files:**
+
 - Create: `lib/db/tickets.ts`
 - Test: `tests/unit/tickets-eventid.test.ts`
 
 - [ ] **Step 1: Write failing test `tests/unit/tickets-eventid.test.ts`**
 
 ```ts
-import { describe, expect, test } from "vitest";
-import { buildTicketCreateData } from "@/lib/db/tickets";
+import { describe, expect, test } from 'vitest'
+import { buildTicketCreateData } from '@/lib/db/tickets'
 
-describe("db: buildTicketCreateData", () => {
-  test("sets ticket.eventId from registration.eventId", () => {
+describe('db: buildTicketCreateData', () => {
+  test('sets ticket.eventId from registration.eventId', () => {
     const data = buildTicketCreateData({
-      registrationId: "r1",
-      eventId: "e1",
-      role: "primary",
-      fullName: "A",
-      whatsapp: "628123",
-      memberNumber: "123",
-      ticketPriceType: "member",
-    });
-    expect(data.eventId).toBe("e1");
-    expect(data.registrationId).toBe("r1");
-  });
-});
+      registrationId: 'r1',
+      eventId: 'e1',
+      role: 'primary',
+      fullName: 'A',
+      whatsapp: '628123',
+      memberNumber: '123',
+      ticketPriceType: 'member',
+    })
+    expect(data.eventId).toBe('e1')
+    expect(data.registrationId).toBe('r1')
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests to verify RED**
@@ -1548,16 +1518,16 @@ Expected: FAIL (missing helper).
 - [ ] **Step 3: Implement `lib/db/tickets.ts`**
 
 ```ts
-import type { Prisma, TicketPriceType, TicketRole } from "@prisma/client";
+import type { Prisma, TicketPriceType, TicketRole } from '@prisma/client'
 
 export function buildTicketCreateData(input: {
-  registrationId: string;
-  eventId: string;
-  role: TicketRole;
-  fullName: string;
-  whatsapp?: string;
-  memberNumber?: string;
-  ticketPriceType: TicketPriceType;
+  registrationId: string
+  eventId: string
+  role: TicketRole
+  fullName: string
+  whatsapp?: string
+  memberNumber?: string
+  ticketPriceType: TicketPriceType
 }): Prisma.TicketCreateInput {
   return {
     registration: { connect: { id: input.registrationId } },
@@ -1568,7 +1538,7 @@ export function buildTicketCreateData(input: {
     whatsapp: input.whatsapp,
     memberNumber: input.memberNumber,
     ticketPriceType: input.ticketPriceType,
-  };
+  }
 }
 ```
 
@@ -1615,8 +1585,7 @@ git commit -m "feat(db): add helper to keep ticket.eventId consistent"
 
 Plan complete and saved to `docs/superpowers/plans/2026-04-30-foundations-platform-skeleton.md`. Two execution options:
 
-1. **Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration  
+1. **Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 2. **Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
 
 Which approach?
-

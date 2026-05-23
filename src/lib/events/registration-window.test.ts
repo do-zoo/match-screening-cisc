@@ -1,92 +1,89 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import {
-  isRegistrationOpenForEvent,
-  registrationBlockMessageForPublic,
-} from "./registration-window";
+import { isRegistrationOpenForEvent, registrationBlockMessageForPublic } from './registration-window'
 
-describe("registration-window", () => {
-  const open = new Date("2020-01-01T00:00:00.000Z");
-  const close = new Date("2030-01-01T00:00:00.000Z");
+describe('registration-window', () => {
+  const open = new Date('2020-01-01T00:00:00.000Z')
+  const close = new Date('2030-01-01T00:00:00.000Z')
 
   const activeBase = {
-    status: "active" as const,
+    status: 'active' as const,
     registrationManualClosed: false,
     registrationCapacity: null as number | null,
     openRegistrationAt: open,
     closeRegistrationAt: close,
-  };
+  }
 
-  it("is open when active, not manual-closed, window open, and no capacity limit", () => {
+  it('is open when active, not manual-closed, window open, and no capacity limit', () => {
     expect(
       isRegistrationOpenForEvent({
         event: activeBase,
         registrationsTowardQuota: 999,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toBe(true);
-  });
+    ).toBe(true)
+  })
 
-  it("closes when manually closed", () => {
+  it('closes when manually closed', () => {
     expect(
       isRegistrationOpenForEvent({
         event: { ...activeBase, registrationManualClosed: true },
         registrationsTowardQuota: 0,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toBe(false);
+    ).toBe(false)
     expect(
       registrationBlockMessageForPublic({
-        eventStatus: "active",
+        eventStatus: 'active',
         registrationManualClosed: true,
         registrationCapacity: null,
         registrationsTowardQuota: 0,
         openRegistrationAt: open,
         closeRegistrationAt: close,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toMatch(/ditutup/i);
-  });
+    ).toMatch(/ditutup/i)
+  })
 
-  it("treats non-positive capacity as unlimited (no false quota-full)", () => {
+  it('treats non-positive capacity as unlimited (no false quota-full)', () => {
     expect(
       isRegistrationOpenForEvent({
         event: { ...activeBase, registrationCapacity: 0 },
         registrationsTowardQuota: 0,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toBe(true);
+    ).toBe(true)
     expect(
       registrationBlockMessageForPublic({
-        eventStatus: "active",
+        eventStatus: 'active',
         registrationManualClosed: false,
         registrationCapacity: 0,
         registrationsTowardQuota: 0,
         openRegistrationAt: open,
         closeRegistrationAt: close,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toBeNull();
-  });
+    ).toBeNull()
+  })
 
-  it("closes at capacity boundary", () => {
+  it('closes at capacity boundary', () => {
     expect(
       isRegistrationOpenForEvent({
         event: { ...activeBase, registrationCapacity: 10 },
         registrationsTowardQuota: 10,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toBe(false);
+    ).toBe(false)
     expect(
       registrationBlockMessageForPublic({
-        eventStatus: "active",
+        eventStatus: 'active',
         registrationManualClosed: false,
         registrationCapacity: 10,
         registrationsTowardQuota: 10,
         openRegistrationAt: open,
         closeRegistrationAt: close,
-        now: new Date("2025-06-01T00:00:00.000Z"),
+        now: new Date('2025-06-01T00:00:00.000Z'),
       }),
-    ).toMatch(/habis/i);
-  });
-});
+    ).toMatch(/habis/i)
+  })
+})

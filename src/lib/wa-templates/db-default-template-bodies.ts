@@ -1,4 +1,4 @@
-import type { WaTemplateKey } from "@prisma/client";
+import type { WaTemplateKey } from '@prisma/client'
 
 export const CLUB_WA_DEFAULT_BODIES: Record<WaTemplateKey, string> = {
   receipt: [
@@ -8,7 +8,7 @@ export const CLUB_WA_DEFAULT_BODIES: Record<WaTemplateKey, string> = {
     `ID: \`{registration_id}\``,
     `Total (snapshot): *{computed_total_idr}*`,
     `Status: *menunggu verifikasi admin*.`,
-  ].join("\n"),
+  ].join('\n'),
 
   payment_issue: [
     `Halo,`,
@@ -17,21 +17,16 @@ export const CLUB_WA_DEFAULT_BODIES: Record<WaTemplateKey, string> = {
     `{reason}`,
     ``,
     `Mohon balas pesan ini setelah menyesuaikan / mengunggah ulang bukti sesuai arahan.`,
-  ].join("\n"),
+  ].join('\n'),
 
   approved: [
     `Selamat — pendaftaran untuk *{event_title}* *disetujui*.`,
     ``,
     `Detail acara: {venue}`,
     `Waktu: {start_at_formatted}`,
-  ].join("\n"),
+  ].join('\n'),
 
-  rejected: [
-    `Mohon maaf, pendaftaran belum dapat kami proses.`,
-    ``,
-    `Alasan:`,
-    `{reason}`,
-  ].join("\n"),
+  rejected: [`Mohon maaf, pendaftaran belum dapat kami proses.`, ``, `Alasan:`, `{reason}`].join('\n'),
 
   cancelled: [
     `Halo {contact_name},`,
@@ -39,7 +34,7 @@ export const CLUB_WA_DEFAULT_BODIES: Record<WaTemplateKey, string> = {
     `Kami informasikan bahwa pendaftaran Anda untuk *{event_title}* telah *dibatalkan*.`,
     ``,
     `Jika ada pertanyaan, silakan hubungi panitia.`,
-  ].join("\n"),
+  ].join('\n'),
 
   refunded: [
     `Halo {contact_name},`,
@@ -47,7 +42,7 @@ export const CLUB_WA_DEFAULT_BODIES: Record<WaTemplateKey, string> = {
     `Pembayaran Anda untuk *{event_title}* telah *dikembalikan (refunded)*.`,
     ``,
     `Mohon konfirmasi penerimaan. Terima kasih.`,
-  ].join("\n"),
+  ].join('\n'),
 
   underpayment_invoice: [
     `Halo {contact_name},`,
@@ -60,5 +55,5 @@ export const CLUB_WA_DEFAULT_BODIES: Record<WaTemplateKey, string> = {
     `Atas nama: *{account_name}*`,
     ``,
     `Setelah transfer, unggah bukti pembayaran melalui panitia atau balas pesan ini.`,
-  ].join("\n"),
-};
+  ].join('\n'),
+}

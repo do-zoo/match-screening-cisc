@@ -14,30 +14,31 @@
 
 ### File structure (planned)
 
-| File | Responsibility |
-|------|----------------|
-| Modify `src/lib/admin/global-nav-flags.ts` | Show global “Acara” sidebar only when `hasOperationalOwnerParity` so Verifier/viewer helpers are not routed to forbidden CRUD list. |
-| Create `src/lib/events/generate-event-slug.ts` | Deterministic ASCII slug base from title + collision suffix loop. |
-| Create `src/lib/events/event-admin-defaults.ts` | Read default member/non-member ticket prices for **new** events from env integers (fallback Seed demo values). |
-| Create `src/lib/events/event-edit-guards.ts` | Pure locked-field detection, sensitive-change detection helpers. |
-| Create `src/lib/events/event-edit-guards.test.ts` | Vitest coverage per spec tiers. |
-| Create `src/lib/forms/admin-event-form-schema.ts` | Zod schemas (create/update DTO shapes, ISO datetime strings parsed to `Date`). |
-| Create `src/lib/uploads/upload-event-cover.ts` | WebP PUT to `events/{eventId}/cover.webp`, optional delete previous blob URL via `del` from `@vercel/blob`. |
-| Create `src/lib/actions/admin-events.ts` | `createAdminEvent`, `updateAdminEvent` Server Actions returning `ActionResult`. |
-| Create `src/components/admin/forms/event-admin-edit-form.tsx` | Client wizard-style single form: delegates to modular field components. |
-| Create `src/components/admin/forms/event-admin-field-groups.tsx` | Metadata, venue, schedule, pricing, menu config, PIC/bank/helpers, placeholders for description textarea. |
-| Create `src/components/admin/forms/event-menu-items-editor.tsx` | Dynamic array FieldArray for EventMenuItem rows. |
-| Create `src/components/admin/forms/sensitive-changes-dialog.tsx` | Checkbox ack + Continue sets hidden RHF flag `acknowledgeSensitiveChanges`. |
-| Create `src/app/admin/events/new/page.tsx` | RSC loads PIC/bank presets, renders form. |
-| Create `src/app/admin/events/[eventId]/edit/page.tsx` | RSC guards + prefetch event + renders edit form initial values. |
-| Modify `src/app/admin/events/page.tsx` | Operational table listing + filters + CTA Buat acara (Owner/Admin). |
-| Modify `src/components/admin/admin-event-breadcrumbs.tsx` | Crumb branch for `/edit`; link “Acara” → `/admin/events`. |
+| File                                                             | Responsibility                                                                                                                      |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Modify `src/lib/admin/global-nav-flags.ts`                       | Show global “Acara” sidebar only when `hasOperationalOwnerParity` so Verifier/viewer helpers are not routed to forbidden CRUD list. |
+| Create `src/lib/events/generate-event-slug.ts`                   | Deterministic ASCII slug base from title + collision suffix loop.                                                                   |
+| Create `src/lib/events/event-admin-defaults.ts`                  | Read default member/non-member ticket prices for **new** events from env integers (fallback Seed demo values).                      |
+| Create `src/lib/events/event-edit-guards.ts`                     | Pure locked-field detection, sensitive-change detection helpers.                                                                    |
+| Create `src/lib/events/event-edit-guards.test.ts`                | Vitest coverage per spec tiers.                                                                                                     |
+| Create `src/lib/forms/admin-event-form-schema.ts`                | Zod schemas (create/update DTO shapes, ISO datetime strings parsed to `Date`).                                                      |
+| Create `src/lib/uploads/upload-event-cover.ts`                   | WebP PUT to `events/{eventId}/cover.webp`, optional delete previous blob URL via `del` from `@vercel/blob`.                         |
+| Create `src/lib/actions/admin-events.ts`                         | `createAdminEvent`, `updateAdminEvent` Server Actions returning `ActionResult`.                                                     |
+| Create `src/components/admin/forms/event-admin-edit-form.tsx`    | Client wizard-style single form: delegates to modular field components.                                                             |
+| Create `src/components/admin/forms/event-admin-field-groups.tsx` | Metadata, venue, schedule, pricing, menu config, PIC/bank/helpers, placeholders for description textarea.                           |
+| Create `src/components/admin/forms/event-menu-items-editor.tsx`  | Dynamic array FieldArray for EventMenuItem rows.                                                                                    |
+| Create `src/components/admin/forms/sensitive-changes-dialog.tsx` | Checkbox ack + Continue sets hidden RHF flag `acknowledgeSensitiveChanges`.                                                         |
+| Create `src/app/admin/events/new/page.tsx`                       | RSC loads PIC/bank presets, renders form.                                                                                           |
+| Create `src/app/admin/events/[eventId]/edit/page.tsx`            | RSC guards + prefetch event + renders edit form initial values.                                                                     |
+| Modify `src/app/admin/events/page.tsx`                           | Operational table listing + filters + CTA Buat acara (Owner/Admin).                                                                 |
+| Modify `src/components/admin/admin-event-breadcrumbs.tsx`        | Crumb branch for `/edit`; link “Acara” → `/admin/events`.                                                                           |
 
 ---
 
 ### Task 1: Sidebar flag — operational Acara link only
 
 **Files:**
+
 - Modify: `src/lib/admin/global-nav-flags.ts`
 - Test: Manual — sign in Verifier sees no sidebar “Acara”, dashboard cards still navigate to inbox.
 
@@ -52,7 +53,7 @@ export function deriveGlobalSidebarNav(ctx: AdminContext | null): GlobalSidebarN
     acara: ctx !== null && hasOperationalOwnerParity(ctx.role),
     anggota: ctx !== null && hasOperationalOwnerParity(ctx.role),
     pengaturan: ctx !== null && canManageCommitteeAdvancedSettings(ctx.role),
-  };
+  }
 }
 ```
 
@@ -73,6 +74,7 @@ Expected: Lint clean on changed file (`pnpm lint`).
 ### Task 2: Slug helper + uniqueness
 
 **Files:**
+
 - Create: `src/lib/events/generate-event-slug.ts`
 - Create: `src/lib/events/generate-event-slug.test.ts`
 - Depends on: `@/lib/db/prisma` duplicate check uses `slug` existence.
@@ -80,40 +82,37 @@ Expected: Lint clean on changed file (`pnpm lint`).
 Implement **slug generation** strictly on server for create; **never trust** client-sent slug.
 
 ```typescript
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * Produce URL-safe ASCII slug segments from Indonesian / Latin titles (no diacritics).
  */
 export function slugifyEventTitle(raw: string): string {
   return raw
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
     .trim()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/gu, "")
-    .slice(0, 96);
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/gu, '')
+    .slice(0, 96)
 }
 
 /** Returns unique slug by appending `-2`, `-3`, … against `prisma.event`. */
-export async function allocateUniqueEventSlug(
-  prisma: PrismaClient,
-  title: string,
-): Promise<string> {
-  const base = slugifyEventTitle(title);
-  const head = base.length > 0 ? base : "acara";
+export async function allocateUniqueEventSlug(prisma: PrismaClient, title: string): Promise<string> {
+  const base = slugifyEventTitle(title)
+  const head = base.length > 0 ? base : 'acara'
 
-  let candidate = head;
-  let n = 1;
+  let candidate = head
+  let n = 1
   while (true) {
     const clash = await prisma.event.findUnique({
       where: { slug: candidate },
       select: { id: true },
-    });
-    if (!clash) return candidate;
-    n += 1;
-    candidate = `${head}-${n}`;
+    })
+    if (!clash) return candidate
+    n += 1
+    candidate = `${head}-${n}`
   }
 }
 ```
@@ -121,23 +120,23 @@ export async function allocateUniqueEventSlug(
 Tests:
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import { slugifyEventTitle } from "@/lib/events/generate-event-slug";
+import { slugifyEventTitle } from '@/lib/events/generate-event-slug'
 
-describe("slugifyEventTitle", () => {
-  it("strips punctuation and trims hyphens", () => {
-    expect(slugifyEventTitle("  Final — UCL! 2026  ")).toBe("final-ucl-2026");
-  });
+describe('slugifyEventTitle', () => {
+  it('strips punctuation and trims hyphens', () => {
+    expect(slugifyEventTitle('  Final — UCL! 2026  ')).toBe('final-ucl-2026')
+  })
 
-  it("handles empty input", () => {
-    expect(slugifyEventTitle("   ")).toBe("");
-  });
+  it('handles empty input', () => {
+    expect(slugifyEventTitle('   ')).toBe('')
+  })
 
-  it("removes accented characters", () => {
-    expect(slugifyEventTitle("café nöbär")).toBe("cafe-nobar");
-  });
-});
+  it('removes accented characters', () => {
+    expect(slugifyEventTitle('café nöbär')).toBe('cafe-nobar')
+  })
+})
 ```
 
 **Note:** `allocateUniqueEventSlug` integration-tested indirectly via Task 7; optional prisma-mocked test omitted (YAGNI).
@@ -150,6 +149,7 @@ describe("slugifyEventTitle", () => {
 ### Task 3: Default ticket env prices
 
 **Files:**
+
 - Create: `src/lib/events/event-admin-defaults.ts`
 - Create: `src/lib/events/event-admin-defaults.test.ts`
 - Optional doc: Mention new env keys in **`CLAUDE.md`** environment table only if you already maintain it publicly (otherwise README owner note). **Do NOT add new `.md` file** unless repo already expects it.
@@ -158,53 +158,53 @@ Defaults match seed demos when env unset (`125_000`, `175_000` copied from [`pri
 
 ```typescript
 function parseIdr(raw: string | undefined, fallback: number): number {
-  if (raw === undefined || raw.trim() === "") return fallback;
-  const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 0) return fallback;
-  return n;
+  if (raw === undefined || raw.trim() === '') return fallback
+  const n = Number.parseInt(raw, 10)
+  if (!Number.isFinite(n) || n < 0) return fallback
+  return n
 }
 
 /** Global default ticket prices for *new events* until committee Settings UI persists DB row. */
 export function getCommitteeTicketDefaults(): {
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
+  ticketMemberPrice: number
+  ticketNonMemberPrice: number
 } {
   return {
     ticketMemberPrice: parseIdr(process.env.MATCH_DEFAULT_TICKET_MEMBER_IDR, 125_000),
     ticketNonMemberPrice: parseIdr(process.env.MATCH_DEFAULT_TICKET_NON_MEMBER_IDR, 175_000),
-  };
+  }
 }
 ```
 
 Test:
 
 ```typescript
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { getCommitteeTicketDefaults } from "@/lib/events/event-admin-defaults";
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { getCommitteeTicketDefaults } from '@/lib/events/event-admin-defaults'
 
-describe("getCommitteeTicketDefaults", () => {
+describe('getCommitteeTicketDefaults', () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
-  });
+    vi.unstubAllEnvs()
+  })
 
-  it("uses seed-aligned fallbacks when env missing", () => {
-    vi.stubEnv("MATCH_DEFAULT_TICKET_MEMBER_IDR", "");
-    vi.stubEnv("MATCH_DEFAULT_TICKET_NON_MEMBER_IDR", "");
+  it('uses seed-aligned fallbacks when env missing', () => {
+    vi.stubEnv('MATCH_DEFAULT_TICKET_MEMBER_IDR', '')
+    vi.stubEnv('MATCH_DEFAULT_TICKET_NON_MEMBER_IDR', '')
     expect(getCommitteeTicketDefaults()).toEqual({
       ticketMemberPrice: 125_000,
       ticketNonMemberPrice: 175_000,
-    });
-  });
+    })
+  })
 
-  it("parses overrides", () => {
-    vi.stubEnv("MATCH_DEFAULT_TICKET_MEMBER_IDR", "90000");
-    vi.stubEnv("MATCH_DEFAULT_TICKET_NON_MEMBER_IDR", "99000");
+  it('parses overrides', () => {
+    vi.stubEnv('MATCH_DEFAULT_TICKET_MEMBER_IDR', '90000')
+    vi.stubEnv('MATCH_DEFAULT_TICKET_NON_MEMBER_IDR', '99000')
     expect(getCommitteeTicketDefaults()).toEqual({
       ticketMemberPrice: 90_000,
       ticketNonMemberPrice: 99_000,
-    });
-  });
-});
+    })
+  })
+})
 ```
 
 Operators add to `.env.local` manually:
@@ -221,151 +221,144 @@ MATCH_DEFAULT_TICKET_NON_MEMBER_IDR=175000
 ### Task 4: Tier guard helpers (+ tests)
 
 **Files:**
+
 - Create: `src/lib/events/event-edit-guards.ts`
 - Create: `src/lib/events/event-edit-guards.test.ts`
 
 ```typescript
-import type {
-  MenuMode,
-  MenuSelection,
-  PricingSource,
-} from "@prisma/client";
+import type { MenuMode, MenuSelection, PricingSource } from '@prisma/client'
 
 export type EventIntegritySnapshot = {
-  slug: string;
-  menuMode: MenuMode;
-  menuSelection: MenuSelection;
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
-  voucherPrice: number | null;
-  pricingSource: PricingSource;
-  picMasterMemberId: string;
-  bankAccountId: string;
-};
+  slug: string
+  menuMode: MenuMode
+  menuSelection: MenuSelection
+  ticketMemberPrice: number
+  ticketNonMemberPrice: number
+  voucherPrice: number | null
+  pricingSource: PricingSource
+  picMasterMemberId: string
+  bankAccountId: string
+}
 
-export type EventIntegrityPatch = Partial<EventIntegritySnapshot>;
+export type EventIntegrityPatch = Partial<EventIntegritySnapshot>
 
 export function findLockedViolations(opts: {
-  registrationCount: number;
-  persisted: EventIntegritySnapshot;
-  candidate: EventIntegrityPatch;
-}): Array<keyof Pick<
-  EventIntegritySnapshot,
-  "slug" | "menuMode" | "menuSelection"
->> {
-  if (opts.registrationCount === 0) return [];
+  registrationCount: number
+  persisted: EventIntegritySnapshot
+  candidate: EventIntegrityPatch
+}): Array<keyof Pick<EventIntegritySnapshot, 'slug' | 'menuMode' | 'menuSelection'>> {
+  if (opts.registrationCount === 0) return []
 
-  const out: Array<"slug" | "menuMode" | "menuSelection"> = [];
+  const out: Array<'slug' | 'menuMode' | 'menuSelection'> = []
 
-  const nextSlug = opts.candidate.slug ?? opts.persisted.slug;
-  if (nextSlug !== opts.persisted.slug) out.push("slug");
+  const nextSlug = opts.candidate.slug ?? opts.persisted.slug
+  if (nextSlug !== opts.persisted.slug) out.push('slug')
 
-  const nextMode = opts.candidate.menuMode ?? opts.persisted.menuMode;
-  if (nextMode !== opts.persisted.menuMode) out.push("menuMode");
+  const nextMode = opts.candidate.menuMode ?? opts.persisted.menuMode
+  if (nextMode !== opts.persisted.menuMode) out.push('menuMode')
 
-  const nextSel =
-    opts.candidate.menuSelection ?? opts.persisted.menuSelection;
-  if (nextSel !== opts.persisted.menuSelection) out.push("menuSelection");
+  const nextSel = opts.candidate.menuSelection ?? opts.persisted.menuSelection
+  if (nextSel !== opts.persisted.menuSelection) out.push('menuSelection')
 
-  return out;
+  return out
 }
 
 export function needsSensitiveAcknowledgement(opts: {
-  persisted: EventIntegritySnapshot;
-  candidate: EventIntegrityPatch;
+  persisted: EventIntegritySnapshot
+  candidate: EventIntegrityPatch
 }): boolean {
-  const merged = { ...opts.persisted, ...opts.candidate };
+  const merged = { ...opts.persisted, ...opts.candidate }
 
   const pricingChanged =
     merged.ticketMemberPrice !== opts.persisted.ticketMemberPrice ||
     merged.ticketNonMemberPrice !== opts.persisted.ticketNonMemberPrice ||
     merged.voucherPrice !== opts.persisted.voucherPrice ||
-    merged.pricingSource !== opts.persisted.pricingSource;
+    merged.pricingSource !== opts.persisted.pricingSource
 
   const financeActorChanged =
     merged.picMasterMemberId !== opts.persisted.picMasterMemberId ||
-    merged.bankAccountId !== opts.persisted.bankAccountId;
+    merged.bankAccountId !== opts.persisted.bankAccountId
 
-  return pricingChanged || financeActorChanged;
+  return pricingChanged || financeActorChanged
 }
 ```
 
 Tests cover: no violations count 0; locked triple when registrations>0; sensitive trigger on price deltas; insensitive when only description-level fields touched (simulate empty patch `{}` merging).
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
 import {
   findLockedViolations,
   needsSensitiveAcknowledgement,
   type EventIntegritySnapshot,
-} from "@/lib/events/event-edit-guards";
+} from '@/lib/events/event-edit-guards'
 
 const persisted: EventIntegritySnapshot = {
-  slug: "demo",
-  menuMode: "PRESELECT",
-  menuSelection: "SINGLE",
+  slug: 'demo',
+  menuMode: 'PRESELECT',
+  menuSelection: 'SINGLE',
   ticketMemberPrice: 1,
   ticketNonMemberPrice: 2,
   voucherPrice: null,
-  pricingSource: "global_default",
-  picMasterMemberId: "m1",
-  bankAccountId: "b1",
-};
+  pricingSource: 'global_default',
+  picMasterMemberId: 'm1',
+  bankAccountId: 'b1',
+}
 
-describe("findLockedViolations", () => {
-  it("allows everything when registrationCount is 0", () => {
+describe('findLockedViolations', () => {
+  it('allows everything when registrationCount is 0', () => {
     expect(
       findLockedViolations({
         registrationCount: 0,
         persisted,
-        candidate: { slug: "x", menuMode: "VOUCHER", menuSelection: "MULTI" },
+        candidate: { slug: 'x', menuMode: 'VOUCHER', menuSelection: 'MULTI' },
       }),
-    ).toEqual([]);
-  });
+    ).toEqual([])
+  })
 
-  it("blocks slug/menu mutations when registrations exist", () => {
+  it('blocks slug/menu mutations when registrations exist', () => {
     expect(
       findLockedViolations({
         registrationCount: 3,
         persisted,
-        candidate: { slug: "new" },
+        candidate: { slug: 'new' },
       }),
-    ).toEqual(["slug"]);
+    ).toEqual(['slug'])
     expect(
       findLockedViolations({
         registrationCount: 3,
         persisted,
-        candidate: { menuMode: "VOUCHER" },
+        candidate: { menuMode: 'VOUCHER' },
       }),
-    ).toEqual(["menuMode"]);
-  });
-});
+    ).toEqual(['menuMode'])
+  })
+})
 
-describe("needsSensitiveAcknowledgement", () => {
-  it("detects pricing changes but not PIC-only omission", () => {
+describe('needsSensitiveAcknowledgement', () => {
+  it('detects pricing changes but not PIC-only omission', () => {
     expect(
       needsSensitiveAcknowledgement({
         persisted,
         candidate: { ticketMemberPrice: 9 },
       }),
-    ).toBe(true);
+    ).toBe(true)
 
     expect(
       needsSensitiveAcknowledgement({
         persisted,
         candidate: { voucherPrice: 10 },
       }),
-    ).toBe(true);
+    ).toBe(true)
 
     expect(
       needsSensitiveAcknowledgement({
         persisted,
         candidate: {},
       }),
-    ).toBe(false);
-  });
-});
+    ).toBe(false)
+  })
+})
 ```
 
 - [ ] Run `pnpm vitest run src/lib/events/event-edit-guards.test.ts` Expected: **PASS** → Commit `feat(events): add tiered edit guard helpers`.
@@ -375,20 +368,16 @@ describe("needsSensitiveAcknowledgement", () => {
 ### Task 5: Zod DTO schemas (admin event form)
 
 **Files:**
+
 - Create: `src/lib/forms/admin-event-form-schema.ts`
 
 ```typescript
-import { z } from "zod";
-import {
-  EventStatus,
-  MenuMode,
-  MenuSelection,
-  PricingSource,
-} from "@prisma/client";
+import { z } from 'zod'
+import { EventStatus, MenuMode, MenuSelection, PricingSource } from '@prisma/client'
 
 /** ISO string or datetime-local-compatible string interpreted in server as absolute instant (store UTC). */
 
-const idrSchema = z.coerce.number().int().nonnegative();
+const idrSchema = z.coerce.number().int().nonnegative()
 
 const menuItemDraftSchema = z.object({
   id: z.string().optional(),
@@ -396,9 +385,9 @@ const menuItemDraftSchema = z.object({
   priceIdr: idrSchema,
   sortOrder: z.coerce.number().int().nonnegative(),
   voucherEligible: z.boolean(),
-});
+})
 
-export type AdminMenuItemDraft = z.infer<typeof menuItemDraftSchema>;
+export type AdminMenuItemDraft = z.infer<typeof menuItemDraftSchema>
 
 export const adminEventUpsertSchema = z
   .object({
@@ -427,50 +416,50 @@ export const adminEventUpsertSchema = z
     acknowledgeSensitiveChanges: z.boolean().optional(),
   })
   .superRefine((v, ctx) => {
-    const start = Date.parse(v.startAtIso);
-    const end = Date.parse(v.endAtIso);
+    const start = Date.parse(v.startAtIso)
+    const end = Date.parse(v.endAtIso)
     if (!Number.isFinite(start)) {
       ctx.addIssue({
-        code: "custom",
-        path: ["startAtIso"],
-        message: "Waktu mulai tidak valid.",
-      });
+        code: 'custom',
+        path: ['startAtIso'],
+        message: 'Waktu mulai tidak valid.',
+      })
     }
     if (!Number.isFinite(end)) {
       ctx.addIssue({
-        code: "custom",
-        path: ["endAtIso"],
-        message: "Waktu selesai tidak valid.",
-      });
+        code: 'custom',
+        path: ['endAtIso'],
+        message: 'Waktu selesai tidak valid.',
+      })
     }
     if (Number.isFinite(start) && Number.isFinite(end) && end <= start) {
       ctx.addIssue({
-        code: "custom",
-        path: ["endAtIso"],
-        message: "Waktu selesai harus setelah mulai.",
-      });
+        code: 'custom',
+        path: ['endAtIso'],
+        message: 'Waktu selesai harus setelah mulai.',
+      })
     }
-    if (v.menuMode === "VOUCHER") {
+    if (v.menuMode === 'VOUCHER') {
       if (v.voucherPriceIdr === null) {
         ctx.addIssue({
-          code: "custom",
-          path: ["voucherPriceIdr"],
-          message: "Harga voucher wajib untuk mode Voucher.",
-        });
+          code: 'custom',
+          path: ['voucherPriceIdr'],
+          message: 'Harga voucher wajib untuk mode Voucher.',
+        })
       }
     } else if (v.voucherPriceIdr !== null) {
       ctx.addIssue({
-        code: "custom",
-        path: ["voucherPriceIdr"],
-        message: "Kosongkan harga voucher jika Mode Menu bukan Voucher.",
-      });
+        code: 'custom',
+        path: ['voucherPriceIdr'],
+        message: 'Kosongkan harga voucher jika Mode Menu bukan Voucher.',
+      })
     }
-  });
+  })
 
-export type AdminEventUpsertInput = z.output<typeof adminEventUpsertSchema>;
+export type AdminEventUpsertInput = z.output<typeof adminEventUpsertSchema>
 ```
 
-*(No vitest isolated for Zod-only unless brittle superRefines appear—defer.)*
+_(No vitest isolated for Zod-only unless brittle superRefines appear—defer.)_
 
 - [ ] Run `pnpm lint` on touched file → Commit `feat(forms): add admin event upsert schema`
 
@@ -479,65 +468,60 @@ export type AdminEventUpsertInput = z.output<typeof adminEventUpsertSchema>;
 ### Task 6: Cover upload helper
 
 **Files:**
+
 - Create: `src/lib/uploads/upload-event-cover.ts`
 
 Use same mime/size caps as `@/lib/uploads/upload-image`; convert `toWebp`; path `events/{eventId}/cover.webp`; **`allowOverwrite: true`** matches blob helper behavior.
 
 ```typescript
-import { del } from "@vercel/blob";
+import { del } from '@vercel/blob'
 
-import { toWebp } from "@/lib/uploads/images";
-import { putWebpToBlob } from "@/lib/uploads/blob";
-import { retry } from "@/lib/uploads/retry";
-import { UploadError } from "@/lib/uploads/errors";
+import { toWebp } from '@/lib/uploads/images'
+import { putWebpToBlob } from '@/lib/uploads/blob'
+import { retry } from '@/lib/uploads/retry'
+import { UploadError } from '@/lib/uploads/errors'
 
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-const ALLOWED_IMAGE_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-]);
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 
 /** Upload or replace hero cover image for Event; deletes previous Blob URL best-effort. */
 export async function uploadEventHeroCover(opts: {
-  eventId: string;
-  file: File;
-  previousBlobUrl?: string | null;
+  eventId: string
+  file: File
+  previousBlobUrl?: string | null
 }): Promise<{ url: string; pathname: string }> {
-  const { file } = opts;
+  const { file } = opts
   if (!ALLOWED_IMAGE_MIME_TYPES.has(file.type)) {
-    throw new UploadError("Gunakan berkas gambar.", {
-      code: "invalid_content_type",
+    throw new UploadError('Gunakan berkas gambar.', {
+      code: 'invalid_content_type',
       recoverable: true,
-    });
+    })
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new UploadError("Ukuran berkas terlalu besar.", {
-      code: "file_too_large",
+    throw new UploadError('Ukuran berkas terlalu besar.', {
+      code: 'file_too_large',
       recoverable: true,
-    });
+    })
   }
 
-  const raw = Buffer.from(await file.arrayBuffer());
-  const webp = await toWebp(raw, { maxDim: 1600, quality: 80 });
-  const blobPath = `events/${opts.eventId}/cover.webp`;
+  const raw = Buffer.from(await file.arrayBuffer())
+  const webp = await toWebp(raw, { maxDim: 1600, quality: 80 })
+  const blobPath = `events/${opts.eventId}/cover.webp`
 
-  const putRes = await retry(
-    () => putWebpToBlob({ path: blobPath, bytes: webp.bytes }),
-    { maxAttempts: 3, delayMs: 250 },
-  );
+  const putRes = await retry(() => putWebpToBlob({ path: blobPath, bytes: webp.bytes }), {
+    maxAttempts: 3,
+    delayMs: 250,
+  })
 
-  if (opts.previousBlobUrl?.startsWith("http")) {
+  if (opts.previousBlobUrl?.startsWith('http')) {
     try {
-      await del(opts.previousBlobUrl);
+      await del(opts.previousBlobUrl)
     } catch {
       // ignore cleanup failures
     }
   }
 
-  return { url: putRes.url, pathname: putRes.pathname };
+  return { url: putRes.url, pathname: putRes.pathname }
 }
 ```
 
@@ -548,6 +532,7 @@ export async function uploadEventHeroCover(opts: {
 ### Task 7: Server Actions — create + update
 
 **Files:**
+
 - Create: `src/lib/actions/admin-events.ts`
 
 Imports to wire (adjust relative paths consistently with repo `@/` alias):
@@ -595,8 +580,10 @@ await prisma.event.create({
 **(transaction):**
 
 ```typescript
-await prisma.$transaction(async (tx) => {
-  await tx.event.create({ /* ...includes menuMode etc */ });
+await prisma.$transaction(async tx => {
+  await tx.event.create({
+    /* ...includes menuMode etc */
+  })
   await tx.eventMenuItem.createMany({
     data: parsed.menuItems.map((m, idx) => ({
       eventId: id,
@@ -605,17 +592,17 @@ await prisma.$transaction(async (tx) => {
       sortOrder: m.sortOrder ?? idx + 1,
       voucherEligible: m.voucherEligible,
     })),
-  });
+  })
   if (parsed.helperMasterMemberIds.length) {
     await tx.eventPicHelper.createMany({
-      data: parsed.helperMasterMemberIds.map((memberId) => ({
+      data: parsed.helperMasterMemberIds.map(memberId => ({
         eventId: id,
         memberId,
       })),
       skipDuplicates: true,
-    });
+    })
   }
-});
+})
 ```
 
 Revalidate `/admin/events`, `/admin`, `/`.
@@ -642,15 +629,15 @@ if (sens && !parsed.acknowledgeSensitiveChanges)
 9. **Menu sync transactional algorithm:**
 
 Inside `$transaction`:
+
 - **`deleteMany`** for `EventPicHelper` with `eventId` then **`createMany`** new set (simple snapshot replace).
 - For menu items keyed by **`id`** from client:
-   - Identify existing DB ids subset.
-   - **Delete IDs** absent from incoming list **attempt** (`delete` each) capturing Prisma **`P2003`** → map to Indonesian error `Menu masih digunakan di pendaftaran — hapus gagal.` return **failed transaction** mapping to `ActionResult`.
+  - Identify existing DB ids subset.
+  - **Delete IDs** absent from incoming list **attempt** (`delete` each) capturing Prisma **`P2003`** → map to Indonesian error `Menu masih digunakan di pendaftaran — hapus gagal.` return **failed transaction** mapping to `ActionResult`.
 
 **Cleaner:** `try { await tx.eventMenuItem.delete({ where:{ id:x } }); } collect codes`.
 
 - **Upsert-ish manual:** iterate payload items:
-
   - items with **`id`** matching persist update fields.
   - items **without id** insert new rows.
 
@@ -670,26 +657,25 @@ Errors to map:
 
 ```typescript
 function parseJsonField<T>(fd: FormData, key: string): T {
-  const raw = fd.get(key);
-  if (typeof raw !== "string") throw new Error("MISSING_JSON");
-  return JSON.parse(raw) as T;
+  const raw = fd.get(key)
+  if (typeof raw !== 'string') throw new Error('MISSING_JSON')
+  return JSON.parse(raw) as T
 }
 ```
 
 So action signature:
 
 ```typescript
-export async function createAdminEvent(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ eventId: string }>> { /* ... */ }
+export async function createAdminEvent(_prev: unknown, formData: FormData): Promise<ActionResult<{ eventId: string }>> {
+  /* ... */
+}
 ```
 
 ```typescript
-const payload = parseJsonField<unknown>(formData, "payload");
-const cover = formData.get("cover");
-const coverFile = cover instanceof File && cover.size > 0 ? cover : null;
-if (!coverFile) return rootError("Sampul acara wajib diunggah.");
+const payload = parseJsonField<unknown>(formData, 'payload')
+const cover = formData.get('cover')
+const coverFile = cover instanceof File && cover.size > 0 ? cover : null
+if (!coverFile) return rootError('Sampul acara wajib diunggah.')
 ```
 
 **Update path** cover optional.
@@ -704,6 +690,7 @@ Commits: split logically `feat(actions): admin createEvent` then `feat(actions):
 ### Task 8: List page `/admin/events`
 
 **Files:**
+
 - Modify: `src/app/admin/events/page.tsx`
 
 Requirements:
@@ -736,15 +723,15 @@ export default async function AdminEventsIndexPage() {
 
 Render shadcn `Table` from `src/components/ui/table.tsx` (already present) listing with actions:
 
-| Kolom |
-|-------|
-| Judul (link Pengaturan → `/edit`) |
-| Slug monospace |
+| Kolom                                         |
+| --------------------------------------------- |
+| Judul (link Pengaturan → `/edit`)             |
+| Slug monospace                                |
 | Status badge mapping reuse admin page pattern |
-| Waktu mulai |
-| Nama PIC ringkas |
-| Jumlah registrasi |
-| Shortcut Inbox `/inbox` link |
+| Waktu mulai                                   |
+| Nama PIC ringkas                              |
+| Jumlah registrasi                             |
+| Shortcut Inbox `/inbox` link                  |
 
 Prominent **`Link`/`Button`** `Buat acara` → `/admin/events/new`.
 
@@ -756,6 +743,7 @@ Prominent **`Link`/`Button`** `Buat acara` → `/admin/events/new`.
 ### Task 9: RSC loaders for new/edit + breadcrumbs
 
 **Files:**
+
 - Create: `src/app/admin/events/new/page.tsx`
 - Create: `src/app/admin/events/[eventId]/edit/page.tsx`
 - Modify: `src/components/admin/admin-event-breadcrumbs.tsx`
@@ -770,17 +758,17 @@ Serialize defaults `getCommitteeTicketDefaults()` to pass `defaultTicketMemberPr
 **Edit page**:
 
 ```typescript
-if (!hasOperationalOwnerParity(ctx.role)) notFound();
+if (!hasOperationalOwnerParity(ctx.role)) notFound()
 
 const event = await prisma.event.findUnique({
   where: { id: eventId },
   include: {
-    menuItems: { orderBy: { sortOrder: "asc" } },
-    helpers: { select:{ memberId: true } },
+    menuItems: { orderBy: { sortOrder: 'asc' } },
+    helpers: { select: { memberId: true } },
   },
-});
+})
 
-if (!event) notFound();
+if (!event) notFound()
 ```
 
 Pass `registrationCount` via prisma `_count.registrations`.
@@ -808,28 +796,29 @@ Maintain accessibility `aria-current`.
 Because full TSX markup is lengthy, ship **minimal vertical slice**:
 
 **Files:**
+
 - Create: `src/components/admin/forms/event-admin-form.tsx` — `'use client'`, wraps `react-hook-form` `<Form {...form}>`, hidden `<input type="hidden" />` acknowledgment toggled via dialog (`src/components/admin/forms/sensitive-changes-dialog.tsx`).
 
 Expose props:
 
 ```tsx
 export type EventAdminFormProps = {
-  mode: "create" | "edit";
-  eventId?: string;
-  initialValues?: AdminEventUpsertInput;
-  defaultsFromCommittee?: { ticketMemberPrice: number; ticketNonMemberPrice: number };
-  picOptions: Array<{ id: string; label: string }>;
-  banksByPic: Record<string, Array<{ id:string;label:string }>>;
-};
+  mode: 'create' | 'edit'
+  eventId?: string
+  initialValues?: AdminEventUpsertInput
+  defaultsFromCommittee?: { ticketMemberPrice: number; ticketNonMemberPrice: number }
+  picOptions: Array<{ id: string; label: string }>
+  banksByPic: Record<string, Array<{ id: string; label: string }>>
+}
 ```
 
 Use **`useTransition`** with an async submit handler constructing `FormData` (recommended over raw `useActionState` wrapping for multipart cover + rich JSON blob):
 
 ```tsx
-const fd = new FormData();
-fd.set("payload", JSON.stringify(normalizedPayload));
-if (coverInputRef.files?.length) fd.set("cover", coverInputRef.files[0]);
-await createAdminEvent(undefined, fd);
+const fd = new FormData()
+fd.set('payload', JSON.stringify(normalizedPayload))
+if (coverInputRef.files?.length) fd.set('cover', coverInputRef.files[0])
+await createAdminEvent(undefined, fd)
 ```
 
 On success:
@@ -844,7 +833,7 @@ router.push(...)
 **(Sensitive dialog):**
 
 ```tsx
-if (!result.ok && result.rootError?.includes("Centang pengakuan")) openDialog(); // brittle—prefer typed error codes later (YAGNI)
+if (!result.ok && result.rootError?.includes('Centang pengakuan')) openDialog() // brittle—prefer typed error codes later (YAGNI)
 ```
 
 **(Menu FieldArray)**
@@ -873,6 +862,7 @@ GET -> returns bank rows for operative admin only
 ### Task 11: API route PIC bank prefetch
 
 **Files:**
+
 - Create: `src/app/api/admin/pic-banks/[memberId]/route.ts`
 
 Pattern copy [`src/app/api/admin/events/[eventId]/title/route.ts`](../../../src/app/api/admin/events/[eventId]/title/route.ts) auth.
@@ -903,6 +893,7 @@ export async function GET(_, {params}:{params:Promise<{memberId:string}>}) {
 ### Task 12: Layout visibility for PIC helper-only users on `/edit`
 
 **Files:**
+
 - Possibly modify `[eventId]/layout.tsx` breadcrumbs — ensure when Verifier mistakenly hits `/edit` URL they `notFound` early (Operational guard handles). No extra tasks if `notFound` already from page.
 
 Smoke manual script:
@@ -924,6 +915,7 @@ pnpm lint && pnpm test && pnpm build
 git add -A
 git commit -m "test(admin): stabilize event tier helpers"
 ```
+
 (Only if tweaking tests.)
 
 ---
@@ -932,19 +924,19 @@ git commit -m "test(admin): stabilize event tier helpers"
 
 **Spec coverage map**
 
-| Spec section | Task |
-|---------------|------|
-| Owner/Admin only | Sidebar Task 1, guards Task 7, API route Task 11, pages Task 8–9 |
-| IA routes `/admin/events`, `/new`, `/[id]/edit` | Tasks 8–10 |
-| Field coverage incl. PIC/helpers/menu | Tasks 5,7,10 |
-| Tier locking + ack | Tasks 4,7,10 |
-| Cover Blob | Tasks 6,7 |
-| Sanitized HTML storage | Task 7 (sanitize reuse) |
-| No hard delete MVP | Omit delete action per spec §7 |
-| Global defaults fallback | Tasks 3,9 |
-| Indonesian errors | Implemented in Tasks 7,10 wording |
-| Tests | Tasks 2–4 helpers covered |
-| Sidebar misnavigation | Task 1 |
+| Spec section                                    | Task                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| Owner/Admin only                                | Sidebar Task 1, guards Task 7, API route Task 11, pages Task 8–9 |
+| IA routes `/admin/events`, `/new`, `/[id]/edit` | Tasks 8–10                                                       |
+| Field coverage incl. PIC/helpers/menu           | Tasks 5,7,10                                                     |
+| Tier locking + ack                              | Tasks 4,7,10                                                     |
+| Cover Blob                                      | Tasks 6,7                                                        |
+| Sanitized HTML storage                          | Task 7 (sanitize reuse)                                          |
+| No hard delete MVP                              | Omit delete action per spec §7                                   |
+| Global defaults fallback                        | Tasks 3,9                                                        |
+| Indonesian errors                               | Implemented in Tasks 7,10 wording                                |
+| Tests                                           | Tasks 2–4 helpers covered                                        |
+| Sidebar misnavigation                           | Task 1                                                           |
 
 **Placeholder audit:** Removed—only explicit env/README operator instructions.
 
