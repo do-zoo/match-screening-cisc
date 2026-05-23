@@ -70,6 +70,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       (_, i) =>
         current[i] ?? {
           holderName: '',
+          holderWhatsapp: '',
           claimedMemberNumber: '',
           mandatoryMenuItemId: '',
         },

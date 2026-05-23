@@ -2,17 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { holderSchema, submitRegistrationSchema } from './submit-registration-schema'
 
-function transferProofFile() {
-  return new File([new Uint8Array([1])], 'p.jpg', { type: 'image/jpeg' })
-}
-
 function validPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     ticketCategoryId: 'cat-1',
     ticketQty: 1,
     holders: [{ holderName: 'Budi Santoso', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
     contactWhatsapp: '08123456789',
-    transferProof: transferProofFile(),
     ...overrides,
   }
 }
