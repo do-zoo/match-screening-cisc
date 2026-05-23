@@ -3,23 +3,21 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Controller, FormProvider, useFieldArray, useForm, type Resolver } from 'react-hook-form'
+import { FormProvider, useFieldArray, useForm, type Resolver } from 'react-hook-form'
 
-import { Button } from '@/components/ui/button'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { submitRegistration } from '@/lib/actions/submit-registration'
-import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
+import { toastActionErr } from '@/lib/client/cud-notify'
 import { submitRegistrationSchema, type SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
-import { formatIdr } from '@/lib/utils/format-idr'
 
-import { CategoryPicker } from './category-picker'
-import { HolderCard } from './holder-card'
-import type { RegistrationFormProps } from './types'
+import { StepIndicator } from './step-indicator'
+import { StepOne } from './step-one'
+import { StepTwo } from './step-two'
 import { usePricingPreview } from './use-pricing-preview'
+import type { RegistrationFormProps } from './types'
 
 export function RegistrationForm({ event }: RegistrationFormProps) {
   const router = useRouter()
+  const [step, setStep] = useState<1 | 2>(1)
 
   const form = useForm<SubmitRegistrationInput>({
     resolver: zodResolver(submitRegistrationSchema as never) as Resolver<SubmitRegistrationInput>,
@@ -31,10 +29,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     },
   })
 
-  const { fields, replace } = useFieldArray({
-    control: form.control,
-    name: 'holders',
-  })
+  const { fields, replace } = useFieldArray({ control: form.control, name: 'holders' })
 
   const [holderValidations, setHolderValidations] = useState<('valid' | 'invalid' | 'unknown')[]>(() =>
     Array(1).fill('unknown'),
@@ -60,6 +55,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     () => event.ticketCategories?.find(c => c.id === selectedCategoryId),
     [event.ticketCategories, selectedCategoryId],
   )
+
   const pricing = usePricingPreview({ category: selectedCategory, holders, holderValidations })
 
   function handleQtyChange(qty: number) {
@@ -67,16 +63,15 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     const current = form.getValues('holders')
     const next = Array.from(
       { length: qty },
-      (_, i) =>
-        current[i] ?? {
-          holderName: '',
-          holderWhatsapp: '',
-          claimedMemberNumber: '',
-          mandatoryMenuItemId: '',
-        },
+      (_, i) => current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
     )
     replace(next)
     setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
+  }
+
+  async function handleNext() {
+    const valid = await form.trigger()
+    if (valid) setStep(2)
   }
 
   async function onSubmit(values: SubmitRegistrationInput) {
@@ -88,124 +83,47 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
     const result = await submitRegistration(event.id, formData)
     if (result.ok) {
-      toastCudSuccess('create', 'Pendaftaran berhasil dikirim.')
       router.push(`/events/${event.slug}/register/${result.data.registrationId}`)
       return
     }
 
     toastActionErr(result)
-
-    if (result.rootError) {
-      form.setError('root', { message: result.rootError })
-    }
-    if (result.fieldErrors) {
-      for (const [key, msg] of Object.entries(result.fieldErrors)) {
-        form.setError(key as keyof SubmitRegistrationInput, { message: msg })
-      }
-    }
+    if (result.rootError) form.setError('root', { message: result.rootError })
   }
 
   return (
     <FormProvider {...form}>
-      <form className='mx-auto flex w-full max-w-2xl flex-col gap-6 md:p-6' onSubmit={form.handleSubmit(onSubmit)}>
-        <fieldset disabled={!event.registrationOpen} className='min-w-0 space-y-6 border-0 p-0'>
+      <form
+        className='mx-auto flex w-full max-w-2xl flex-col gap-6 md:p-6'
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        <StepIndicator current={step} />
+
+        <fieldset disabled={!event.registrationOpen || form.formState.isSubmitting} className='min-w-0 space-y-6 border-0 p-0'>
           <legend className='sr-only'>Formulir pendaftaran acara</legend>
 
-          {/* Category + qty picker */}
-          <div className='rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm space-y-4'>
-            <h2 className='text-xl font-semibold tracking-tight'>Pilih Tiket</h2>
-            {event.ticketCategories && event.ticketCategories.length > 0 ? (
-              <CategoryPicker
-                categories={event.ticketCategories}
-                selectedId={selectedCategoryId}
-                onSelect={id => form.setValue('ticketCategoryId', id)}
-                qty={ticketQty}
-                onQtyChange={handleQtyChange}
-                disabled={form.formState.isSubmitting}
-              />
-            ) : (
-              <p className='text-sm text-muted-foreground'>Tidak ada kategori tiket yang tersedia.</p>
-            )}
-          </div>
-
-          {/* Holder cards */}
-          <div className='rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm space-y-4'>
-            <h2 className='text-xl font-semibold tracking-tight'>Data Peserta</h2>
-            <div className='space-y-3'>
-              {fields.map((field, index) => (
-                <HolderCard
-                  key={field.id}
-                  index={index}
-                  isPrimary={index === 0}
-                  menuItems={event.mandatoryMenuItems}
-                  menuRequired={event.menuRequired ?? false}
-                  eventId={event.id}
-                  onValidationChange={handleValidationChange}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Contact & payment */}
-          <div className='rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm space-y-4'>
-            <h2 className='text-xl font-semibold tracking-tight'>Kontak &amp; Pembayaran</h2>
-
-            <Controller
-              control={form.control}
-              name='contactWhatsapp'
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='ms-registration-whatsapp'>Nomor WhatsApp</FieldLabel>
-                  <Input
-                    id='ms-registration-whatsapp'
-                    type='tel'
-                    placeholder='+62 812 xxxx xxxx'
-                    aria-invalid={fieldState.invalid}
-                    {...field}
-                  />
-                  {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
+          {step === 1 && (
+            <StepOne
+              event={event}
+              fields={fields}
+              ticketQty={ticketQty}
+              selectedCategoryId={selectedCategoryId}
+              pricing={pricing}
+              onValidationChange={handleValidationChange}
+              onQtyChange={handleQtyChange}
+              onNext={handleNext}
             />
-
-            <div className='text-sm leading-relaxed text-foreground/85'>
-              Transfer ke: <span className='font-medium text-foreground'>{event.bankAccount.bankName}</span> —{' '}
-              {event.bankAccount.accountName} <span className='font-mono'>{event.bankAccount.accountNumber}</span>
-            </div>
-          </div>
-
-          {/* Pricing summary */}
-          {pricing && (
-            <div className='rounded-xl border border-border bg-muted/30 px-5 py-4 space-y-2'>
-              <p className='font-medium text-sm'>Estimasi Total</p>
-              {pricing.lines.map(l => (
-                <div key={l.index} className='flex justify-between text-sm'>
-                  <span className='text-muted-foreground'>
-                    Tiket {l.index + 1} ({l.isMember ? 'Member' : 'Reguler'})
-                  </span>
-                  <span className='font-mono tabular-nums'>{formatIdr(l.ticketPrice)}</span>
-                </div>
-              ))}
-              <div className='flex justify-between font-semibold border-t pt-2'>
-                <span>Total</span>
-                <span className='font-mono tabular-nums'>{formatIdr(pricing.grandTotal)}</span>
-              </div>
-            </div>
           )}
 
-          {form.formState.errors.root && (
-            <p className='text-sm text-destructive' role='alert'>
-              {form.formState.errors.root.message}
-            </p>
+          {step === 2 && (
+            <StepTwo
+              event={event}
+              selectedCategory={selectedCategory}
+              pricing={pricing}
+              onBack={() => setStep(1)}
+              isSubmitting={form.formState.isSubmitting}
+            />
           )}
-
-          <Button
-            type='submit'
-            disabled={!event.registrationOpen || form.formState.isSubmitting}
-            className='w-full min-h-12'
-          >
-            {form.formState.isSubmitting ? 'Mengirim…' : 'Kirim pendaftaran'}
-          </Button>
         </fieldset>
       </form>
     </FormProvider>
