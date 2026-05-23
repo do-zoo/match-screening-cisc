@@ -81,6 +81,10 @@ ALTER TABLE "RegistrationHolder"
     ADD CONSTRAINT "RegistrationHolder_memberId_fkey"
     FOREIGN KEY ("memberId") REFERENCES "MasterMember"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+ALTER TABLE "RegistrationHolder"
+    ADD CONSTRAINT "RegistrationHolder_mandatoryMenuItemId_fkey"
+    FOREIGN KEY ("mandatoryMenuItemId") REFERENCES "VenueMenuItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 -- ============================================================
 -- 6. Add new columns to Registration (nullable first)
 -- ============================================================

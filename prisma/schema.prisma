@@ -227,6 +227,7 @@ model RegistrationHolder {
   registration              Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   sortOrder                 Int
   holderName                String
+  holderWhatsapp            String?
   claimedMemberNumber       String?
   memberValidation          MemberValidation @default(unknown)
   memberId                  String?
