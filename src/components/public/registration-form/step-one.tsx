@@ -20,7 +20,6 @@ type Props = {
   fields: FieldArrayWithId<SubmitRegistrationInput, 'holders'>[]
   ticketQty: number
   selectedCategoryId: string
-  holderValidations: ('valid' | 'invalid' | 'unknown')[]
   pricing: ReturnType<typeof usePricingPreview>
   onValidationChange: (index: number, validation: 'valid' | 'invalid' | 'unknown') => void
   onQtyChange: (qty: number) => void
@@ -32,7 +31,6 @@ export function StepOne({
   fields,
   ticketQty,
   selectedCategoryId,
-  holderValidations,
   pricing,
   onValidationChange,
   onQtyChange,
