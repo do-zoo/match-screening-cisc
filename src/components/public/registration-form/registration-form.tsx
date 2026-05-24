@@ -66,7 +66,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       replace(next)
       setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
     }
-    // primary-only: holders array tetap 1 elemen; server akan kloning saat submit
   }
 
   async function handleNext() {
