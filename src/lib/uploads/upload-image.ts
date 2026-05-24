@@ -13,6 +13,7 @@ export async function uploadImageForRegistration(input: {
   purpose: Extract<UploadPurpose, 'transfer_proof' | 'member_card_photo' | 'partner_member_card_photo'>
   registrationId: string
   file: File
+  registrationHolderId?: string
 }): Promise<{ uploadId: string; url: string }> {
   if (!ALLOWED_IMAGE_MIME_TYPES.has(input.file.type)) {
     throw new UploadError('File must be an image.', {
@@ -31,7 +32,9 @@ export async function uploadImageForRegistration(input: {
   const raw = Buffer.from(await input.file.arrayBuffer())
   const webp = await toWebp(raw, { maxDim: 1600, quality: 80 })
 
-  const blobPath = `registrations/${input.registrationId}/${input.purpose}.webp`
+  const blobPath = input.registrationHolderId
+    ? `registrations/${input.registrationId}/holders/${input.registrationHolderId.slice(-8)}/${input.purpose}.webp`
+    : `registrations/${input.registrationId}/${input.purpose}.webp`
   const putRes = await retry(() => putWebpToBlob({ path: blobPath, bytes: webp.bytes }), {
     maxAttempts: 3,
     delayMs: 250,
@@ -50,6 +53,7 @@ export async function uploadImageForRegistration(input: {
       width: webp.width,
       height: webp.height,
       originalFilename: input.file.name,
+      registrationHolderId: input.registrationHolderId,
     })
   } catch (err) {
     try {

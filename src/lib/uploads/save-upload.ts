@@ -13,6 +13,7 @@ export async function saveUploadMetadata(input: {
   originalFilename?: string
   registrationId?: string
   invoiceAdjustmentId?: string
+  registrationHolderId?: string
 }) {
   return prisma.upload.create({
     data: {
@@ -27,6 +28,7 @@ export async function saveUploadMetadata(input: {
       originalFilename: input.originalFilename,
       registrationId: input.registrationId,
       invoiceAdjustmentId: input.invoiceAdjustmentId,
+      registrationHolderId: input.registrationHolderId,
     },
   })
 }
