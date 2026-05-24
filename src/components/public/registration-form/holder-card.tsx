@@ -207,7 +207,6 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
       >
         <span className='flex items-center gap-2 font-medium'>
           Tiket {index + 1}
-          {isPrimary && ' (Anda)'}
           {isPrimary && (
             <span className='rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary'>
               Pemesan
