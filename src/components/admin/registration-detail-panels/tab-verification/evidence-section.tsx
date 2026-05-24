@@ -12,6 +12,18 @@ type Props = {
   ticketContext: TicketContextVm
 }
 
+function uploadLabel(
+  upload: DetailRegistration['uploads'][number],
+  holders: DetailRegistration['holders'],
+): string {
+  if (upload.registrationHolderId && upload.purpose === 'member_card_photo') {
+    const holder = holders.find(h => h.id === upload.registrationHolderId)
+    const name = holder ? holder.holderName : `Holder #${upload.registrationHolderId.slice(-4)}`
+    return `Foto kartu member regional — ${name}`
+  }
+  return formatUploadPurpose(upload.purpose)
+}
+
 export function EvidenceSection({ eventId, registration, ticketContext }: Props) {
   return (
     <div className='grid gap-4 md:p-6'>
@@ -32,7 +44,7 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
                 className='group overflow-hidden rounded-lg border bg-card'
               >
                 <div className='flex items-center justify-between gap-2 border-b px-2 py-1.5 text-xs'>
-                  <div className='truncate font-medium'>{formatUploadPurpose(upload.purpose)}</div>
+                  <div className='truncate font-medium'>{uploadLabel(upload, registration.holders)}</div>
                   <div className='shrink-0 font-mono text-[10px] text-muted-foreground'>
                     {Math.round(upload.bytes / 1024)} KB
                   </div>
@@ -40,7 +52,7 @@ export function EvidenceSection({ eventId, registration, ticketContext }: Props)
                 <div className='relative mx-auto aspect-square w-full max-h-[140px] bg-muted/30 p-2'>
                   <Image
                     src={upload.blobUrl}
-                    alt={upload.originalFilename ?? formatUploadPurpose(upload.purpose)}
+                    alt={upload.originalFilename ?? uploadLabel(upload, registration.holders)}
                     fill
                     sizes='(max-width: 640px) 50vw, 33vw'
                     className='object-contain'
