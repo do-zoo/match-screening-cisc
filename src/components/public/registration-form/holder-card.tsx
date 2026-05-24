@@ -199,15 +199,20 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
     validationResult.status === 'valid' && whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
 
   return (
-    <div className='rounded-lg border'>
+    <div className={cn('rounded-lg border', isPrimary && 'border-primary bg-primary/5')}>
       <button
         type='button'
         onClick={() => setExpanded(v => !v)}
         className='flex w-full items-center justify-between px-4 py-3 text-left'
       >
-        <span className='font-medium'>
+        <span className='flex items-center gap-2 font-medium'>
           Tiket {index + 1}
           {isPrimary && ' (Anda)'}
+          {isPrimary && (
+            <span className='rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary'>
+              Pemesan
+            </span>
+          )}
         </span>
         <div className='flex items-center gap-2 text-sm text-muted-foreground'>
           <span className='truncate max-w-36'>{summaryName}</span>
