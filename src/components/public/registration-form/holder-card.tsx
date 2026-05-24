@@ -42,10 +42,7 @@ function WhatsAppField({ index }: { index: number }) {
       name={`holders.${index}.holderWhatsapp`}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={`holder-${index}-wa`}>
-            Nomor WhatsApp{' '}
-            <span className='font-normal text-muted-foreground'>(opsional)</span>
-          </FieldLabel>
+          <FieldLabel htmlFor={`holder-${index}-wa`}>Nomor WhatsApp</FieldLabel>
           <PhoneInput
             id={`holder-${index}-wa`}
             name={field.name}
@@ -266,8 +263,8 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
                 whatsapp={validationResult.whatsapp}
                 onReset={handleResetMemberNumber}
               />
-              {/* If directory has no WA, let the user fill it in */}
-              {memberVerifiedNoWa && (
+              {/* If directory has no WA, let the user fill it in (secondary holders only) */}
+              {memberVerifiedNoWa && !isPrimary && (
                 <>
                   <Alert variant='destructive' className='text-sm'>
                     Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa menghubungi peserta.
@@ -295,7 +292,7 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
                   </Field>
                 )}
               />
-              <WhatsAppField index={index} />
+              {!isPrimary && <WhatsAppField index={index} />}
             </>
           )}
 
