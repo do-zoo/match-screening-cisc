@@ -13,6 +13,7 @@
 ## File Map
 
 ### Dimodifikasi
+
 - `src/lib/forms/submit-registration-schema.ts` — hapus `transferProof`
 - `src/lib/actions/submit-registration.ts` — hapus upload logic, tetap di status `submitted`
 - `src/lib/actions/__tests__/submit-registration.integration.test.ts` — hapus `transferProof` dari test FormData
@@ -20,6 +21,7 @@
 - `src/app/(public)/events/[slug]/register/[registrationId]/page.tsx` — status-aware routing ke panel yang tepat
 
 ### Dibuat
+
 - `src/lib/actions/upload-transfer-proof.ts` — server action upload bukti + update status
 - `src/lib/actions/__tests__/upload-transfer-proof.integration.test.ts` — integration tests
 - `src/components/public/registration-form/step-indicator.tsx` — progress indicator 2 langkah
@@ -34,6 +36,7 @@
 ## Task 1: Hapus `transferProof` dari schema dan action
 
 **Files:**
+
 - Modify: `src/lib/forms/submit-registration-schema.ts`
 - Modify: `src/lib/actions/submit-registration.ts`
 - Modify: `src/lib/actions/__tests__/submit-registration.integration.test.ts`
@@ -336,6 +339,7 @@ git commit -m "feat(registration): remove transferProof from submit — upload h
 ## Task 2: Server action `uploadTransferProof`
 
 **Files:**
+
 - Create: `src/lib/actions/upload-transfer-proof.ts`
 - Create: `src/lib/actions/__tests__/upload-transfer-proof.integration.test.ts`
 
@@ -440,10 +444,7 @@ import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
 import { UploadError } from '@/lib/uploads/errors'
 
-export async function uploadTransferProof(
-  registrationId: string,
-  formData: FormData,
-): Promise<ActionResult<null>> {
+export async function uploadTransferProof(registrationId: string, formData: FormData): Promise<ActionResult<null>> {
   const file = formData.get('transferProof')
   if (!(file instanceof File) || file.size === 0) {
     return rootError('Bukti transfer wajib diunggah.')
@@ -502,6 +503,7 @@ git commit -m "feat(registration): add uploadTransferProof server action"
 ## Task 3: Komponen `StepIndicator`
 
 **Files:**
+
 - Create: `src/components/public/registration-form/step-indicator.tsx`
 
 - [ ] **Step 1: Buat komponen**
@@ -530,7 +532,7 @@ function StepBubble({ n, label, state }: { n: number; label: string; state: Step
       <span
         className={cn(
           'max-w-20 text-center text-xs',
-          (isActive || isDone) ? 'font-medium text-primary' : 'text-muted-foreground',
+          isActive || isDone ? 'font-medium text-primary' : 'text-muted-foreground',
         )}
       >
         {label}
@@ -572,6 +574,7 @@ git commit -m "feat(registration): add StepIndicator component"
 ## Task 4: Komponen `StepOne`
 
 **Files:**
+
 - Create: `src/components/public/registration-form/step-one.tsx`
 
 Komponen ini mengekstrak konten Step 1 dari `registration-form.tsx` yang akan direfaktor di Task 6. Isi dari `StepOne` adalah CategoryPicker + HolderCards + contactWhatsapp + pricing preview.
@@ -739,6 +742,7 @@ git commit -m "feat(registration): add StepOne component"
 ## Task 5: Komponen `StepTwo`
 
 **Files:**
+
 - Create: `src/components/public/registration-form/step-two.tsx`
 
 Komponen read-only yang membaca data dari form context dan menampilkan ringkasan sebelum submit.
@@ -823,10 +827,8 @@ export function StepTwo({ event, selectedCategory, pricing, onBack, isSubmitting
           Setelah klik &ldquo;Kirim Pendaftaran&rdquo;, kamu akan diminta upload bukti transfer di halaman berikutnya.
         </p>
         <div className='text-sm leading-relaxed'>
-          Transfer ke:{' '}
-          <span className='font-medium text-foreground'>{event.bankAccount.bankName}</span> —{' '}
-          {event.bankAccount.accountName}{' '}
-          <span className='font-mono'>{event.bankAccount.accountNumber}</span>
+          Transfer ke: <span className='font-medium text-foreground'>{event.bankAccount.bankName}</span> —{' '}
+          {event.bankAccount.accountName} <span className='font-mono'>{event.bankAccount.accountNumber}</span>
         </div>
         {pricing && (
           <div className='text-sm'>
@@ -877,6 +879,7 @@ git commit -m "feat(registration): add StepTwo summary component"
 ## Task 6: Refactor `RegistrationForm` — pakai wizard
 
 **Files:**
+
 - Modify: `src/components/public/registration-form/registration-form.tsx`
 
 - [ ] **Step 1: Ganti seluruh isi file**
@@ -921,17 +924,14 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     Array(1).fill('unknown'),
   )
 
-  const handleValidationChange = useCallback(
-    (index: number, validation: 'valid' | 'invalid' | 'unknown') => {
-      setHolderValidations(prev => {
-        if (prev[index] === validation) return prev
-        const next = [...prev]
-        next[index] = validation
-        return next
-      })
-    },
-    [],
-  )
+  const handleValidationChange = useCallback((index: number, validation: 'valid' | 'invalid' | 'unknown') => {
+    setHolderValidations(prev => {
+      if (prev[index] === validation) return prev
+      const next = [...prev]
+      next[index] = validation
+      return next
+    })
+  }, [])
 
   const selectedCategoryId = form.watch('ticketCategoryId')
   const ticketQty = form.watch('ticketQty')
@@ -979,13 +979,13 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   return (
     <FormProvider {...form}>
-      <form
-        className='mx-auto flex w-full max-w-2xl flex-col gap-6 md:p-6'
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
+      <form className='mx-auto flex w-full max-w-2xl flex-col gap-6' onSubmit={form.handleSubmit(onSubmit)}>
         <StepIndicator current={step} />
 
-        <fieldset disabled={!event.registrationOpen || form.formState.isSubmitting} className='min-w-0 space-y-6 border-0 p-0'>
+        <fieldset
+          disabled={!event.registrationOpen || form.formState.isSubmitting}
+          className='min-w-0 space-y-6 border-0 p-0'
+        >
           <legend className='sr-only'>Formulir pendaftaran acara</legend>
 
           {step === 1 && (
@@ -1048,6 +1048,7 @@ git commit -m "feat(registration): refactor RegistrationForm to 2-step wizard"
 ## Task 7: Panel halaman konfirmasi
 
 **Files:**
+
 - Create: `src/components/public/registration-form/upload-proof-panel.tsx`
 - Create: `src/components/public/registration-form/pending-review-panel.tsx`
 - Create: `src/components/public/registration-form/approved-panel.tsx`
@@ -1173,9 +1174,8 @@ export function PendingReviewPanel({ registrationId, eventTitle, totalAmount }: 
       <header className='flex flex-col gap-2'>
         <h1 className='text-2xl font-semibold tracking-tight'>Menunggu verifikasi panitia</h1>
         <p className='text-sm text-muted-foreground'>
-          Bukti transfer kamu sudah kami terima untuk{' '}
-          <span className='font-medium text-foreground'>{eventTitle}</span>. Tim akan memverifikasi
-          dalam 1&times;24 jam.
+          Bukti transfer kamu sudah kami terima untuk <span className='font-medium text-foreground'>{eventTitle}</span>.
+          Tim akan memverifikasi dalam 1&times;24 jam.
         </p>
       </header>
 
@@ -1188,9 +1188,7 @@ export function PendingReviewPanel({ registrationId, eventTitle, totalAmount }: 
           <dt className='text-muted-foreground'>Total (snapshot)</dt>
           <dd className='font-mono text-base font-semibold tabular-nums'>{formatIdr(totalAmount)}</dd>
         </div>
-        <p className='text-xs text-muted-foreground'>
-          Simpan halaman ini sebagai bukti pendaftaran sementara.
-        </p>
+        <p className='text-xs text-muted-foreground'>Simpan halaman ini sebagai bukti pendaftaran sementara.</p>
       </section>
 
       <nav className='flex flex-wrap justify-end gap-3'>
@@ -1281,6 +1279,7 @@ git commit -m "feat(registration): add confirmation page panels (upload, pending
 ## Task 8: Update halaman konfirmasi `/register/[registrationId]`
 
 **Files:**
+
 - Modify: `src/app/(public)/events/[slug]/register/[registrationId]/page.tsx`
 
 - [ ] **Step 1: Ganti seluruh isi file**
@@ -1343,23 +1342,11 @@ export default async function RegistrationReceiptPage({
   }
 
   if (status === RegistrationStatus.pending_review) {
-    return (
-      <PendingReviewPanel
-        registrationId={id}
-        eventTitle={event.title}
-        totalAmount={computedTotalAtSubmit}
-      />
-    )
+    return <PendingReviewPanel registrationId={id} eventTitle={event.title} totalAmount={computedTotalAtSubmit} />
   }
 
   if (status === RegistrationStatus.approved) {
-    return (
-      <ApprovedPanel
-        registrationId={id}
-        eventTitle={event.title}
-        totalAmount={computedTotalAtSubmit}
-      />
-    )
+    return <ApprovedPanel registrationId={id} eventTitle={event.title} totalAmount={computedTotalAtSubmit} />
   }
 
   // Fallback: rejected, cancelled, refunded, payment_issue, dll

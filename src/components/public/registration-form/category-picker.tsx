@@ -1,6 +1,7 @@
 'use client'
 
 import type { SerializedTicketCategory } from '@/components/public/event-serialization'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatIdr } from '@/lib/utils/format-idr'
 
 type Props = {
@@ -53,18 +54,18 @@ export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyCha
 
       <div>
         <label className='text-sm font-medium'>Jumlah Tiket</label>
-        <select
-          value={qty}
-          onChange={e => onQtyChange(parseInt(e.target.value, 10))}
-          disabled={disabled}
-          className='mt-1 block w-24 rounded-md border border-input bg-background px-3 py-2 text-sm'
-        >
-          {Array.from({ length: max }, (_, i) => i + 1).map(n => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+        <Select value={qty.toString()} onValueChange={value => onQtyChange(Number(value))}>
+          <SelectTrigger className='w-24'>
+            <SelectValue placeholder='Pilih Jumlah Tiket' />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: max }, (_, i) => i + 1).map(n => (
+              <SelectItem key={n} value={n}>
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )

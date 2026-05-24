@@ -35,17 +35,14 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     Array(1).fill('unknown'),
   )
 
-  const handleValidationChange = useCallback(
-    (index: number, validation: 'valid' | 'invalid' | 'unknown') => {
-      setHolderValidations(prev => {
-        if (prev[index] === validation) return prev
-        const next = [...prev]
-        next[index] = validation
-        return next
-      })
-    },
-    [],
-  )
+  const handleValidationChange = useCallback((index: number, validation: 'valid' | 'invalid' | 'unknown') => {
+    setHolderValidations(prev => {
+      if (prev[index] === validation) return prev
+      const next = [...prev]
+      next[index] = validation
+      return next
+    })
+  }, [])
 
   const selectedCategoryId = form.watch('ticketCategoryId')
   const ticketQty = form.watch('ticketQty')
@@ -93,13 +90,13 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   return (
     <FormProvider {...form}>
-      <form
-        className='mx-auto flex w-full max-w-2xl flex-col gap-6 md:p-6'
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
+      <form className='mx-auto flex w-full max-w-2xl flex-col gap-6' onSubmit={form.handleSubmit(onSubmit)}>
         <StepIndicator current={step} />
 
-        <fieldset disabled={!event.registrationOpen || form.formState.isSubmitting} className='min-w-0 space-y-6 border-0 p-0'>
+        <fieldset
+          disabled={!event.registrationOpen || form.formState.isSubmitting}
+          className='min-w-0 space-y-6 border-0 p-0'
+        >
           <legend className='sr-only'>Formulir pendaftaran acara</legend>
 
           {step === 1 && (
