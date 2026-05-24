@@ -12,11 +12,7 @@ import { Label } from '@/components/ui/label'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
-import {
-  phoneValueToStoredString,
-  stringToPhoneValue,
-  whatsappDigitsOnly,
-} from '@/lib/forms/phone-value-string'
+import { phoneValueToStoredString, stringToPhoneValue, whatsappDigitsOnly } from '@/lib/forms/phone-value-string'
 import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 import { contactInitials, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
 import {
@@ -82,7 +78,7 @@ function MemberProfileCard({
           <div className='flex min-w-0 flex-1 flex-col gap-2'>
             <span className='flex w-fit items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary'>
               <ShieldCheck className='h-3 w-3' aria-hidden />
-              Terverifikasi di direktori
+              Member terverifikasi
             </span>
             <div className='grid gap-1.5'>
               <div>
@@ -101,10 +97,6 @@ function MemberProfileCard({
           </div>
         </div>
       </div>
-
-      <FieldDescription className='text-foreground/75'>
-        Teks disamarkan agar lebih sulit dibaca orang lain dari samping.
-      </FieldDescription>
 
       <Button type='button' variant='outline' size='sm' className='gap-2' onClick={onReset}>
         <PencilLine className='size-4' aria-hidden />
@@ -204,8 +196,7 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
 
   // Whether verified member is missing WhatsApp in the directory
   const memberVerifiedNoWa =
-    validationResult.status === 'valid' &&
-    whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
+    validationResult.status === 'valid' && whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
 
   return (
     <div className='rounded-lg border'>
@@ -267,7 +258,8 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
               {memberVerifiedNoWa && !isPrimary && (
                 <>
                   <Alert variant='destructive' className='text-sm'>
-                    Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa menghubungi peserta.
+                    Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa
+                    menghubungi peserta.
                   </Alert>
                   <WhatsAppField index={index} />
                 </>
