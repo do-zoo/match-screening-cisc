@@ -74,6 +74,11 @@ export function StepOne({
               onValidationChange={onValidationChange}
             />
           ))}
+          {!event.requireAllHolderData && ticketQty > 1 && (
+            <p className='rounded-lg bg-muted/30 px-4 py-3 text-sm text-muted-foreground'>
+              Tiket 2–{ticketQty} tidak memerlukan data peserta untuk acara ini.
+            </p>
+          )}
         </div>
       </div>
 
