@@ -297,6 +297,7 @@ model Event {
   registrationCapacity     Int?
   status                   EventStatus @default(draft)
   multiCategoryPurchase    Boolean     @default(false)
+  requireAllHolderData     Boolean     @default(true)
 
   // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
   mandatoryMenuItemIds String[] @default([])
