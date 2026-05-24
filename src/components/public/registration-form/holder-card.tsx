@@ -30,6 +30,7 @@ type Props = {
   menuItems?: { id: string; name: string; price: number }[]
   menuRequired: boolean
   eventId: string
+  showFileRequired?: boolean
   onValidationChange: (index: number, pricingValidation: 'valid' | 'invalid' | 'unknown') => void
   onMemberCardFileChange: (index: number, file: File | undefined) => void
 }
@@ -173,8 +174,7 @@ function RegionalMemberForm({
         render={({ field }) => (
           <Field>
             <FieldLabel htmlFor={`holder-${index}-regional-member`}>
-              Nomor Member{' '}
-              <span className='text-xs font-normal text-muted-foreground'>(opsional)</span>
+              Nomor Member <span className='text-xs font-normal text-muted-foreground'>(opsional)</span>
             </FieldLabel>
             <Input
               id={`holder-${index}-regional-member`}
@@ -223,12 +223,12 @@ export function HolderCard({
   menuItems,
   menuRequired,
   eventId,
+  showFileRequired = false,
   onValidationChange,
   onMemberCardFileChange,
 }: Props) {
   const [expanded, setExpanded] = useState(isPrimary)
   const [memberType, setMemberType] = useState<MemberType>('non')
-  const [showFileRequired, setShowFileRequired] = useState(false)
   const form = useFormContext<SubmitRegistrationInput>()
   const { setValue } = form
 
@@ -259,7 +259,6 @@ export function HolderCard({
   function handleMemberToggle(value: string) {
     const next = value as MemberType
     setMemberType(next)
-    setShowFileRequired(false)
     setValue(`holders.${index}.memberType`, next === 'non' ? undefined : (next as 'tangsel' | 'regional'))
     if (next !== 'tangsel') {
       setValue(`holders.${index}.claimedMemberNumber`, '')
@@ -297,9 +296,7 @@ export function HolderCard({
         <span className='flex items-center gap-2 font-medium'>
           Tiket {index + 1}
           {isPrimary && (
-            <span className='rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary'>
-              Pemesan
-            </span>
+            <span className='rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary'>Pemesan</span>
           )}
         </span>
         <div className='flex items-center gap-2 text-sm text-muted-foreground'>
@@ -313,11 +310,7 @@ export function HolderCard({
           {/* Member type radio group */}
           <Field>
             <FieldLabel>Status keanggotaan</FieldLabel>
-            <RadioGroup
-              className='grid grid-cols-3 gap-2'
-              value={memberType}
-              onValueChange={handleMemberToggle}
-            >
+            <RadioGroup className='grid grid-cols-3 gap-2' value={memberType} onValueChange={handleMemberToggle}>
               <Label
                 htmlFor={`holder-${index}-type-non`}
                 className={cn(
@@ -334,7 +327,7 @@ export function HolderCard({
                 )}
               >
                 <RadioGroupItem value='tangsel' id={`holder-${index}-type-tangsel`} />
-                <span>Member CISC Tangsel</span>
+                <span>Member CISC Regional Tangsel</span>
               </Label>
               <Label
                 htmlFor={`holder-${index}-type-regional`}
@@ -343,7 +336,7 @@ export function HolderCard({
                 )}
               >
                 <RadioGroupItem value='regional' id={`holder-${index}-type-regional`} />
-                <span>Member CISC Regional</span>
+                <span>Member CISC Regional Lainnya</span>
               </Label>
             </RadioGroup>
           </Field>

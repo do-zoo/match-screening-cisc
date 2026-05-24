@@ -19,6 +19,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1)
   const [memberCardFiles, setMemberCardFiles] = useState<Map<number, File>>(new Map())
+  const [missingFileIndices, setMissingFileIndices] = useState<Set<number>>(new Set())
 
   const form = useForm<SubmitRegistrationInput>({
     resolver: zodResolver(submitRegistrationSchema as never) as Resolver<SubmitRegistrationInput>,
@@ -54,6 +55,14 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       }
       return next
     })
+    if (file) {
+      setMissingFileIndices(prev => {
+        if (!prev.has(index)) return prev
+        const next = new Set(prev)
+        next.delete(index)
+        return next
+      })
+    }
   }, [])
 
   const selectedCategoryId = form.watch('ticketCategoryId')
@@ -100,14 +109,18 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     if (!valid) return
 
     const currentHolders = form.getValues('holders')
-    const missingFile = currentHolders.some((h, i) => h.memberType === 'regional' && !memberCardFiles.has(i))
-    if (missingFile) {
+    const missingIndices = currentHolders
+      .map((h, i) => (h.memberType === 'regional' && !memberCardFiles.has(i) ? i : -1))
+      .filter(i => i !== -1)
+    if (missingIndices.length > 0) {
+      setMissingFileIndices(new Set(missingIndices))
       form.setError('root', {
         message: 'Upload bukti kartu member untuk semua peserta Member CISC Regional sebelum melanjutkan.',
       })
       return
     }
 
+    setMissingFileIndices(new Set())
     form.clearErrors('root')
     setStep(2)
   }
@@ -160,6 +173,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
               ticketQty={ticketQty}
               selectedCategoryId={selectedCategoryId}
               pricing={pricing}
+              missingFileIndices={missingFileIndices}
               onValidationChange={handleValidationChange}
               onMemberCardFileChange={handleMemberCardFileChange}
               onQtyChange={handleQtyChange}

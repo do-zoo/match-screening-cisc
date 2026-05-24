@@ -19,6 +19,7 @@ type Props = {
   ticketQty: number
   selectedCategoryId: string
   pricing: ReturnType<typeof usePricingPreview>
+  missingFileIndices: Set<number>
   onValidationChange: (index: number, validation: 'valid' | 'invalid' | 'unknown') => void
   onMemberCardFileChange: (index: number, file: File | undefined) => void
   onQtyChange: (qty: number) => void
@@ -31,6 +32,7 @@ export function StepOne({
   ticketQty,
   selectedCategoryId,
   pricing,
+  missingFileIndices,
   onValidationChange,
   onMemberCardFileChange,
   onQtyChange,
@@ -73,6 +75,7 @@ export function StepOne({
               menuItems={event.mandatoryMenuItems}
               menuRequired={event.menuRequired ?? false}
               eventId={event.id}
+              showFileRequired={missingFileIndices.has(index)}
               onValidationChange={onValidationChange}
               onMemberCardFileChange={onMemberCardFileChange}
             />

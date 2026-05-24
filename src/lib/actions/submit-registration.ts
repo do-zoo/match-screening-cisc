@@ -131,7 +131,13 @@ export async function submitRegistration(
 
   const holdersForProcessing = event.requireAllHolderData
     ? input.holders
-    : Array.from({ length: input.ticketQty }, () => ({ ...input.holders[0]! }))
+    : Array.from({ length: input.ticketQty }, (_, i) => {
+        const base = { ...input.holders[0]! }
+        // Clones beyond the primary are synthetic — they represent the same person
+        // and should not carry a separate member claim requiring proof upload.
+        if (i > 0) base.memberType = undefined
+        return base
+      })
 
   // 6. Compute pricing (server always uses 'unknown' — admin verifies member status)
   const pricing = computeSubmitTotal({
