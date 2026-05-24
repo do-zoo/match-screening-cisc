@@ -20,6 +20,7 @@ type Props = {
   selectedCategoryId: string
   pricing: ReturnType<typeof usePricingPreview>
   onValidationChange: (index: number, validation: 'valid' | 'invalid' | 'unknown') => void
+  onMemberCardFileChange: (index: number, file: File | undefined) => void
   onQtyChange: (qty: number) => void
   onNext: () => Promise<void>
 }
@@ -31,6 +32,7 @@ export function StepOne({
   selectedCategoryId,
   pricing,
   onValidationChange,
+  onMemberCardFileChange,
   onQtyChange,
   onNext,
 }: Props) {
@@ -72,6 +74,7 @@ export function StepOne({
               menuRequired={event.menuRequired ?? false}
               eventId={event.id}
               onValidationChange={onValidationChange}
+              onMemberCardFileChange={onMemberCardFileChange}
             />
           ))}
           {!event.requireAllHolderData && ticketQty > 1 && (

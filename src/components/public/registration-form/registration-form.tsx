@@ -18,6 +18,7 @@ import type { RegistrationFormProps } from './types'
 export function RegistrationForm({ event }: RegistrationFormProps) {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1)
+  const [memberCardFiles, setMemberCardFiles] = useState<Map<number, File>>(new Map())
 
   const form = useForm<SubmitRegistrationInput>({
     resolver: zodResolver(submitRegistrationSchema as never) as Resolver<SubmitRegistrationInput>,
@@ -39,6 +40,18 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       if (prev[index] === validation) return prev
       const next = [...prev]
       next[index] = validation
+      return next
+    })
+  }, [])
+
+  const handleMemberCardFileChange = useCallback((index: number, file: File | undefined) => {
+    setMemberCardFiles(prev => {
+      const next = new Map(prev)
+      if (file) {
+        next.set(index, file)
+      } else {
+        next.delete(index)
+      }
       return next
     })
   }, [])
@@ -84,14 +97,40 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   async function handleNext() {
     const valid = await form.trigger()
-    if (valid) setStep(2)
+    if (!valid) return
+
+    const currentHolders = form.getValues('holders')
+    const missingFile = currentHolders.some((h, i) => h.memberType === 'regional' && !memberCardFiles.has(i))
+    if (missingFile) {
+      form.setError('root', {
+        message: 'Upload bukti kartu member untuk semua peserta Member CISC Regional sebelum melanjutkan.',
+      })
+      return
+    }
+
+    form.clearErrors('root')
+    setStep(2)
   }
 
   async function onSubmit(values: SubmitRegistrationInput) {
+    // Validate regional files again at submit (defensive)
+    const missingFile = values.holders.some((h, i) => h.memberType === 'regional' && !memberCardFiles.has(i))
+    if (missingFile) {
+      form.setError('root', {
+        message: 'Upload bukti kartu member untuk semua peserta Member CISC Regional.',
+      })
+      return
+    }
+
     const formData = new FormData()
     formData.append('ticketCategoryId', values.ticketCategoryId)
     formData.append('ticketQty', String(values.ticketQty))
     formData.append('holders', JSON.stringify(values.holders))
+
+    // Append member card photos for regional holders
+    memberCardFiles.forEach((file, index) => {
+      formData.append(`memberCardPhoto_${index}`, file)
+    })
 
     const result = await submitRegistration(event.id, formData)
     if (result.ok) {
@@ -122,6 +161,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
               selectedCategoryId={selectedCategoryId}
               pricing={pricing}
               onValidationChange={handleValidationChange}
+              onMemberCardFileChange={handleMemberCardFileChange}
               onQtyChange={handleQtyChange}
               onNext={handleNext}
             />
@@ -132,6 +172,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
               event={event}
               selectedCategory={selectedCategory}
               pricing={pricing}
+              holders={holders}
               onBack={() => setStep(1)}
               isSubmitting={form.formState.isSubmitting}
             />

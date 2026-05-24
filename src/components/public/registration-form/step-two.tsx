@@ -12,13 +12,19 @@ type Props = {
   event: SerializedEventForRegistration
   selectedCategory: SerializedTicketCategory | undefined
   pricing: ReturnType<typeof usePricingPreview>
+  holders: SubmitRegistrationInput['holders']
   onBack: () => void
   isSubmitting: boolean
 }
 
-export function StepTwo({ event, selectedCategory, pricing, onBack, isSubmitting }: Props) {
+function memberTypeLabel(h: SubmitRegistrationInput['holders'][number]): string {
+  if (h.memberType === 'tangsel') return 'Member Tangsel'
+  if (h.memberType === 'regional') return 'Member Regional'
+  return 'Non-member'
+}
+
+export function StepTwo({ event, selectedCategory, pricing, holders, onBack, isSubmitting }: Props) {
   const form = useFormContext<SubmitRegistrationInput>()
-  const holders = form.watch('holders')
 
   return (
     <div className='space-y-6'>
@@ -37,8 +43,7 @@ export function StepTwo({ event, selectedCategory, pricing, onBack, isSubmitting
           {holders.map((h, i) => (
             <div key={i} className='flex justify-between'>
               <dt className='text-muted-foreground'>
-                Tiket {i + 1}
-                {h.claimedMemberNumber ? ' (Member)' : ' (Non-member)'}
+                Tiket {i + 1} ({memberTypeLabel(h)})
               </dt>
               <dd className='text-right'>
                 <span className='block font-medium'>{h.holderName || '—'}</span>
