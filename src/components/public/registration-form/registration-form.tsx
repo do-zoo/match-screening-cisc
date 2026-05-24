@@ -53,7 +53,17 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     [event.ticketCategories, selectedCategoryId],
   )
 
-  const pricing = usePricingPreview({ category: selectedCategory, holders, holderValidations })
+  const pricingHolders = event.requireAllHolderData
+    ? holders
+    : Array.from(
+        { length: ticketQty },
+        () => holders[0] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      )
+  const pricingValidations = event.requireAllHolderData
+    ? holderValidations
+    : Array.from({ length: ticketQty }, () => holderValidations[0] ?? ('unknown' as const))
+
+  const pricing = usePricingPreview({ category: selectedCategory, holders: pricingHolders, holderValidations: pricingValidations })
 
   function handleQtyChange(qty: number) {
     form.setValue('ticketQty', qty)
