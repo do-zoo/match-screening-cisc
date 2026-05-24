@@ -9,16 +9,14 @@ describe('registration-window', () => {
   const activeBase = {
     status: 'active' as const,
     registrationManualClosed: false,
-    registrationCapacity: null as number | null,
     openRegistrationAt: open,
     closeRegistrationAt: close,
   }
 
-  it('is open when active, not manual-closed, window open, and no capacity limit', () => {
+  it('is open when active, not manual-closed, and window open', () => {
     expect(
       isRegistrationOpenForEvent({
         event: activeBase,
-        registrationsTowardQuota: 999,
         now: new Date('2025-06-01T00:00:00.000Z'),
       }),
     ).toBe(true)
@@ -28,7 +26,6 @@ describe('registration-window', () => {
     expect(
       isRegistrationOpenForEvent({
         event: { ...activeBase, registrationManualClosed: true },
-        registrationsTowardQuota: 0,
         now: new Date('2025-06-01T00:00:00.000Z'),
       }),
     ).toBe(false)
@@ -36,8 +33,6 @@ describe('registration-window', () => {
       registrationBlockMessageForPublic({
         eventStatus: 'active',
         registrationManualClosed: true,
-        registrationCapacity: null,
-        registrationsTowardQuota: 0,
         openRegistrationAt: open,
         closeRegistrationAt: close,
         now: new Date('2025-06-01T00:00:00.000Z'),
@@ -45,45 +40,21 @@ describe('registration-window', () => {
     ).toMatch(/ditutup/i)
   })
 
-  it('treats non-positive capacity as unlimited (no false quota-full)', () => {
+  it('closes when before open window', () => {
     expect(
       isRegistrationOpenForEvent({
-        event: { ...activeBase, registrationCapacity: 0 },
-        registrationsTowardQuota: 0,
-        now: new Date('2025-06-01T00:00:00.000Z'),
-      }),
-    ).toBe(true)
-    expect(
-      registrationBlockMessageForPublic({
-        eventStatus: 'active',
-        registrationManualClosed: false,
-        registrationCapacity: 0,
-        registrationsTowardQuota: 0,
-        openRegistrationAt: open,
-        closeRegistrationAt: close,
-        now: new Date('2025-06-01T00:00:00.000Z'),
-      }),
-    ).toBeNull()
-  })
-
-  it('closes at capacity boundary', () => {
-    expect(
-      isRegistrationOpenForEvent({
-        event: { ...activeBase, registrationCapacity: 10 },
-        registrationsTowardQuota: 10,
-        now: new Date('2025-06-01T00:00:00.000Z'),
+        event: activeBase,
+        now: new Date('2010-01-01T00:00:00.000Z'),
       }),
     ).toBe(false)
     expect(
       registrationBlockMessageForPublic({
         eventStatus: 'active',
         registrationManualClosed: false,
-        registrationCapacity: 10,
-        registrationsTowardQuota: 10,
         openRegistrationAt: open,
         closeRegistrationAt: close,
-        now: new Date('2025-06-01T00:00:00.000Z'),
+        now: new Date('2010-01-01T00:00:00.000Z'),
       }),
-    ).toMatch(/habis/i)
+    ).toMatch(/belum dibuka/i)
   })
 })

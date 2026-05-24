@@ -37,8 +37,6 @@ export default async function PublicEventsPage() {
                 startAtIso={e.startAtIso}
                 lowestMemberPrice={e.lowestMemberPrice}
                 lowestRegularPrice={e.lowestRegularPrice}
-                registrationCapacity={e.registrationCapacity}
-                registrationsTowardQuota={e.registrationsTowardQuota}
                 closeRegistrationAtIso={e.closeRegistrationAtIso}
                 badgeStatus={e.badgeStatus}
                 variant='grid'

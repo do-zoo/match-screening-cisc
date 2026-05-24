@@ -71,11 +71,29 @@ describe('holderSchema', () => {
     expect(r.success).toBe(false)
   })
 
-  it('accepts optional claimedMemberNumber', () => {
+  it('accepts optional claimedMemberNumber for non-member', () => {
     const r = holderSchema.safeParse({
       holderName: 'Budi',
       holderWhatsapp: '08123456789',
       claimedMemberNumber: 'CISC-001',
+    })
+    expect(r.success).toBe(true)
+  })
+
+  it('requires claimedMemberNumber when memberType is regional', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789', memberType: 'regional' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'claimedMemberNumber')).toBe(true)
+    }
+  })
+
+  it('accepts regional memberType with claimedMemberNumber filled', () => {
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '08123456789',
+      memberType: 'regional',
+      claimedMemberNumber: 'REG-001',
     })
     expect(r.success).toBe(true)
   })

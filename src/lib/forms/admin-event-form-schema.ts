@@ -24,11 +24,6 @@ export const adminEventUpsertSchema = z
     openGateAtIso: z.string().min(1, 'Waktu buka gate wajib.'),
     kickOffAtIso: z.string().min(1, 'Waktu mulai acara wajib.'),
     mandatoryMenuItemIds: z.array(z.string().min(1)),
-    /** 0 atau kosong = tak terbatas; nilai negatif ditolak. */
-    registrationCapacity: z.preprocess(
-      v => (v === 0 || v === '0' ? null : v),
-      z.union([z.coerce.number().int().positive(), z.literal(null)]).optional(),
-    ),
     registrationManualClosed: z.boolean(),
     status: z.nativeEnum(EventStatus),
     multiCategoryPurchase: z.boolean().optional(),

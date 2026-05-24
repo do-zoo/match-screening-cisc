@@ -29,9 +29,8 @@ const openEvent = {
   registrationManualClosed: false,
   openRegistrationAt: new Date(Date.now() - 1000),
   closeRegistrationAt: new Date(Date.now() + 86400000),
-  registrationCapacity: null,
   requireAllHolderData: true,
-  ticketCategories: [{ id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null }],
+  ticketCategories: [{ id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null, capacity: null }],
 }
 
 describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {

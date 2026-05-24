@@ -1,23 +1,21 @@
 'use client'
 
-import * as React from 'react'
-import { useState, useTransition } from 'react'
-import { useForm, Controller, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useState, useTransition } from 'react'
+import { Controller, useForm, type Resolver } from 'react-hook-form'
 
 import {
   createTicketCategory,
-  updateTicketCategory,
   deleteTicketCategory,
   toggleTicketCategoryActive,
+  updateTicketCategory,
 } from '@/lib/actions/admin-ticket-categories'
-import { toastCudSuccess, toastActionErr } from '@/lib/client/cud-notify'
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import { ticketCategorySchema, type TicketCategoryInput } from '@/lib/forms/ticket-category-schema'
 import type { EventTicketCategoryRow } from '@/lib/tickets/get-event-ticket-categories'
 import { formatIdr } from '@/lib/utils/format-idr'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { IdrAmountInput } from '@/components/ui/idr-amount-input'
 import { Input } from '@/components/ui/input'
@@ -49,6 +47,7 @@ export function TicketCategoriesPanel({
       regularPrice: 0,
       memberPrice: 0,
       maxQtyPerPerson: null,
+      capacity: null,
     },
   })
 
@@ -58,6 +57,7 @@ export function TicketCategoriesPanel({
       regularPrice: 0,
       memberPrice: 0,
       maxQtyPerPerson: null,
+      capacity: null,
     })
     setDialog({ type: 'create' })
   }
@@ -68,6 +68,7 @@ export function TicketCategoriesPanel({
       regularPrice: category.regularPrice,
       memberPrice: category.memberPrice,
       maxQtyPerPerson: category.maxQtyPerPerson,
+      capacity: category.capacity,
     })
     setDialog({ type: 'edit', category })
   }
@@ -93,6 +94,7 @@ export function TicketCategoriesPanel({
           sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
           isActive: true,
           registrationCount: 0,
+          capacity: values.capacity,
         }
         setCategories(prev => [...prev, newRow])
         toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
@@ -112,6 +114,7 @@ export function TicketCategoriesPanel({
                   regularPrice: priceLocked ? c.regularPrice : values.regularPrice,
                   memberPrice: priceLocked ? c.memberPrice : values.memberPrice,
                   maxQtyPerPerson: values.maxQtyPerPerson,
+                  capacity: values.capacity,
                 }
               : c,
           ),
@@ -172,6 +175,7 @@ export function TicketCategoriesPanel({
                 <th className='px-3 py-2 text-right font-medium'>Harga Member</th>
                 <th className='px-3 py-2 text-right font-medium'>Maks/Orang</th>
                 <th className='px-3 py-2 text-right font-medium'>Registrasi</th>
+                <th className='px-3 py-2 text-right font-medium'>Kapasitas</th>
                 <th className='px-3 py-2 text-right font-medium'>Aksi</th>
               </tr>
             </thead>
@@ -186,6 +190,7 @@ export function TicketCategoriesPanel({
                   <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.memberPrice)}</td>
                   <td className='px-3 py-2 text-right'>{cat.maxQtyPerPerson ?? '—'}</td>
                   <td className='px-3 py-2 text-right'>{cat.registrationCount}</td>
+                  <td className='px-3 py-2 text-right'>{cat.capacity ?? '—'}</td>
                   <td className='px-3 py-2'>
                     <div className='flex items-center justify-end gap-1.5'>
                       <Button type='button' size='sm' variant='ghost' disabled={pending} onClick={() => openEdit(cat)}>
@@ -286,6 +291,35 @@ export function TicketCategoriesPanel({
             ) : null}
 
             <div className='flex flex-col gap-1'>
+              <Label htmlFor='tc-capacity'>Kapasitas</Label>
+              <Controller
+                control={form.control}
+                name='capacity'
+                render={({ field }) => (
+                  <Input
+                    id='tc-capacity'
+                    type='number'
+                    disabled={pending}
+                    placeholder='Opsional'
+                    value={field.value === null ? '' : field.value}
+                    onChange={e => {
+                      const raw = e.target.value
+                      if (raw === '') {
+                        field.onChange(null)
+                        return
+                      }
+                      const n = parseInt(raw, 10)
+                      field.onChange(Number.isNaN(n) ? null : n)
+                    }}
+                  />
+                )}
+              />
+              {form.formState.errors.capacity ? (
+                <p className='text-destructive text-xs'>{form.formState.errors.capacity.message}</p>
+              ) : null}
+            </div>
+
+            <div className='flex flex-col gap-1'>
               <Label htmlFor='tc-max-qty'>Maks tiket per orang (opsional)</Label>
               <Controller
                 control={form.control}
@@ -297,7 +331,7 @@ export function TicketCategoriesPanel({
                     min={1}
                     disabled={pending}
                     placeholder='Opsional'
-                    value={field.value ?? ''}
+                    value={field.value === null ? '' : field.value}
                     onChange={e => {
                       const raw = e.target.value
                       if (raw === '') {

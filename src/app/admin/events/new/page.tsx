@@ -122,7 +122,6 @@ export default async function AdminNewEventPage() {
     openGateAtIso: openGate.toISOString(),
     kickOffAtIso: inOneWeek.toISOString(),
     mandatoryMenuItemIds: defaultMandatory,
-    registrationCapacity: null,
     registrationManualClosed: false,
     status: 'draft',
     multiCategoryPurchase: false,

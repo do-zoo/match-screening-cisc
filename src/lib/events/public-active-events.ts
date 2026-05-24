@@ -8,8 +8,8 @@ export function computeBadgeStatus(args: {
   registrationManualClosed: boolean
   openRegistrationAt: Date
   closeRegistrationAt: Date
-  registrationCapacity: number | null
-  registrationsTowardQuota: number
+  /** True when all active categories with a capacity limit are at or above that limit. */
+  allCategoriesFull: boolean
   now?: Date
 }): BadgeStatus {
   const now = args.now ?? new Date()
@@ -19,12 +19,8 @@ export function computeBadgeStatus(args: {
     return 'closed'
   }
 
-  // 2. full — capacity reached (0 or negative treated as unlimited)
-  if (
-    args.registrationCapacity != null &&
-    args.registrationCapacity > 0 &&
-    args.registrationsTowardQuota >= args.registrationCapacity
-  ) {
+  // 2. full — all capped categories have reached their limit
+  if (args.allCategoriesFull) {
     return 'full'
   }
 
@@ -49,8 +45,6 @@ export type PublicActiveEventRow = {
   lowestRegularPrice: number | null
   /** Harga tiket member terendah di semua kategori aktif, atau null jika belum ada kategori. */
   lowestMemberPrice: number | null
-  registrationCapacity: number | null
-  registrationsTowardQuota: number
   closeRegistrationAtIso: string
   badgeStatus: BadgeStatus
 }
@@ -70,44 +64,48 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
       openRegistrationAt: true,
       closeRegistrationAt: true,
       registrationManualClosed: true,
-      registrationCapacity: true,
       ticketCategories: {
         where: { isActive: true },
-        select: { regularPrice: true, memberPrice: true },
-      },
-      venue: { select: { name: true } },
-      _count: {
         select: {
-          registrations: {
-            where: {
-              // matches REGISTRATION_STATUS_EXCLUDED_FROM_QUOTA in registration-window.ts
-              status: { notIn: ['rejected', 'cancelled', 'refunded'] },
+          regularPrice: true,
+          memberPrice: true,
+          capacity: true,
+          _count: {
+            select: {
+              registrations: {
+                where: { status: { notIn: ['rejected', 'cancelled', 'refunded'] } },
+              },
             },
           },
         },
       },
+      venue: { select: { name: true } },
     },
   })
 
-  return rows.map(e => ({
-    slug: e.slug,
-    title: e.title,
-    summary: e.summary,
-    coverBlobUrl: e.coverBlobUrl,
-    venueName: e.venue.name,
-    startAtIso: e.kickOffAt.toISOString(),
-    lowestRegularPrice: e.ticketCategories.length > 0 ? Math.min(...e.ticketCategories.map(c => c.regularPrice)) : null,
-    lowestMemberPrice: e.ticketCategories.length > 0 ? Math.min(...e.ticketCategories.map(c => c.memberPrice)) : null,
-    registrationCapacity: e.registrationCapacity,
-    registrationsTowardQuota: e._count.registrations,
-    closeRegistrationAtIso: e.closeRegistrationAt.toISOString(),
-    badgeStatus: computeBadgeStatus({
-      registrationManualClosed: e.registrationManualClosed,
-      openRegistrationAt: e.openRegistrationAt,
-      closeRegistrationAt: e.closeRegistrationAt,
-      registrationCapacity: e.registrationCapacity,
-      registrationsTowardQuota: e._count.registrations,
-      now,
-    }),
-  }))
+  return rows.map(e => {
+    const categoriesWithCapacity = e.ticketCategories.filter(c => c.capacity != null && c.capacity > 0)
+    const allCategoriesFull =
+      categoriesWithCapacity.length > 0 && categoriesWithCapacity.every(c => c._count.registrations >= c.capacity!)
+    return {
+      slug: e.slug,
+      title: e.title,
+      summary: e.summary,
+      coverBlobUrl: e.coverBlobUrl,
+      venueName: e.venue.name,
+      startAtIso: e.kickOffAt.toISOString(),
+      lowestRegularPrice:
+        e.ticketCategories.length > 0 ? Math.min(...e.ticketCategories.map(c => c.regularPrice)) : null,
+      lowestMemberPrice:
+        e.ticketCategories.length > 0 ? Math.min(...e.ticketCategories.map(c => c.memberPrice)) : null,
+      closeRegistrationAtIso: e.closeRegistrationAt.toISOString(),
+      badgeStatus: computeBadgeStatus({
+        registrationManualClosed: e.registrationManualClosed,
+        openRegistrationAt: e.openRegistrationAt,
+        closeRegistrationAt: e.closeRegistrationAt,
+        allCategoriesFull,
+        now,
+      }),
+    }
+  })
 }

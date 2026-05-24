@@ -7,7 +7,7 @@ import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-
 import { sanitizePublicEventDescriptionHtml } from '@/lib/public/sanitize-event-description'
 
 import {
-  countRegistrationsTowardQuota,
+  countCategoryRegistrationsTowardQuota,
   isRegistrationOpenForEvent,
   registrationBlockMessageForPublic,
 } from './registration-window'
@@ -33,6 +33,7 @@ export const getActiveEventRegistrationPageData = cache(async (slug: string) =>
           regularPrice: true,
           memberPrice: true,
           maxQtyPerPerson: true,
+          capacity: true,
         },
       },
     },
@@ -44,18 +45,12 @@ export const getSerializedEventForPublicRegistration = cache(
     const event = await getActiveEventRegistrationPageData(slug)
     if (!event) return null
 
-    const registrationsTowardQuota = await countRegistrationsTowardQuota(prisma, event.id)
-    let registrationOpen = isRegistrationOpenForEvent({
-      event,
-      registrationsTowardQuota,
-    })
+    let registrationOpen = isRegistrationOpenForEvent({ event })
     let registrationClosedMessage = registrationOpen
       ? null
       : registrationBlockMessageForPublic({
           eventStatus: event.status,
           registrationManualClosed: event.registrationManualClosed,
-          registrationCapacity: event.registrationCapacity,
-          registrationsTowardQuota,
           openRegistrationAt: event.openRegistrationAt,
           closeRegistrationAt: event.closeRegistrationAt,
         })
@@ -87,13 +82,24 @@ export const getSerializedEventForPublicRegistration = cache(
       registrationOpen,
       registrationClosedMessage,
       mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
-      ticketCategories: event.ticketCategories.map(c => ({
-        id: c.id,
-        name: c.name,
-        regularPrice: c.regularPrice,
-        memberPrice: c.memberPrice,
-        maxQtyPerPerson: c.maxQtyPerPerson,
-      })),
+      ticketCategories: await Promise.all(
+        event.ticketCategories.map(async c => {
+          let remainingSlots: number | null = null
+          if (c.capacity != null && c.capacity > 0) {
+            const count = await countCategoryRegistrationsTowardQuota(prisma, c.id)
+            remainingSlots = Math.max(0, c.capacity - count)
+          }
+          return {
+            id: c.id,
+            name: c.name,
+            regularPrice: c.regularPrice,
+            memberPrice: c.memberPrice,
+            maxQtyPerPerson: c.maxQtyPerPerson,
+            capacity: c.capacity,
+            remainingSlots,
+          }
+        }),
+      ),
       menuRequired: event.mandatoryMenuItemIds.length > 0,
       bankAccount: {
         bankName: event.bankAccount.bankName,

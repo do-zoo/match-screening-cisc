@@ -6,6 +6,7 @@ export type EventTicketCategoryRow = {
   regularPrice: number
   memberPrice: number
   maxQtyPerPerson: number | null
+  capacity: number | null
   sortOrder: number
   isActive: boolean
   registrationCount: number
@@ -21,6 +22,7 @@ export async function getEventTicketCategories(eventId: string): Promise<EventTi
       regularPrice: true,
       memberPrice: true,
       maxQtyPerPerson: true,
+      capacity: true,
       sortOrder: true,
       isActive: true,
       _count: { select: { registrations: true } },
@@ -32,6 +34,7 @@ export async function getEventTicketCategories(eventId: string): Promise<EventTi
     regularPrice: r.regularPrice,
     memberPrice: r.memberPrice,
     maxQtyPerPerson: r.maxQtyPerPerson,
+    capacity: r.capacity,
     sortOrder: r.sortOrder,
     isActive: r.isActive,
     registrationCount: r._count.registrations,
@@ -51,6 +54,7 @@ export async function getActiveEventTicketCategories(
       regularPrice: true,
       memberPrice: true,
       maxQtyPerPerson: true,
+      capacity: true,
       sortOrder: true,
       isActive: true,
     },

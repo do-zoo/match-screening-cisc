@@ -17,8 +17,6 @@ type EventCardProps = {
   startAtIso: string
   lowestRegularPrice: number | null
   lowestMemberPrice: number | null
-  registrationCapacity: number | null
-  registrationsTowardQuota: number
   closeRegistrationAtIso: string
   badgeStatus: BadgeStatus
   variant?: 'list' | 'grid'
@@ -61,24 +59,6 @@ function StatusBadge({ status }: { status: BadgeStatus }) {
   )
 }
 
-function QuotaDisplay({
-  registrationCapacity,
-  registrationsTowardQuota,
-}: {
-  registrationCapacity: number | null
-  registrationsTowardQuota: number
-}) {
-  if (registrationCapacity == null || registrationCapacity <= 0) {
-    return <span>∞ Tak terbatas</span>
-  }
-  const remaining = Math.max(0, registrationCapacity - registrationsTowardQuota)
-  return (
-    <span>
-      {remaining} / {registrationCapacity} sisa
-    </span>
-  )
-}
-
 export function EventCard({
   slug,
   title,
@@ -88,8 +68,6 @@ export function EventCard({
   startAtIso,
   lowestRegularPrice,
   lowestMemberPrice,
-  registrationCapacity,
-  registrationsTowardQuota,
   closeRegistrationAtIso,
   badgeStatus,
   variant = 'list',
@@ -151,12 +129,6 @@ export function EventCard({
                 <span className='text-[hsl(var(--muted-foreground))]'>—</span>
               ) : null}
             </div>
-            <div className='text-right text-xs text-[hsl(var(--muted-foreground))]'>
-              <QuotaDisplay
-                registrationCapacity={registrationCapacity}
-                registrationsTowardQuota={registrationsTowardQuota}
-              />
-            </div>
           </div>
         </div>
       </>
@@ -193,11 +165,6 @@ export function EventCard({
             </span>
             <span>·</span>
             <span>Tutup {closeDateShort}</span>
-            <span>·</span>
-            <QuotaDisplay
-              registrationCapacity={registrationCapacity}
-              registrationsTowardQuota={registrationsTowardQuota}
-            />
           </div>
         </div>
       </>

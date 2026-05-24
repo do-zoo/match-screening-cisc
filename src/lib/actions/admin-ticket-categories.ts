@@ -25,7 +25,7 @@ export async function createTicketCategory(
   const sortOrder = (maxSort._max.sortOrder ?? 0) + 1
 
   const category = await prisma.eventTicketCategory.create({
-    data: { eventId, ...parsed.data, sortOrder },
+    data: { eventId, ...parsed.data, capacity: parsed.data.capacity ?? null, sortOrder },
     select: { id: true },
   })
   return ok(category)
@@ -46,7 +46,9 @@ export async function updateTicketCategory(
 
   const hasRegistrations = (await prisma.registration.count({ where: { ticketCategoryId: categoryId } })) > 0
 
-  const data = hasRegistrations ? { name: parsed.data.name, maxQtyPerPerson: parsed.data.maxQtyPerPerson } : parsed.data
+  const data = hasRegistrations
+    ? { name: parsed.data.name, maxQtyPerPerson: parsed.data.maxQtyPerPerson, capacity: parsed.data.capacity }
+    : parsed.data
 
   await prisma.eventTicketCategory.update({ where: { id: categoryId }, data })
   return ok(undefined)

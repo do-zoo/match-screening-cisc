@@ -16,13 +16,23 @@ export const whatsappPhoneSchema = z
     }
   })
 
-export const holderSchema = z.object({
-  holderName: z.string().trim().min(1, 'Nama pemegang tiket wajib diisi'),
-  holderWhatsapp: whatsappPhoneSchema,
-  claimedMemberNumber: z.string().trim().optional(),
-  mandatoryMenuItemId: z.string().optional(),
-  memberType: z.enum(['tangsel', 'regional']).optional(),
-})
+export const holderSchema = z
+  .object({
+    holderName: z.string().trim().min(1, 'Nama pemegang tiket wajib diisi'),
+    holderWhatsapp: whatsappPhoneSchema,
+    claimedMemberNumber: z.string().trim().optional(),
+    mandatoryMenuItemId: z.string().optional(),
+    memberType: z.enum(['tangsel', 'regional']).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.memberType === 'regional' && !data.claimedMemberNumber?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Nomor member wajib diisi',
+        path: ['claimedMemberNumber'],
+      })
+    }
+  })
 
 export type HolderInput = z.infer<typeof holderSchema>
 

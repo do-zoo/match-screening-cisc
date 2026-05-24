@@ -7,7 +7,8 @@ import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema
 import { computeSubmitTotal } from '@/lib/pricing/compute-submit-total'
 import {
   assertRegistrationAcceptableOrThrowForTx,
-  countRegistrationsTowardQuota,
+  assertCategoryCapacityOrThrowForTx,
+  countCategoryRegistrationsTowardQuota,
   isRegistrationOpenForEvent,
   registrationBlockMessageForPublic,
   RegistrationNotAcceptableError,
@@ -68,7 +69,6 @@ export async function submitRegistration(
         registrationManualClosed: true,
         openRegistrationAt: true,
         closeRegistrationAt: true,
-        registrationCapacity: true,
         requireAllHolderData: true,
         ticketCategories: {
           where: { id: input.ticketCategoryId, isActive: true },
@@ -77,6 +77,7 @@ export async function submitRegistration(
             regularPrice: true,
             memberPrice: true,
             maxQtyPerPerson: true,
+            capacity: true,
           },
         },
       },
@@ -87,11 +88,7 @@ export async function submitRegistration(
   if (!event) return rootError('Acara tidak ditemukan.')
 
   // 4. Check registration window (local + global)
-  const registrationsTowardQuotaPreview = await countRegistrationsTowardQuota(prisma, event.id)
-  const locallyOpen = isRegistrationOpenForEvent({
-    event,
-    registrationsTowardQuota: registrationsTowardQuotaPreview,
-  })
+  const locallyOpen = isRegistrationOpenForEvent({ event })
   const mergedGate = mergeGlobalRegistrationClosure({
     registrationOpen: locallyOpen,
     registrationClosedMessage: locallyOpen
@@ -99,8 +96,6 @@ export async function submitRegistration(
       : registrationBlockMessageForPublic({
           eventStatus: event.status,
           registrationManualClosed: event.registrationManualClosed,
-          registrationCapacity: event.registrationCapacity,
-          registrationsTowardQuota: registrationsTowardQuotaPreview,
           openRegistrationAt: event.openRegistrationAt,
           closeRegistrationAt: event.closeRegistrationAt,
         }),
@@ -117,6 +112,14 @@ export async function submitRegistration(
 
   if (category.maxQtyPerPerson !== null && input.ticketQty > category.maxQtyPerPerson) {
     return rootError(`Maksimal ${category.maxQtyPerPerson} tiket untuk kategori ini.`)
+  }
+
+  // 5a. Pre-check per-category capacity (optimistic, re-checked inside tx)
+  if (category.capacity != null && category.capacity > 0) {
+    const catCount = await countCategoryRegistrationsTowardQuota(prisma, category.id)
+    if (catCount >= category.capacity) {
+      return rootError('Kuota kategori tiket ini sudah habis.')
+    }
   }
 
   if (event.requireAllHolderData) {
@@ -156,6 +159,7 @@ export async function submitRegistration(
   try {
     reg = await prisma.$transaction(async tx => {
       await assertRegistrationAcceptableOrThrowForTx(tx, event)
+      await assertCategoryCapacityOrThrowForTx(tx, category)
 
       const contactName = input.holders[0].holderName
       const contactWhatsapp = input.holders[0].holderWhatsapp ?? ''

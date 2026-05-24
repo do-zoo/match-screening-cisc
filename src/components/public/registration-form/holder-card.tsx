@@ -1,8 +1,9 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { ChevronDown, ChevronUp, Loader2, PencilLine, ShieldCheck, XCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, PencilLine, ShieldCheck, Utensils, XCircle } from 'lucide-react'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
+import type { SerializedEventMenuItem } from '@/components/public/event-serialization'
 import { phoneValueToStoredString, stringToPhoneValue, whatsappDigitsOnly } from '@/lib/forms/phone-value-string'
 import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 import { contactInitials, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
@@ -27,7 +29,7 @@ type MemberType = 'non' | 'tangsel' | 'regional'
 type Props = {
   index: number
   isPrimary: boolean
-  menuItems?: { id: string; name: string; price: number }[]
+  menuItems?: SerializedEventMenuItem[]
   menuRequired: boolean
   eventId: string
   showFileRequired?: boolean
@@ -171,11 +173,9 @@ function RegionalMemberForm({
       <Controller
         control={form.control}
         name={`holders.${index}.claimedMemberNumber`}
-        render={({ field }) => (
-          <Field>
-            <FieldLabel htmlFor={`holder-${index}-regional-member`}>
-              Nomor Member <span className='text-xs font-normal text-muted-foreground'>(opsional)</span>
-            </FieldLabel>
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={`holder-${index}-regional-member`}>Nomor Member</FieldLabel>
             <Input
               id={`holder-${index}-regional-member`}
               placeholder='Nomor member dari chapter regional'
@@ -184,6 +184,7 @@ function RegionalMemberForm({
               data-form-type='other'
               {...field}
             />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
       />
@@ -361,7 +362,14 @@ export function HolderCard({
             </>
           )}
           {memberType === 'tangsel' && validationResult.status !== 'valid' && (
-            <MemberNumberInput index={index} result={validationResult} />
+            <>
+              <MemberNumberInput index={index} result={validationResult} />
+              {form.formState.errors.holders?.[index]?.holderName && (
+                <p className='text-sm text-destructive'>
+                  Masukkan nomor member CISC Tangsel yang valid untuk melanjutkan.
+                </p>
+              )}
+            </>
           )}
 
           {/* Regional member path */}
@@ -398,20 +406,53 @@ export function HolderCard({
               name={`holders.${index}.mandatoryMenuItemId`}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`holder-${index}-menu`}>Pilihan Menu</FieldLabel>
-                  <select
-                    id={`holder-${index}-menu`}
-                    className='block w-full rounded-md border border-input bg-background px-3 py-2 text-sm'
-                    value={field.value ?? ''}
-                    onChange={e => field.onChange(e.target.value || undefined)}
-                  >
-                    <option value=''>-- Pilih menu --</option>
+                  <FieldLabel>Pilihan Menu</FieldLabel>
+                  <div className='grid gap-2 sm:grid-cols-2'>
                     {menuItems.map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
+                      <label
+                        key={m.id}
+                        className={cn(
+                          'relative flex cursor-pointer flex-col overflow-hidden rounded-lg border transition-colors',
+                          field.value === m.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50',
+                        )}
+                      >
+                        {/* Gambar */}
+                        <div className='relative h-28 w-full shrink-0 bg-muted'>
+                          {m.imageBlobUrl ? (
+                            <Image
+                              src={m.imageBlobUrl}
+                              alt={m.name}
+                              fill
+                              className='object-cover'
+                              sizes='(max-width: 640px) 100vw, 50vw'
+                            />
+                          ) : (
+                            <div className='flex h-full items-center justify-center'>
+                              <Utensils className='h-8 w-8 text-muted-foreground/40' />
+                            </div>
+                          )}
+                        </div>
+                        {/* Radio absolute */}
+                        <input
+                          type='radio'
+                          name={`holder-${index}-menu`}
+                          value={m.id}
+                          checked={field.value === m.id}
+                          onChange={() => field.onChange(m.id)}
+                          className='absolute top-2 right-2'
+                        />
+                        {/* Konten */}
+                        <div className='p-3'>
+                          <p className='text-sm font-medium leading-snug'>{m.name}</p>
+                          {m.description && (
+                            <p className='mt-0.5 text-xs text-muted-foreground leading-relaxed'>{m.description}</p>
+                          )}
+                        </div>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                   {fieldState.error && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}

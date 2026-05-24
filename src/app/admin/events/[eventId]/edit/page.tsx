@@ -151,7 +151,6 @@ export default async function AdminEditEventPage({
     openGateAtIso: event.openGateAt.toISOString(),
     kickOffAtIso: event.kickOffAt.toISOString(),
     mandatoryMenuItemIds: [...event.mandatoryMenuItemIds],
-    registrationCapacity: event.registrationCapacity,
     registrationManualClosed: event.registrationManualClosed,
     status: event.status,
     multiCategoryPurchase: event.multiCategoryPurchase,

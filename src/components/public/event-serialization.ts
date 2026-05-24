@@ -18,6 +18,9 @@ export type SerializedTicketCategory = {
   regularPrice: number
   memberPrice: number
   maxQtyPerPerson: number | null
+  capacity: number | null
+  /** null = unlimited; 0 = full; positive = slots remaining */
+  remainingSlots: number | null
 }
 
 export type SerializedEventForRegistration = {

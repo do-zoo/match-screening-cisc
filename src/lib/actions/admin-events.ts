@@ -2,27 +2,27 @@
 
 import { randomUUID } from 'node:crypto'
 
+import { AdminRole } from '@prisma/client'
 import { del } from '@vercel/blob'
-import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { AdminRole } from '@prisma/client'
+import { z } from 'zod'
 
 import { guardOwner, guardOwnerOrAdmin, isAuthError, type OwnerGuardContext } from '@/lib/actions/guard'
+import { ADMIN_EVENTS_DELETE_SUCCESS_FLASH } from '@/lib/admin/admin-events-delete-flash'
+import { eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
 import { appendClubAuditLog } from '@/lib/audit/append-club-audit-log'
 import { CLUB_AUDIT_ACTION } from '@/lib/audit/club-audit-actions'
 import { prisma } from '@/lib/db/prisma'
-import { ADMIN_EVENTS_DELETE_SUCCESS_FLASH } from '@/lib/admin/admin-events-delete-flash'
-import { eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
-import { allocateUniqueEventSlug } from '@/lib/events/generate-event-slug'
 import {
   findLockedViolations,
   findMandatoryMenuLockedViolation,
   needsSensitiveAcknowledgement,
   type EventIntegritySnapshot,
 } from '@/lib/events/event-edit-guards'
-import { adminEventUpsertSchema, type AdminEventUpsertInput } from '@/lib/forms/admin-event-form-schema'
+import { allocateUniqueEventSlug } from '@/lib/events/generate-event-slug'
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+import { adminEventUpsertSchema, type AdminEventUpsertInput } from '@/lib/forms/admin-event-form-schema'
 import { zodToFieldErrors } from '@/lib/forms/zod'
 import { verifyDescriptionAssetEventId } from '@/lib/public/description-asset-token'
 import { sanitizePublicEventDescriptionHtml } from '@/lib/public/sanitize-event-description'
@@ -240,7 +240,6 @@ export async function createAdminEvent(_prev: unknown, formData: FormData): Prom
           coverBlobUrl: coverPut.url,
           coverBlobPath: coverPut.pathname,
           registrationManualClosed: data.registrationManualClosed,
-          registrationCapacity: data.registrationCapacity === undefined ? null : data.registrationCapacity,
           status: data.status,
           multiCategoryPurchase: data.multiCategoryPurchase ?? false,
           requireAllHolderData: data.requireAllHolderData ?? true,
@@ -466,7 +465,6 @@ export async function updateAdminEvent(
               }
             : {}),
           registrationManualClosed: data.registrationManualClosed,
-          registrationCapacity: data.registrationCapacity === undefined ? undefined : data.registrationCapacity,
           status: data.status,
           multiCategoryPurchase: data.multiCategoryPurchase,
           requireAllHolderData: data.requireAllHolderData,

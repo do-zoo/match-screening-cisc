@@ -441,30 +441,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
             )}
           />
         </Field>
-        <Field label='Kapasitas (kosongkan = tak terbatas)'>
-          <Controller
-            control={form.control}
-            name='registrationCapacity'
-            render={({ field }) => (
-              <Input
-                type='number'
-                min={1}
-                disabled={pending}
-                placeholder='Opsional'
-                value={field.value === null || field.value === undefined ? '' : field.value}
-                onChange={e => {
-                  const raw = e.target.value
-                  if (raw === '') {
-                    field.onChange(null)
-                    return
-                  }
-                  const n = Number.parseInt(raw, 10)
-                  field.onChange(Number.isNaN(n) || n <= 0 ? null : n)
-                }}
-              />
-            )}
-          />
-        </Field>
       </div>
       <label className='flex items-center gap-2 text-sm'>
         <input type='checkbox' {...form.register('registrationManualClosed')} disabled={pending} />
@@ -892,10 +868,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
               <ReviewRow label='Menu wajib' value={reviewMandatoryMenuNames || 'Tidak ada'} />
               <ReviewRow label='Lintas kategori' value={values.multiCategoryPurchase ? 'Ya' : 'Tidak'} />
               <ReviewRow label='Status' value={STATUS_LABELS[values.status] ?? values.status} />
-              <ReviewRow
-                label='Kapasitas'
-                value={values.registrationCapacity != null ? String(values.registrationCapacity) : 'Tak terbatas'}
-              />
               {values.registrationManualClosed ? <ReviewRow label='Tutup manual' value='Ya' /> : null}
               <ReviewRow label='PIC utama' value={reviewPicName} />
               <ReviewRow label='Rekening' value={reviewBankName} />

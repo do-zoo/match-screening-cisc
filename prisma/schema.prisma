@@ -216,6 +216,7 @@ model EventTicketCategory {
   regularPrice    Int
   memberPrice     Int
   maxQtyPerPerson Int?
+  capacity        Int?
   sortOrder       Int      @default(0)
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
@@ -300,7 +301,6 @@ model Event {
   kickOffAt           DateTime
 
   registrationManualClosed Boolean     @default(false)
-  registrationCapacity     Int?
   status                   EventStatus @default(draft)
   multiCategoryPurchase    Boolean     @default(false)
   requireAllHolderData     Boolean     @default(true)
