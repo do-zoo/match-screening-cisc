@@ -58,6 +58,7 @@ export async function submitRegistration(
         openRegistrationAt: true,
         closeRegistrationAt: true,
         registrationCapacity: true,
+        requireAllHolderData: true,
         ticketCategories: {
           where: { id: input.ticketCategoryId, isActive: true },
           select: {
@@ -107,13 +108,23 @@ export async function submitRegistration(
     return rootError(`Maksimal ${category.maxQtyPerPerson} tiket untuk kategori ini.`)
   }
 
-  if (input.holders.length !== input.ticketQty) {
-    return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
+  if (event.requireAllHolderData) {
+    if (input.holders.length !== input.ticketQty) {
+      return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
+    }
+  } else {
+    if (input.holders.length !== 1) {
+      return rootError('Jumlah data peserta tidak valid.')
+    }
   }
+
+  const holdersForProcessing = event.requireAllHolderData
+    ? input.holders
+    : Array.from({ length: input.ticketQty }, () => ({ ...input.holders[0]! }))
 
   // 5. Compute pricing (server always uses 'unknown' — admin verifies member status)
   const pricing = computeSubmitTotal({
-    holders: input.holders.map(h => ({
+    holders: holdersForProcessing.map(h => ({
       memberValidation: 'unknown' as const,
       category: {
         regularPrice: category.regularPrice,
@@ -140,7 +151,7 @@ export async function submitRegistration(
           computedTotalAtSubmit: pricing.grandTotal,
           status: RegistrationStatus.submitted,
           holders: {
-            create: input.holders.map((h, i) => ({
+            create: holdersForProcessing.map((h, i) => ({
               sortOrder: i + 1,
               holderName: h.holderName,
               holderWhatsapp: h.holderWhatsapp?.trim() || null,
