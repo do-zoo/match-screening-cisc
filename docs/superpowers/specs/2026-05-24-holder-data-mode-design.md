@@ -31,10 +31,10 @@ model Event {
 
 ### 2. Lock Behavior
 
-Field dikunci setelah registrasi pertama masuk, konsisten dengan lock harga tiket (`EventTicketCategory`). Guard di server action:
+Field dikunci setelah registrasi pertama masuk, konsisten dengan lock harga tiket (`EventTicketCategory`). Pola `registrationCount > 0` yang sudah ada di `event-edit-guards.ts` dipakai di server action:
 
 ```ts
-if (hasExistingRegistrations && input.requireAllHolderData !== existing.requireAllHolderData) {
+if (registrationCount > 0 && input.requireAllHolderData !== existing.requireAllHolderData) {
   return rootError('Pengaturan data peserta tidak dapat diubah setelah ada pendaftar.')
 }
 ```
@@ -89,7 +89,7 @@ Ketika `requireAllHolderData = false`, semua tiket otomatis menggunakan harga ya
 
 ### 6. Admin Event Editor
 
-**Lokasi:** panel yang sama dengan `multiCategoryPurchase` di `admin/events/[eventId]/edit`.
+**Lokasi:** komponen `src/components/admin/forms/event-admin-form.tsx`, di sekitar baris `multiCategoryPurchase` (line ~566). Keduanya adalah setting perilaku pendaftaran sehingga dikelompokkan bersama.
 
 **Label UI:**
 - Judul field: `"Data peserta tiket tambahan"`
