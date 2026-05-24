@@ -209,7 +209,7 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
           Tiket {index + 1}
           {isPrimary && ' (Anda)'}
           {isPrimary && (
-            <span className='rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary'>
+            <span className='rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary'>
               Pemesan
             </span>
           )}
