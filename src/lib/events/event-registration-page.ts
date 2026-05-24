@@ -104,6 +104,7 @@ export const getSerializedEventForPublicRegistration = cache(
       mandatoryMenuItems: flattenedMenuRowsFromEventVenueLinks(event.eventVenueMenuItems).filter(row =>
         event.mandatoryMenuItemIds.includes(row.id),
       ),
+      requireAllHolderData: event.requireAllHolderData,
     }
   },
 )

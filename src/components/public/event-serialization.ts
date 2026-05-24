@@ -44,4 +44,6 @@ export type SerializedEventForRegistration = {
   menuItems: SerializedEventMenuItem[]
   /** Item menu acara (`EventVenueMenuItem`) yang menjadi pilihan menu wajib. */
   mandatoryMenuItems: SerializedEventMenuItem[]
+  /** Jika false, form publik hanya tampilkan 1 holder card (pemesan utama). */
+  requireAllHolderData: boolean
 }
