@@ -6,7 +6,8 @@ import { ChevronDown, ChevronUp, Loader2, PencilLine, ShieldCheck, XCircle } fro
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { FileField } from '@/components/ui/file-field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -21,6 +22,8 @@ import {
   type HolderValidationResult,
 } from './use-holder-member-validation'
 
+type MemberType = 'non' | 'tangsel' | 'regional'
+
 type Props = {
   index: number
   isPrimary: boolean
@@ -28,6 +31,7 @@ type Props = {
   menuRequired: boolean
   eventId: string
   onValidationChange: (index: number, pricingValidation: 'valid' | 'invalid' | 'unknown') => void
+  onMemberCardFileChange: (index: number, file: File | undefined) => void
 }
 
 function WhatsAppField({ index }: { index: number }) {
@@ -114,7 +118,7 @@ function MemberNumberInput({ index, result }: { index: number; result: HolderVal
       name={`holders.${index}.claimedMemberNumber`}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={`holder-${index}-member`}>Nomor Member CISC</FieldLabel>
+          <FieldLabel htmlFor={`holder-${index}-member`}>Nomor Member CISC Tangsel</FieldLabel>
           <div className='relative'>
             <Input
               id={`holder-${index}-member`}
@@ -146,43 +150,126 @@ function MemberNumberInput({ index, result }: { index: number; result: HolderVal
   )
 }
 
-export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId, onValidationChange }: Props) {
-  const [expanded, setExpanded] = useState(isPrimary)
-  const [isMember, setIsMember] = useState(false)
+function RegionalMemberForm({
+  index,
+  onMemberCardFileChange,
+  showFileRequired,
+}: {
+  index: number
+  onMemberCardFileChange: (index: number, file: File | undefined) => void
+  showFileRequired: boolean
+}) {
   const form = useFormContext<SubmitRegistrationInput>()
-  const { setValue, watch } = form
 
-  const holderName = watch(`holders.${index}.holderName`)
-  const memberNumber = watch(`holders.${index}.claimedMemberNumber`)
+  return (
+    <div className='space-y-3'>
+      <Alert className='text-sm'>
+        Isi data keanggotaanmu dan upload bukti kartu member. Panitia akan memverifikasi setelah pendaftaran masuk.
+      </Alert>
 
-  const validationResult = useHolderMemberValidation(isMember ? memberNumber : undefined, eventId)
+      <Controller
+        control={form.control}
+        name={`holders.${index}.claimedMemberNumber`}
+        render={({ field }) => (
+          <Field>
+            <FieldLabel htmlFor={`holder-${index}-regional-member`}>
+              Nomor Member{' '}
+              <span className='text-xs font-normal text-muted-foreground'>(opsional)</span>
+            </FieldLabel>
+            <Input
+              id={`holder-${index}-regional-member`}
+              placeholder='Nomor member dari chapter regional'
+              autoComplete='off'
+              data-lpignore='true'
+              data-form-type='other'
+              {...field}
+            />
+          </Field>
+        )}
+      />
 
-  // Auto-fill name and WhatsApp from directory when member is verified.
-  // Use destructured setValue (stable reference) — not the whole form object, which
-  // FormProvider re-creates on every parent render and would cause an infinite loop.
+      <Controller
+        control={form.control}
+        name={`holders.${index}.holderName`}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={`holder-${index}-regional-name`}>Nama Lengkap</FieldLabel>
+            <Input id={`holder-${index}-regional-name`} placeholder='Nama sesuai identitas' {...field} />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      <WhatsAppField index={index} />
+
+      <FileField
+        id={`holder-${index}-member-card`}
+        label='Bukti Kartu Member'
+        description='Upload foto atau screenshot member ID dari panel chelseaindo'
+        onChange={file => onMemberCardFileChange(index, file)}
+        pickPrompt='Pilih foto bukti member'
+        replacePrompt='Ganti foto'
+        invalid={showFileRequired}
+        errors={showFileRequired ? [{ message: 'Bukti kartu member wajib diupload' }] : undefined}
+        maxSizeBytes={8 * 1024 * 1024}
+      />
+    </div>
+  )
+}
+
+export function HolderCard({
+  index,
+  isPrimary,
+  menuItems,
+  menuRequired,
+  eventId,
+  onValidationChange,
+  onMemberCardFileChange,
+}: Props) {
+  const [expanded, setExpanded] = useState(isPrimary)
+  const [memberType, setMemberType] = useState<MemberType>('non')
+  const [showFileRequired, setShowFileRequired] = useState(false)
+  const form = useFormContext<SubmitRegistrationInput>()
+  const { setValue } = form
+
+  const holderName = form.watch(`holders.${index}.holderName`)
+  const memberNumber = form.watch(`holders.${index}.claimedMemberNumber`)
+
+  const validationResult = useHolderMemberValidation(memberType === 'tangsel' ? memberNumber : undefined, eventId)
+
+  // Auto-fill name and WhatsApp from directory when Tangsel member is verified.
   useEffect(() => {
-    if (validationResult.status === 'valid') {
+    if (memberType === 'tangsel' && validationResult.status === 'valid') {
       setValue(`holders.${index}.holderName`, validationResult.fullName, { shouldValidate: true })
       setValue(`holders.${index}.holderWhatsapp`, validationResult.whatsapp ?? '', { shouldValidate: false })
     }
-  }, [validationResult, index, setValue])
+  }, [memberType, validationResult, index, setValue])
 
-  // Notify parent of pricing-relevant validation
+  // Notify parent of pricing-relevant validation.
   useEffect(() => {
-    if (!isMember) {
+    if (memberType === 'non') {
       onValidationChange(index, 'invalid')
-      return
+    } else if (memberType === 'regional') {
+      onValidationChange(index, 'valid')
+    } else {
+      onValidationChange(index, validationToPricing(validationResult))
     }
-    onValidationChange(index, validationToPricing(validationResult))
-  }, [isMember, validationResult, index, onValidationChange])
+  }, [memberType, validationResult, index, onValidationChange])
 
   function handleMemberToggle(value: string) {
-    const member = value === 'member'
-    setIsMember(member)
-    if (!member) {
+    const next = value as MemberType
+    setMemberType(next)
+    setShowFileRequired(false)
+    setValue(`holders.${index}.memberType`, next === 'non' ? undefined : (next as 'tangsel' | 'regional'))
+    if (next !== 'tangsel') {
       setValue(`holders.${index}.claimedMemberNumber`, '')
-      setValue(`holders.${index}.holderName`, '')
-      setValue(`holders.${index}.holderWhatsapp`, '')
+      if (next !== 'regional') {
+        setValue(`holders.${index}.holderName`, '')
+        setValue(`holders.${index}.holderWhatsapp`, '')
+      }
+    }
+    if (next !== 'regional') {
+      onMemberCardFileChange(index, undefined)
     }
   }
 
@@ -192,11 +279,13 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
     setValue(`holders.${index}.holderWhatsapp`, '')
   }
 
-  const summaryName = holderName || (memberNumber ? `Member ${memberNumber}` : 'Belum diisi')
-
-  // Whether verified member is missing WhatsApp in the directory
+  // Whether verified Tangsel member is missing WhatsApp in the directory
   const memberVerifiedNoWa =
-    validationResult.status === 'valid' && whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
+    memberType === 'tangsel' &&
+    validationResult.status === 'valid' &&
+    whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
+
+  const summaryName = holderName || (memberNumber ? `Member ${memberNumber}` : 'Belum diisi')
 
   return (
     <div className={cn('rounded-lg border', isPrimary && 'border-primary bg-primary/5')}>
@@ -221,12 +310,12 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
 
       {expanded && (
         <div className='border-t px-4 pb-4 pt-3 space-y-3'>
-          {/* Member / Non-member toggle */}
+          {/* Member type radio group */}
           <Field>
             <FieldLabel>Status keanggotaan</FieldLabel>
             <RadioGroup
-              className='grid grid-cols-2 gap-2'
-              value={isMember ? 'member' : 'non'}
+              className='grid grid-cols-3 gap-2'
+              value={memberType}
               onValueChange={handleMemberToggle}
             >
               <Label
@@ -239,26 +328,34 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
                 <span>Non-Member</span>
               </Label>
               <Label
-                htmlFor={`holder-${index}-type-member`}
+                htmlFor={`holder-${index}-type-tangsel`}
                 className={cn(
                   'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
                 )}
               >
-                <RadioGroupItem value='member' id={`holder-${index}-type-member`} />
-                <span>Member CISC</span>
+                <RadioGroupItem value='tangsel' id={`holder-${index}-type-tangsel`} />
+                <span>Member CISC Tangsel</span>
+              </Label>
+              <Label
+                htmlFor={`holder-${index}-type-regional`}
+                className={cn(
+                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                )}
+              >
+                <RadioGroupItem value='regional' id={`holder-${index}-type-regional`} />
+                <span>Member CISC Regional</span>
               </Label>
             </RadioGroup>
           </Field>
 
-          {/* Member path */}
-          {isMember && validationResult.status === 'valid' && (
+          {/* Tangsel member path */}
+          {memberType === 'tangsel' && validationResult.status === 'valid' && (
             <>
               <MemberProfileCard
                 fullName={validationResult.fullName}
                 whatsapp={validationResult.whatsapp}
                 onReset={handleResetMemberNumber}
               />
-              {/* If directory has no WA, let the user fill it in */}
               {memberVerifiedNoWa && (
                 <>
                   <Alert variant='destructive' className='text-sm'>
@@ -270,12 +367,21 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
               )}
             </>
           )}
-          {isMember && validationResult.status !== 'valid' && (
+          {memberType === 'tangsel' && validationResult.status !== 'valid' && (
             <MemberNumberInput index={index} result={validationResult} />
           )}
 
-          {/* Non-member path: manual name + WhatsApp */}
-          {!isMember && (
+          {/* Regional member path */}
+          {memberType === 'regional' && (
+            <RegionalMemberForm
+              index={index}
+              onMemberCardFileChange={onMemberCardFileChange}
+              showFileRequired={showFileRequired}
+            />
+          )}
+
+          {/* Non-member path */}
+          {memberType === 'non' && (
             <>
               <Controller
                 control={form.control}
