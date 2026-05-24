@@ -574,6 +574,32 @@ export function EventAdminForm(props: EventAdminFormProps) {
     </section>
   )
 
+  const sectionRequireAllHolderData = (
+    <section className='space-y-3'>
+      <SectionHeading>Data peserta tiket tambahan</SectionHeading>
+      <div className='flex items-center gap-2'>
+        <Checkbox
+          id='requireAllHolderData'
+          checked={form.watch('requireAllHolderData') ?? true}
+          onCheckedChange={v => form.setValue('requireAllHolderData', Boolean(v))}
+          disabled={registrationCount > 0}
+        />
+        <label htmlFor='requireAllHolderData' className='text-sm'>
+          Wajibkan data untuk setiap peserta (nama, nomor member)
+        </label>
+      </div>
+      {registrationCount > 0 && (
+        <Muted>Tidak dapat diubah setelah ada pendaftar.</Muted>
+      )}
+      {!(form.watch('requireAllHolderData') ?? true) && registrationCount === 0 && (
+        <Muted>
+          Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti
+          status keanggotaan pemesan utama.
+        </Muted>
+      )}
+    </section>
+  )
+
   const sectionPicRekening = (
     <section className='space-y-4'>
       <SectionHeading>PIC &amp; rekening</SectionHeading>
@@ -691,6 +717,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
                 <TicketCategoriesPanel eventId={props.eventId ?? ''} categories={props.categories} />
               </section>
               {sectionMultiCategory}
+              {sectionRequireAllHolderData}
               <TabSaveRow pending={pending} />
             </TabsContent>
 
@@ -827,6 +854,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
             {sectionVenue}
             {sectionMenuWajib}
             {sectionMultiCategory}
+            {sectionRequireAllHolderData}
             {sectionRegistrasi}
             {sectionPicRekening}
             <div className='flex justify-between gap-3 pb-16 pt-2'>

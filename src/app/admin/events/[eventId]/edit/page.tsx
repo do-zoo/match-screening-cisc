@@ -155,6 +155,7 @@ export default async function AdminEditEventPage({
     registrationManualClosed: event.registrationManualClosed,
     status: event.status,
     multiCategoryPurchase: event.multiCategoryPurchase,
+    requireAllHolderData: event.requireAllHolderData,
     picAdminProfileId: event.picAdminProfileId,
     bankAccountId: event.bankAccountId,
     helperAdminProfileIds: event.helpers.map(h => h.adminProfileId),
