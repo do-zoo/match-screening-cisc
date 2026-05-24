@@ -37,6 +37,10 @@ enum MemberValidation {
   overridden
 }
 
+enum MemberType {
+  tangsel
+  regional
+}
 
 enum InvoiceAdjustmentType {
   underpayment
@@ -236,6 +240,8 @@ model RegistrationHolder {
   mandatoryMenuItemId       String?
   mandatoryMenuItem         VenueMenuItem? @relation("RegistrationHolderMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
   mandatoryMenuPriceApplied Int?
+  memberType                MemberType?
+  uploads                   Upload[]
 
   @@index([registrationId])
 }
@@ -418,11 +424,15 @@ model Upload {
   invoiceAdjustmentId String?
   invoiceAdjustment   InvoiceAdjustment? @relation(fields: [invoiceAdjustmentId], references: [id], onDelete: Cascade)
 
+  registrationHolderId String?
+  registrationHolder   RegistrationHolder? @relation(fields: [registrationHolderId], references: [id], onDelete: Cascade)
+
   eventSettlementArtifact EventSettlementArtifact?
 
   @@index([purpose, createdAt])
   @@index([registrationId])
   @@index([invoiceAdjustmentId])
+  @@index([registrationHolderId])
 }
 
 model ClubWaTemplate {
