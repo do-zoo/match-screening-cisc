@@ -2,6 +2,7 @@ import type {
   AttendanceStatus,
   InvoiceAdjustmentStatus,
   InvoiceAdjustmentType,
+  MemberType,
   MemberValidation,
   RegistrationStatus,
   UploadPurpose,
@@ -30,6 +31,7 @@ export type DetailRegistration = {
     holderName: string
     claimedMemberNumber: string | null
     memberValidation: MemberValidation
+    memberType: MemberType | null
     ticketPriceApplied: number
     menuItemName: string | null
   }>
@@ -50,6 +52,7 @@ export type DetailRegistration = {
     height: number | null
     originalFilename: string | null
     createdAt: Date
+    registrationHolderId: string | null
   }>
   adjustments: Array<{
     id: string

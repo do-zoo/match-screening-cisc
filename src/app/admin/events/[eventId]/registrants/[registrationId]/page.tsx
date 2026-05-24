@@ -87,6 +87,7 @@ export default async function AdminEventRegistrantsDetailPage({
           holderName: true,
           claimedMemberNumber: true,
           memberValidation: true,
+          memberType: true,
           ticketPriceApplied: true,
           mandatoryMenuItem: { select: { name: true } },
         },
@@ -108,7 +109,21 @@ export default async function AdminEventRegistrantsDetailPage({
           },
         },
       },
-      uploads: { orderBy: { createdAt: 'asc' as const } },
+      uploads: {
+        orderBy: { createdAt: 'asc' as const },
+        select: {
+          id: true,
+          purpose: true,
+          blobUrl: true,
+          contentType: true,
+          bytes: true,
+          width: true,
+          height: true,
+          originalFilename: true,
+          createdAt: true,
+          registrationHolderId: true,
+        },
+      },
       adjustments: {
         orderBy: { createdAt: 'asc' as const },
         include: {
@@ -151,6 +166,7 @@ export default async function AdminEventRegistrantsDetailPage({
       holderName: h.holderName,
       claimedMemberNumber: h.claimedMemberNumber,
       memberValidation: h.memberValidation,
+      memberType: h.memberType,
       ticketPriceApplied: h.ticketPriceApplied,
       menuItemName: h.mandatoryMenuItem?.name ?? null,
     })),
