@@ -21,6 +21,7 @@ export const holderSchema = z.object({
   holderWhatsapp: whatsappPhoneSchema,
   claimedMemberNumber: z.string().trim().optional(),
   mandatoryMenuItemId: z.string().optional(),
+  memberType: z.enum(['tangsel', 'regional']).optional(),
 })
 
 export type HolderInput = z.infer<typeof holderSchema>

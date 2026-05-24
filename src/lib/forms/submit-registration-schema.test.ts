@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest'
 
 import { holderSchema, submitRegistrationSchema } from './submit-registration-schema'
 
+describe('holderSchema.memberType', () => {
+  const field = holderSchema.shape.memberType
+
+  it('accepts tangsel', () => {
+    expect(field.safeParse('tangsel').success).toBe(true)
+  })
+
+  it('accepts regional', () => {
+    expect(field.safeParse('regional').success).toBe(true)
+  })
+
+  it('accepts undefined (non-member)', () => {
+    expect(field.safeParse(undefined).success).toBe(true)
+  })
+
+  it('rejects any other string', () => {
+    expect(field.safeParse('cisc').success).toBe(false)
+    expect(field.safeParse('member').success).toBe(false)
+    expect(field.safeParse('').success).toBe(false)
+  })
+})
+
 function validPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     ticketCategoryId: 'cat-1',
