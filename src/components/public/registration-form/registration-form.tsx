@@ -57,13 +57,16 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
 
   function handleQtyChange(qty: number) {
     form.setValue('ticketQty', qty)
-    const current = form.getValues('holders')
-    const next = Array.from(
-      { length: qty },
-      (_, i) => current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
-    )
-    replace(next)
-    setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
+    if (event.requireAllHolderData) {
+      const current = form.getValues('holders')
+      const next = Array.from(
+        { length: qty },
+        (_, i) => current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      )
+      replace(next)
+      setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
+    }
+    // primary-only: holders array tetap 1 elemen; server akan kloning saat submit
   }
 
   async function handleNext() {

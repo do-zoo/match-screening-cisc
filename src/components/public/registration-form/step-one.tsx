@@ -65,7 +65,7 @@ export function StepOne({
       <div className='space-y-4 rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm'>
         <h2 className='text-xl font-semibold tracking-tight'>Data Peserta</h2>
         <div className='space-y-3'>
-          {fields.map((field, index) => (
+          {(event.requireAllHolderData ? fields : fields.slice(0, 1)).map((field, index) => (
             <HolderCard
               key={field.id}
               index={index}
