@@ -1,6 +1,6 @@
 'use server'
 
-import { RegistrationStatus } from '@prisma/client'
+import { MemberType, RegistrationStatus } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema'
@@ -17,6 +17,7 @@ import {
   mergeGlobalRegistrationClosure,
 } from '@/lib/public/club-operational-policy'
 import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-settings'
+import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
 
 export type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 
@@ -46,7 +47,18 @@ export async function submitRegistration(
 
   const input = parsed.data
 
-  // 2. Fetch event + category + club settings in parallel
+  // 2. Collect and validate regional member card files
+  const regionalFiles = new Map<number, File>()
+  for (let i = 0; i < input.holders.length; i++) {
+    if (input.holders[i]?.memberType !== 'regional') continue
+    const raw = formData.get(`memberCardPhoto_${i}`)
+    if (!(raw instanceof File) || raw.size === 0) {
+      return rootError('Bukti kartu member wajib diupload untuk peserta Member CISC Regional.')
+    }
+    regionalFiles.set(i, raw)
+  }
+
+  // 3. Fetch event + category + club settings in parallel
   const [event, opsGate] = await Promise.all([
     prisma.event.findUnique({
       where: { id: eventId },
@@ -74,7 +86,7 @@ export async function submitRegistration(
 
   if (!event) return rootError('Acara tidak ditemukan.')
 
-  // 3. Check registration window (local + global)
+  // 4. Check registration window (local + global)
   const registrationsTowardQuotaPreview = await countRegistrationsTowardQuota(prisma, event.id)
   const locallyOpen = isRegistrationOpenForEvent({
     event,
@@ -99,7 +111,7 @@ export async function submitRegistration(
     return rootError(mergedGate.registrationClosedMessage ?? DEFAULT_GLOBAL_REGISTRATION_CLOSED)
   }
 
-  // 4. Validate category
+  // 5. Validate category
   const category = event.ticketCategories[0]
   if (!category) return rootError('Kategori tiket tidak tersedia.')
 
@@ -121,7 +133,7 @@ export async function submitRegistration(
     ? input.holders
     : Array.from({ length: input.ticketQty }, () => ({ ...input.holders[0]! }))
 
-  // 5. Compute pricing (server always uses 'unknown' — admin verifies member status)
+  // 6. Compute pricing (server always uses 'unknown' — admin verifies member status)
   const pricing = computeSubmitTotal({
     holders: holdersForProcessing.map(h => ({
       memberValidation: 'unknown' as const,
@@ -133,9 +145,10 @@ export async function submitRegistration(
     })),
   })
 
-  // 6. Create Registration + RegistrationHolder[] in a transaction
+  // 7. Create Registration + RegistrationHolder[] in a transaction
+  let reg: { id: string; holders: { id: string; sortOrder: number }[] }
   try {
-    const reg = await prisma.$transaction(async tx => {
+    reg = await prisma.$transaction(async tx => {
       await assertRegistrationAcceptableOrThrowForTx(tx, event)
 
       const contactName = input.holders[0].holderName
@@ -156,16 +169,21 @@ export async function submitRegistration(
               holderName: h.holderName,
               holderWhatsapp: h.holderWhatsapp?.trim() || null,
               claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
+              memberType: h.memberType ? (h.memberType as MemberType) : null,
               ticketPriceApplied: pricing.lines[i]!.ticketPrice,
               mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
               mandatoryMenuPriceApplied: null,
             })),
           },
         },
+        include: {
+          holders: {
+            select: { id: true, sortOrder: true },
+            orderBy: { sortOrder: 'asc' as const },
+          },
+        },
       })
     })
-
-    return ok({ registrationId: reg.id })
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {
       return rootError(e.message)
@@ -173,4 +191,22 @@ export async function submitRegistration(
     console.error(e)
     return rootError('Gagal menyimpan pendaftaran. Coba lagi.')
   }
+
+  // 8. Upload member card photos for regional holders (non-fatal)
+  for (const [inputIndex, file] of regionalFiles) {
+    const holderRow = reg.holders[inputIndex]
+    if (!holderRow) continue
+    try {
+      await uploadImageForRegistration({
+        purpose: 'member_card_photo',
+        registrationId: reg.id,
+        registrationHolderId: holderRow.id,
+        file,
+      })
+    } catch (e) {
+      console.error(`[submitRegistration] Failed to upload member card photo for holder index ${inputIndex}:`, e)
+    }
+  }
+
+  return ok({ registrationId: reg.id })
 }
