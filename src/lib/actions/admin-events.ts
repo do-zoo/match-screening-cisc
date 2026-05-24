@@ -243,6 +243,7 @@ export async function createAdminEvent(_prev: unknown, formData: FormData): Prom
           registrationCapacity: data.registrationCapacity === undefined ? null : data.registrationCapacity,
           status: data.status,
           multiCategoryPurchase: data.multiCategoryPurchase ?? false,
+          requireAllHolderData: data.requireAllHolderData ?? true,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -321,6 +322,7 @@ export async function updateAdminEvent(
         },
       },
       helpers: { select: { adminProfileId: true } },
+      requireAllHolderData: true,
       _count: { select: { registrations: true } },
     },
   })
@@ -354,6 +356,14 @@ export async function updateAdminEvent(
     })
   ) {
     return rootError('Menu wajib tidak dapat diubah karena sudah ada pendaftaran.')
+  }
+
+  if (
+    existing._count.registrations > 0 &&
+    data.requireAllHolderData !== undefined &&
+    data.requireAllHolderData !== existing.requireAllHolderData
+  ) {
+    return rootError('Pengaturan data peserta tidak dapat diubah setelah ada pendaftar.')
   }
 
   const persistedMenuKey = persistedVenueSubsetOrderKey(existing.eventVenueMenuItems)
@@ -459,6 +469,7 @@ export async function updateAdminEvent(
           registrationCapacity: data.registrationCapacity === undefined ? undefined : data.registrationCapacity,
           status: data.status,
           multiCategoryPurchase: data.multiCategoryPurchase,
+          requireAllHolderData: data.requireAllHolderData,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },

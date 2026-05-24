@@ -32,6 +32,7 @@ export const adminEventUpsertSchema = z
     registrationManualClosed: z.boolean(),
     status: z.nativeEnum(EventStatus),
     multiCategoryPurchase: z.boolean().optional(),
+    requireAllHolderData: z.boolean().optional(),
     picAdminProfileId: z.string().min(1, 'PIC wajib.'),
     bankAccountId: z.string().min(1, 'Rekening bank wajib.'),
     helperAdminProfileIds: z.array(z.string().min(1)),
