@@ -6,10 +6,7 @@ import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
 import { isUploadError } from '@/lib/uploads/errors'
 
-export async function uploadTransferProof(
-  registrationId: string,
-  formData: FormData,
-): Promise<ActionResult<null>> {
+export async function uploadTransferProof(registrationId: string, formData: FormData): Promise<ActionResult<null>> {
   const file = formData.get('transferProof')
   if (!(file instanceof File) || file.size === 0) {
     return rootError('Bukti transfer wajib diunggah.')

@@ -29,7 +29,6 @@ export const submitRegistrationSchema = z.object({
   ticketCategoryId: z.string().min(1, 'Pilih kategori tiket'),
   ticketQty: z.number().int().min(1, 'Jumlah tiket minimal 1'),
   holders: z.array(holderSchema).min(1, 'Minimal satu pemegang tiket'),
-  contactWhatsapp: whatsappPhoneSchema,
 })
 
 export type SubmitRegistrationInput = z.infer<typeof submitRegistrationSchema>

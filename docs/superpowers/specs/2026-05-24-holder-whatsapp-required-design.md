@@ -50,10 +50,12 @@ export const holderSchema = z.object({
 ### 2. `src/components/public/registration-form/holder-card.tsx`
 
 **Primary holder (`isPrimary === true`):**
+
 - Do not render `WhatsAppField` in either the non-member path or the member-verified-no-WA path.
 - Do not render the `memberVerifiedNoWa` alert — WA is already captured by `contactWhatsapp`.
 
 **Secondary holders:**
+
 - `WhatsAppField` renders as before in both non-member and member-no-WA paths.
 - Remove `(opsional)` from the label — the field is now required.
 
@@ -62,6 +64,7 @@ export const holderSchema = z.object({
 Sync `contactWhatsapp → holders[0].holderWhatsapp` at two points:
 
 **`handleNext`** — before `form.trigger()`:
+
 ```ts
 async function handleNext() {
   form.setValue('holders.0.holderWhatsapp', form.getValues('contactWhatsapp'))
@@ -71,6 +74,7 @@ async function handleNext() {
 ```
 
 **`onSubmit`** — before building `formData`:
+
 ```ts
 async function onSubmit(values: SubmitRegistrationInput) {
   const holdersToSubmit = values.holders.map((h, i) =>

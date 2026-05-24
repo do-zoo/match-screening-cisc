@@ -12,27 +12,28 @@
 
 ## File Map
 
-| File | Tindakan |
-|------|----------|
-| `prisma/schema.prisma` | Tambah field `requireAllHolderData Boolean @default(true)` ke model `Event` |
-| `src/lib/forms/admin-event-form-schema.ts` | Tambah `requireAllHolderData: z.boolean().optional()` |
-| `src/lib/actions/admin-events.ts` | Pass field ke create + guard lock + pass ke update |
-| `src/lib/actions/__tests__/admin-events.integration.test.ts` | Test lock guard |
-| `src/components/admin/forms/event-admin-form.tsx` | Tambah toggle UI di samping `multiCategoryPurchase` |
-| `src/app/admin/events/[eventId]/edit/page.tsx` | Tambah ke `defaults` |
-| `src/app/admin/events/new/page.tsx` | Tambah ke `defaults` |
-| `src/components/public/event-serialization.ts` | Tambah `requireAllHolderData: boolean` ke type |
-| `src/lib/events/event-registration-page.ts` | Select + serialize field ke client |
-| `src/lib/actions/submit-registration.ts` | Relax guard + kloning holder primary |
-| `src/lib/actions/__tests__/submit-registration.integration.test.ts` | Test kloning |
-| `src/components/public/registration-form/registration-form.tsx` | Skip holder resize saat primary-only |
-| `src/components/public/registration-form/step-one.tsx` | Render hanya 1 holder card saat primary-only |
+| File                                                                | Tindakan                                                                    |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `prisma/schema.prisma`                                              | Tambah field `requireAllHolderData Boolean @default(true)` ke model `Event` |
+| `src/lib/forms/admin-event-form-schema.ts`                          | Tambah `requireAllHolderData: z.boolean().optional()`                       |
+| `src/lib/actions/admin-events.ts`                                   | Pass field ke create + guard lock + pass ke update                          |
+| `src/lib/actions/__tests__/admin-events.integration.test.ts`        | Test lock guard                                                             |
+| `src/components/admin/forms/event-admin-form.tsx`                   | Tambah toggle UI di samping `multiCategoryPurchase`                         |
+| `src/app/admin/events/[eventId]/edit/page.tsx`                      | Tambah ke `defaults`                                                        |
+| `src/app/admin/events/new/page.tsx`                                 | Tambah ke `defaults`                                                        |
+| `src/components/public/event-serialization.ts`                      | Tambah `requireAllHolderData: boolean` ke type                              |
+| `src/lib/events/event-registration-page.ts`                         | Select + serialize field ke client                                          |
+| `src/lib/actions/submit-registration.ts`                            | Relax guard + kloning holder primary                                        |
+| `src/lib/actions/__tests__/submit-registration.integration.test.ts` | Test kloning                                                                |
+| `src/components/public/registration-form/registration-form.tsx`     | Skip holder resize saat primary-only                                        |
+| `src/components/public/registration-form/step-one.tsx`              | Render hanya 1 holder card saat primary-only                                |
 
 ---
 
 ## Task 1: Schema — tambah `requireAllHolderData` ke model Event
 
 **Files:**
+
 - Modify: `prisma/schema.prisma`
 
 - [ ] **Step 1: Tambah field ke model Event**
@@ -74,6 +75,7 @@ git commit -m "feat(schema): add requireAllHolderData to Event model"
 ## Task 2: Admin form schema + server action
 
 **Files:**
+
 - Modify: `src/lib/forms/admin-event-form-schema.ts`
 - Modify: `src/lib/actions/admin-events.ts`
 - Test: `src/lib/actions/__tests__/admin-events.integration.test.ts`
@@ -229,13 +231,13 @@ Buka `src/lib/actions/admin-events.ts`.
 **Bagian update — tambah lock guard** — cari blok guard setelah `if (!existing) return rootError('Acara tidak ditemukan.')` (sekitar line 328). Tambah guard baru setelah guard `findMandatoryMenuLockedViolation` yang sudah ada:
 
 ```ts
-  if (
-    existing._count.registrations > 0 &&
-    data.requireAllHolderData !== undefined &&
-    data.requireAllHolderData !== existing.requireAllHolderData
-  ) {
-    return rootError('Pengaturan data peserta tidak dapat diubah setelah ada pendaftar.')
-  }
+if (
+  existing._count.registrations > 0 &&
+  data.requireAllHolderData !== undefined &&
+  data.requireAllHolderData !== existing.requireAllHolderData
+) {
+  return rootError('Pengaturan data peserta tidak dapat diubah setelah ada pendaftar.')
+}
 ```
 
 **Bagian update — tambah ke data update** — cari baris `multiCategoryPurchase: data.multiCategoryPurchase,` (sekitar line 461). Tambah di bawahnya:
@@ -267,6 +269,7 @@ git commit -m "feat(admin): add requireAllHolderData to event schema and update 
 ## Task 3: Admin form UI — toggle dan defaults
 
 **Files:**
+
 - Modify: `src/components/admin/forms/event-admin-form.tsx`
 - Modify: `src/app/admin/events/[eventId]/edit/page.tsx`
 - Modify: `src/app/admin/events/new/page.tsx`
@@ -276,38 +279,40 @@ git commit -m "feat(admin): add requireAllHolderData to event schema and update 
 Buka `src/components/admin/forms/event-admin-form.tsx`. Cari blok `const sectionMultiCategory` (sekitar line 561). Tambah constant baru tepat **setelah** blok `sectionMultiCategory` (setelah kurung kurawal penutupnya):
 
 ```tsx
-  const sectionRequireAllHolderData = (
-    <section className='space-y-3'>
-      <SectionHeading>Data peserta tiket tambahan</SectionHeading>
-      <div className='flex items-center gap-2'>
-        <Checkbox
-          id='requireAllHolderData'
-          checked={form.watch('requireAllHolderData') ?? true}
-          onCheckedChange={v => form.setValue('requireAllHolderData', Boolean(v))}
-          disabled={registrationCount > 0}
-        />
-        <label htmlFor='requireAllHolderData' className='text-sm'>
-          Wajibkan data untuk setiap peserta (nama, nomor member)
-        </label>
-      </div>
-      {registrationCount > 0 && (
-        <Muted>Tidak dapat diubah setelah ada pendaftar.</Muted>
-      )}
-      {!(form.watch('requireAllHolderData') ?? true) && registrationCount === 0 && (
-        <Muted>
-          Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti
-          status keanggotaan pemesan utama.
-        </Muted>
-      )}
-    </section>
-  )
+const sectionRequireAllHolderData = (
+  <section className='space-y-3'>
+    <SectionHeading>Data peserta tiket tambahan</SectionHeading>
+    <div className='flex items-center gap-2'>
+      <Checkbox
+        id='requireAllHolderData'
+        checked={form.watch('requireAllHolderData') ?? true}
+        onCheckedChange={v => form.setValue('requireAllHolderData', Boolean(v))}
+        disabled={registrationCount > 0}
+      />
+      <label htmlFor='requireAllHolderData' className='text-sm'>
+        Wajibkan data untuk setiap peserta (nama, nomor member)
+      </label>
+    </div>
+    {registrationCount > 0 && <Muted>Tidak dapat diubah setelah ada pendaftar.</Muted>}
+    {!(form.watch('requireAllHolderData') ?? true) && registrationCount === 0 && (
+      <Muted>
+        Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti status keanggotaan
+        pemesan utama.
+      </Muted>
+    )}
+  </section>
+)
 ```
 
 Kemudian temukan tempat `sectionMultiCategory` dirender di JSX return (cari `{sectionMultiCategory}`). Tambah `{sectionRequireAllHolderData}` tepat di bawahnya:
 
 ```tsx
-          {sectionMultiCategory}
-          {sectionRequireAllHolderData}
+{
+  sectionMultiCategory
+}
+{
+  sectionRequireAllHolderData
+}
 ```
 
 - [ ] **Step 2: Tambah `requireAllHolderData` ke defaults di edit/page.tsx**
@@ -356,6 +361,7 @@ git commit -m "feat(admin): add requireAllHolderData toggle to event editor UI"
 ## Task 4: Submit action — relax guard + kloning holder primary
 
 **Files:**
+
 - Modify: `src/lib/actions/submit-registration.ts`
 - Test: `src/lib/actions/__tests__/submit-registration.integration.test.ts`
 
@@ -397,9 +403,7 @@ const openEvent = {
   closeRegistrationAt: new Date(Date.now() + 86400000),
   registrationCapacity: null,
   requireAllHolderData: true,
-  ticketCategories: [
-    { id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null },
-  ],
+  ticketCategories: [{ id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null }],
 }
 
 describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
@@ -521,27 +525,27 @@ Buka `src/lib/actions/submit-registration.ts`.
 **Ganti guard holder count dan tambah klon logic** — cari baris (sekitar line 110):
 
 ```ts
-  if (input.holders.length !== input.ticketQty) {
-    return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
-  }
+if (input.holders.length !== input.ticketQty) {
+  return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
+}
 ```
 
 Ganti dengan:
 
 ```ts
-  if (event.requireAllHolderData) {
-    if (input.holders.length !== input.ticketQty) {
-      return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
-    }
-  } else {
-    if (input.holders.length !== 1) {
-      return rootError('Jumlah data peserta tidak valid.')
-    }
+if (event.requireAllHolderData) {
+  if (input.holders.length !== input.ticketQty) {
+    return rootError('Jumlah data peserta tidak sesuai dengan jumlah tiket.')
   }
+} else {
+  if (input.holders.length !== 1) {
+    return rootError('Jumlah data peserta tidak valid.')
+  }
+}
 
-  const holdersForProcessing = event.requireAllHolderData
-    ? input.holders
-    : Array.from({ length: input.ticketQty }, () => ({ ...input.holders[0]! }))
+const holdersForProcessing = event.requireAllHolderData
+  ? input.holders
+  : Array.from({ length: input.ticketQty }, () => ({ ...input.holders[0]! }))
 ```
 
 **Ganti semua pemakaian `input.holders` setelah baris itu dengan `holdersForProcessing`** — cari baris pricing (sekitar line 114):
@@ -555,17 +559,17 @@ Ganti dengan:
 Ganti `input.holders` di sini dan di blok `holders: { create: input.holders.map(...)` pada DB insert (sekitar line 143) dengan `holdersForProcessing`:
 
 ```ts
-  // 5. Compute pricing
-  const pricing = computeSubmitTotal({
-    holders: holdersForProcessing.map(h => ({
-      memberValidation: 'unknown' as const,
-      category: {
-        regularPrice: category.regularPrice,
-        memberPrice: category.memberPrice,
-      },
-      menuItem: h.mandatoryMenuItemId ? { price: 0, name: '' } : null,
-    })),
-  })
+// 5. Compute pricing
+const pricing = computeSubmitTotal({
+  holders: holdersForProcessing.map(h => ({
+    memberValidation: 'unknown' as const,
+    category: {
+      regularPrice: category.regularPrice,
+      memberPrice: category.memberPrice,
+    },
+    menuItem: h.mandatoryMenuItemId ? { price: 0, name: '' } : null,
+  })),
+})
 ```
 
 Dan di bagian DB insert:
@@ -606,6 +610,7 @@ git commit -m "feat(registration): clone primary holder for additional tickets i
 ## Task 5: Event serialization — expose ke public form
 
 **Files:**
+
 - Modify: `src/components/public/event-serialization.ts`
 - Modify: `src/lib/events/event-registration-page.ts`
 
@@ -614,8 +619,8 @@ git commit -m "feat(registration): clone primary holder for additional tickets i
 Buka `src/components/public/event-serialization.ts`. Cari `mandatoryMenuItems: SerializedEventMenuItem[]` (baris terakhir di type). Tambah field baru di akhir type `SerializedEventForRegistration`:
 
 ```ts
-  /** Jika false, form publik hanya tampilkan 1 holder card (pemesan utama). */
-  requireAllHolderData: boolean
+/** Jika false, form publik hanya tampilkan 1 holder card (pemesan utama). */
+requireAllHolderData: boolean
 ```
 
 - [ ] **Step 2: Tambah ke query dan return di event-registration-page.ts**
@@ -655,6 +660,7 @@ git commit -m "feat(public): expose requireAllHolderData to public registration 
 ## Task 6: Public form — sembunyikan holder card 2+ saat primary-only
 
 **Files:**
+
 - Modify: `src/components/public/registration-form/registration-form.tsx`
 - Modify: `src/components/public/registration-form/step-one.tsx`
 
@@ -663,8 +669,24 @@ git commit -m "feat(public): expose requireAllHolderData to public registration 
 Buka `src/components/public/registration-form/registration-form.tsx`. Cari fungsi `handleQtyChange` (sekitar line 58):
 
 ```ts
-  function handleQtyChange(qty: number) {
-    form.setValue('ticketQty', qty)
+function handleQtyChange(qty: number) {
+  form.setValue('ticketQty', qty)
+  const current = form.getValues('holders')
+  const next = Array.from(
+    { length: qty },
+    (_, i) => current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+  )
+  replace(next)
+  setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
+}
+```
+
+Ganti dengan:
+
+```ts
+function handleQtyChange(qty: number) {
+  form.setValue('ticketQty', qty)
+  if (event.requireAllHolderData) {
     const current = form.getValues('holders')
     const next = Array.from(
       { length: qty },
@@ -673,24 +695,8 @@ Buka `src/components/public/registration-form/registration-form.tsx`. Cari fungs
     replace(next)
     setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
   }
-```
-
-Ganti dengan:
-
-```ts
-  function handleQtyChange(qty: number) {
-    form.setValue('ticketQty', qty)
-    if (event.requireAllHolderData) {
-      const current = form.getValues('holders')
-      const next = Array.from(
-        { length: qty },
-        (_, i) => current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
-      )
-      replace(next)
-      setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
-    }
-    // primary-only: holders array tetap 1 elemen; server akan kloning saat submit
-  }
+  // primary-only: holders array tetap 1 elemen; server akan kloning saat submit
+}
 ```
 
 - [ ] **Step 2: Update step-one.tsx — render hanya 1 holder card saat primary-only**
@@ -698,37 +704,37 @@ Ganti dengan:
 Buka `src/components/public/registration-form/step-one.tsx`. Cari blok render holder cards (sekitar line 67):
 
 ```tsx
-        <div className='space-y-3'>
-          {fields.map((field, index) => (
-            <HolderCard
-              key={field.id}
-              index={index}
-              isPrimary={index === 0}
-              menuItems={event.mandatoryMenuItems}
-              menuRequired={event.menuRequired ?? false}
-              eventId={event.id}
-              onValidationChange={onValidationChange}
-            />
-          ))}
-        </div>
+<div className='space-y-3'>
+  {fields.map((field, index) => (
+    <HolderCard
+      key={field.id}
+      index={index}
+      isPrimary={index === 0}
+      menuItems={event.mandatoryMenuItems}
+      menuRequired={event.menuRequired ?? false}
+      eventId={event.id}
+      onValidationChange={onValidationChange}
+    />
+  ))}
+</div>
 ```
 
 Ganti dengan:
 
 ```tsx
-        <div className='space-y-3'>
-          {(event.requireAllHolderData ? fields : fields.slice(0, 1)).map((field, index) => (
-            <HolderCard
-              key={field.id}
-              index={index}
-              isPrimary={index === 0}
-              menuItems={event.mandatoryMenuItems}
-              menuRequired={event.menuRequired ?? false}
-              eventId={event.id}
-              onValidationChange={onValidationChange}
-            />
-          ))}
-        </div>
+<div className='space-y-3'>
+  {(event.requireAllHolderData ? fields : fields.slice(0, 1)).map((field, index) => (
+    <HolderCard
+      key={field.id}
+      index={index}
+      isPrimary={index === 0}
+      menuItems={event.mandatoryMenuItems}
+      menuRequired={event.menuRequired ?? false}
+      eventId={event.id}
+      onValidationChange={onValidationChange}
+    />
+  ))}
+</div>
 ```
 
 - [ ] **Step 3: Jalankan full test suite**
@@ -763,6 +769,7 @@ git commit -m "feat(public-form): hide additional holder cards in primary-only m
 ## Task 7: Update CLAUDE.md
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 
 - [ ] **Step 1: Update Data model section**
@@ -770,11 +777,13 @@ git commit -m "feat(public-form): hide additional holder cards in primary-only m
 Buka `CLAUDE.md`. Cari baris yang menjelaskan model `Event` (berisi `multiCategoryPurchase Boolean`). Tambah `requireAllHolderData` di deskripsi field Event:
 
 Cari teks:
+
 ```
 `multiCategoryPurchase Boolean` — izinkan beli lintas kategori
 ```
 
 Tambah setelah baris itu:
+
 ```
 `requireAllHolderData Boolean` — jika `false`, form publik hanya tampilkan 1 holder card (primary-only mode); server mengkloning data holder utama ke slot 2+ saat submit; dikunci setelah registrasi pertama
 ```

@@ -12,11 +12,11 @@
 
 ## File Map
 
-| File | Change |
-|------|--------|
-| `src/lib/forms/submit-registration-schema.ts` | Rename schema, export it, make `holderWhatsapp` required |
-| `src/lib/forms/submit-registration-schema.test.ts` | Update fixtures, add tests for required WA |
-| `src/components/public/registration-form/holder-card.tsx` | Hide WA field for primary holder, remove "(opsional)" |
+| File                                                            | Change                                                                  |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `src/lib/forms/submit-registration-schema.ts`                   | Rename schema, export it, make `holderWhatsapp` required                |
+| `src/lib/forms/submit-registration-schema.test.ts`              | Update fixtures, add tests for required WA                              |
+| `src/components/public/registration-form/holder-card.tsx`       | Hide WA field for primary holder, remove "(opsional)"                   |
 | `src/components/public/registration-form/registration-form.tsx` | Sync `contactWhatsapp` to primary holder at `handleNext` and `onSubmit` |
 
 ---
@@ -24,6 +24,7 @@
 ## Task 1: Update tests, then update schema
 
 **Files:**
+
 - Modify: `src/lib/forms/submit-registration-schema.test.ts`
 - Modify: `src/lib/forms/submit-registration-schema.ts`
 
@@ -40,7 +41,9 @@ function validPayload(overrides: Record<string, unknown> = {}): Record<string, u
   return {
     ticketCategoryId: 'cat-1',
     ticketQty: 1,
-    holders: [{ holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
+    holders: [
+      { holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+    ],
     contactWhatsapp: '08123456789',
     ...overrides,
   }
@@ -82,7 +85,11 @@ describe('holderSchema', () => {
   })
 
   it('accepts optional claimedMemberNumber', () => {
-    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789', claimedMemberNumber: 'CISC-001' })
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '08123456789',
+      claimedMemberNumber: 'CISC-001',
+    })
     expect(r.success).toBe(true)
   })
 })
@@ -134,17 +141,12 @@ describe('submitRegistrationSchema', () => {
     const r = submitRegistrationSchema.safeParse(
       validPayload({
         ticketQty: 2,
-        holders: [
-          { holderName: 'Budi', holderWhatsapp: '08123456789' },
-          { holderName: 'Rina' },
-        ],
+        holders: [{ holderName: 'Budi', holderWhatsapp: '08123456789' }, { holderName: 'Rina' }],
       }),
     )
     expect(r.success).toBe(false)
     if (!r.success) {
-      expect(
-        r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp'),
-      ).toBe(true)
+      expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
     }
   })
 
@@ -160,9 +162,7 @@ describe('submitRegistrationSchema', () => {
     )
     expect(r.success).toBe(false)
     if (!r.success) {
-      expect(
-        r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp'),
-      ).toBe(true)
+      expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
     }
   })
 })
@@ -175,6 +175,7 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_
 ```
 
 Expected: 4 FAIL
+
 - `holderSchema > rejects holder missing holderWhatsapp`
 - `holderSchema > rejects holder with invalid holderWhatsapp`
 - `submitRegistrationSchema > rejects secondary holder missing holderWhatsapp`
@@ -242,6 +243,7 @@ git commit -m "feat(registration): make holderWhatsapp required with phone valid
 ## Task 2: Hide WA field for primary holder in UI
 
 **Files:**
+
 - Modify: `src/components/public/registration-form/holder-card.tsx`
 
 - [ ] **Step 1: Update `WhatsAppField` — remove the "(opsional)" span**
@@ -249,14 +251,15 @@ git commit -m "feat(registration): make holderWhatsapp required with phone valid
 In `src/components/public/registration-form/holder-card.tsx`, find `WhatsAppField` (lines 37–63) and change the `FieldLabel`:
 
 Old:
+
 ```tsx
 <FieldLabel htmlFor={`holder-${index}-wa`}>
-  Nomor WhatsApp{' '}
-  <span className='font-normal text-muted-foreground'>(opsional)</span>
+  Nomor WhatsApp <span className='font-normal text-muted-foreground'>(opsional)</span>
 </FieldLabel>
 ```
 
 New:
+
 ```tsx
 <FieldLabel htmlFor={`holder-${index}-wa`}>Nomor WhatsApp</FieldLabel>
 ```
@@ -266,45 +269,55 @@ New:
 In `HolderCard`, find the non-member path block (around line 285–299):
 
 Old:
+
 ```tsx
-{/* Non-member path: manual name + WhatsApp */}
-{!isMember && (
-  <>
-    <Controller
-      control={form.control}
-      name={`holders.${index}.holderName`}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={`holder-${index}-name`}>Nama Lengkap</FieldLabel>
-          <Input id={`holder-${index}-name`} placeholder='Nama sesuai identitas' {...field} />
-          {fieldState.error && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-    <WhatsAppField index={index} />
-  </>
-)}
+{
+  /* Non-member path: manual name + WhatsApp */
+}
+{
+  !isMember && (
+    <>
+      <Controller
+        control={form.control}
+        name={`holders.${index}.holderName`}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={`holder-${index}-name`}>Nama Lengkap</FieldLabel>
+            <Input id={`holder-${index}-name`} placeholder='Nama sesuai identitas' {...field} />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <WhatsAppField index={index} />
+    </>
+  )
+}
 ```
 
 New:
+
 ```tsx
-{/* Non-member path: manual name + WhatsApp */}
-{!isMember && (
-  <>
-    <Controller
-      control={form.control}
-      name={`holders.${index}.holderName`}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={`holder-${index}-name`}>Nama Lengkap</FieldLabel>
-          <Input id={`holder-${index}-name`} placeholder='Nama sesuai identitas' {...field} />
-          {fieldState.error && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-    {!isPrimary && <WhatsAppField index={index} />}
-  </>
-)}
+{
+  /* Non-member path: manual name + WhatsApp */
+}
+{
+  !isMember && (
+    <>
+      <Controller
+        control={form.control}
+        name={`holders.${index}.holderName`}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={`holder-${index}-name`}>Nama Lengkap</FieldLabel>
+            <Input id={`holder-${index}-name`} placeholder='Nama sesuai identitas' {...field} />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      {!isPrimary && <WhatsAppField index={index} />}
+    </>
+  )
+}
 ```
 
 - [ ] **Step 3: Skip WA alert and field for primary holder in member-verified-no-WA path**
@@ -312,47 +325,55 @@ New:
 Find the member path block (around line 262–279):
 
 Old:
+
 ```tsx
-{isMember && validationResult.status === 'valid' && (
-  <>
-    <MemberProfileCard
-      fullName={validationResult.fullName}
-      whatsapp={validationResult.whatsapp}
-      onReset={handleResetMemberNumber}
-    />
-    {/* If directory has no WA, let the user fill it in */}
-    {memberVerifiedNoWa && (
-      <>
-        <Alert variant='destructive' className='text-sm'>
-          Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa menghubungi peserta.
-        </Alert>
-        <WhatsAppField index={index} />
-      </>
-    )}
-  </>
-)}
+{
+  isMember && validationResult.status === 'valid' && (
+    <>
+      <MemberProfileCard
+        fullName={validationResult.fullName}
+        whatsapp={validationResult.whatsapp}
+        onReset={handleResetMemberNumber}
+      />
+      {/* If directory has no WA, let the user fill it in */}
+      {memberVerifiedNoWa && (
+        <>
+          <Alert variant='destructive' className='text-sm'>
+            Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa menghubungi
+            peserta.
+          </Alert>
+          <WhatsAppField index={index} />
+        </>
+      )}
+    </>
+  )
+}
 ```
 
 New:
+
 ```tsx
-{isMember && validationResult.status === 'valid' && (
-  <>
-    <MemberProfileCard
-      fullName={validationResult.fullName}
-      whatsapp={validationResult.whatsapp}
-      onReset={handleResetMemberNumber}
-    />
-    {/* If directory has no WA, let the user fill it in (secondary holders only) */}
-    {memberVerifiedNoWa && !isPrimary && (
-      <>
-        <Alert variant='destructive' className='text-sm'>
-          Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa menghubungi peserta.
-        </Alert>
-        <WhatsAppField index={index} />
-      </>
-    )}
-  </>
-)}
+{
+  isMember && validationResult.status === 'valid' && (
+    <>
+      <MemberProfileCard
+        fullName={validationResult.fullName}
+        whatsapp={validationResult.whatsapp}
+        onReset={handleResetMemberNumber}
+      />
+      {/* If directory has no WA, let the user fill it in (secondary holders only) */}
+      {memberVerifiedNoWa && !isPrimary && (
+        <>
+          <Alert variant='destructive' className='text-sm'>
+            Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa menghubungi
+            peserta.
+          </Alert>
+          <WhatsAppField index={index} />
+        </>
+      )}
+    </>
+  )
+}
 ```
 
 - [ ] **Step 4: Commit**
@@ -367,6 +388,7 @@ git commit -m "feat(registration): hide WA field for primary holder, remove (ops
 ## Task 3: Sync primary holder WA from contactWhatsapp
 
 **Files:**
+
 - Modify: `src/components/public/registration-form/registration-form.tsx`
 
 - [ ] **Step 1: Update `handleNext` to sync primary holder WA before validation**
@@ -374,6 +396,7 @@ git commit -m "feat(registration): hide WA field for primary holder, remove (ops
 In `src/components/public/registration-form/registration-form.tsx`, find `handleNext` (around line 69–72):
 
 Old:
+
 ```ts
 async function handleNext() {
   const valid = await form.trigger()
@@ -382,6 +405,7 @@ async function handleNext() {
 ```
 
 New:
+
 ```ts
 async function handleNext() {
   form.setValue('holders.0.holderWhatsapp', form.getValues('contactWhatsapp'))
@@ -395,6 +419,7 @@ async function handleNext() {
 Find `onSubmit` (around line 74–89):
 
 Old:
+
 ```ts
 async function onSubmit(values: SubmitRegistrationInput) {
   const formData = new FormData()
@@ -415,11 +440,10 @@ async function onSubmit(values: SubmitRegistrationInput) {
 ```
 
 New:
+
 ```ts
 async function onSubmit(values: SubmitRegistrationInput) {
-  const holdersToSubmit = values.holders.map((h, i) =>
-    i === 0 ? { ...h, holderWhatsapp: values.contactWhatsapp } : h
-  )
+  const holdersToSubmit = values.holders.map((h, i) => (i === 0 ? { ...h, holderWhatsapp: values.contactWhatsapp } : h))
   const formData = new FormData()
   formData.append('ticketCategoryId', values.ticketCategoryId)
   formData.append('ticketQty', String(values.ticketQty))

@@ -36,7 +36,6 @@ export async function submitRegistration(
     ticketCategoryId: formData.get('ticketCategoryId'),
     ticketQty: Number(formData.get('ticketQty')),
     holders: holdersRaw,
-    contactWhatsapp: formData.get('contactWhatsapp'),
   }
 
   const parsed = submitRegistrationSchema.safeParse(rawInput)
@@ -140,6 +139,7 @@ export async function submitRegistration(
       await assertRegistrationAcceptableOrThrowForTx(tx, event)
 
       const contactName = input.holders[0].holderName
+      const contactWhatsapp = input.holders[0].holderWhatsapp ?? ''
 
       return tx.registration.create({
         data: {
@@ -147,7 +147,7 @@ export async function submitRegistration(
           ticketCategoryId: input.ticketCategoryId,
           ticketQty: input.ticketQty,
           contactName,
-          contactWhatsapp: input.contactWhatsapp,
+          contactWhatsapp,
           computedTotalAtSubmit: pricing.grandTotal,
           status: RegistrationStatus.submitted,
           holders: {

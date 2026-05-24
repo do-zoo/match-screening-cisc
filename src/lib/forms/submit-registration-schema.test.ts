@@ -6,7 +6,9 @@ function validPayload(overrides: Record<string, unknown> = {}): Record<string, u
   return {
     ticketCategoryId: 'cat-1',
     ticketQty: 1,
-    holders: [{ holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
+    holders: [
+      { holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+    ],
     contactWhatsapp: '08123456789',
     ...overrides,
   }
@@ -48,7 +50,11 @@ describe('holderSchema', () => {
   })
 
   it('accepts optional claimedMemberNumber', () => {
-    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789', claimedMemberNumber: 'CISC-001' })
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '08123456789',
+      claimedMemberNumber: 'CISC-001',
+    })
     expect(r.success).toBe(true)
   })
 })
@@ -100,17 +106,12 @@ describe('submitRegistrationSchema', () => {
     const r = submitRegistrationSchema.safeParse(
       validPayload({
         ticketQty: 2,
-        holders: [
-          { holderName: 'Budi', holderWhatsapp: '08123456789' },
-          { holderName: 'Rina' },
-        ],
+        holders: [{ holderName: 'Budi', holderWhatsapp: '08123456789' }, { holderName: 'Rina' }],
       }),
     )
     expect(r.success).toBe(false)
     if (!r.success) {
-      expect(
-        r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp'),
-      ).toBe(true)
+      expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
     }
   })
 
@@ -126,9 +127,7 @@ describe('submitRegistrationSchema', () => {
     )
     expect(r.success).toBe(false)
     if (!r.success) {
-      expect(
-        r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp'),
-      ).toBe(true)
+      expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
     }
   })
 })

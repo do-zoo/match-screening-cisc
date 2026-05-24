@@ -53,23 +53,11 @@ export default async function RegistrationReceiptPage({
   }
 
   if (status === RegistrationStatus.pending_review) {
-    return (
-      <PendingReviewPanel
-        registrationId={id}
-        eventTitle={event.title}
-        totalAmount={computedTotalAtSubmit}
-      />
-    )
+    return <PendingReviewPanel registrationId={id} eventTitle={event.title} totalAmount={computedTotalAtSubmit} />
   }
 
   if (status === RegistrationStatus.approved) {
-    return (
-      <ApprovedPanel
-        registrationId={id}
-        eventTitle={event.title}
-        totalAmount={computedTotalAtSubmit}
-      />
-    )
+    return <ApprovedPanel registrationId={id} eventTitle={event.title} totalAmount={computedTotalAtSubmit} />
   }
 
   // Fallback: rejected, cancelled, refunded, payment_issue, dll

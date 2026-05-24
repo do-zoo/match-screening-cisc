@@ -65,14 +65,13 @@ Di `lib/actions/submit-registration.ts`, setelah validasi form dan sebelum inser
 let holdersToInsert = validatedHolders
 if (!event.requireAllHolderData && ticketQty > 1) {
   const primary = validatedHolders[0]
-  holdersToInsert = Array.from({ length: ticketQty }, (_, i) =>
-    i === 0 ? primary : { ...primary }
-  )
+  holdersToInsert = Array.from({ length: ticketQty }, (_, i) => (i === 0 ? primary : { ...primary }))
 }
 // lanjut ke computeSubmitTotal(holdersToInsert) + insert DB
 ```
 
 Field yang diklon dari holder utama ke slot 2+:
+
 - `holderName`
 - `holderWhatsapp`
 - `claimedMemberNumber`
@@ -92,10 +91,12 @@ Ketika `requireAllHolderData = false`, semua tiket otomatis menggunakan harga ya
 **Lokasi:** komponen `src/components/admin/forms/event-admin-form.tsx`, di sekitar baris `multiCategoryPurchase` (line ~566). Keduanya adalah setting perilaku pendaftaran sehingga dikelompokkan bersama.
 
 **Label UI:**
+
 - Judul field: `"Data peserta tiket tambahan"`
 - Deskripsi: `"Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti status keanggotaan pemesan utama."`
 
 **Lock UI:** Toggle di-`disabled` setelah ada registrasi pertama, dengan caption:
+
 > `"Tidak dapat diubah setelah ada pendaftar."`
 
 ### 7. Admin Detail Registrasi & Laporan

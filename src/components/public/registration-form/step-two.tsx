@@ -19,7 +19,6 @@ type Props = {
 export function StepTwo({ event, selectedCategory, pricing, onBack, isSubmitting }: Props) {
   const form = useFormContext<SubmitRegistrationInput>()
   const holders = form.watch('holders')
-  const contactWhatsapp = form.watch('contactWhatsapp')
 
   return (
     <div className='space-y-6'>
@@ -54,7 +53,7 @@ export function StepTwo({ event, selectedCategory, pricing, onBack, isSubmitting
 
           <div className='flex justify-between'>
             <dt className='text-muted-foreground'>WhatsApp kontak</dt>
-            <dd className='font-mono text-xs'>{contactWhatsapp || '—'}</dd>
+            <dd className='font-mono text-xs'>{holders[0]?.holderWhatsapp || '—'}</dd>
           </div>
         </dl>
 
@@ -73,10 +72,8 @@ export function StepTwo({ event, selectedCategory, pricing, onBack, isSubmitting
           Setelah klik &ldquo;Kirim Pendaftaran&rdquo;, kamu akan diminta upload bukti transfer di halaman berikutnya.
         </p>
         <div className='text-sm leading-relaxed'>
-          Transfer ke:{' '}
-          <span className='font-medium text-foreground'>{event.bankAccount.bankName}</span> —{' '}
-          {event.bankAccount.accountName}{' '}
-          <span className='font-mono'>{event.bankAccount.accountNumber}</span>
+          Transfer ke: <span className='font-medium text-foreground'>{event.bankAccount.bankName}</span> —{' '}
+          {event.bankAccount.accountName} <span className='font-mono'>{event.bankAccount.accountNumber}</span>
         </div>
         {pricing && (
           <div className='text-sm'>

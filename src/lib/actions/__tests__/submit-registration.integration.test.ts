@@ -31,9 +31,7 @@ const openEvent = {
   closeRegistrationAt: new Date(Date.now() + 86400000),
   registrationCapacity: null,
   requireAllHolderData: true,
-  ticketCategories: [
-    { id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null },
-  ],
+  ticketCategories: [{ id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null }],
 }
 
 describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
@@ -63,7 +61,6 @@ describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
     fd.set('ticketCategoryId', 'cat-1')
     fd.set('ticketQty', '1')
     fd.set('holders', JSON.stringify([{ holderName: 'Tester', holderWhatsapp: '+6281234567890' }]))
-    fd.set('contactWhatsapp', '+6281234567890')
     const r = await submitRegistration('tidak-ada', fd)
     expect(r.ok).toBe(false)
     if (!r.ok && 'rootError' in r) {
@@ -95,7 +92,6 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
       'holders',
       JSON.stringify([{ holderName: 'Pemesan Utama', holderWhatsapp: '+6281234567890', claimedMemberNumber: '' }]),
     )
-    fd.set('contactWhatsapp', '+6281234567890')
 
     const r = await submitRegistration('event-1', fd)
     expect(r.ok).toBe(true)
@@ -121,7 +117,6 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
         { holderName: 'Holder 2', holderWhatsapp: '+6281234567891' },
       ]),
     )
-    fd.set('contactWhatsapp', '+6281234567890')
 
     const r = await submitRegistration('event-1', fd)
     expect(r.ok).toBe(false)

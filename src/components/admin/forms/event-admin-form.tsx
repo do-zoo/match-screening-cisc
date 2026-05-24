@@ -588,13 +588,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
           Wajibkan data untuk setiap peserta (nama, nomor member)
         </label>
       </div>
-      {registrationCount > 0 && (
-        <Muted>Tidak dapat diubah setelah ada pendaftar.</Muted>
-      )}
+      {registrationCount > 0 && <Muted>Tidak dapat diubah setelah ada pendaftar.</Muted>}
       {!(form.watch('requireAllHolderData') ?? true) && registrationCount === 0 && (
         <Muted>
-          Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti
-          status keanggotaan pemesan utama.
+          Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti status keanggotaan
+          pemesan utama.
         </Muted>
       )}
     </section>

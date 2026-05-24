@@ -1,15 +1,13 @@
 'use client'
 
 import { useCallback } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
 import type { FieldArrayWithId } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 
-import { Button } from '@/components/ui/button'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { formatIdr } from '@/lib/utils/format-idr'
-import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 import type { SerializedEventForRegistration } from '@/components/public/event-serialization'
+import { Button } from '@/components/ui/button'
+import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
+import { formatIdr } from '@/lib/utils/format-idr'
 import type { usePricingPreview } from './use-pricing-preview'
 
 import { CategoryPicker } from './category-picker'
@@ -77,28 +75,6 @@ export function StepOne({
             />
           ))}
         </div>
-      </div>
-
-      {/* Kontak WhatsApp */}
-      <div className='space-y-4 rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm'>
-        <h2 className='text-xl font-semibold tracking-tight'>Kontak</h2>
-        <Controller
-          control={form.control}
-          name='contactWhatsapp'
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor='ms-registration-whatsapp'>Nomor WhatsApp</FieldLabel>
-              <Input
-                id='ms-registration-whatsapp'
-                type='tel'
-                placeholder='+62 812 xxxx xxxx'
-                aria-invalid={fieldState.invalid}
-                {...field}
-              />
-              {fieldState.error && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
       </div>
 
       {/* Estimasi total */}

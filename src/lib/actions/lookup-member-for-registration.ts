@@ -14,10 +14,7 @@ const ACTIVE_STATUSES: RegistrationStatus[] = [
   RegistrationStatus.approved,
 ]
 
-export async function lookupMemberForRegistration(
-  memberNumber: string,
-  eventId: string,
-): Promise<MemberLookupResult> {
+export async function lookupMemberForRegistration(memberNumber: string, eventId: string): Promise<MemberLookupResult> {
   const trimmed = memberNumber.trim()
   if (!trimmed) return { status: 'not_found' }
 

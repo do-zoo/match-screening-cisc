@@ -343,13 +343,45 @@ async function main() {
   // Ticket categories — upsert dengan ID stabil supaya idempoten
   await prisma.eventTicketCategory.upsert({
     where: { id: CAT_FINAL_REGULER },
-    update: { name: 'Tiket Reguler', regularPrice: 150_000, memberPrice: 120_000, maxQtyPerPerson: 4, sortOrder: 1, isActive: true },
-    create: { id: CAT_FINAL_REGULER, eventId: event.id, name: 'Tiket Reguler', regularPrice: 150_000, memberPrice: 120_000, maxQtyPerPerson: 4, sortOrder: 1, isActive: true },
+    update: {
+      name: 'Tiket Reguler',
+      regularPrice: 150_000,
+      memberPrice: 120_000,
+      maxQtyPerPerson: 4,
+      sortOrder: 1,
+      isActive: true,
+    },
+    create: {
+      id: CAT_FINAL_REGULER,
+      eventId: event.id,
+      name: 'Tiket Reguler',
+      regularPrice: 150_000,
+      memberPrice: 120_000,
+      maxQtyPerPerson: 4,
+      sortOrder: 1,
+      isActive: true,
+    },
   })
   await prisma.eventTicketCategory.upsert({
     where: { id: CAT_FINAL_VIP },
-    update: { name: 'Tiket VIP', regularPrice: 250_000, memberPrice: 200_000, maxQtyPerPerson: 2, sortOrder: 2, isActive: true },
-    create: { id: CAT_FINAL_VIP, eventId: event.id, name: 'Tiket VIP', regularPrice: 250_000, memberPrice: 200_000, maxQtyPerPerson: 2, sortOrder: 2, isActive: true },
+    update: {
+      name: 'Tiket VIP',
+      regularPrice: 250_000,
+      memberPrice: 200_000,
+      maxQtyPerPerson: 2,
+      sortOrder: 2,
+      isActive: true,
+    },
+    create: {
+      id: CAT_FINAL_VIP,
+      eventId: event.id,
+      name: 'Tiket VIP',
+      regularPrice: 250_000,
+      memberPrice: 200_000,
+      maxQtyPerPerson: 2,
+      sortOrder: 2,
+      isActive: true,
+    },
   })
 
   const catalogVenueItems = await prisma.venueMenuItem.findMany({
@@ -417,8 +449,24 @@ async function main() {
 
   await prisma.eventTicketCategory.upsert({
     where: { id: CAT_KOPDAR_REGULER },
-    update: { name: 'Tiket Reguler', regularPrice: 100_000, memberPrice: 75_000, maxQtyPerPerson: null, sortOrder: 1, isActive: true },
-    create: { id: CAT_KOPDAR_REGULER, eventId: kopdarEvent.id, name: 'Tiket Reguler', regularPrice: 100_000, memberPrice: 75_000, maxQtyPerPerson: null, sortOrder: 1, isActive: true },
+    update: {
+      name: 'Tiket Reguler',
+      regularPrice: 100_000,
+      memberPrice: 75_000,
+      maxQtyPerPerson: null,
+      sortOrder: 1,
+      isActive: true,
+    },
+    create: {
+      id: CAT_KOPDAR_REGULER,
+      eventId: kopdarEvent.id,
+      name: 'Tiket Reguler',
+      regularPrice: 100_000,
+      memberPrice: 75_000,
+      maxQtyPerPerson: null,
+      sortOrder: 1,
+      isActive: true,
+    },
   })
 
   const mgmtCount = MASTER_MEMBER_SEEDS.filter(r => r.managementPublicCode).length

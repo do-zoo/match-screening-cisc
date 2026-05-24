@@ -15,9 +15,8 @@ export function PendingReviewPanel({ registrationId, eventTitle, totalAmount }: 
       <header className='flex flex-col gap-2'>
         <h1 className='text-2xl font-semibold tracking-tight'>Menunggu verifikasi panitia</h1>
         <p className='text-sm text-muted-foreground'>
-          Bukti transfer kamu sudah kami terima untuk{' '}
-          <span className='font-medium text-foreground'>{eventTitle}</span>. Tim akan memverifikasi
-          dalam 1&times;24 jam.
+          Bukti transfer kamu sudah kami terima untuk <span className='font-medium text-foreground'>{eventTitle}</span>.
+          Tim akan memverifikasi dalam 1&times;24 jam.
         </p>
       </header>
 
@@ -30,9 +29,7 @@ export function PendingReviewPanel({ registrationId, eventTitle, totalAmount }: 
           <dt className='text-muted-foreground'>Total (snapshot)</dt>
           <dd className='font-mono text-base font-semibold tabular-nums'>{formatIdr(totalAmount)}</dd>
         </div>
-        <p className='text-xs text-muted-foreground'>
-          Simpan halaman ini sebagai bukti pendaftaran sementara.
-        </p>
+        <p className='text-xs text-muted-foreground'>Simpan halaman ini sebagai bukti pendaftaran sementara.</p>
       </section>
 
       <nav className='flex flex-wrap justify-end gap-3'>

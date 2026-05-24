@@ -11,9 +11,7 @@ export type HolderValidationResult =
   | { status: 'valid'; fullName: string; whatsapp: string | null }
 
 /** Maps validation result to the MemberValidation string used for pricing. */
-export function validationToPricing(
-  result: HolderValidationResult,
-): 'valid' | 'invalid' | 'unknown' {
+export function validationToPricing(result: HolderValidationResult): 'valid' | 'invalid' | 'unknown' {
   if (result.status === 'valid') return 'valid'
   if (result.status === 'not_found') return 'invalid'
   return 'unknown'

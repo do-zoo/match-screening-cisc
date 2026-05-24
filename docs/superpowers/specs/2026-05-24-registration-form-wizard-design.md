@@ -54,32 +54,33 @@ Step 2 submit: panggil `submitRegistration()` yang sudah tidak menerima `transfe
 
 Server component yang fetch registration dari DB dan render panel berbeda per status:
 
-| Status | Panel |
-|--------|-------|
-| `submitted` (belum ada bukti) | `UploadProofPanel` — client component dengan file picker |
-| `pending_review` | `PendingReviewPanel` — info "menunggu verifikasi panitia" |
-| `approved` | `ApprovedPanel` — konfirmasi "kamu terdaftar" |
-| status lain (`rejected`, `cancelled`, dll) | Generic status badge + pesan |
+| Status                                     | Panel                                                     |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `submitted` (belum ada bukti)              | `UploadProofPanel` — client component dengan file picker  |
+| `pending_review`                           | `PendingReviewPanel` — info "menunggu verifikasi panitia" |
+| `approved`                                 | `ApprovedPanel` — konfirmasi "kamu terdaftar"             |
+| status lain (`rejected`, `cancelled`, dll) | Generic status badge + pesan                              |
 
 `UploadProofPanel` setelah upload sukses memanggil `router.refresh()` sehingga page re-render ke state `pending_review` tanpa full navigation.
 
 ## Backend Changes
 
 ### Schema (`submit-registration-schema.ts`)
+
 - Hapus field `transferProof` dari `submitRegistrationSchema` dan `SubmitRegistrationInput`.
 
 ### Server Action: `submitRegistration` (`lib/actions/submit-registration.ts`)
+
 - Hapus semua logika upload `transferProof`.
 - Registration dibuat dan tetap di status `submitted` (tidak naik ke `pending_review`).
 - Blob rollback cleanup tidak diperlukan lagi di action ini.
 
 ### Server Action Baru: `uploadTransferProof` (`lib/actions/upload-transfer-proof.ts`)
+
 ```ts
-export async function uploadTransferProof(
-  registrationId: string,
-  formData: FormData,
-): Promise<ActionResult<void>>
+export async function uploadTransferProof(registrationId: string, formData: FormData): Promise<ActionResult<void>>
 ```
+
 1. Cari registration, verifikasi status === `submitted`.
 2. Upload image via `uploadImageForRegistration({ purpose: 'transfer_proof', ... })`.
 3. Update `registration.status` → `pending_review`.
@@ -87,6 +88,7 @@ export async function uploadTransferProof(
 ## Files
 
 ### Baru
+
 - `src/components/public/registration-form/step-indicator.tsx`
 - `src/components/public/registration-form/step-one.tsx`
 - `src/components/public/registration-form/step-two.tsx`
@@ -96,6 +98,7 @@ export async function uploadTransferProof(
 - `src/components/public/registration-form/approved-panel.tsx`
 
 ### Dimodifikasi
+
 - `src/components/public/registration-form/registration-form.tsx`
 - `src/lib/forms/submit-registration-schema.ts`
 - `src/lib/actions/submit-registration.ts`

@@ -254,8 +254,8 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
                 whatsapp={validationResult.whatsapp}
                 onReset={handleResetMemberNumber}
               />
-              {/* If directory has no WA, let the user fill it in (secondary holders only) */}
-              {memberVerifiedNoWa && !isPrimary && (
+              {/* If directory has no WA, let the user fill it in */}
+              {memberVerifiedNoWa && (
                 <>
                   <Alert variant='destructive' className='text-sm'>
                     Nomor WhatsApp member ini belum terdaftar di direktori. Isi nomor di bawah agar panitia bisa
@@ -284,7 +284,7 @@ export function HolderCard({ index, isPrimary, menuItems, menuRequired, eventId,
                   </Field>
                 )}
               />
-              {!isPrimary && <WhatsAppField index={index} />}
+              <WhatsAppField index={index} />
             </>
           )}
 

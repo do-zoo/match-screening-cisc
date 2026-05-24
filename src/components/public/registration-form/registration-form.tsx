@@ -25,7 +25,6 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       ticketCategoryId: event.ticketCategories?.[0]?.id ?? '',
       ticketQty: 1,
       holders: [{ holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
-      contactWhatsapp: '',
     },
   })
 
@@ -63,7 +62,11 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     ? holderValidations
     : Array.from({ length: ticketQty }, () => holderValidations[0] ?? ('unknown' as const))
 
-  const pricing = usePricingPreview({ category: selectedCategory, holders: pricingHolders, holderValidations: pricingValidations })
+  const pricing = usePricingPreview({
+    category: selectedCategory,
+    holders: pricingHolders,
+    holderValidations: pricingValidations,
+  })
 
   function handleQtyChange(qty: number) {
     form.setValue('ticketQty', qty)
@@ -71,7 +74,8 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       const current = form.getValues('holders')
       const next = Array.from(
         { length: qty },
-        (_, i) => current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+        (_, i) =>
+          current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
       )
       replace(next)
       setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
@@ -79,20 +83,15 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
   }
 
   async function handleNext() {
-    form.setValue('holders.0.holderWhatsapp', form.getValues('contactWhatsapp'))
     const valid = await form.trigger()
     if (valid) setStep(2)
   }
 
   async function onSubmit(values: SubmitRegistrationInput) {
-    const holdersToSubmit = values.holders.map((h, i) =>
-      i === 0 ? { ...h, holderWhatsapp: values.contactWhatsapp } : h
-    )
     const formData = new FormData()
     formData.append('ticketCategoryId', values.ticketCategoryId)
     formData.append('ticketQty', String(values.ticketQty))
-    formData.append('holders', JSON.stringify(holdersToSubmit))
-    formData.append('contactWhatsapp', values.contactWhatsapp)
+    formData.append('holders', JSON.stringify(values.holders))
 
     const result = await submitRegistration(event.id, formData)
     if (result.ok) {
