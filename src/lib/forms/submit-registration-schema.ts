@@ -2,7 +2,7 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 import { z } from 'zod'
 import { toE164PlusForValidation } from '@/lib/forms/phone-value-string'
 
-const contactWhatsappSchema = z
+export const whatsappPhoneSchema = z
   .string()
   .trim()
   .superRefine((val, ctx) => {
@@ -18,7 +18,7 @@ const contactWhatsappSchema = z
 
 export const holderSchema = z.object({
   holderName: z.string().trim().min(1, 'Nama pemegang tiket wajib diisi'),
-  holderWhatsapp: z.string().trim().optional(),
+  holderWhatsapp: whatsappPhoneSchema,
   claimedMemberNumber: z.string().trim().optional(),
   mandatoryMenuItemId: z.string().optional(),
 })
@@ -29,7 +29,7 @@ export const submitRegistrationSchema = z.object({
   ticketCategoryId: z.string().min(1, 'Pilih kategori tiket'),
   ticketQty: z.number().int().min(1, 'Jumlah tiket minimal 1'),
   holders: z.array(holderSchema).min(1, 'Minimal satu pemegang tiket'),
-  contactWhatsapp: contactWhatsappSchema,
+  contactWhatsapp: whatsappPhoneSchema,
 })
 
 export type SubmitRegistrationInput = z.infer<typeof submitRegistrationSchema>

@@ -6,20 +6,36 @@ function validPayload(overrides: Record<string, unknown> = {}): Record<string, u
   return {
     ticketCategoryId: 'cat-1',
     ticketQty: 1,
-    holders: [{ holderName: 'Budi Santoso', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
+    holders: [{ holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
     contactWhatsapp: '08123456789',
     ...overrides,
   }
 }
 
 describe('holderSchema', () => {
-  it('accepts a holder with only holderName', () => {
-    const r = holderSchema.safeParse({ holderName: 'Budi' })
+  it('accepts a holder with valid name and WA', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789' })
     expect(r.success).toBe(true)
   })
 
+  it('rejects holder missing holderWhatsapp', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holderWhatsapp')).toBe(true)
+    }
+  })
+
+  it('rejects holder with invalid holderWhatsapp', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '123' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holderWhatsapp')).toBe(true)
+    }
+  })
+
   it('rejects empty holderName', () => {
-    const r = holderSchema.safeParse({ holderName: '' })
+    const r = holderSchema.safeParse({ holderName: '', holderWhatsapp: '08123456789' })
     expect(r.success).toBe(false)
     if (!r.success) {
       expect(r.error.issues[0]?.path[0]).toBe('holderName')
@@ -27,12 +43,12 @@ describe('holderSchema', () => {
   })
 
   it('trims whitespace-only holderName', () => {
-    const r = holderSchema.safeParse({ holderName: '   ' })
+    const r = holderSchema.safeParse({ holderName: '   ', holderWhatsapp: '08123456789' })
     expect(r.success).toBe(false)
   })
 
   it('accepts optional claimedMemberNumber', () => {
-    const r = holderSchema.safeParse({ holderName: 'Budi', claimedMemberNumber: 'CISC-001' })
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789', claimedMemberNumber: 'CISC-001' })
     expect(r.success).toBe(true)
   })
 })
@@ -67,13 +83,52 @@ describe('submitRegistrationSchema', () => {
     }
   })
 
-  it('accepts multiple holders', () => {
+  it('accepts multiple holders each with valid WA', () => {
     const r = submitRegistrationSchema.safeParse(
       validPayload({
         ticketQty: 2,
-        holders: [{ holderName: 'Budi', claimedMemberNumber: 'CISC-001' }, { holderName: 'Rina' }],
+        holders: [
+          { holderName: 'Budi', holderWhatsapp: '08123456789', claimedMemberNumber: 'CISC-001' },
+          { holderName: 'Rina', holderWhatsapp: '08198765432' },
+        ],
       }),
     )
     expect(r.success).toBe(true)
+  })
+
+  it('rejects secondary holder missing holderWhatsapp', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        ticketQty: 2,
+        holders: [
+          { holderName: 'Budi', holderWhatsapp: '08123456789' },
+          { holderName: 'Rina' },
+        ],
+      }),
+    )
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(
+        r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp'),
+      ).toBe(true)
+    }
+  })
+
+  it('rejects secondary holder with invalid holderWhatsapp', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        ticketQty: 2,
+        holders: [
+          { holderName: 'Budi', holderWhatsapp: '08123456789' },
+          { holderName: 'Rina', holderWhatsapp: '123' },
+        ],
+      }),
+    )
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(
+        r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp'),
+      ).toBe(true)
+    }
   })
 })
