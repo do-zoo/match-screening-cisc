@@ -2,15 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { createVenueMinimal } from '@/lib/actions/admin-venues'
+import { AdminNewVenueForm } from '@/components/admin/venues/admin-new-venue-form'
 import { buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { requireAdminSession } from '@/lib/auth/session'
 import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
 import { cn } from '@/lib/utils'
-import { Textarea } from '@/components/ui/textarea'
 
 export const metadata: Metadata = { title: 'Venue baru' }
 
@@ -28,34 +25,7 @@ export default async function AdminNewVenuePage() {
         <h1 className='text-2xl font-semibold tracking-tight'>Venue baru</h1>
       </div>
 
-      <form
-        action={createVenueMinimal}
-        className='grid gap-4'
-      >
-        <div className='grid gap-2'>
-          <Label htmlFor='name'>Nama venue</Label>
-          <Input id='name' name='name' required autoComplete='off' />
-        </div>
-        <div className='grid gap-2'>
-          <Label htmlFor='address'>Alamat</Label>
-          <Textarea id='address' name='address' rows={3} required />
-        </div>
-        <div className='grid gap-2'>
-          <Label htmlFor='mapUrl'>Tautan peta (opsional)</Label>
-          <Input
-            id='mapUrl'
-            name='mapUrl'
-            type='url'
-            inputMode='url'
-            autoComplete='off'
-            placeholder='https://maps.app.goo.gl/…'
-          />
-          <p className='text-muted-foreground text-xs'>URL https ke Google Maps atau layanan peta lain.</p>
-        </div>
-        <button type='submit' className={cn(buttonVariants(), 'w-fit')}>
-          Simpan
-        </button>
-      </form>
+      <AdminNewVenueForm />
     </main>
   )
 }

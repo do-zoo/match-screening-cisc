@@ -211,7 +211,10 @@ async function persistVenueMenuItems(
   return ok({ venueId })
 }
 
-export async function createVenueMinimal(formData: FormData): Promise<ActionResult<{ venueId: string }>> {
+export async function createVenueMinimal(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ venueId: string }>> {
   try {
     await guardOwnerOrAdmin()
   } catch (e) {
