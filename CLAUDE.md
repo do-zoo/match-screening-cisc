@@ -39,6 +39,7 @@ pnpm auth:migrate                 # Better Auth CLI migrate (.env.local overlay)
 pnpm auth:migrate:prod            # Same, production profile (.env.prod)
 pnpm bootstrap:admin ...        # default development profile / .env.local
 pnpm bootstrap:admin:prod ...    # production profile / .env.prod
+pnpm normalize:member-numbers    # dry-run uppercase nomor member lama; `-- --apply` untuk menulis
 
 # Equivalent without helpers (MATCH_DB_PROFILE optional; omit = development):
 # MATCH_DB_PROFILE=development pnpm prisma migrate dev
@@ -85,9 +86,11 @@ An event registration system for a members-only social club (CISC). Members and 
   - `admin/events/[eventId]/registrants/[registrationId]` — detail registrasi + tab (`?tab=ringkasan|verifikasi|operasi`, redirect kanonikal bila `tab` hilang/invalid) + panel aksi
   - `admin/events/[eventId]/report` — aggregated report + CSV export; panel **bukti rekapitulasi penutupan** (transfer venue, nota venue, margin bendahara) untuk PIC acara / Owner / Admin dengan riwayat append-only
   - `admin/events/[eventId]/edit` — event editor (venue, menu, pricing, hero cover)
-  - `admin/members/` — master member directory (CSV import/export)
-  - `admin/management/` — kepengurusan hub
-  - `admin/management/[periodId]` — board period detail (roles, assignments, PDF/CSV export)
+  - `admin/members/` — direktori anggota: toolbar debounce + chip status, tabel kontak (WA/email), paginasi server; CSV impor/ekspor
+ - `admin/management/` — kepengurusan hub
+ - `admin/management/members` — daftar pengurus (`ManagementMember`): toolbar debounce + Select tautan direktori, tabel kontak WA + kode publik
+ - `admin/management/roles` — jabatan (`BoardRole`): toolbar debounce + Select status
+ - `admin/management/[periodId]` — board period detail (roles, assignments, PDF/CSV export)
   - `admin/venues/` — indeks venue (toolbar mirip acara: `?tab=all|active|inactive`, `?q=` nama/alamat, `?view=tabel` vs kartu, `?page=`); `admin/venues/new`; cabang `admin/venues/[venueId]/` memakai layout breadcrumb + sub-nav (mobile) dan blok sidebar (desktop) seperti acara: `edit` (info dasar), `menu` (menu kanonik: judul + **Tambah item** di `admin-venue-menu-panel`; query `?q=` teks, `?view=tabel` untuk tabel vs kartu, `?page=` paginasi, `?filter=locked|unlocked` status kunci nama/harga — pola mirip indeks acara)
   - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, security, **templates**)
   - `admin/settings/templates` — **Template pesan** (tab `?tab=wa|email`): override `ClubWaTemplate` + `ClubEmailTemplate` (Owner); URL lama `admin/settings/whatsapp-templates` redirect ke `?tab=wa`
@@ -144,7 +147,11 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/client/cud-notify.ts` — client-side toast helpers: `toastCudSuccess(operation, message?)` and `toastActionErr(err, fallback?)`. Use these after calling a server action on the client instead of calling `toast` directly.
 - `lib/utils/idr-input.ts` — `parseIdrDigitsToInt` mengambil digit dari teks terformat Rupiah; dipakai bersama `format-idr.ts` dan `components/ui/idr-amount-input.tsx`
 - `lib/audit/append-club-audit-log.ts` — `appendClubAuditLog(db, row)` — call this inside any Owner mutation that touches club-level configuration; use constants from `lib/audit/club-audit-actions.ts` for the `action` field
-- `lib/actions/submit-registration.ts` — the main public Server Action; validates form (holder array schema), computes pricing via `computeSubmitTotal`, creates `Registration` + `RegistrationHolder[]` in one Prisma transaction, uploads payment proof; rolls back blob on failure
+- `lib/actions/submit-registration.ts` — the main public Server Action; validates form (holder array schema), merges kontak Tangsel dari direktori bila form kosong, computes pricing via `computeSubmitTotal`, creates `Registration` + `RegistrationHolder[]` in one Prisma transaction, uploads payment proof; rolls back blob on failure
+- `lib/actions/lookup-member-for-registration.ts` — lookup nomor member Tangsel untuk form publik; **WA/email di-mask** sebelum serialisasi ke klien
+- `lib/members/resolve-master-member-registration-lookup.ts` — resolve plaintext `MasterMember` + cek duplikat registrasi (server-only; dipakai lookup + submit)
+- `lib/members/mask-member-contact-display.ts` — `maskDisplayWhatsapp` / `maskDisplayEmail` (shared server + kartu profil)
+- `lib/members/merge-tangsel-holder-contact.ts` — gabung field form dengan direktori saat submit Tangsel
 - `lib/pricing/compute-submit-total.ts` — pure function for total calculation; accepts `SubmitPricingInput { holders: HolderInput[] }` — each holder has `memberValidation` + category prices; `grandTotal` = sum of ticket prices (menu excluded); tested in isolation
 - `lib/tickets/get-event-ticket-categories.ts` — `getEventTicketCategories` (all categories + registration count, for admin) / `getActiveEventTicketCategories` (active only, for public form)
 - `lib/actions/admin-ticket-categories.ts` — CRUD server actions untuk `EventTicketCategory`: `createTicketCategory`, `updateTicketCategory` (locks price after first registration), `deleteTicketCategory` (guard if registrations exist), `toggleTicketCategoryActive`
@@ -186,6 +193,10 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/admin/event-registrants-list-url.ts` — parse/build query daftar peserta (`tab`, `view`, `q`, `page`) + `registrationListWhere` untuk Prisma
 - `lib/admin/event-registration-detail-tab.ts` — `parseRegistrationDetailTab`, `defaultRegistrationDetailTab`, `buildRegistrationDetailPath` untuk query tab halaman detail registrasi
 - `lib/admin/admin-venues-index.ts` — parse `tab` / `q` / `view` / `page` indeks venue dan `buildAdminVenuesIndexUrl`
+- `lib/admin/admin-members-list-url.ts` — parse `filter` / `q` / `page` direktori anggota dan `buildAdminMembersListUrl`
+- `lib/admin/admin-management-members-list-url.ts` — parse `filter` / `q` / `page` daftar pengurus dan `buildAdminManagementMembersListUrl`
+- `lib/admin/admin-management-roles-list-url.ts` — parse `filter` / `q` / `page` jabatan kepengurusan dan `buildAdminManagementRolesListUrl`
+- `lib/admin/admin-period-assignments-list-url.ts` — parse filter/q/view/page penugasan periode dan `buildAdminPeriodAssignmentsListUrl`
 - `lib/admin/admin-venue-menu-list.ts` — parse `searchParams` menu venue (`q`, `view`, `page`, `filter`) dan `buildAdminVenueMenuListUrl`
 - `lib/admin/filter-venue-menu-list.ts` — `venueMenuRowMatchesSearch` / `venueMenuRowMatchesLockFilter` untuk penyaringan klien daftar item menu
 - `lib/admin/events-index-view-model.ts` — tab status (`?tab=`), sort/filter agregat registrasi per acara untuk indeks admin
@@ -199,7 +210,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `file-field.tsx` (pemilih berkas seragam: registrasi publik, sampul acara admin, CSV anggota, bukti admin, logo komite), `idr-amount-input.tsx` (harga IDR terformat)
 - `src/components/map-embed-preview.tsx` — pratinjau embed Google Maps (`output=embed`); dipakai bersama `lib/maps/map-embed-preview.ts` di admin venue dan halaman publik
 - `src/components/public/` — public-facing: `RegistrationForm` (category picker + holder cards), `EventCard`; `registration-form/` subdir contains `category-picker.tsx`, `holder-card.tsx`
-- `src/components/admin/` — admin-facing panels and layout; `registration-detail-panels/registration-detail-shell.tsx` + `registration-detail-header.tsx` + `registration-detail-tabs.tsx` + folder `tab-summary/` / `tab-verification/` / `tab-operations/` — halaman detail peserta (Ringkasan, Verifikasi & Komunikasi, Operasi); memakai `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `RegistrationActions`; `event-settlement-proofs-panel.tsx` — bukti rekapitulasi penutupan di halaman laporan acara; `admin-list-toolbar.tsx` — toolbar daftar generik (cari debounce ke URL, toggle tabel/kartu, slot filter, opsional `endSlot`); `admin-event-registrants-toolbar.tsx` + `event-registrants-table.tsx` + `admin-event-registrants-cards-view.tsx` — daftar peserta per acara (`/admin/events/[eventId]/registrants`); `venues/admin-venue-menu-panel.tsx` — menu kanonik venue: header judul + **Tambah item**, dialog CRUD, toolbar + paginasi URL; `admin-events-index-header.tsx` — judul indeks acara + tautan Buat acara; `admin-events-index-toolbar.tsx` — cari (debounce) + status + toggle kartu/tabel untuk `/admin/events`; `admin-events-pending-review-alert.tsx` — ringkasan registrasi menunggu tinjauan (kartu & tabel); `admin-events-cards-view.tsx` — grid kartu ringkasan acara + paginasi; `admin-venues-index-header.tsx` / `admin-venues-index-toolbar.tsx` / `admin-venues-cards-view.tsx` / `admin-venues-table.tsx` — indeks `/admin/venues` (pola mirip indeks acara)
+- `src/components/admin/` — admin-facing panels and layout; `admin-list-toolbar.tsx` + `admin-filter-select.tsx` — pola toolbar daftar (cari debounce, Select filter, toggle tabel/kartu); tabel `*-admin-table.tsx` untuk anggota, pengurus, jabatan, penugasan periode, acara, venue, peserta acara; indeks acara/venue memakai toolbar yang sama `registration-detail-panels/registration-detail-shell.tsx` + `registration-detail-header.tsx` + `registration-detail-tabs.tsx` + folder `tab-summary/` / `tab-verification/` / `tab-operations/` — halaman detail peserta (Ringkasan, Verifikasi & Komunikasi, Operasi); memakai `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `RegistrationActions`; `event-settlement-proofs-panel.tsx` — bukti rekapitulasi penutupan di halaman laporan acara; `admin-list-toolbar.tsx` — toolbar daftar generik (cari debounce ke URL, toggle tabel/kartu, slot filter, opsional `endSlot`); `admin-event-registrants-toolbar.tsx` + `event-registrants-table.tsx` + `admin-event-registrants-cards-view.tsx` — daftar peserta per acara (`/admin/events/[eventId]/registrants`); `venues/admin-venue-menu-panel.tsx` — menu kanonik venue: header judul + **Tambah item**, dialog CRUD, toolbar + paginasi URL; `admin-events-index-header.tsx` — judul indeks acara + tautan Buat acara; `admin-events-index-toolbar.tsx` — cari (debounce) + status + toggle kartu/tabel untuk `/admin/events`; `admin-events-pending-review-alert.tsx` — ringkasan registrasi menunggu tinjauan (kartu & tabel); `admin-events-cards-view.tsx` — grid kartu ringkasan acara + paginasi; `admin-venues-index-header.tsx` / `admin-venues-index-toolbar.tsx` / `admin-venues-cards-view.tsx` / `admin-venues-table.tsx` — indeks `/admin/venues` (pola mirip indeks acara)
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 

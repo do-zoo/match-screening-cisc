@@ -13,6 +13,7 @@ describe('buildMasterMembersExportCsv', () => {
         email: null,
         isActive: true,
         isManagementMember: false,
+        createdAt: '',
         updatedAt: '',
       },
     ])
@@ -33,6 +34,7 @@ describe('buildMasterMembersExportCsv', () => {
         email: null,
         isActive: false,
         isManagementMember: false,
+        createdAt: '',
         updatedAt: '',
       },
     ])

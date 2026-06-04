@@ -11,6 +11,7 @@
     "postinstall": "node scripts/vercel-migrate.mjs && prisma generate",
     "start": "next start",
     "bootstrap:admin": "npx tsx scripts/bootstrap-admin.ts",
+    "normalize:member-numbers": "npx tsx scripts/normalize-member-numbers.ts",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",

@@ -27,6 +27,7 @@ function managementMemberSearchOnlyWhere(q?: string): Prisma.ManagementMemberWhe
       { fullName: { contains: search, mode: 'insensitive' } },
       { publicCode: { contains: search, mode: 'insensitive' } },
       { whatsapp: { contains: search, mode: 'insensitive' } },
+      { masterMember: { memberNumber: { contains: search, mode: 'insensitive' } } },
     ],
   }
 }

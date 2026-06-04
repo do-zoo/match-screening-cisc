@@ -24,7 +24,12 @@ vi.mock('@/lib/actions/lookup-member-for-registration', () => ({
   lookupMemberForRegistration: vi.fn(),
 }))
 
+vi.mock('@/lib/members/resolve-master-member-registration-lookup', () => ({
+  resolveMasterMemberRegistrationLookup: vi.fn(),
+}))
+
 import { lookupMemberForRegistration } from '@/lib/actions/lookup-member-for-registration'
+import { resolveMasterMemberRegistrationLookup } from '@/lib/members/resolve-master-member-registration-lookup'
 import { prisma } from '@/lib/db/prisma'
 import { submitRegistration } from '../submit-registration'
 
@@ -151,6 +156,7 @@ describe('submitRegistration — memberAccessMode', () => {
     vi.mocked(prisma.event.findUnique).mockReset()
     vi.mocked(prisma.registration.count).mockReset()
     vi.mocked(lookupMemberForRegistration).mockReset()
+    vi.mocked(resolveMasterMemberRegistrationLookup).mockReset()
     txRegistrationCreate.mockReset()
     txRegistrationCount.mockReset()
     vi.mocked(prisma.registration.count).mockResolvedValue(0)
@@ -162,8 +168,14 @@ describe('submitRegistration — memberAccessMode', () => {
     vi.mocked(lookupMemberForRegistration).mockResolvedValue({
       status: 'valid',
       fullName: 'Member Satu',
+      whatsapp: '6281••••••09',
+      email: 'me••••@example.com',
+    })
+    vi.mocked(resolveMasterMemberRegistrationLookup).mockResolvedValue({
+      status: 'valid',
+      fullName: 'Member Satu',
       whatsapp: '+6281234567890',
-      email: 'member@example.com',
+      email: 'kontak@example.com',
     })
   })
 
@@ -234,5 +246,39 @@ describe('submitRegistration — memberAccessMode', () => {
 
     const r = await submitRegistration('event-1', fd)
     expect(r.ok).toBe(true)
+  })
+
+  it('merge WA/email dari direktori saat form tangsel kosong', async () => {
+    vi.mocked(prisma.event.findUnique).mockResolvedValue({
+      ...openEvent,
+      memberAccessMode: 'tangsel_only',
+    } as never)
+
+    const fd = new FormData()
+    fd.set('ticketCategoryId', 'cat-1')
+    fd.set('ticketQty', '1')
+    fd.set(
+      'holders',
+      JSON.stringify([
+        {
+          holderName: 'Member Satu',
+          holderWhatsapp: '',
+          holderEmail: '',
+          claimedMemberNumber: '001',
+          memberType: 'tangsel',
+        },
+      ]),
+    )
+
+    const r = await submitRegistration('event-1', fd)
+    expect(r.ok).toBe(true)
+    expect(txRegistrationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          contactWhatsapp: '+6281234567890',
+          contactEmail: 'kontak@example.com',
+        }),
+      }),
+    )
   })
 })

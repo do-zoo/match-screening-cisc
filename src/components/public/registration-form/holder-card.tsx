@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { ChevronDown, ChevronUp, Loader2, PencilLine, ShieldCheck, Utensils, XCircle } from 'lucide-react'
 
@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils'
 import type { MemberAccessMode } from '@prisma/client'
 import type { SerializedEventMenuItem } from '@/components/public/event-serialization'
 import { allowedMemberTypesForMode } from '@/lib/events/member-access-mode'
-import { phoneValueToStoredString, stringToPhoneValue, whatsappDigitsOnly } from '@/lib/forms/phone-value-string'
+import { phoneValueToStoredString, stringToPhoneValue } from '@/lib/forms/phone-value-string'
 import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
-import { contactInitials, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
+import { contactInitials, maskDisplayEmail, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
 import {
   useHolderMemberValidation,
   validationToPricing,
@@ -95,15 +95,18 @@ function HolderEmailField({ index, isPrimary }: { index: number; isPrimary: bool
 }
 
 function MemberProfileCard({
+  isPrimary,
   fullName,
-  whatsapp,
+  whatsappDisplay,
+  emailDisplay,
   onReset,
 }: {
+  isPrimary: boolean
   fullName: string
-  whatsapp: string | null
+  whatsappDisplay: string | null
+  emailDisplay: string | null
   onReset: () => void
 }) {
-  const hasWhatsapp = !!whatsapp && whatsappDigitsOnly(whatsapp).length >= 8
   return (
     <div className='space-y-2'>
       <div className='relative overflow-hidden rounded-2xl ring-1 ring-primary/20 shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300'>
@@ -129,7 +132,15 @@ function MemberProfileCard({
               <div>
                 <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>WhatsApp</p>
                 <p className='font-mono text-sm text-muted-foreground' aria-hidden>
-                  {hasWhatsapp ? maskDisplayWhatsapp(whatsapp!) : '—'}
+                  {whatsappDisplay ?? '—'}
+                </p>
+              </div>
+              <div>
+                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                  {isPrimary ? 'Email kontak' : 'Email'}
+                </p>
+                <p className='font-mono text-sm text-muted-foreground' aria-hidden>
+                  {emailDisplay ?? '—'}
                 </p>
               </div>
             </div>
@@ -139,8 +150,36 @@ function MemberProfileCard({
 
       <Button type='button' variant='outline' size='sm' className='gap-2' onClick={onReset}>
         <PencilLine className='size-4' aria-hidden />
-        Ganti nomor member
+        Ubah kontak
       </Button>
+    </div>
+  )
+}
+
+function TangselMemberContactEditForm({ index, isPrimary, memberNumber }: { index: number; isPrimary: boolean; memberNumber: string }) {
+  const form = useFormContext<SubmitRegistrationInput>()
+
+  return (
+    <div className='space-y-3'>
+      <Field>
+        <FieldLabel htmlFor={`holder-${index}-member-readonly`}>Nomor Member CISC Tangsel</FieldLabel>
+        <Input id={`holder-${index}-member-readonly`} value={memberNumber} readOnly disabled />
+      </Field>
+
+      <Controller
+        control={form.control}
+        name={`holders.${index}.holderName`}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={`holder-${index}-edit-name`}>Nama Lengkap</FieldLabel>
+            <Input id={`holder-${index}-edit-name`} placeholder='Nama sesuai identitas' {...field} />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      <WhatsAppField index={index} />
+      <HolderEmailField index={index} isPrimary={isPrimary} />
     </div>
   )
 }
@@ -265,10 +304,19 @@ export function HolderCard({
   const [memberType, setMemberType] = useState<MemberType>(() =>
     memberAccessMode === 'tangsel_only' ? 'tangsel' : 'non',
   )
+  const [isEditingTangselMember, setIsEditingTangselMember] = useState(false)
+  const tangselEditSnapshotRef = useRef<{
+    claimedMemberNumber: string
+    holderName: string
+    holderWhatsapp: string
+    holderEmail: string
+  } | null>(null)
   const form = useFormContext<SubmitRegistrationInput>()
   const { setValue } = form
 
   const holderName = form.watch(`holders.${index}.holderName`)
+  const holderWhatsapp = form.watch(`holders.${index}.holderWhatsapp`)
+  const holderEmail = form.watch(`holders.${index}.holderEmail`)
   const memberNumber = form.watch(`holders.${index}.claimedMemberNumber`)
 
   const allowedTypes = allowedMemberTypesForMode(memberAccessMode)
@@ -287,18 +335,14 @@ export function HolderCard({
 
   const validationResult = useHolderMemberValidation(memberType === 'tangsel' ? memberNumber : undefined, eventId)
 
-  // Auto-fill name and WhatsApp from directory when Tangsel member is verified.
+  // Auto-fill name from directory when Tangsel member is verified (WA/email merged on submit).
   useEffect(() => {
-    if (memberType !== 'tangsel' || validationResult.status !== 'valid') return
-    const { fullName, whatsapp, email } = validationResult
+    if (memberType !== 'tangsel' || validationResult.status !== 'valid' || isEditingTangselMember) return
+    const { fullName } = validationResult
     queueMicrotask(() => {
       setValue(`holders.${index}.holderName`, fullName, { shouldValidate: true })
-      setValue(`holders.${index}.holderWhatsapp`, whatsapp ?? '', { shouldValidate: false })
-      if (email) {
-        setValue(`holders.${index}.holderEmail`, email, { shouldValidate: true })
-      }
     })
-  }, [memberType, validationResult, index, setValue])
+  }, [memberType, validationResult, index, setValue, isEditingTangselMember])
 
   // Notify parent of pricing-relevant validation.
   useEffect(() => {
@@ -314,6 +358,8 @@ export function HolderCard({
   function handleMemberToggle(value: string) {
     const next = value as MemberType
     setMemberType(next)
+    setIsEditingTangselMember(false)
+    tangselEditSnapshotRef.current = null
     setValue(`holders.${index}.memberType`, next === 'non' ? undefined : (next as 'tangsel' | 'regional'))
     if (next !== 'tangsel') {
       setValue(`holders.${index}.claimedMemberNumber`, '')
@@ -328,18 +374,73 @@ export function HolderCard({
     }
   }
 
-  function handleResetMemberNumber() {
-    setValue(`holders.${index}.claimedMemberNumber`, '')
-    setValue(`holders.${index}.holderName`, '')
-    setValue(`holders.${index}.holderWhatsapp`, '')
-    setValue(`holders.${index}.holderEmail`, '')
+  function handleEditMember() {
+    tangselEditSnapshotRef.current = {
+      claimedMemberNumber: memberNumber ?? '',
+      holderName: holderName ?? '',
+      holderWhatsapp: form.getValues(`holders.${index}.holderWhatsapp`) ?? '',
+      holderEmail: holderEmail ?? '',
+    }
+    setIsEditingTangselMember(true)
+  }
+
+  function handleCancelEditMember() {
+    const snapshot = tangselEditSnapshotRef.current
+    if (snapshot) {
+      setValue(`holders.${index}.claimedMemberNumber`, snapshot.claimedMemberNumber)
+      setValue(`holders.${index}.holderName`, snapshot.holderName)
+      setValue(`holders.${index}.holderWhatsapp`, snapshot.holderWhatsapp)
+      setValue(`holders.${index}.holderEmail`, snapshot.holderEmail)
+    }
+    tangselEditSnapshotRef.current = null
+    setIsEditingTangselMember(false)
+  }
+
+  function handleFinishEditMember() {
+    if (validationResult.status !== 'valid') return
+    tangselEditSnapshotRef.current = null
+    setIsEditingTangselMember(false)
+    void form.trigger([
+      `holders.${index}.holderName`,
+      `holders.${index}.holderWhatsapp`,
+      `holders.${index}.holderEmail`,
+    ])
   }
 
   // Whether verified Tangsel member is missing WhatsApp in the directory
   const memberVerifiedNoWa =
     memberType === 'tangsel' &&
     validationResult.status === 'valid' &&
-    whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
+    !isEditingTangselMember &&
+    validationResult.whatsapp === null &&
+    !holderWhatsapp?.trim()
+
+  const memberVerifiedNoEmail =
+    memberType === 'tangsel' &&
+    validationResult.status === 'valid' &&
+    !isEditingTangselMember &&
+    validationResult.email === null &&
+    !holderEmail?.trim()
+
+  const profileWhatsappDisplay =
+    holderWhatsapp?.trim() ?
+      maskDisplayWhatsapp(holderWhatsapp)
+    : validationResult.status === 'valid' ?
+      validationResult.whatsapp
+    : null
+
+  const profileEmailDisplay =
+    holderEmail?.trim() ?
+      maskDisplayEmail(holderEmail)
+    : validationResult.status === 'valid' ?
+      validationResult.email
+    : null
+
+  const showTangselProfile =
+    memberType === 'tangsel' && validationResult.status === 'valid' && !isEditingTangselMember
+  const showTangselMemberLookup =
+    memberType === 'tangsel' && validationResult.status !== 'valid' && !isEditingTangselMember
+  const showTangselMemberEdit = memberType === 'tangsel' && isEditingTangselMember
 
   const summaryName = holderName || (memberNumber ? `Member ${memberNumber}` : 'Belum diisi')
 
@@ -412,13 +513,23 @@ export function HolderCard({
           </Field>
 
           {/* Tangsel member path */}
-          {memberType === 'tangsel' && validationResult.status === 'valid' && (
+          {showTangselProfile && (
             <>
               <MemberProfileCard
-                fullName={validationResult.fullName}
-                whatsapp={validationResult.whatsapp}
-                onReset={handleResetMemberNumber}
+                isPrimary={isPrimary}
+                fullName={holderName || validationResult.fullName}
+                whatsappDisplay={profileWhatsappDisplay}
+                emailDisplay={profileEmailDisplay}
+                onReset={handleEditMember}
               />
+              {memberVerifiedNoEmail && (
+                <>
+                  <Alert className='text-sm'>
+                    Email kontak belum terdaftar di direktori. Isi email di bawah agar panitia bisa mengirim konfirmasi.
+                  </Alert>
+                  <HolderEmailField index={index} isPrimary={isPrimary} />
+                </>
+              )}
               {memberVerifiedNoWa && (
                 <>
                   <Alert variant='destructive' className='text-sm'>
@@ -430,14 +541,32 @@ export function HolderCard({
               )}
             </>
           )}
-          {memberType === 'tangsel' && validationResult.status !== 'valid' && (
+          {showTangselMemberLookup && (
             <>
               <MemberNumberInput index={index} result={validationResult} />
-              {form.formState.errors.holders?.[index]?.holderName && (
+              {form.formState.errors.holders?.[index]?.holderName ? (
                 <p className='text-sm text-destructive'>
                   Masukkan nomor member CISC Tangsel yang valid untuk melanjutkan.
                 </p>
-              )}
+              ) : null}
+            </>
+          )}
+          {showTangselMemberEdit && (
+            <>
+              <p className='text-sm text-muted-foreground'>Ubah nama, nomor WhatsApp, atau email kontak.</p>
+              <TangselMemberContactEditForm
+                index={index}
+                isPrimary={isPrimary}
+                memberNumber={memberNumber ?? ''}
+              />
+              <div className='flex flex-wrap gap-2'>
+                <Button type='button' variant='outline' size='sm' onClick={handleCancelEditMember}>
+                  Batal
+                </Button>
+                <Button type='button' size='sm' onClick={handleFinishEditMember}>
+                  Selesai
+                </Button>
+              </div>
             </>
           )}
 
@@ -468,7 +597,7 @@ export function HolderCard({
             </>
           )}
 
-          <HolderEmailField index={index} isPrimary={isPrimary} />
+          {memberType !== 'tangsel' && <HolderEmailField index={index} isPrimary={isPrimary} />}
 
           {/* Menu selection */}
           {menuRequired && menuItems && menuItems.length > 0 && (

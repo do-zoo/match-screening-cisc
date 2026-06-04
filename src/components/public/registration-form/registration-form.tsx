@@ -203,6 +203,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
               selectedCategory={selectedCategory}
               pricing={pricing}
               holders={holders}
+              ticketQty={ticketQty}
               onBack={() => setStep(1)}
               isSubmitting={form.formState.isSubmitting}
             />

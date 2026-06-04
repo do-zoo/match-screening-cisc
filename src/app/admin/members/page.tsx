@@ -13,18 +13,8 @@ import {
   countMasterMembersForAdmin,
   listMasterMembersForAdmin,
 } from '@/lib/members/query-admin-master-members'
-import { ADMIN_TABLE_PAGE_SIZE, parseAdminTablePage, resolveClampedPage } from '@/lib/table/admin-pagination'
-
-function firstString(param: string | string[] | undefined): string | undefined {
-  if (param === undefined) return undefined
-  if (Array.isArray(param)) return param[0]
-  return param
-}
-
-function parseFilter(v: string | undefined): 'all' | 'active' | 'inactive' {
-  if (v === 'active' || v === 'inactive') return v
-  return 'all'
-}
+import { parseAdminMembersListSearchParams } from '@/lib/admin/admin-members-list-url'
+import { ADMIN_TABLE_PAGE_SIZE, resolveClampedPage } from '@/lib/table/admin-pagination'
 
 export default async function AdminMembersPage({
   searchParams,
@@ -39,12 +29,10 @@ export default async function AdminMembersPage({
   }
 
   const sp = (await searchParams) ?? {}
-  const filter = parseFilter(firstString(sp.filter))
-  const qRaw = firstString(sp.q) ?? ''
-  const q = qRaw.trim().slice(0, 200) || undefined
+  const { filter, q: qParsed, page: requestedPage } = parseAdminMembersListSearchParams(sp)
+  const q = qParsed || undefined
 
   const csvTemplateText = buildMasterMemberCsvTemplate()
-  const requestedPage = parseAdminTablePage(sp.page)
 
   const totalItems = await countMasterMembersForAdmin({ filter, q })
   const page = resolveClampedPage(requestedPage, totalItems, ADMIN_TABLE_PAGE_SIZE)
@@ -70,7 +58,7 @@ export default async function AdminMembersPage({
         totalItems,
       }}
       filter={filter}
-      searchQuery={q ?? ''}
+      searchQuery={qParsed}
       tabCounts={counts}
       isOwner={ctx.role === 'Owner'}
     />

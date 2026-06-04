@@ -97,7 +97,14 @@ function InviteInviteeRoleSelect({ disabled }: { disabled: boolean }) {
         disabled={disabled}
       >
         <SelectTrigger id='invite-admin-role' className='w-full'>
-          <SelectValue />
+          <SelectValue placeholder='Pilih peran'>
+            {v => {
+              if (v === AdminRole.Admin) return 'Admin'
+              if (v === AdminRole.Verifier) return 'Verifier'
+              if (v === AdminRole.Viewer) return 'Viewer'
+              return 'Pilih peran'
+            }}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={AdminRole.Admin}>Admin</SelectItem>

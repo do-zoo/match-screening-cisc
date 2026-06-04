@@ -6,7 +6,13 @@ import { assertHolderEligibleForMemberAccessMode } from '@/lib/events/member-acc
 import { optionalStoredEmail, requiredStoredEmail } from '@/lib/email/normalize-email'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
-import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema'
+import {
+  isTangselDirectoryHolder,
+  submitRegistrationSchema,
+  whatsappPhoneSchema,
+} from '@/lib/forms/submit-registration-schema'
+import { mergeTangselHolderContact } from '@/lib/members/merge-tangsel-holder-contact'
+import { resolveMasterMemberRegistrationLookup } from '@/lib/members/resolve-master-member-registration-lookup'
 import { computeSubmitTotal } from '@/lib/pricing/compute-submit-total'
 import {
   assertRegistrationAcceptableOrThrowForTx,
@@ -161,9 +167,32 @@ export async function submitRegistration(
         return base
       })
 
+  const mergedHolders = [...holdersForProcessing]
+  for (let i = 0; i < mergedHolders.length; i++) {
+    const h = mergedHolders[i]!
+    if (!isTangselDirectoryHolder(h)) continue
+    const lookup = await resolveMasterMemberRegistrationLookup(h.claimedMemberNumber!, eventId)
+    if (lookup.status !== 'valid') {
+      return rootError('Nomor member CISC Tangsel tidak valid.')
+    }
+    mergedHolders[i] = mergeTangselHolderContact(h, lookup)
+  }
+
+  const primaryMerged = mergedHolders[0]
+  if (primaryMerged) {
+    const mergedEmail = (primaryMerged.holderEmail ?? '').trim()
+    if (!mergedEmail) {
+      return rootError('Email kontak wajib diisi')
+    }
+    const waResult = whatsappPhoneSchema.safeParse(primaryMerged.holderWhatsapp ?? '')
+    if (!waResult.success) {
+      return rootError(waResult.error.issues[0]?.message ?? 'Nomor WhatsApp tidak valid')
+    }
+  }
+
   // 6. Compute pricing (server always uses 'unknown' — admin verifies member status)
   const pricing = computeSubmitTotal({
-    holders: holdersForProcessing.map(h => ({
+    holders: mergedHolders.map(h => ({
       memberValidation: 'unknown' as const,
       category: {
         regularPrice: category.regularPrice,
@@ -180,9 +209,9 @@ export async function submitRegistration(
       await assertRegistrationAcceptableOrThrowForTx(tx, event)
       await assertCategoryCapacityOrThrowForTx(tx, category)
 
-      const contactName = input.holders[0].holderName
-      const contactWhatsapp = input.holders[0].holderWhatsapp ?? ''
-      const contactEmail = requiredStoredEmail((input.holders[0].holderEmail ?? '').trim())
+      const contactName = mergedHolders[0]!.holderName
+      const contactWhatsapp = mergedHolders[0]!.holderWhatsapp ?? ''
+      const contactEmail = requiredStoredEmail((mergedHolders[0]!.holderEmail ?? '').trim())
 
       return tx.registration.create({
         data: {
@@ -195,7 +224,7 @@ export async function submitRegistration(
           computedTotalAtSubmit: pricing.grandTotal,
           status: RegistrationStatus.submitted,
           holders: {
-            create: holdersForProcessing.map((h, i) => ({
+            create: mergedHolders.map((h, i) => ({
               sortOrder: i + 1,
               holderName: h.holderName,
               holderWhatsapp: h.holderWhatsapp?.trim() || null,

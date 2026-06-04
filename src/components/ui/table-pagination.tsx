@@ -28,6 +28,8 @@ function buildHref(pathname: string, preserved: Record<string, string | undefine
   return s ? `${pathname}?${s}` : pathname
 }
 
+const navButtonClass = cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }), 'size-8 shrink-0')
+
 export function TablePagination({
   pathname,
   preservedQuery,
@@ -42,16 +44,17 @@ export function TablePagination({
 
   return (
     <div
-      className={cn('flex flex-col gap-3 border-t px-2 py-3 sm:flex-row sm:items-center sm:justify-between', className)}
+      className={cn(
+        'flex flex-col gap-3 border-t bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between',
+        className,
+      )}
     >
-      <p className='text-sm text-muted-foreground'>
+      <p className='text-xs text-muted-foreground tabular-nums'>
         {totalItems === 0 ? (
           'Tidak ada baris.'
         ) : (
           <>
-            Menampilkan <span className='font-medium text-foreground'>{from}</span>–
-            <span className='font-medium text-foreground'>{to}</span> dari{' '}
-            <span className='font-medium text-foreground'>{totalItems}</span>
+            Baris {from}–{to} · {totalItems} total
           </>
         )}
       </p>
@@ -61,11 +64,7 @@ export function TablePagination({
           aria-label='Halaman pertama'
           prefetch={false}
           aria-disabled={currentPage <= 1}
-          className={cn(
-            buttonVariants({ variant: 'outline', size: 'icon-sm' }),
-            'size-8',
-            currentPage <= 1 && 'pointer-events-none opacity-50',
-          )}
+          className={cn(navButtonClass, currentPage <= 1 && 'pointer-events-none opacity-40')}
         >
           <ChevronsLeftIcon className='size-4' />
         </Link>
@@ -74,27 +73,22 @@ export function TablePagination({
           aria-label='Halaman sebelumnya'
           prefetch={false}
           aria-disabled={currentPage <= 1}
-          className={cn(
-            buttonVariants({ variant: 'outline', size: 'icon-sm' }),
-            'size-8',
-            currentPage <= 1 && 'pointer-events-none opacity-50',
-          )}
+          className={cn(navButtonClass, currentPage <= 1 && 'pointer-events-none opacity-40')}
         >
           <ChevronLeftIcon className='size-4' />
         </Link>
-        <span className='min-w-[120px] text-center text-sm tabular-nums text-muted-foreground'>
-          Halaman {currentPage} / {totalPages}
+        <span
+          className='min-w-18 rounded-md border bg-background/60 px-2 py-1 text-center text-xs tabular-nums text-muted-foreground'
+          aria-live='polite'
+        >
+          {currentPage} / {totalPages}
         </span>
         <Link
           href={buildHref(pathname, preservedQuery, currentPage + 1)}
           aria-label='Halaman berikutnya'
           prefetch={false}
           aria-disabled={currentPage >= totalPages}
-          className={cn(
-            buttonVariants({ variant: 'outline', size: 'icon-sm' }),
-            'size-8',
-            currentPage >= totalPages && 'pointer-events-none opacity-50',
-          )}
+          className={cn(navButtonClass, currentPage >= totalPages && 'pointer-events-none opacity-40')}
         >
           <ChevronRightIcon className='size-4' />
         </Link>
@@ -103,11 +97,7 @@ export function TablePagination({
           aria-label='Halaman terakhir'
           prefetch={false}
           aria-disabled={currentPage >= totalPages}
-          className={cn(
-            buttonVariants({ variant: 'outline', size: 'icon-sm' }),
-            'size-8',
-            currentPage >= totalPages && 'pointer-events-none opacity-50',
-          )}
+          className={cn(navButtonClass, currentPage >= totalPages && 'pointer-events-none opacity-40')}
         >
           <ChevronsRightIcon className='size-4' />
         </Link>

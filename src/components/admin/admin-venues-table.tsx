@@ -9,6 +9,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { TablePagination } from '@/components/ui/table-pagination'
+import { cn } from '@/lib/utils'
 
 const fmtNum = new Intl.NumberFormat('id-ID')
 
@@ -37,32 +38,24 @@ export function AdminVenuesTable({ venues, pathname, preservedQuery, pagination 
     () => [
       {
         accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title='Nama' />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Venue' />,
         cell: ({ row }) => (
           <div className='max-w-[240px]'>
             <Link
               href={`/admin/venues/${row.original.id}/edit`}
-              className='text-foreground line-clamp-2 font-medium hover:underline'
+              className='line-clamp-2 font-medium underline-offset-4 hover:underline'
             >
               {row.original.name}
             </Link>
+            <p className='text-muted-foreground line-clamp-2 text-xs whitespace-pre-wrap'>{row.original.address}</p>
           </div>
-        ),
-      },
-      {
-        accessorKey: 'address',
-        header: ({ column }) => <DataTableColumnHeader column={column} title='Alamat' />,
-        cell: ({ row }) => (
-          <span className='text-muted-foreground line-clamp-2 max-w-[320px] text-sm whitespace-pre-wrap'>
-            {row.original.address}
-          </span>
         ),
       },
       {
         accessorKey: 'isActive',
         header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
         cell: ({ row }) => (
-          <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
+          <Badge variant={row.original.isActive ? 'default' : 'secondary'} className={row.original.isActive ? undefined : 'font-normal'}>
             {row.original.isActive ? 'Aktif' : 'Tidak aktif'}
           </Badge>
         ),
@@ -74,7 +67,7 @@ export function AdminVenuesTable({ venues, pathname, preservedQuery, pagination 
             <DataTableColumnHeader column={column} title='Menu' />
           </div>
         ),
-        cell: ({ row }) => <div className='text-right tabular-nums'>{fmtNum.format(row.original.menuItemCount)}</div>,
+        cell: ({ row }) => <div className='text-right tabular-nums text-sm'>{fmtNum.format(row.original.menuItemCount)}</div>,
       },
       {
         accessorKey: 'eventCount',
@@ -83,7 +76,7 @@ export function AdminVenuesTable({ venues, pathname, preservedQuery, pagination 
             <DataTableColumnHeader column={column} title='Acara' />
           </div>
         ),
-        cell: ({ row }) => <div className='text-right tabular-nums'>{fmtNum.format(row.original.eventCount)}</div>,
+        cell: ({ row }) => <div className='text-right tabular-nums text-sm'>{fmtNum.format(row.original.eventCount)}</div>,
       },
       {
         id: 'actions',
@@ -94,12 +87,18 @@ export function AdminVenuesTable({ venues, pathname, preservedQuery, pagination 
           </div>
         ),
         cell: ({ row }) => (
-          <div className='text-right'>
+          <div className='flex items-center justify-end gap-1'>
             <Link
-              href={`/admin/venues/${row.original.id}/edit`}
+              href={`/admin/venues/${row.original.id}/menu`}
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
-              Kelola
+              Menu
+            </Link>
+            <Link
+              href={`/admin/venues/${row.original.id}/edit`}
+              className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'hidden sm:inline-flex' })}
+            >
+              Edit
             </Link>
           </div>
         ),
@@ -108,9 +107,23 @@ export function AdminVenuesTable({ venues, pathname, preservedQuery, pagination 
     [],
   )
 
+  if (pagination.totalItems === 0) {
+    return (
+      <div className='rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground'>
+        Tidak ada venue untuk filter ini.
+      </div>
+    )
+  }
+
   return (
-    <div className='bg-card flex flex-col gap-0 overflow-hidden rounded-lg border'>
-      <DataTable columns={columns} data={venues} enableSorting={false} />
+    <div className='overflow-hidden rounded-lg border'>
+      <DataTable
+        frame='embedded'
+        columns={columns}
+        data={venues}
+        enableSorting={false}
+        getRowClassName={row => cn(!row.isActive && 'opacity-60 hover:opacity-80')}
+      />
       <TablePagination
         pathname={pathname}
         preservedQuery={preservedQuery}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { contactInitials, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
+import { contactInitials, maskDisplayEmail, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
 
 describe('maskDisplayName', () => {
   it('masks longer names preserving a short prefix', () => {
@@ -18,6 +18,14 @@ describe('maskDisplayWhatsapp', () => {
     expect(maskDisplayWhatsapp('+6281380013800')).toContain('•')
     expect(maskDisplayWhatsapp('+6281380013800')).toMatch(/^6281•+/)
     expect(maskDisplayWhatsapp('')).toBe('•••')
+  })
+})
+
+describe('maskDisplayEmail', () => {
+  it('masks local part while keeping domain visible', () => {
+    expect(maskDisplayEmail('edwardedo603@gmail.com')).toBe('ed••••••••••@gmail.com')
+    expect(maskDisplayEmail('')).toBe('—')
+    expect(maskDisplayEmail('ab')).toBe('a•')
   })
 })
 

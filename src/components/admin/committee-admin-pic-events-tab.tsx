@@ -59,7 +59,7 @@ export function CommitteeAdminPicEventsTab(props: { events: EventAsPicVm[] }) {
             href={eventRegistrantsListPath(row.original.eventId)}
             className={buttonVariants({ variant: 'outline', size: 'sm' })}
           >
-            → Inbox
+            Peserta
           </Link>
         ),
       },

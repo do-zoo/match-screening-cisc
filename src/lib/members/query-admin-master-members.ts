@@ -10,6 +10,7 @@ export type AdminMasterMemberRowVm = {
   email: string | null
   isActive: boolean
   isManagementMember: boolean
+  createdAt: string
   updatedAt: string
 }
 
@@ -69,6 +70,7 @@ function mapMasterMemberRow(row: {
   email: string | null
   isActive: boolean
   isManagementMember: boolean
+  createdAt: Date
   updatedAt: Date
 }): AdminMasterMemberRowVm {
   return {
@@ -79,6 +81,7 @@ function mapMasterMemberRow(row: {
     email: row.email,
     isActive: row.isActive,
     isManagementMember: row.isManagementMember,
+    createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
 }

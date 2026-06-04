@@ -103,6 +103,17 @@ describe('holderSchema', () => {
     })
     expect(r.success).toBe(true)
   })
+
+  it('accepts tangsel with empty WA/email when member number present (merged on submit)', () => {
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '',
+      holderEmail: '',
+      memberType: 'tangsel',
+      claimedMemberNumber: 'CISC-001',
+    })
+    expect(r.success).toBe(true)
+  })
 })
 
 describe('submitRegistrationSchema', () => {
@@ -183,5 +194,22 @@ describe('submitRegistrationSchema', () => {
     if (!r.success) {
       expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
     }
+  })
+
+  it('accepts tangsel primary with empty email (merged on submit)', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        holders: [
+          {
+            holderName: 'Budi',
+            holderWhatsapp: '',
+            holderEmail: '',
+            memberType: 'tangsel',
+            claimedMemberNumber: 'CISC-001',
+          },
+        ],
+      }),
+    )
+    expect(r.success).toBe(true)
   })
 })

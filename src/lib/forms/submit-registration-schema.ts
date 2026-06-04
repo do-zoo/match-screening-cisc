@@ -18,10 +18,30 @@ export const whatsappPhoneSchema = z
 
 const holderEmailOptional = z.union([z.string().trim().email('Format email tidak valid.'), z.literal('')]).optional()
 
+export function isTangselDirectoryHolder(data: {
+  memberType?: 'tangsel' | 'regional'
+  claimedMemberNumber?: string
+}): boolean {
+  return data.memberType === 'tangsel' && !!data.claimedMemberNumber?.trim()
+}
+
+function validateHolderWhatsappIfPresent(val: string | undefined, ctx: z.RefinementCtx) {
+  const trimmed = (val ?? '').trim()
+  if (!trimmed) return
+  const e164 = toE164PlusForValidation(trimmed)
+  if (!e164) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nomor WhatsApp tidak valid', path: ['holderWhatsapp'] })
+    return
+  }
+  if (!isValidPhoneNumber(e164)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nomor WhatsApp tidak valid', path: ['holderWhatsapp'] })
+  }
+}
+
 export const holderSchema = z
   .object({
     holderName: z.string().trim().min(1, 'Nama pemegang tiket wajib diisi'),
-    holderWhatsapp: whatsappPhoneSchema,
+    holderWhatsapp: z.string().trim().default(''),
     holderEmail: holderEmailOptional,
     claimedMemberNumber: z.string().trim().optional(),
     mandatoryMenuItemId: z.string().optional(),
@@ -35,6 +55,18 @@ export const holderSchema = z
         path: ['claimedMemberNumber'],
       })
     }
+
+    if (isTangselDirectoryHolder(data)) {
+      validateHolderWhatsappIfPresent(data.holderWhatsapp, ctx)
+      return
+    }
+
+    const waResult = whatsappPhoneSchema.safeParse(data.holderWhatsapp ?? '')
+    if (!waResult.success) {
+      for (const issue of waResult.error.issues) {
+        ctx.addIssue({ ...issue, path: ['holderWhatsapp'] })
+      }
+    }
   })
 
 export type HolderInput = z.infer<typeof holderSchema>
@@ -46,7 +78,12 @@ export const submitRegistrationSchema = z
     holders: z.array(holderSchema).min(1, 'Minimal satu pemegang tiket'),
   })
   .superRefine((data, ctx) => {
-    const firstEmail = (data.holders[0]?.holderEmail ?? '').trim()
+    const first = data.holders[0]
+    if (!first) return
+
+    if (isTangselDirectoryHolder(first)) return
+
+    const firstEmail = (first.holderEmail ?? '').trim()
     if (!firstEmail) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
