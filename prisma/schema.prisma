@@ -92,6 +92,11 @@ enum WaTemplateKey {
   underpayment_invoice
 }
 
+enum EmailTemplateKey {
+  invoice_underpayment
+  magic_link
+}
+
 enum NotificationOutboundMode {
   off
   log_only
@@ -105,6 +110,7 @@ model MasterMember {
   memberNumber       String  @unique
   fullName           String
   whatsapp           String?
+  email              String?
   isActive           Boolean @default(true)
   isManagementMember Boolean @default(false)
 
@@ -239,6 +245,7 @@ model RegistrationHolder {
   sortOrder                 Int
   holderName                String
   holderWhatsapp            String?
+  holderEmail               String?
   claimedMemberNumber       String?
   memberValidation          MemberValidation @default(unknown)
   memberId                  String?
@@ -364,6 +371,7 @@ model Registration {
 
   contactName     String
   contactWhatsapp String
+  contactEmail    String?
 
   claimedMemberNumber String?
   memberValidation    MemberValidation @default(unknown)
@@ -446,6 +454,29 @@ model ClubWaTemplate {
   key       WaTemplateKey @id
   body      String        @db.Text
   updatedAt DateTime      @updatedAt
+}
+
+model ClubEmailTemplate {
+  key       EmailTemplateKey @id
+  subject   String
+  body      String           @db.Text
+  updatedAt DateTime         @updatedAt
+}
+
+model EmailDeliveryLog {
+  id                  String           @id @default(cuid())
+  eventId             String
+  registrationId      String
+  templateKey         EmailTemplateKey
+  toEmail             String
+  success             Boolean
+  errorMessage        String?          @db.VarChar(500)
+  actorAdminProfileId String?
+  actorAuthUserId     String
+  createdAt           DateTime         @default(now())
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([registrationId])
 }
 
 model ClubBranding {
