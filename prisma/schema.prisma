@@ -42,6 +42,12 @@ enum MemberType {
   regional
 }
 
+enum MemberAccessMode {
+  open
+  tangsel_only
+  cisc_members
+}
+
 enum InvoiceAdjustmentType {
   underpayment
   other_adjustment
@@ -304,6 +310,7 @@ model Event {
   status                   EventStatus @default(draft)
   multiCategoryPurchase    Boolean     @default(false)
   requireAllHolderData     Boolean     @default(true)
+  memberAccessMode         MemberAccessMode @default(open)
 
   // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
   mandatoryMenuItemIds String[] @default([])
