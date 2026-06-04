@@ -73,7 +73,10 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>Import CSV</CardTitle>
-        <CardDescription>Unggah CSV untuk membuat atau memperbarui master anggota.</CardDescription>
+        <CardDescription>
+          Unggah CSV untuk membuat atau memperbarui master anggota. Kolom WhatsApp boleh dikosongkan jika nomor tidak
+          tersedia.
+        </CardDescription>
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>
         <div className='flex flex-wrap gap-2'>

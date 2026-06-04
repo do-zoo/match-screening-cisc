@@ -159,7 +159,11 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
             />
           </Field>
 
-          <Field label='WhatsApp' htmlFor='member-whatsapp' error={form.formState.errors.whatsapp?.message}>
+          <Field
+            label='WhatsApp (opsional)'
+            htmlFor='member-whatsapp'
+            error={form.formState.errors.whatsapp?.message}
+          >
             <Input
               id='member-whatsapp'
               disabled={isPending}

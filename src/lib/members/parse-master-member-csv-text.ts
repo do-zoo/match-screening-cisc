@@ -44,7 +44,7 @@ export function parseMasterMemberCsvText(csvText: string): {
     )
   }
   for (const col of MASTER_MEMBER_CSV_COLUMNS) {
-    if (col === 'is_management_member' || col === 'email') continue
+    if (col === 'is_management_member' || col === 'email' || col === 'whatsapp') continue
     if (!fieldsHeader.includes(col)) {
       throw new Error(`Kolom CSV wajib tidak ada: "${col}".`)
     }
