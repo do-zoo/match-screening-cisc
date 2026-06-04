@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { EventStatus } from '@prisma/client'
+import { EventStatus, MemberAccessMode } from '@prisma/client'
 
 const idrSchema = z.coerce.number().int().nonnegative()
 
@@ -28,6 +28,7 @@ export const adminEventUpsertSchema = z
     status: z.nativeEnum(EventStatus),
     multiCategoryPurchase: z.boolean().optional(),
     requireAllHolderData: z.boolean().optional(),
+    memberAccessMode: z.nativeEnum(MemberAccessMode).optional(),
     picAdminProfileId: z.string().min(1, 'PIC wajib.'),
     bankAccountId: z.string().min(1, 'Rekening bank wajib.'),
     helperAdminProfileIds: z.array(z.string().min(1)),

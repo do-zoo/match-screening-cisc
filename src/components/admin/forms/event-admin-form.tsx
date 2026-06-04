@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form'
 
-import { abandonDraftEventDescriptionImages } from '@/lib/actions/abandon-draft-event-description-images'
+import type { MemberAccessMode } from '@prisma/client'
 import { createAdminEvent, updateAdminEvent } from '@/lib/actions/admin-events'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import {
@@ -574,6 +574,34 @@ export function EventAdminForm(props: EventAdminFormProps) {
     </section>
   )
 
+  const memberAccessMode = (form.watch('memberAccessMode') ?? 'open') as MemberAccessMode
+
+  const sectionMemberAccess = (
+    <section className='space-y-3'>
+      <SectionHeading>Akses pendaftaran</SectionHeading>
+      {(
+        [
+          ['open', 'Acara umum'],
+          ['tangsel_only', 'Hanya member CISC Tangsel'],
+          ['cisc_members', 'Hanya member CISC (Tangsel + regional)'],
+        ] as const
+      ).map(([value, label]) => (
+        <div key={value} className='flex items-center gap-2'>
+          <Checkbox
+            id={`memberAccessMode-${value}`}
+            checked={memberAccessMode === value}
+            onCheckedChange={checked => {
+              if (checked) form.setValue('memberAccessMode', value, { shouldDirty: true })
+            }}
+          />
+          <label htmlFor={`memberAccessMode-${value}`} className='text-sm'>
+            {label}
+          </label>
+        </div>
+      ))}
+    </section>
+  )
+
   const sectionPicRekening = (
     <section className='space-y-4'>
       <SectionHeading>PIC &amp; rekening</SectionHeading>
@@ -688,8 +716,13 @@ export function EventAdminForm(props: EventAdminFormProps) {
             <TabsContent value='tiket' className='space-y-8'>
               <section className='space-y-4'>
                 <SectionHeading>Kategori tiket</SectionHeading>
-                <TicketCategoriesPanel eventId={props.eventId ?? ''} categories={props.categories} />
+                <TicketCategoriesPanel
+                  eventId={props.eventId ?? ''}
+                  categories={props.categories}
+                  memberAccessMode={memberAccessMode}
+                />
               </section>
+              {sectionMemberAccess}
               {sectionMultiCategory}
               {sectionRequireAllHolderData}
               <TabSaveRow pending={pending} />
@@ -828,6 +861,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
             {sectionVenue}
             {sectionMenuWajib}
             {sectionMultiCategory}
+            {sectionMemberAccess}
             {sectionRequireAllHolderData}
             {sectionRegistrasi}
             {sectionPicRekening}

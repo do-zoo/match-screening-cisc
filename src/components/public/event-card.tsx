@@ -19,6 +19,8 @@ type EventCardProps = {
   lowestMemberPrice: number | null
   closeRegistrationAtIso: string
   badgeStatus: BadgeStatus
+  memberAccessBadge?: string | null
+  memberOnlyPricing?: boolean
   variant?: 'list' | 'grid'
 }
 
@@ -42,6 +44,14 @@ const badgeConfig: Record<BadgeStatus, { label: string; className: string }> = {
     className:
       'border-neutral-200 bg-neutral-50 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400',
   },
+}
+
+function MemberAccessBadge({ label }: { label: string }) {
+  return (
+    <span className='inline-flex shrink-0 items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-950 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300'>
+      {label}
+    </span>
+  )
 }
 
 function StatusBadge({ status }: { status: BadgeStatus }) {
@@ -70,6 +80,8 @@ export function EventCard({
   lowestMemberPrice,
   closeRegistrationAtIso,
   badgeStatus,
+  memberAccessBadge = null,
+  memberOnlyPricing = false,
   variant = 'list',
 }: EventCardProps) {
   const when = new Date(startAtIso).toLocaleString('id-ID', {
@@ -98,7 +110,10 @@ export function EventCard({
           {/* Title row + badge */}
           <div className='flex items-start justify-between gap-2'>
             <div className='font-medium leading-snug'>{title}</div>
-            <StatusBadge status={badgeStatus} />
+            <div className='flex shrink-0 flex-col items-end gap-1'>
+              {memberAccessBadge ? <MemberAccessBadge label={memberAccessBadge} /> : null}
+              <StatusBadge status={badgeStatus} />
+            </div>
           </div>
           {/* Summary */}
           <p className='mt-2 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]'>{summary}</p>
@@ -116,10 +131,12 @@ export function EventCard({
               {lowestMemberPrice != null ? (
                 <div>
                   <span className='font-medium'>{formatIdr(lowestMemberPrice)}</span>{' '}
-                  <span className='text-xs text-[hsl(var(--muted-foreground))]'>member</span>
+                  <span className='text-xs text-[hsl(var(--muted-foreground))]'>
+                    {memberOnlyPricing ? 'harga member' : 'member'}
+                  </span>
                 </div>
               ) : null}
-              {lowestRegularPrice != null ? (
+              {!memberOnlyPricing && lowestRegularPrice != null ? (
                 <div>
                   <span className='font-medium'>{formatIdr(lowestRegularPrice)}</span>{' '}
                   <span className='text-xs text-[hsl(var(--muted-foreground))]'>umum</span>
@@ -146,7 +163,10 @@ export function EventCard({
           {/* Title row + badge */}
           <div className='flex items-start justify-between gap-2'>
             <div className='font-medium leading-snug'>{title}</div>
-            <StatusBadge status={badgeStatus} />
+            <div className='flex shrink-0 flex-col items-end gap-1'>
+              {memberAccessBadge ? <MemberAccessBadge label={memberAccessBadge} /> : null}
+              <StatusBadge status={badgeStatus} />
+            </div>
           </div>
           <p className='mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]'>{summary}</p>
           <div className='mt-1 text-sm text-[hsl(var(--muted-foreground))]'>
@@ -159,7 +179,7 @@ export function EventCard({
             <span className='font-medium text-[hsl(var(--foreground))]'>
               {lowestMemberPrice != null
                 ? formatIdrShort(lowestMemberPrice)
-                : lowestRegularPrice != null
+                : !memberOnlyPricing && lowestRegularPrice != null
                   ? formatIdrShort(lowestRegularPrice)
                   : '—'}
             </span>

@@ -124,7 +124,38 @@ describe('createAdminEvent (integrasi dengan mock DB)', () => {
     }
     expect(call.data.mandatoryMenuItemIds).toEqual(['menu-1'])
     expect(call.data.openRegistrationAt).toEqual(new Date('2026-06-01T08:00:00.000Z'))
+    expect(call.data.memberAccessMode).toBe('open')
     expect(txEventVenueMenuItemCreateMany).toHaveBeenCalled()
+  })
+
+  it('menyimpan memberAccessMode tangsel_only saat create', async () => {
+    const payload = {
+      title: 'Acara Uji',
+      summary: 'Ringkasan',
+      descriptionHtml: '<p>Isi</p>',
+      venueId: 'venue-1',
+      linkedVenueMenuItems: [{ venueMenuItemId: 'menu-1', sortOrder: 0 }],
+      openRegistrationAtIso: new Date('2026-06-01T08:00:00.000Z').toISOString(),
+      closeRegistrationAtIso: new Date('2026-06-10T12:00:00.000Z').toISOString(),
+      openGateAtIso: new Date('2026-06-10T16:00:00.000Z').toISOString(),
+      kickOffAtIso: new Date('2026-06-10T19:00:00.000Z').toISOString(),
+      mandatoryMenuItemIds: ['menu-1'],
+      registrationManualClosed: false,
+      status: EventStatus.draft,
+      memberAccessMode: 'tangsel_only',
+      picAdminProfileId: 'pic-1',
+      bankAccountId: 'bank-1',
+      helperAdminProfileIds: [],
+    }
+
+    const fd = new FormData()
+    fd.set('payload', JSON.stringify(payload))
+    fd.set('cover', new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' }))
+
+    const r = await createAdminEvent(undefined, fd)
+    expect(r.ok).toBe(true)
+    const call = txEventCreate.mock.calls.at(-1)![0] as { data: Record<string, unknown> }
+    expect(call.data.memberAccessMode).toBe('tangsel_only')
   })
 })
 

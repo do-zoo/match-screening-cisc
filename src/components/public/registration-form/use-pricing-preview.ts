@@ -13,19 +13,25 @@ type UsePricingPreviewArgs = {
   category: CategoryPricing | undefined
   holders: HolderInput[]
   holderValidations: ('valid' | 'invalid' | 'unknown')[]
+  forceMemberPricing?: boolean
 }
 
-export function usePricingPreview({ category, holders, holderValidations }: UsePricingPreviewArgs) {
+export function usePricingPreview({
+  category,
+  holders,
+  holderValidations,
+  forceMemberPricing = false,
+}: UsePricingPreviewArgs) {
   return useMemo(() => {
     if (!category || holders.length === 0) return null
     return computeSubmitTotal({
       holders: holders.map((h, i) => ({
-        memberValidation: holderValidations[i] ?? 'unknown',
+        memberValidation: forceMemberPricing ? 'valid' : (holderValidations[i] ?? 'unknown'),
         category: {
           regularPrice: category.regularPrice,
           memberPrice: category.memberPrice,
         },
       })),
     })
-  }, [category, holders, holderValidations])
+  }, [category, holders, holderValidations, forceMemberPricing])
 }

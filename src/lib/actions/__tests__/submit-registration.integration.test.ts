@@ -20,6 +20,11 @@ vi.mock('@/lib/public/load-club-operational-settings', () => ({
   }),
 }))
 
+vi.mock('@/lib/actions/lookup-member-for-registration', () => ({
+  lookupMemberForRegistration: vi.fn(),
+}))
+
+import { lookupMemberForRegistration } from '@/lib/actions/lookup-member-for-registration'
 import { prisma } from '@/lib/db/prisma'
 import { submitRegistration } from '../submit-registration'
 
@@ -30,7 +35,15 @@ const openEvent = {
   openRegistrationAt: new Date(Date.now() - 1000),
   closeRegistrationAt: new Date(Date.now() + 86400000),
   requireAllHolderData: true,
+  memberAccessMode: 'open' as const,
   ticketCategories: [{ id: 'cat-1', regularPrice: 100000, memberPrice: 80000, maxQtyPerPerson: null, capacity: null }],
+}
+
+const validHolder = {
+  holderName: 'Member Satu',
+  holderWhatsapp: '+6281234567890',
+  claimedMemberNumber: '001',
+  memberType: 'tangsel' as const,
 }
 
 describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
@@ -119,5 +132,87 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
 
     const r = await submitRegistration('event-1', fd)
     expect(r.ok).toBe(false)
+  })
+})
+
+describe('submitRegistration — memberAccessMode', () => {
+  beforeEach(() => {
+    vi.mocked(prisma.event.findUnique).mockReset()
+    vi.mocked(prisma.registration.count).mockReset()
+    vi.mocked(lookupMemberForRegistration).mockReset()
+    txRegistrationCreate.mockReset()
+    txRegistrationCount.mockReset()
+    vi.mocked(prisma.registration.count).mockResolvedValue(0)
+    txRegistrationCount.mockResolvedValue(0)
+    txRegistrationCreate.mockResolvedValue({
+      id: 'reg-1',
+      holders: [{ id: 'h-1', sortOrder: 1 }],
+    })
+    vi.mocked(lookupMemberForRegistration).mockResolvedValue({
+      status: 'valid',
+      fullName: 'Member Satu',
+      whatsapp: '+6281234567890',
+    })
+  })
+
+  it('menolak non-member pada cisc_members', async () => {
+    vi.mocked(prisma.event.findUnique).mockResolvedValue({
+      ...openEvent,
+      memberAccessMode: 'cisc_members',
+    } as never)
+
+    const fd = new FormData()
+    fd.set('ticketCategoryId', 'cat-1')
+    fd.set('ticketQty', '1')
+    fd.set(
+      'holders',
+      JSON.stringify([{ holderName: 'Guest', holderWhatsapp: '+6281234567890', claimedMemberNumber: '' }]),
+    )
+
+    const r = await submitRegistration('event-1', fd)
+    expect(r.ok).toBe(false)
+    if (!r.ok && 'rootError' in r) {
+      expect(r.rootError).toContain('khusus member CISC')
+    }
+  })
+
+  it('menolak regional pada tangsel_only', async () => {
+    vi.mocked(prisma.event.findUnique).mockResolvedValue({
+      ...openEvent,
+      memberAccessMode: 'tangsel_only',
+    } as never)
+
+    const fd = new FormData()
+    fd.set('ticketCategoryId', 'cat-1')
+    fd.set('ticketQty', '1')
+    fd.set(
+      'holders',
+      JSON.stringify([
+        {
+          holderName: 'Regional',
+          holderWhatsapp: '+6281234567890',
+          claimedMemberNumber: 'R-1',
+          memberType: 'regional',
+        },
+      ]),
+    )
+
+    const r = await submitRegistration('event-1', fd)
+    expect(r.ok).toBe(false)
+  })
+
+  it('menerima tangsel valid pada tangsel_only', async () => {
+    vi.mocked(prisma.event.findUnique).mockResolvedValue({
+      ...openEvent,
+      memberAccessMode: 'tangsel_only',
+    } as never)
+
+    const fd = new FormData()
+    fd.set('ticketCategoryId', 'cat-1')
+    fd.set('ticketQty', '1')
+    fd.set('holders', JSON.stringify([validHolder]))
+
+    const r = await submitRegistration('event-1', fd)
+    expect(r.ok).toBe(true)
   })
 })

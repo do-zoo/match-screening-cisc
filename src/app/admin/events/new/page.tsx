@@ -126,6 +126,7 @@ export default async function AdminNewEventPage() {
     status: 'draft',
     multiCategoryPurchase: false,
     requireAllHolderData: true,
+    memberAccessMode: 'open' as const,
     picAdminProfileId: firstPicId ?? '',
     bankAccountId: firstBankId,
     helperAdminProfileIds: [],

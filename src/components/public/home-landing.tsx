@@ -112,6 +112,8 @@ export function HomeLanding({ previewEvents, totalCount }: HomeLandingProps) {
                   lowestRegularPrice={e.lowestRegularPrice}
                   closeRegistrationAtIso={e.closeRegistrationAtIso}
                   badgeStatus={e.badgeStatus}
+                  memberAccessBadge={e.memberAccessBadge}
+                  memberOnlyPricing={e.memberAccessMode !== 'open'}
                   variant='list'
                 />
               </li>

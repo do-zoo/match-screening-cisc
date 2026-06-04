@@ -4,16 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState, useTransition } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 
+import type { MemberAccessMode } from '@prisma/client'
 import {
   createTicketCategory,
   deleteTicketCategory,
   toggleTicketCategoryActive,
   updateTicketCategory,
 } from '@/lib/actions/admin-ticket-categories'
+import { isMemberOnlyAccessMode } from '@/lib/events/member-access-mode'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import { ticketCategorySchema, type TicketCategoryInput } from '@/lib/forms/ticket-category-schema'
 import type { EventTicketCategoryRow } from '@/lib/tickets/get-event-ticket-categories'
 import { formatIdr } from '@/lib/utils/format-idr'
+import { cn } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -26,10 +29,13 @@ type DialogState = { type: 'closed' } | { type: 'create' } | { type: 'edit'; cat
 export function TicketCategoriesPanel({
   eventId,
   categories: initialCategories,
+  memberAccessMode = 'open',
 }: {
   eventId: string
   categories: EventTicketCategoryRow[]
+  memberAccessMode?: MemberAccessMode
 }) {
+  const memberOnly = isMemberOnlyAccessMode(memberAccessMode)
   const [categories, setCategories] = useState<EventTicketCategoryRow[]>(initialCategories)
   const [dialog, setDialog] = useState<DialogState>({ type: 'closed' })
   const [pending, startTransition] = useTransition()
@@ -78,18 +84,19 @@ export function TicketCategoriesPanel({
   }
 
   function handleSubmit(values: TicketCategoryInput) {
+    const payload = memberOnly ? { ...values, regularPrice: values.memberPrice } : values
     startTransition(async () => {
       if (mode === 'create') {
-        const res = await createTicketCategory(eventId, values)
+        const res = await createTicketCategory(eventId, payload)
         if (!res.ok) {
           toastActionErr(res, 'Gagal menambah kategori.')
           return
         }
         const newRow: EventTicketCategoryRow = {
           id: res.data.id,
-          name: values.name,
-          regularPrice: values.regularPrice,
-          memberPrice: values.memberPrice,
+          name: payload.name,
+          regularPrice: payload.regularPrice,
+          memberPrice: payload.memberPrice,
           maxQtyPerPerson: values.maxQtyPerPerson,
           sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
           isActive: true,
@@ -100,7 +107,7 @@ export function TicketCategoriesPanel({
         toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
         closeDialog()
       } else if (editingCategory) {
-        const res = await updateTicketCategory(editingCategory.id, values)
+        const res = await updateTicketCategory(editingCategory.id, payload)
         if (!res.ok) {
           toastActionErr(res, 'Gagal memperbarui kategori.')
           return
@@ -110,11 +117,11 @@ export function TicketCategoriesPanel({
             c.id === editingCategory.id
               ? {
                   ...c,
-                  name: values.name,
-                  regularPrice: priceLocked ? c.regularPrice : values.regularPrice,
-                  memberPrice: priceLocked ? c.memberPrice : values.memberPrice,
-                  maxQtyPerPerson: values.maxQtyPerPerson,
-                  capacity: values.capacity,
+                  name: payload.name,
+                  regularPrice: priceLocked ? c.regularPrice : payload.regularPrice,
+                  memberPrice: priceLocked ? c.memberPrice : payload.memberPrice,
+                  maxQtyPerPerson: payload.maxQtyPerPerson,
+                  capacity: payload.capacity,
                 }
               : c,
           ),
@@ -171,8 +178,10 @@ export function TicketCategoriesPanel({
             <thead className='bg-muted/50'>
               <tr>
                 <th className='px-3 py-2 text-left font-medium'>Nama</th>
-                <th className='px-3 py-2 text-right font-medium'>Harga Reguler</th>
-                <th className='px-3 py-2 text-right font-medium'>Harga Member</th>
+                {!memberOnly ? <th className='px-3 py-2 text-right font-medium'>Harga Reguler</th> : null}
+                <th className='px-3 py-2 text-right font-medium'>
+                  {memberOnly ? 'Harga Member' : 'Harga Member'}
+                </th>
                 <th className='px-3 py-2 text-right font-medium'>Maks/Orang</th>
                 <th className='px-3 py-2 text-right font-medium'>Registrasi</th>
                 <th className='px-3 py-2 text-right font-medium'>Kapasitas</th>
@@ -186,7 +195,9 @@ export function TicketCategoriesPanel({
                     <span>{cat.name}</span>
                     {!cat.isActive ? <span className='text-muted-foreground ml-1.5 text-xs'>(nonaktif)</span> : null}
                   </td>
-                  <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.regularPrice)}</td>
+                  {!memberOnly ? (
+                    <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.regularPrice)}</td>
+                  ) : null}
                   <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.memberPrice)}</td>
                   <td className='px-3 py-2 text-right'>{cat.maxQtyPerPerson ?? '—'}</td>
                   <td className='px-3 py-2 text-right'>{cat.registrationCount}</td>
@@ -246,25 +257,27 @@ export function TicketCategoriesPanel({
               ) : null}
             </div>
 
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='flex flex-col gap-1'>
-                <Label htmlFor='tc-regular-price'>Harga Reguler</Label>
-                <Controller
-                  control={form.control}
-                  name='regularPrice'
-                  render={({ field }) => (
-                    <IdrAmountInput
-                      id='tc-regular-price'
-                      disabled={pending || priceLocked}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    />
-                  )}
-                />
-                {form.formState.errors.regularPrice ? (
-                  <p className='text-destructive text-xs'>{form.formState.errors.regularPrice.message}</p>
-                ) : null}
-              </div>
+            <div className={cn('grid gap-3', memberOnly ? 'grid-cols-1' : 'grid-cols-2')}>
+              {!memberOnly ? (
+                <div className='flex flex-col gap-1'>
+                  <Label htmlFor='tc-regular-price'>Harga Reguler</Label>
+                  <Controller
+                    control={form.control}
+                    name='regularPrice'
+                    render={({ field }) => (
+                      <IdrAmountInput
+                        id='tc-regular-price'
+                        disabled={pending || priceLocked}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      />
+                    )}
+                  />
+                  {form.formState.errors.regularPrice ? (
+                    <p className='text-destructive text-xs'>{form.formState.errors.regularPrice.message}</p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className='flex flex-col gap-1'>
                 <Label htmlFor='tc-member-price'>Harga Member</Label>

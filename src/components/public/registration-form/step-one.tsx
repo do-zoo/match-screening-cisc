@@ -5,7 +5,9 @@ import type { FieldArrayWithId } from 'react-hook-form'
 import { useFormContext } from 'react-hook-form'
 
 import type { SerializedEventForRegistration } from '@/components/public/event-serialization'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { MEMBER_ACCESS_MODE_BANNER } from '@/lib/events/member-access-mode'
 import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 import { formatIdr } from '@/lib/utils/format-idr'
 import type { usePricingPreview } from './use-pricing-preview'
@@ -47,6 +49,9 @@ export function StepOne({
 
   return (
     <div className='space-y-6'>
+      {MEMBER_ACCESS_MODE_BANNER[event.memberAccessMode] ? (
+        <Alert>{MEMBER_ACCESS_MODE_BANNER[event.memberAccessMode]}</Alert>
+      ) : null}
       {/* Kategori + jumlah tiket */}
       <div className='space-y-4 rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm'>
         <h2 className='text-xl font-semibold tracking-tight'>Pilih Tiket</h2>
@@ -57,6 +62,7 @@ export function StepOne({
             onSelect={id => setValue('ticketCategoryId', id)}
             qty={ticketQty}
             onQtyChange={onQtyChange}
+            memberOnly={event.memberAccessMode !== 'open'}
           />
         ) : (
           <p className='text-sm text-muted-foreground'>Tidak ada kategori tiket yang tersedia.</p>
@@ -75,6 +81,7 @@ export function StepOne({
               menuItems={event.mandatoryMenuItems}
               menuRequired={event.menuRequired ?? false}
               eventId={event.id}
+              memberAccessMode={event.memberAccessMode}
               showFileRequired={missingFileIndices.has(index)}
               onValidationChange={onValidationChange}
               onMemberCardFileChange={onMemberCardFileChange}

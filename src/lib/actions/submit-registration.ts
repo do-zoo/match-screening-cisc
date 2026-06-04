@@ -1,6 +1,8 @@
 'use server'
 
 import { MemberType, RegistrationStatus } from '@prisma/client'
+import { lookupMemberForRegistration } from '@/lib/actions/lookup-member-for-registration'
+import { assertHolderEligibleForMemberAccessMode } from '@/lib/events/member-access-mode'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema'
@@ -70,6 +72,7 @@ export async function submitRegistration(
         openRegistrationAt: true,
         closeRegistrationAt: true,
         requireAllHolderData: true,
+        memberAccessMode: true,
         ticketCategories: {
           where: { id: input.ticketCategoryId, isActive: true },
           select: {
@@ -130,6 +133,21 @@ export async function submitRegistration(
     if (input.holders.length !== 1) {
       return rootError('Jumlah data peserta tidak valid.')
     }
+  }
+
+  const holdersToValidate = event.requireAllHolderData ? input.holders : [input.holders[0]!]
+  for (const h of holdersToValidate) {
+    let tangselValid = false
+    if (
+      event.memberAccessMode === 'tangsel_only' &&
+      h.memberType === 'tangsel' &&
+      h.claimedMemberNumber?.trim()
+    ) {
+      const lookup = await lookupMemberForRegistration(h.claimedMemberNumber, eventId)
+      tangselValid = lookup.status === 'valid'
+    }
+    const eligibility = assertHolderEligibleForMemberAccessMode(h, event.memberAccessMode, tangselValid)
+    if (!eligibility.ok) return rootError(eligibility.message)
   }
 
   const holdersForProcessing = event.requireAllHolderData

@@ -12,9 +12,18 @@ type Props = {
   qty: number
   onQtyChange: (qty: number) => void
   disabled?: boolean
+  memberOnly?: boolean
 }
 
-export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyChange, disabled }: Props) {
+export function CategoryPicker({
+  categories,
+  selectedId,
+  onSelect,
+  qty,
+  onQtyChange,
+  disabled,
+  memberOnly = false,
+}: Props) {
   const selected = categories.find(c => c.id === selectedId)
   const maxPerPerson = selected?.maxQtyPerPerson ?? 20
   const remainingSlots = selected?.remainingSlots ?? null
@@ -55,7 +64,9 @@ export function CategoryPicker({ categories, selectedId, onSelect, qty, onQtyCha
                     )}
                   </div>
                   <div className='text-sm text-muted-foreground'>
-                    Member: {formatIdr(cat.memberPrice)} · Reguler: {formatIdr(cat.regularPrice)}
+                    {memberOnly
+                      ? `Harga member: ${formatIdr(cat.memberPrice)}`
+                      : `Member: ${formatIdr(cat.memberPrice)} · Reguler: ${formatIdr(cat.regularPrice)}`}
                   </div>
                   {cat.maxQtyPerPerson && !isFull && (
                     <div className='text-xs text-muted-foreground'>Maks {cat.maxQtyPerPerson} tiket/orang</div>

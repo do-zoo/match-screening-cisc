@@ -88,6 +88,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     category: selectedCategory,
     holders: pricingHolders,
     holderValidations: pricingValidations,
+    forceMemberPricing: event.memberAccessMode !== 'open',
   })
 
   function handleQtyChange(qty: number) {

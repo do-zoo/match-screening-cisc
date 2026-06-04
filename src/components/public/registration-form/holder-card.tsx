@@ -14,7 +14,9 @@ import { Label } from '@/components/ui/label'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
+import type { MemberAccessMode } from '@prisma/client'
 import type { SerializedEventMenuItem } from '@/components/public/event-serialization'
+import { allowedMemberTypesForMode } from '@/lib/events/member-access-mode'
 import { phoneValueToStoredString, stringToPhoneValue, whatsappDigitsOnly } from '@/lib/forms/phone-value-string'
 import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 import { contactInitials, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
@@ -32,6 +34,7 @@ type Props = {
   menuItems?: SerializedEventMenuItem[]
   menuRequired: boolean
   eventId: string
+  memberAccessMode?: MemberAccessMode
   showFileRequired?: boolean
   onValidationChange: (index: number, pricingValidation: 'valid' | 'invalid' | 'unknown') => void
   onMemberCardFileChange: (index: number, file: File | undefined) => void
@@ -224,17 +227,33 @@ export function HolderCard({
   menuItems,
   menuRequired,
   eventId,
+  memberAccessMode = 'open',
   showFileRequired = false,
   onValidationChange,
   onMemberCardFileChange,
 }: Props) {
   const [expanded, setExpanded] = useState(isPrimary)
-  const [memberType, setMemberType] = useState<MemberType>('non')
+  const [memberType, setMemberType] = useState<MemberType>(() =>
+    memberAccessMode === 'tangsel_only' ? 'tangsel' : 'non',
+  )
   const form = useFormContext<SubmitRegistrationInput>()
   const { setValue } = form
 
   const holderName = form.watch(`holders.${index}.holderName`)
   const memberNumber = form.watch(`holders.${index}.claimedMemberNumber`)
+
+  const allowedTypes = allowedMemberTypesForMode(memberAccessMode)
+  const showNonMember = allowedTypes === 'all'
+  const showTangsel = allowedTypes === 'all' || allowedTypes.includes('tangsel')
+  const showRegional = allowedTypes === 'all' || allowedTypes.includes('regional')
+  const visibleTypeCount = [showNonMember, showTangsel, showRegional].filter(Boolean).length
+
+  useEffect(() => {
+    if (memberAccessMode === 'tangsel_only') {
+      setMemberType('tangsel')
+      setValue(`holders.${index}.memberType`, 'tangsel')
+    }
+  }, [memberAccessMode, index, setValue])
 
   const validationResult = useHolderMemberValidation(memberType === 'tangsel' ? memberNumber : undefined, eventId)
 
@@ -311,34 +330,47 @@ export function HolderCard({
           {/* Member type radio group */}
           <Field>
             <FieldLabel>Status keanggotaan</FieldLabel>
-            <RadioGroup className='grid grid-cols-3 gap-2' value={memberType} onValueChange={handleMemberToggle}>
-              <Label
-                htmlFor={`holder-${index}-type-non`}
-                className={cn(
-                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
-                )}
-              >
-                <RadioGroupItem value='non' id={`holder-${index}-type-non`} />
-                <span>Non-Member</span>
-              </Label>
-              <Label
-                htmlFor={`holder-${index}-type-tangsel`}
-                className={cn(
-                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
-                )}
-              >
-                <RadioGroupItem value='tangsel' id={`holder-${index}-type-tangsel`} />
-                <span>Member CISC Regional Tangsel</span>
-              </Label>
-              <Label
-                htmlFor={`holder-${index}-type-regional`}
-                className={cn(
-                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
-                )}
-              >
-                <RadioGroupItem value='regional' id={`holder-${index}-type-regional`} />
-                <span>Member CISC Regional Lainnya</span>
-              </Label>
+            <RadioGroup
+              className={cn(
+                'grid gap-2',
+                visibleTypeCount === 1 ? 'grid-cols-1' : visibleTypeCount === 2 ? 'grid-cols-2' : 'grid-cols-3',
+              )}
+              value={memberType}
+              onValueChange={handleMemberToggle}
+            >
+              {showNonMember ? (
+                <Label
+                  htmlFor={`holder-${index}-type-non`}
+                  className={cn(
+                    'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                  )}
+                >
+                  <RadioGroupItem value='non' id={`holder-${index}-type-non`} />
+                  <span>Non-Member</span>
+                </Label>
+              ) : null}
+              {showTangsel ? (
+                <Label
+                  htmlFor={`holder-${index}-type-tangsel`}
+                  className={cn(
+                    'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                  )}
+                >
+                  <RadioGroupItem value='tangsel' id={`holder-${index}-type-tangsel`} />
+                  <span>Member CISC Regional Tangsel</span>
+                </Label>
+              ) : null}
+              {showRegional ? (
+                <Label
+                  htmlFor={`holder-${index}-type-regional`}
+                  className={cn(
+                    'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                  )}
+                >
+                  <RadioGroupItem value='regional' id={`holder-${index}-type-regional`} />
+                  <span>Member CISC Regional Lainnya</span>
+                </Label>
+              ) : null}
             </RadioGroup>
           </Field>
 
