@@ -1,72 +1,67 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma'
 
 export type CommitteeAdminDirectoryPicBankVm = {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-  isActive: boolean;
-};
+  id: string
+  bankName: string
+  accountNumber: string
+  accountName: string
+  isActive: boolean
+}
 
 export type CommitteeAdminDirectoryRowVm = {
-  adminProfileId: string;
-  authUserId: string;
-  email: string;
-  displayName: string;
-  role: string;
-  managementMemberId: string | null;
-  memberSummary: string | null;
-  twoFactorEnabled: boolean;
-  lastSessionActivityAtIso: string | null;
-  eventPicCount: number;
-  picBankAccountOwnedCount: number;
-  picBankAccounts: CommitteeAdminDirectoryPicBankVm[];
-};
+  adminProfileId: string
+  authUserId: string
+  email: string
+  displayName: string
+  role: string
+  managementMemberId: string | null
+  memberSummary: string | null
+  twoFactorEnabled: boolean
+  lastSessionActivityAtIso: string | null
+  eventPicCount: number
+  picBankAccountOwnedCount: number
+  picBankAccounts: CommitteeAdminDirectoryPicBankVm[]
+}
 
 export type CommitteeAdminDirectoryVm = {
-  rows: CommitteeAdminDirectoryRowVm[];
-  memberOptions: { id: string; label: string }[];
-};
+  rows: CommitteeAdminDirectoryRowVm[]
+  memberOptions: { id: string; label: string }[]
+}
 
 export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirectoryVm> {
-  const now = new Date();
+  const now = new Date()
 
-  const [profiles, memberOptionsRaw, eventPicGroups, bankGroups] =
-    await Promise.all([
-      prisma.adminProfile.findMany({
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          authUserId: true,
-          role: true,
-          managementMemberId: true,
-          managementMember: {
-            select: { publicCode: true, fullName: true },
-          },
+  const [profiles, memberOptionsRaw, eventPicGroups, bankGroups] = await Promise.all([
+    prisma.adminProfile.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        authUserId: true,
+        role: true,
+        managementMemberId: true,
+        managementMember: {
+          select: { publicCode: true, fullName: true },
         },
-      }),
-      prisma.managementMember.findMany({
-        orderBy: { fullName: "asc" },
-        select: { id: true, publicCode: true, fullName: true },
-      }),
-      prisma.event.groupBy({
-        by: ["picAdminProfileId"],
-        _count: { _all: true },
-      }),
-      prisma.picBankAccount.groupBy({
-        by: ["ownerAdminProfileId"],
-        _count: { _all: true },
-      }),
-    ]);
+      },
+    }),
+    prisma.managementMember.findMany({
+      orderBy: { fullName: 'asc' },
+      select: { id: true, publicCode: true, fullName: true },
+    }),
+    prisma.event.groupBy({
+      by: ['picAdminProfileId'],
+      _count: { _all: true },
+    }),
+    prisma.picBankAccount.groupBy({
+      by: ['ownerAdminProfileId'],
+      _count: { _all: true },
+    }),
+  ])
 
-  const eventPicByProfile = new Map(
-    eventPicGroups.map((g) => [g.picAdminProfileId, g._count._all]),
-  );
-  const bankOwnedByProfile = new Map(
-    bankGroups.map((g) => [g.ownerAdminProfileId, g._count._all]),
-  );
+  const eventPicByProfile = new Map(eventPicGroups.map(g => [g.picAdminProfileId, g._count._all]))
+  const bankOwnedByProfile = new Map(bankGroups.map(g => [g.ownerAdminProfileId, g._count._all]))
 
-  const userIds = profiles.map((p) => p.authUserId);
+  const userIds = profiles.map(p => p.authUserId)
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: {
@@ -75,8 +70,8 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
       name: true,
       twoFactorEnabled: true,
     },
-  });
-  const userById = new Map(users.map((u) => [u.id, u]));
+  })
+  const userById = new Map(users.map(u => [u.id, u]))
 
   const sessions = await prisma.session.findMany({
     where: {
@@ -84,10 +79,10 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
       expiresAt: { gt: now },
     },
     select: { userId: true, updatedAt: true },
-  });
+  })
 
   const bankRows = await prisma.picBankAccount.findMany({
-    orderBy: [{ ownerAdminProfileId: "asc" }, { bankName: "asc" }],
+    orderBy: [{ ownerAdminProfileId: 'asc' }, { bankName: 'asc' }],
     select: {
       id: true,
       ownerAdminProfileId: true,
@@ -96,54 +91,52 @@ export async function loadCommitteeAdminDirectory(): Promise<CommitteeAdminDirec
       accountName: true,
       isActive: true,
     },
-  });
+  })
 
-  const banksByOwner = new Map<string, CommitteeAdminDirectoryPicBankVm[]>();
+  const banksByOwner = new Map<string, CommitteeAdminDirectoryPicBankVm[]>()
   for (const b of bankRows) {
-    const prev = banksByOwner.get(b.ownerAdminProfileId) ?? [];
+    const prev = banksByOwner.get(b.ownerAdminProfileId) ?? []
     prev.push({
       id: b.id,
       bankName: b.bankName,
       accountNumber: b.accountNumber,
       accountName: b.accountName,
       isActive: b.isActive,
-    });
-    banksByOwner.set(b.ownerAdminProfileId, prev);
+    })
+    banksByOwner.set(b.ownerAdminProfileId, prev)
   }
 
-  const lastSessionByUser = new Map<string, Date>();
+  const lastSessionByUser = new Map<string, Date>()
   for (const s of sessions) {
-    const prev = lastSessionByUser.get(s.userId);
+    const prev = lastSessionByUser.get(s.userId)
     if (!prev || s.updatedAt > prev) {
-      lastSessionByUser.set(s.userId, s.updatedAt);
+      lastSessionByUser.set(s.userId, s.updatedAt)
     }
   }
 
-  const rows: CommitteeAdminDirectoryRowVm[] = profiles.map((p) => {
-    const u = userById.get(p.authUserId);
-    const last = lastSessionByUser.get(p.authUserId);
+  const rows: CommitteeAdminDirectoryRowVm[] = profiles.map(p => {
+    const u = userById.get(p.authUserId)
+    const last = lastSessionByUser.get(p.authUserId)
     return {
       adminProfileId: p.id,
       authUserId: p.authUserId,
       email: u?.email ?? p.authUserId,
-      displayName: u?.name ?? "—",
+      displayName: u?.name ?? '—',
       role: p.role,
       managementMemberId: p.managementMemberId,
-      memberSummary: p.managementMember
-        ? `${p.managementMember.publicCode} — ${p.managementMember.fullName}`
-        : null,
+      memberSummary: p.managementMember ? `${p.managementMember.publicCode} — ${p.managementMember.fullName}` : null,
       twoFactorEnabled: Boolean(u?.twoFactorEnabled),
       lastSessionActivityAtIso: last ? last.toISOString() : null,
       eventPicCount: eventPicByProfile.get(p.id) ?? 0,
       picBankAccountOwnedCount: bankOwnedByProfile.get(p.id) ?? 0,
       picBankAccounts: banksByOwner.get(p.id) ?? [],
-    };
-  });
+    }
+  })
 
-  const memberOptions = memberOptionsRaw.map((m) => ({
+  const memberOptions = memberOptionsRaw.map(m => ({
     id: m.id,
     label: `${m.publicCode} — ${m.fullName}`,
-  }));
+  }))
 
-  return { rows, memberOptions };
+  return { rows, memberOptions }
 }

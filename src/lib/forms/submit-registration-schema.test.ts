@@ -1,190 +1,173 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import {
-  createSubmitRegistrationFormSchema,
-  isMemberCardPhotoMissingWhenRequired,
-  isMemberNumberMissingWhenMember,
-  MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
-} from "./submit-registration-schema";
+import { holderSchema, submitRegistrationSchema } from './submit-registration-schema'
 
-const mandatoryCtx = {
-  mandatoryMenuItemIds: ["m1", "m2"],
-};
+describe('holderSchema.memberType', () => {
+  const field = holderSchema.shape.memberType
 
-function transferProofFile() {
-  return new File([new Uint8Array([1])], "p.jpg", {
-    type: "image/jpeg",
-  });
-}
+  it('accepts tangsel', () => {
+    expect(field.safeParse('tangsel').success).toBe(true)
+  })
 
-function minimalPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  it('accepts regional', () => {
+    expect(field.safeParse('regional').success).toBe(true)
+  })
+
+  it('accepts undefined (non-member)', () => {
+    expect(field.safeParse(undefined).success).toBe(true)
+  })
+
+  it('rejects any other string', () => {
+    expect(field.safeParse('cisc').success).toBe(false)
+    expect(field.safeParse('member').success).toBe(false)
+    expect(field.safeParse('').success).toBe(false)
+  })
+})
+
+function validPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    slug: "demo",
-    purchaserIsMember: false,
-    contactName: "Tester",
-    contactWhatsapp: "08123456789",
-    managementPublicCode: "",
-    qtyPartner: 0,
-    partnerIsMember: false,
-    partnerName: "",
-    partnerWhatsapp: "",
-    partnerMemberNumber: "",
-    primaryMandatoryMenuItemId: "m1",
-    transferProof: transferProofFile(),
+    ticketCategoryId: 'cat-1',
+    ticketQty: 1,
+    holders: [
+      { holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+    ],
+    contactWhatsapp: '08123456789',
     ...overrides,
-  };
+  }
 }
 
-describe("isMemberCardPhotoMissingWhenRequired", () => {
-  it("requires a non-empty file when claimed member number is non-empty", () => {
-    expect(
-      isMemberCardPhotoMissingWhenRequired({
-        purchaserIsMember: true,
-        claimedMemberNumber: "CISC-1",
-        memberCardPhoto: undefined,
-      }),
-    ).toBe(true);
-    const emptyFile = new File([], "x.jpg", { type: "image/jpeg" });
-    expect(
-      isMemberCardPhotoMissingWhenRequired({
-        purchaserIsMember: true,
-        claimedMemberNumber: "CISC-1",
-        memberCardPhoto: emptyFile,
-      }),
-    ).toBe(true);
-    const nonempty = new File([new Uint8Array([1])], "x.jpg", {
-      type: "image/jpeg",
-    });
-    expect(
-      isMemberCardPhotoMissingWhenRequired({
-        purchaserIsMember: true,
-        claimedMemberNumber: "CISC-1",
-        memberCardPhoto: nonempty,
-      }),
-    ).toBe(false);
-    expect(
-      isMemberCardPhotoMissingWhenRequired({
-        purchaserIsMember: true,
-        claimedMemberNumber: "",
-        memberCardPhoto: undefined,
-      }),
-    ).toBe(false);
-    expect(
-      isMemberCardPhotoMissingWhenRequired({
-        purchaserIsMember: true,
-        claimedMemberNumber: "   ",
-        memberCardPhoto: undefined,
-      }),
-    ).toBe(false);
-  });
+describe('holderSchema', () => {
+  it('accepts a holder with valid name and WA', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789' })
+    expect(r.success).toBe(true)
+  })
 
-  it("documents message pairing with schema superRefine", () => {
-    expect(MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE.length).toBeGreaterThan(
-      10,
-    );
-  });
-});
+  it('rejects holder missing holderWhatsapp', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holderWhatsapp')).toBe(true)
+    }
+  })
 
-describe("isMemberNumberMissingWhenMember", () => {
-  it("is true when member and number empty or whitespace", () => {
-    expect(
-      isMemberNumberMissingWhenMember({
-        purchaserIsMember: true,
-        claimedMemberNumber: "",
-      }),
-    ).toBe(true);
-    expect(
-      isMemberNumberMissingWhenMember({
-        purchaserIsMember: true,
-        claimedMemberNumber: "   ",
-      }),
-    ).toBe(true);
-    expect(
-      isMemberNumberMissingWhenMember({
-        purchaserIsMember: true,
-        claimedMemberNumber: undefined,
-      }),
-    ).toBe(true);
-  });
+  it('rejects holder with invalid holderWhatsapp', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '123' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holderWhatsapp')).toBe(true)
+    }
+  })
 
-  it("is false when not member", () => {
-    expect(
-      isMemberNumberMissingWhenMember({
-        purchaserIsMember: false,
-        claimedMemberNumber: "",
+  it('rejects empty holderName', () => {
+    const r = holderSchema.safeParse({ holderName: '', holderWhatsapp: '08123456789' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues[0]?.path[0]).toBe('holderName')
+    }
+  })
+
+  it('trims whitespace-only holderName', () => {
+    const r = holderSchema.safeParse({ holderName: '   ', holderWhatsapp: '08123456789' })
+    expect(r.success).toBe(false)
+  })
+
+  it('accepts optional claimedMemberNumber for non-member', () => {
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '08123456789',
+      claimedMemberNumber: 'CISC-001',
+    })
+    expect(r.success).toBe(true)
+  })
+
+  it('requires claimedMemberNumber when memberType is regional', () => {
+    const r = holderSchema.safeParse({ holderName: 'Budi', holderWhatsapp: '08123456789', memberType: 'regional' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'claimedMemberNumber')).toBe(true)
+    }
+  })
+
+  it('accepts regional memberType with claimedMemberNumber filled', () => {
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '08123456789',
+      memberType: 'regional',
+      claimedMemberNumber: 'REG-001',
+    })
+    expect(r.success).toBe(true)
+  })
+})
+
+describe('submitRegistrationSchema', () => {
+  it('accepts a valid payload with 1 holder', () => {
+    const r = submitRegistrationSchema.safeParse(validPayload())
+    expect(r.success).toBe(true)
+  })
+
+  it('rejects missing ticketCategoryId', () => {
+    const r = submitRegistrationSchema.safeParse(validPayload({ ticketCategoryId: '' }))
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'ticketCategoryId')).toBe(true)
+    }
+  })
+
+  it('rejects ticketQty < 1', () => {
+    const r = submitRegistrationSchema.safeParse(validPayload({ ticketQty: 0 }))
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'ticketQty')).toBe(true)
+    }
+  })
+
+  it('rejects empty holders array', () => {
+    const r = submitRegistrationSchema.safeParse(validPayload({ holders: [] }))
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holders')).toBe(true)
+    }
+  })
+
+  it('accepts multiple holders each with valid WA', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        ticketQty: 2,
+        holders: [
+          { holderName: 'Budi', holderWhatsapp: '08123456789', claimedMemberNumber: 'CISC-001' },
+          { holderName: 'Rina', holderWhatsapp: '08198765432' },
+        ],
       }),
-    ).toBe(false);
-  });
+    )
+    expect(r.success).toBe(true)
+  })
 
-  it("is false when member with non-empty number", () => {
-    expect(
-      isMemberNumberMissingWhenMember({
-        purchaserIsMember: true,
-        claimedMemberNumber: "CISC-1",
+  it('rejects secondary holder missing holderWhatsapp', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        ticketQty: 2,
+        holders: [{ holderName: 'Budi', holderWhatsapp: '08123456789' }, { holderName: 'Rina' }],
       }),
-    ).toBe(false);
-  });
+    )
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
+    }
+  })
 
-  it("is false when member uses management public code instead of number", () => {
-    expect(
-      isMemberNumberMissingWhenMember({
-        purchaserIsMember: true,
-        claimedMemberNumber: "",
-        managementPublicCode: "ABC",
+  it('rejects secondary holder with invalid holderWhatsapp', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        ticketQty: 2,
+        holders: [
+          { holderName: 'Budi', holderWhatsapp: '08123456789' },
+          { holderName: 'Rina', holderWhatsapp: '123' },
+        ],
       }),
-    ).toBe(false);
-  });
-});
-
-describe("createSubmitRegistrationFormSchema purchaserIsMember", () => {
-  const schema = createSubmitRegistrationFormSchema(mandatoryCtx);
-
-  it("rejects member status without claimed member number", () => {
-    const r = schema.safeParse(
-      minimalPayload({ purchaserIsMember: true }),
-    );
-    expect(r.success).toBe(false);
-    if (r.success) return;
-    const paths = r.error.issues.map((i) => i.path[0]);
-    expect(paths).toContain("claimedMemberNumber");
-    const claimedIssue = r.error.issues.find(
-      (i) => i.path[0] === "claimedMemberNumber",
-    );
-    expect(claimedIssue?.message).toMatch(/nomor member|kode pengurus/i);
-  });
-
-  it("rejects claimed number when not member", () => {
-    const r = schema.safeParse(
-      minimalPayload({
-        claimedMemberNumber: "CISC-TEST",
-      }),
-    );
-    expect(r.success).toBe(false);
-    if (r.success) return;
-    const paths = r.error.issues.map((i) => i.path[0]);
-    expect(paths).toContain("claimedMemberNumber");
-  });
-
-  it("rejects member card upload when not member", () => {
-    const r = schema.safeParse(
-      minimalPayload({
-        memberCardPhoto: transferProofFile(),
-      }),
-    );
-    expect(r.success).toBe(false);
-    if (r.success) return;
-    const paths = r.error.issues.map((i) => i.path[0]);
-    expect(paths).toContain("memberCardPhoto");
-  });
-
-  it("accepts member with claimed number and card photo", () => {
-    const r = schema.safeParse(
-      minimalPayload({
-        purchaserIsMember: true,
-        claimedMemberNumber: "CISC-OK",
-        memberCardPhoto: transferProofFile(),
-      }),
-    );
-    expect(r.success).toBe(true);
-  });
-});
+    )
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
+    }
+  })
+})

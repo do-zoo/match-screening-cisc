@@ -1,646 +1,200 @@
-"use client";
+'use client'
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
-import { type Resolver, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useCallback, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { FormProvider, useFieldArray, useForm, type Resolver } from 'react-hook-form'
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/field";
-import { submitRegistration } from "@/lib/actions/submit-registration";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
-import type { ActionResult } from "@/lib/forms/action-result";
-import {
-  phoneValueToStoredString,
-  stringToPhoneValue,
-} from "@/lib/forms/phone-value-string";
-import {
-  createSubmitRegistrationFormSchema,
-  isMemberCardPhotoMissingWhenRequired,
-  isMemberNumberMissingWhenMember,
-  isPartnerMemberCardPhotoMissingWhenRequired,
-  isPartnerMemberNumberMissingWhenPartnerMember,
-  MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
-  MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
-  MEMBER_IDENTITY_NUMBER_OR_CODE_MESSAGE,
-  MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
-  type SubmitRegistrationInput,
-} from "@/lib/forms/submit-registration-schema";
+import { submitRegistration } from '@/lib/actions/submit-registration'
+import { toastActionErr } from '@/lib/client/cud-notify'
+import { submitRegistrationSchema, type SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
 
-import { MandatoryMenuSelection } from "./mandatory-menu-selection";
-import { PartnerTicketSection } from "./partner-ticket-section";
-import { PaymentSection } from "./payment-section";
-import { PurchaserInfoSection } from "./purchaser-info-section";
-import { RegistrationProgressStepper } from "./registration-progress-stepper";
-import {
-  buildRegistrationSteps,
-  getTriggerFieldsForStep,
-  type RegistrationStepId,
-  registrationStepTitle,
-  resolveActiveStepAfterStepsChange,
-} from "./registration-steps";
-import type { RegistrationFormProps } from "./types";
-import { usePartnerMemberNumberValidation } from "./use-partner-member-number-validation";
-import { usePricingPreview } from "./use-pricing-preview";
-import { usePrimaryPurchaserIdentityGate } from "./use-primary-purchaser-identity-gate";
-
-function serverFieldErrorsToStepHint(
-  fe: Record<string, string>,
-): RegistrationStepId {
-  if (fe.transferProof) return "payment";
-  if (fe.primaryMandatoryMenuItemId || fe.partnerMandatoryMenuItemId)
-    return "menu";
-  if (
-    fe.partnerMemberCardPhoto ||
-    fe.partnerMemberNumber ||
-    fe.partnerWhatsapp ||
-    fe.partnerName ||
-    fe.partnerIsMember
-  ) {
-    return "partner";
-  }
-  if (
-    fe.memberCardPhoto ||
-    fe.claimedMemberNumber ||
-    fe.managementPublicCode ||
-    fe.purchaserIsMember
-  ) {
-    return "purchaser";
-  }
-  if (fe.contactName || fe.contactWhatsapp) return "purchaser";
-  return "payment";
-}
+import { StepIndicator } from './step-indicator'
+import { StepOne } from './step-one'
+import { StepTwo } from './step-two'
+import { usePricingPreview } from './use-pricing-preview'
+import type { RegistrationFormProps } from './types'
 
 export function RegistrationForm({ event }: RegistrationFormProps) {
-  const router = useRouter();
-
-  const schema = useMemo(
-    () =>
-      createSubmitRegistrationFormSchema({
-        mandatoryMenuItemIds: event.mandatoryMenuItemIds,
-      }),
-    [event.mandatoryMenuItemIds],
-  );
+  const router = useRouter()
+  const [step, setStep] = useState<1 | 2>(1)
+  const [memberCardFiles, setMemberCardFiles] = useState<Map<number, File>>(new Map())
+  const [missingFileIndices, setMissingFileIndices] = useState<Set<number>>(new Set())
 
   const form = useForm<SubmitRegistrationInput>({
-    resolver: zodResolver(schema as never) as Resolver<SubmitRegistrationInput>,
+    resolver: zodResolver(submitRegistrationSchema as never) as Resolver<SubmitRegistrationInput>,
     defaultValues: {
-      slug: event.slug,
-      purchaserIsMember: false,
-      contactName: "",
-      contactWhatsapp: "",
-      claimedMemberNumber: undefined,
-      managementPublicCode: "",
-      qtyPartner: 0,
-      partnerIsMember: false,
-      partnerName: "",
-      partnerWhatsapp: "",
-      partnerMemberNumber: "",
-      partnerMemberCardPhoto: undefined,
-      primaryMandatoryMenuItemId: event.mandatoryMenuItems[0]?.id ?? "",
-      partnerMandatoryMenuItemId: "",
-      transferProof: undefined,
-      memberCardPhoto: undefined,
+      ticketCategoryId: event.ticketCategories?.[0]?.id ?? '',
+      ticketQty: 1,
+      holders: [{ holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
     },
-    mode: "onChange",
-  });
+  })
 
-  const watched = useWatch({ control: form.control });
-  const primaryMenuId = String(watched.primaryMandatoryMenuItemId ?? "").trim();
-  const partnerMenuId = String(watched.partnerMandatoryMenuItemId ?? "").trim();
-  const claimedMemberTrim = String(watched.claimedMemberNumber ?? "").trim();
-  const managementCodeTrim = String(watched.managementPublicCode ?? "").trim();
-  const primaryIdentityTrim =
-    claimedMemberTrim.length > 0 ? claimedMemberTrim : managementCodeTrim;
+  const { fields, replace } = useFieldArray({ control: form.control, name: 'holders' })
 
-  const {
-    effectivePartnerGate,
-    effectiveManagementCodeGate,
-    directoryVerifiedByCode,
-    showPartnerByNumber,
-  } = usePrimaryPurchaserIdentityGate(form, event.slug, primaryIdentityTrim);
+  const [holderValidations, setHolderValidations] = useState<('valid' | 'invalid' | 'unknown')[]>(() =>
+    Array(1).fill('unknown'),
+  )
 
-  const showPartnerSection = showPartnerByNumber || directoryVerifiedByCode;
+  const handleValidationChange = useCallback((index: number, validation: 'valid' | 'invalid' | 'unknown') => {
+    setHolderValidations(prev => {
+      if (prev[index] === validation) return prev
+      const next = [...prev]
+      next[index] = validation
+      return next
+    })
+  }, [])
 
-  const { effectivePartnerMemberGate } = usePartnerMemberNumberValidation(
-    form,
-    event.slug,
-    showPartnerSection,
-  );
-
-  const steps = useMemo(
-    () => buildRegistrationSteps(showPartnerSection),
-    [showPartnerSection],
-  );
-
-  const [userStepId, setUserStepId] = useState<RegistrationStepId>("purchaser");
-  const activeStepId = useMemo(
-    () => resolveActiveStepAfterStepsChange(userStepId, steps),
-    [userStepId, steps],
-  );
-
-  const activeIndex = Math.max(0, steps.indexOf(activeStepId));
-  const isLastStep = activeIndex === steps.length - 1;
-  const qtyPartner = watched.qtyPartner ?? 0;
-  const purchaserIsMember = Boolean(watched.purchaserIsMember);
-  const partnerMemberTrim = String(watched.partnerMemberNumber ?? "").trim();
-  const partnerIsMemberWatch = Boolean(watched.partnerIsMember);
-
-  const partnerDirectoryVerified = useMemo(
-    () =>
-      qtyPartner === 1 &&
-      partnerIsMemberWatch &&
-      partnerMemberTrim.length > 0 &&
-      effectivePartnerMemberGate.status === "ready" &&
-      effectivePartnerMemberGate.found &&
-      effectivePartnerMemberGate.seatForEvent === "available" &&
-      effectivePartnerMemberGate.forTrim === partnerMemberTrim,
-    [
-      effectivePartnerMemberGate,
-      partnerMemberTrim,
-      partnerIsMemberWatch,
-      qtyPartner,
-    ],
-  );
-
-  const directoryVerified = useMemo(() => {
-    const numberPath =
-      purchaserIsMember &&
-      claimedMemberTrim.length > 0 &&
-      effectivePartnerGate.status === "ready" &&
-      effectivePartnerGate.found &&
-      effectivePartnerGate.seatForEvent === "available" &&
-      effectivePartnerGate.forTrim === claimedMemberTrim;
-    return numberPath || directoryVerifiedByCode;
-  }, [
-    purchaserIsMember,
-    claimedMemberTrim,
-    effectivePartnerGate,
-    directoryVerifiedByCode,
-  ]);
-
-  const pricingPreview = usePricingPreview(
-    event,
-    primaryMenuId || undefined,
-    partnerMenuId || undefined,
-    watched.claimedMemberNumber,
-    watched.qtyPartner,
-    watched.partnerIsMember,
-    watched.managementPublicCode,
-  );
-
-  const goNext = useCallback(async () => {
-    const stepId = steps[activeIndex];
-    if (!stepId) return;
-    const fields = getTriggerFieldsForStep(stepId, qtyPartner, {
-      purchaserIsMember,
-      directoryVerified,
-      partnerIsMember: partnerIsMemberWatch,
-      partnerDirectoryVerified,
-    });
-    const ok =
-      fields.length === 0 ||
-      (await form.trigger(fields as (keyof SubmitRegistrationInput)[], {
-        shouldFocus: true,
-      }));
-    if (!ok) return;
-    /** Subset `trigger` tidak selalu menegakkan `superRefine` kombinasi member + nomor. */
-    if (
-      stepId === "purchaser" &&
-      isMemberNumberMissingWhenMember(form.getValues())
-    ) {
-      form.setError("claimedMemberNumber", {
-        type: "custom",
-        message: MEMBER_IDENTITY_NUMBER_OR_CODE_MESSAGE,
-      });
-      void form.setFocus("claimedMemberNumber");
-      return;
-    }
-    /** Zod tidak mengetahui hasil direktori / kode; jangan lolos tanpa verified jika identitas diisi. */
-    if (
-      stepId === "purchaser" &&
-      purchaserIsMember &&
-      primaryIdentityTrim.length > 0 &&
-      !directoryVerified
-    ) {
-      const stillChecking =
-        (claimedMemberTrim.length > 0 &&
-          effectivePartnerGate.status === "checking") ||
-        (managementCodeTrim.length > 0 &&
-          claimedMemberTrim.length === 0 &&
-          effectiveManagementCodeGate.status === "checking");
-      if (stillChecking) return;
-      if (
-        form.getFieldState("claimedMemberNumber", form.formState).error ||
-        form.getFieldState("managementPublicCode", form.formState).error
-      ) {
-        void form.setFocus("claimedMemberNumber");
-        return;
+  const handleMemberCardFileChange = useCallback((index: number, file: File | undefined) => {
+    setMemberCardFiles(prev => {
+      const next = new Map(prev)
+      if (file) {
+        next.set(index, file)
+      } else {
+        next.delete(index)
       }
-      form.setError("claimedMemberNumber", {
-        type: "custom",
-        message:
-          "Tunggu hingga identitas dikenali atau perbaiki nomor / kode Anda sebelum melanjutkan.",
-      });
-      void form.setFocus("claimedMemberNumber");
-      return;
+      return next
+    })
+    if (file) {
+      setMissingFileIndices(prev => {
+        if (!prev.has(index)) return prev
+        const next = new Set(prev)
+        next.delete(index)
+        return next
+      })
     }
-    /** Subset `trigger` tidak selalu membawa error superRefine untuk file kondisional — selaraskan dengan skema Zod. */
-    if (
-      stepId === "purchaser" &&
-      isMemberCardPhotoMissingWhenRequired(form.getValues())
-    ) {
-      form.setError("memberCardPhoto", {
-        type: "custom",
-        message: MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
-      });
-      void form.setFocus("memberCardPhoto");
-      return;
+  }, [])
+
+  const selectedCategoryId = form.watch('ticketCategoryId')
+  const ticketQty = form.watch('ticketQty')
+  const holders = form.watch('holders')
+
+  const selectedCategory = useMemo(
+    () => event.ticketCategories?.find(c => c.id === selectedCategoryId),
+    [event.ticketCategories, selectedCategoryId],
+  )
+
+  const pricingHolders = event.requireAllHolderData
+    ? holders
+    : Array.from(
+        { length: ticketQty },
+        () => holders[0] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      )
+  const pricingValidations = event.requireAllHolderData
+    ? holderValidations
+    : Array.from({ length: ticketQty }, () => holderValidations[0] ?? ('unknown' as const))
+
+  const pricing = usePricingPreview({
+    category: selectedCategory,
+    holders: pricingHolders,
+    holderValidations: pricingValidations,
+  })
+
+  function handleQtyChange(qty: number) {
+    form.setValue('ticketQty', qty)
+    if (event.requireAllHolderData) {
+      const current = form.getValues('holders')
+      const next = Array.from(
+        { length: qty },
+        (_, i) =>
+          current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      )
+      replace(next)
+      setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
     }
-    if (
-      stepId === "partner" &&
-      isPartnerMemberNumberMissingWhenPartnerMember(form.getValues())
-    ) {
-      form.setError("partnerMemberNumber", {
-        type: "custom",
-        message: MEMBER_NUMBER_REQUIRED_WHEN_PARTNER_IS_MEMBER_MESSAGE,
-      });
-      void form.setFocus("partnerMemberNumber");
-      return;
-    }
-    if (
-      stepId === "partner" &&
-      qtyPartner === 1 &&
-      partnerIsMemberWatch &&
-      partnerMemberTrim.length > 0 &&
-      !partnerDirectoryVerified
-    ) {
-      if (effectivePartnerMemberGate.status === "checking") return;
-      if (form.getFieldState("partnerMemberNumber", form.formState).error) {
-        void form.setFocus("partnerMemberNumber");
-        return;
-      }
-      form.setError("partnerMemberNumber", {
-        type: "custom",
-        message:
-          "Tunggu hingga nomor dikenali atau perbaiki nomor member partner sebelum melanjutkan.",
-      });
-      void form.setFocus("partnerMemberNumber");
-      return;
-    }
-    if (
-      stepId === "partner" &&
-      isPartnerMemberCardPhotoMissingWhenRequired(form.getValues())
-    ) {
-      form.setError("partnerMemberCardPhoto", {
-        type: "custom",
-        message: MEMBER_CARD_REQUIRED_WHEN_NUMBER_MESSAGE,
-      });
-      void form.setFocus("partnerMemberCardPhoto");
-      return;
-    }
-    const next = steps[activeIndex + 1];
-    if (next) setUserStepId(next);
-  }, [
-    steps,
-    activeIndex,
-    form,
-    qtyPartner,
-    purchaserIsMember,
-    directoryVerified,
-    effectivePartnerGate.status,
-    claimedMemberTrim,
-    managementCodeTrim,
-    primaryIdentityTrim,
-    effectiveManagementCodeGate.status,
-    partnerMemberTrim,
-    partnerDirectoryVerified,
-    partnerIsMemberWatch,
-    effectivePartnerMemberGate,
-  ]);
+  }
 
-  const goBack = useCallback(() => {
-    const prev = steps[activeIndex - 1];
-    if (prev) setUserStepId(prev);
-  }, [steps, activeIndex]);
+  async function handleNext() {
+    const valid = await form.trigger()
+    if (!valid) return
 
-  const stepProgressMeta = useMemo(
-    () =>
-      steps.map((id) => ({
-        id,
-        title: registrationStepTitle(id),
-      })),
-    [steps],
-  );
-
-  const navigateToPastStepIndex = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= activeIndex) return;
-      const id = steps[index];
-      if (id) setUserStepId(id);
-    },
-    [steps, activeIndex],
-  );
-
-  async function submitForm(values: SubmitRegistrationInput) {
-    if (!event.registrationOpen) return;
-
-    const claimedTrim = String(values.claimedMemberNumber ?? "").trim();
-    if (
-      values.purchaserIsMember &&
-      claimedTrim.length > 0 &&
-      effectivePartnerGate.status === "ready" &&
-      effectivePartnerGate.found &&
-      effectivePartnerGate.seatForEvent === "taken" &&
-      effectivePartnerGate.forTrim === claimedTrim
-    ) {
-      form.setError("claimedMemberNumber", {
-        message: MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
-      });
-      void form.setFocus("claimedMemberNumber");
-      setUserStepId(resolveActiveStepAfterStepsChange("purchaser", steps));
-      return;
+    const currentHolders = form.getValues('holders')
+    const missingIndices = currentHolders
+      .map((h, i) => (h.memberType === 'regional' && !memberCardFiles.has(i) ? i : -1))
+      .filter(i => i !== -1)
+    if (missingIndices.length > 0) {
+      setMissingFileIndices(new Set(missingIndices))
+      form.setError('root', {
+        message: 'Upload bukti kartu member untuk semua peserta Member CISC Regional sebelum melanjutkan.',
+      })
+      return
     }
 
-    const partnerTrimSubmit = String(values.partnerMemberNumber ?? "").trim();
-    if (
-      values.qtyPartner === 1 &&
-      values.partnerIsMember &&
-      partnerTrimSubmit.length > 0 &&
-      effectivePartnerMemberGate.status === "checking"
-    ) {
-      form.setError("partnerMemberNumber", {
-        type: "custom",
-        message:
-          "Tunggu hingga validasi nomor member partner selesai, lalu coba lagi.",
-      });
-      void form.setFocus("partnerMemberNumber");
-      setUserStepId(resolveActiveStepAfterStepsChange("partner", steps));
-      return;
-    }
-    if (
-      values.qtyPartner === 1 &&
-      values.partnerIsMember &&
-      partnerTrimSubmit.length > 0 &&
-      effectivePartnerMemberGate.status === "ready" &&
-      effectivePartnerMemberGate.found &&
-      effectivePartnerMemberGate.seatForEvent === "taken" &&
-      effectivePartnerMemberGate.forTrim === partnerTrimSubmit
-    ) {
-      form.setError("partnerMemberNumber", {
-        message: MEMBER_ALREADY_REGISTERED_FOR_EVENT_MESSAGE,
-      });
-      void form.setFocus("partnerMemberNumber");
-      setUserStepId(resolveActiveStepAfterStepsChange("partner", steps));
-      return;
+    setMissingFileIndices(new Set())
+    form.clearErrors('root')
+    setStep(2)
+  }
+
+  async function onSubmit(values: SubmitRegistrationInput) {
+    // Validate regional files again at submit (defensive)
+    const missingFile = values.holders.some((h, i) => h.memberType === 'regional' && !memberCardFiles.has(i))
+    if (missingFile) {
+      form.setError('root', {
+        message: 'Upload bukti kartu member untuk semua peserta Member CISC Regional.',
+      })
+      return
     }
 
-    const fd = new FormData();
-    fd.set("slug", values.slug);
-    fd.set("purchaserIsMember", values.purchaserIsMember ? "1" : "0");
-    fd.set("contactName", values.contactName);
-    fd.set(
-      "contactWhatsapp",
-      phoneValueToStoredString(
-        stringToPhoneValue(String(values.contactWhatsapp ?? "")),
-      ),
-    );
+    const formData = new FormData()
+    formData.append('ticketCategoryId', values.ticketCategoryId)
+    formData.append('ticketQty', String(values.ticketQty))
+    formData.append('holders', JSON.stringify(values.holders))
 
-    fd.set("claimedMemberNumber", values.claimedMemberNumber?.trim() ?? "");
-    fd.set("managementPublicCode", values.managementPublicCode?.trim() ?? "");
-    fd.set("qtyPartner", String(values.qtyPartner));
+    // Append member card photos for regional holders
+    memberCardFiles.forEach((file, index) => {
+      formData.append(`memberCardPhoto_${index}`, file)
+    })
 
-    fd.set("partnerIsMember", values.partnerIsMember ? "1" : "0");
-    fd.set("partnerName", values.partnerName?.trim() ?? "");
-    fd.set(
-      "partnerWhatsapp",
-      phoneValueToStoredString(
-        stringToPhoneValue(String(values.partnerWhatsapp ?? "").trim()),
-      ),
-    );
-    fd.set("partnerMemberNumber", values.partnerMemberNumber?.trim() ?? "");
-
-    fd.set("primaryMandatoryMenuItemId", values.primaryMandatoryMenuItemId);
-    if (values.qtyPartner === 1 && values.partnerMandatoryMenuItemId) {
-      fd.set(
-        "partnerMandatoryMenuItemId",
-        values.partnerMandatoryMenuItemId.trim(),
-      );
-    }
-
-    fd.set("transferProof", values.transferProof);
-    if (values.memberCardPhoto) {
-      fd.set("memberCardPhoto", values.memberCardPhoto);
-    }
-    if (values.partnerMemberCardPhoto) {
-      fd.set("partnerMemberCardPhoto", values.partnerMemberCardPhoto);
-    }
-
-    const result: ActionResult<{ registrationId: string }> =
-      await submitRegistration(null, fd);
-
+    const result = await submitRegistration(event.id, formData)
     if (result.ok) {
-      toastCudSuccess("create", "Pendaftaran berhasil dikirim.");
-      router.push(
-        `/events/${event.slug}/register/${result.data.registrationId}`,
-      );
-      return;
+      router.push(`/events/${event.slug}/register/${result.data.registrationId}`)
+      return
     }
 
-    toastActionErr(result);
-
-    form.clearErrors("root.server");
-    form.clearErrors([
-      "slug",
-      "purchaserIsMember",
-      "claimedMemberNumber",
-      "managementPublicCode",
-      "transferProof",
-      "memberCardPhoto",
-      "partnerIsMember",
-      "partnerName",
-      "partnerWhatsapp",
-      "partnerMemberNumber",
-      "partnerMemberCardPhoto",
-      "primaryMandatoryMenuItemId",
-      "partnerMandatoryMenuItemId",
-    ]);
-
-    if (result.rootError) {
-      form.setError("root.server", { message: result.rootError });
-    }
-
-    const fe = result.fieldErrors;
-    if (!fe) return;
-
-    for (const [key, msg] of Object.entries(fe)) {
-      form.setError(key as keyof SubmitRegistrationInput, { message: msg });
-    }
-
-    const hint = serverFieldErrorsToStepHint(fe);
-    setUserStepId(resolveActiveStepAfterStepsChange(hint, steps));
-    void form.trigger(undefined, { shouldFocus: true });
+    toastActionErr(result)
+    if (result.rootError) form.setError('root', { message: result.rootError })
   }
 
   return (
-    <form
-      className="mx-auto flex w-full max-w-2xl flex-col gap-4 md:p-6"
-      encType="multipart/form-data"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!isLastStep) return;
-        void form.handleSubmit(submitForm)(e);
-      }}
-    >
-      <input type="hidden" name="slug" value={event.slug} readOnly />
-      {form.formState.errors.slug ? (
-        <FieldError errors={[form.formState.errors.slug]} />
-      ) : null}
+    <FormProvider {...form}>
+      <form className='mx-auto flex w-full max-w-2xl flex-col gap-6' onSubmit={form.handleSubmit(onSubmit)}>
+        <StepIndicator current={step} />
 
-      {event.registrationClosedMessage ? (
-        <Alert>
-          <AlertTitle>Pendaftaran ditutup</AlertTitle>
-          <AlertDescription>{event.registrationClosedMessage}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <fieldset
-        disabled={!event.registrationOpen}
-        className="min-w-0 space-y-5 border-0 p-0"
-      >
-        <legend className="sr-only">Formulir pendaftaran berjenjang</legend>
-
-        <div
-          className="rounded-xl border border-border bg-card/80 px-5 py-5 shadow-sm ring-1 ring-border/80 backdrop-blur-[2px] space-y-4"
-          aria-live="polite"
+        <fieldset
+          disabled={!event.registrationOpen || form.formState.isSubmitting}
+          className='min-w-0 space-y-6 border-0 p-0'
         >
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="sr-only">
-                Sekarang mengisi langkah berjudul{" "}
-                {registrationStepTitle(activeStepId)}.
-              </span>
-            </div>
-            <RegistrationProgressStepper
-              steps={stepProgressMeta}
-              activeIndex={activeIndex}
-              allowNavigateToPastSteps
-              onNavigateToStepIndex={navigateToPastStepIndex}
+          <legend className='sr-only'>Formulir pendaftaran acara</legend>
+
+          {step === 1 && (
+            <StepOne
+              event={event}
+              fields={fields}
+              ticketQty={ticketQty}
+              selectedCategoryId={selectedCategoryId}
+              pricing={pricing}
+              missingFileIndices={missingFileIndices}
+              onValidationChange={handleValidationChange}
+              onMemberCardFileChange={handleMemberCardFileChange}
+              onQtyChange={handleQtyChange}
+              onNext={handleNext}
             />
-            <h2
-              id="ms-registration-step-heading"
-              className="scroll-mt-24 text-xl font-semibold tracking-tight text-foreground"
-            >
-              {registrationStepTitle(activeStepId)}
-            </h2>
-          </div>
-          {steps.map((stepId) => {
-            const active = stepId === activeStepId;
-            return (
-              <div
-                key={stepId}
-                id={`ms-reg-step-${stepId}`}
-                hidden={!active}
-                className="min-w-0"
-                {...(active
-                  ? { "aria-labelledby": "ms-registration-step-heading" }
-                  : {})}
-              >
-                {stepId === "purchaser" ? (
-                  <PurchaserInfoSection
-                    control={form.control}
-                    setValue={form.setValue}
-                    clearErrors={form.clearErrors}
-                    claimedMemberTrim={claimedMemberTrim}
-                    managementCodeTrim={managementCodeTrim}
-                    effectivePartnerGate={effectivePartnerGate}
-                    effectiveManagementCodeGate={effectiveManagementCodeGate}
-                    directoryVerifiedByCode={directoryVerifiedByCode}
-                  />
-                ) : null}
-                {stepId === "partner" ? (
-                  <PartnerTicketSection
-                    control={form.control}
-                    setValue={form.setValue}
-                    clearErrors={form.clearErrors}
-                    showPartnerSection={showPartnerSection}
-                    qtyPartner={watched.qtyPartner}
-                    partnerIsMember={partnerIsMemberWatch}
-                    partnerDirectoryVerified={partnerDirectoryVerified}
-                    effectivePartnerMemberGate={effectivePartnerMemberGate}
-                  />
-                ) : null}
-                {stepId === "menu" ? (
-                  <div className="space-y-8">
-                    <MandatoryMenuSelection
-                      control={form.control}
-                      event={event}
-                      fieldName="primaryMandatoryMenuItemId"
-                      label="Menu wajib — pemesan utama"
-                    />
-                    {showPartnerSection && watched.qtyPartner === 1 ? (
-                      <MandatoryMenuSelection
-                        control={form.control}
-                        event={event}
-                        fieldName="partnerMandatoryMenuItemId"
-                        label="Menu wajib — tiket partner"
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-                {stepId === "payment" ? (
-                  <PaymentSection
-                    control={form.control}
-                    event={event}
-                    pricingPreview={pricingPreview}
-                  />
-                ) : null}
-              </div>
-            );
-          })}
+          )}
 
-          {form.formState.errors.root?.server ? (
-            <FieldError errors={[form.formState.errors.root.server]} />
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-3 border-t border-border/80 pt-5 sm:grid-cols-2">
-            {!isLastStep ? (
-              <Button
-                type="button"
-                className="order-1 min-h-12 w-full sm:order-2 sm:justify-center"
-                disabled={!event.registrationOpen}
-                onClick={() => void goNext()}
-              >
-                Lanjut
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                className="order-1 min-h-12 w-full sm:order-2 sm:justify-center"
-                disabled={
-                  !event.registrationOpen || form.formState.isSubmitting
-                }
-              >
-                {form.formState.isSubmitting
-                  ? "Mengirim…"
-                  : "Kirim pendaftaran"}
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              className="order-2 min-h-12 w-full sm:order-1 sm:justify-center"
-              disabled={!event.registrationOpen || activeIndex === 0}
-              onClick={goBack}
-            >
-              Kembali
-            </Button>
-          </div>
-        </div>
-      </fieldset>
-    </form>
-  );
+          {step === 2 && (
+            <StepTwo
+              event={event}
+              selectedCategory={selectedCategory}
+              pricing={pricing}
+              holders={holders}
+              onBack={() => setStep(1)}
+              isSubmitting={form.formState.isSubmitting}
+            />
+          )}
+        </fieldset>
+      </form>
+    </FormProvider>
+  )
 }
 
-export default RegistrationForm;
+export default RegistrationForm

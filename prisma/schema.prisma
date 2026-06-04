@@ -37,15 +37,9 @@ enum MemberValidation {
   overridden
 }
 
-enum TicketRole {
-  primary
-  partner
-}
-
-enum TicketPriceType {
-  member
-  non_member
-  privilege_partner_member_price
+enum MemberType {
+  tangsel
+  regional
 }
 
 enum InvoiceAdjustmentType {
@@ -112,6 +106,7 @@ model MasterMember {
   updatedAt DateTime @updatedAt
 
   registrations          Registration[]
+  registrationHolders    RegistrationHolder[]
   managementMemberRecord ManagementMember?
 }
 
@@ -159,7 +154,6 @@ model ManagementMember {
   updatedAt DateTime @updatedAt
 
   assignments            BoardAssignment[]
-  registrationsAsPrimary Registration[]
   adminProfile           AdminProfile?
 }
 
@@ -214,7 +208,46 @@ model Venue {
   events    Event[]
 }
 
-/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `Registration.mandatoryMenuItem`.
+model EventTicketCategory {
+  id              String   @id @default(cuid())
+  eventId         String
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name            String
+  regularPrice    Int
+  memberPrice     Int
+  maxQtyPerPerson Int?
+  capacity        Int?
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  registrations Registration[]
+
+  @@index([eventId, sortOrder])
+}
+
+model RegistrationHolder {
+  id                        String           @id @default(cuid())
+  registrationId            String
+  registration              Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sortOrder                 Int
+  holderName                String
+  holderWhatsapp            String?
+  claimedMemberNumber       String?
+  memberValidation          MemberValidation @default(unknown)
+  memberId                  String?
+  member                    MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  ticketPriceApplied        Int
+  mandatoryMenuItemId       String?
+  mandatoryMenuItem         VenueMenuItem? @relation("RegistrationHolderMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
+  mandatoryMenuPriceApplied Int?
+  memberType                MemberType?
+  uploads                   Upload[]
+
+  @@index([registrationId])
+}
+
+/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `RegistrationHolder.mandatoryMenuItem`.
 model VenueMenuItem {
   id            String   @id @default(cuid())
   venueId       String
@@ -229,8 +262,8 @@ model VenueMenuItem {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  eventVenueLinks            EventVenueMenuItem[]
-  registrationsMandatoryMenu Registration[]       @relation("RegistrationMandatoryMenu")
+  eventVenueLinks                  EventVenueMenuItem[]
+  registrationHoldersMandatoryMenu RegistrationHolder[] @relation("RegistrationHolderMandatoryMenu")
 
   @@index([venueId])
 }
@@ -268,12 +301,9 @@ model Event {
   kickOffAt           DateTime
 
   registrationManualClosed Boolean     @default(false)
-  registrationCapacity     Int?
   status                   EventStatus @default(draft)
-
-  // Updated: pricing is required (no global defaults)
-  ticketMemberPrice    Int
-  ticketNonMemberPrice Int
+  multiCategoryPurchase    Boolean     @default(false)
+  requireAllHolderData     Boolean     @default(true)
 
   // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
   mandatoryMenuItemIds String[] @default([])
@@ -291,6 +321,7 @@ model Event {
   registrations       Registration[]
   eventVenueMenuItems EventVenueMenuItem[]
   settlementArtifacts EventSettlementArtifact[]
+  ticketCategories    EventTicketCategory[]
 
   @@index([status, kickOffAt])
   @@index([venueId])
@@ -316,6 +347,11 @@ model Registration {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
+  ticketCategoryId String
+  ticketCategory   EventTicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Restrict)
+  /// Total tiket dalam transaksi ini; jumlah RegistrationHolder rows harus sama.
+  ticketQty        Int                 @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -327,18 +363,7 @@ model Registration {
   memberId            String?
   member              MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
-  primaryRegistrationId String?
-  primaryRegistration   Registration?  @relation("PartnerLink", fields: [primaryRegistrationId], references: [id], onDelete: Cascade)
-  partnerRegistrations  Registration[] @relation("PartnerLink")
-
-  ticketRole          TicketRole
-  ticketPriceType     TicketPriceType
-  mandatoryMenuItemId String
-  mandatoryMenuItem   VenueMenuItem   @relation("RegistrationMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
-
-  ticketPriceApplied        Int
-  mandatoryMenuPriceApplied Int
-  computedTotalAtSubmit     Int
+  computedTotalAtSubmit Int
 
   status           RegistrationStatus @default(submitted)
   attendanceStatus AttendanceStatus   @default(unknown)
@@ -348,14 +373,10 @@ model Registration {
 
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
-
-  primaryManagementMemberId   String?
-  primaryManagementMember     ManagementMember? @relation(fields: [primaryManagementMemberId], references: [id], onDelete: SetNull)
-  claimedManagementPublicCode String?
+  holders     RegistrationHolder[]
 
   @@index([eventId, createdAt])
   @@index([status])
-  @@index([primaryRegistrationId])
   @@index([attendanceStatus])
 }
 
@@ -403,11 +424,15 @@ model Upload {
   invoiceAdjustmentId String?
   invoiceAdjustment   InvoiceAdjustment? @relation(fields: [invoiceAdjustmentId], references: [id], onDelete: Cascade)
 
+  registrationHolderId String?
+  registrationHolder   RegistrationHolder? @relation(fields: [registrationHolderId], references: [id], onDelete: Cascade)
+
   eventSettlementArtifact EventSettlementArtifact?
 
   @@index([purpose, createdAt])
   @@index([registrationId])
   @@index([invoiceAdjustmentId])
+  @@index([registrationHolderId])
 }
 
 model ClubWaTemplate {

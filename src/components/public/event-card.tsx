@@ -1,86 +1,62 @@
-"use client";
+'use client'
 
-import GlareHover from "@/components/GlareHover";
-import type { BadgeStatus } from "@/lib/events/public-active-events";
-import { formatIdrShort } from "@/lib/utils/format-idr-short";
-import { formatIdr } from "@/lib/utils/format-idr";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
-import Link from "next/link";
+import GlareHover from '@/components/GlareHover'
+import type { BadgeStatus } from '@/lib/events/public-active-events'
+import { formatIdrShort } from '@/lib/utils/format-idr-short'
+import { formatIdr } from '@/lib/utils/format-idr'
+import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import Link from 'next/link'
 
 type EventCardProps = {
-  slug: string;
-  title: string;
-  summary: string;
-  coverBlobUrl: string;
-  venueName: string;
-  startAtIso: string;
-  ticketMemberPrice: number;
-  ticketNonMemberPrice: number;
-  registrationCapacity: number | null;
-  registrationsTowardQuota: number;
-  closeRegistrationAtIso: string;
-  badgeStatus: BadgeStatus;
-  variant?: "list" | "grid";
-};
+  slug: string
+  title: string
+  summary: string
+  coverBlobUrl: string
+  venueName: string
+  startAtIso: string
+  lowestRegularPrice: number | null
+  lowestMemberPrice: number | null
+  closeRegistrationAtIso: string
+  badgeStatus: BadgeStatus
+  variant?: 'list' | 'grid'
+}
 
-const badgeConfig: Record<
-  BadgeStatus,
-  { label: string; className: string }
-> = {
+const badgeConfig: Record<BadgeStatus, { label: string; className: string }> = {
   open: {
-    label: "Buka",
+    label: 'Buka',
     className:
-      "border-green-200 bg-green-50 text-green-950 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400",
+      'border-green-200 bg-green-50 text-green-950 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400',
   },
   closing_soon: {
-    label: "Segera Tutup",
+    label: 'Segera Tutup',
     className:
-      "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400",
+      'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400',
   },
   full: {
-    label: "Penuh",
-    className:
-      "border-red-200 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400",
+    label: 'Penuh',
+    className: 'border-red-200 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400',
   },
   closed: {
-    label: "Tutup",
+    label: 'Tutup',
     className:
-      "border-neutral-200 bg-neutral-50 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400",
+      'border-neutral-200 bg-neutral-50 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400',
   },
-};
+}
 
 function StatusBadge({ status }: { status: BadgeStatus }) {
-  const { label, className } = badgeConfig[status];
+  const { label, className } = badgeConfig[status]
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
         className,
       )}
     >
-      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+      <span className='size-1.5 rounded-full bg-current' aria-hidden='true' />
       {label}
     </span>
-  );
-}
-
-function QuotaDisplay({
-  registrationCapacity,
-  registrationsTowardQuota,
-}: {
-  registrationCapacity: number | null;
-  registrationsTowardQuota: number;
-}) {
-  if (registrationCapacity == null || registrationCapacity <= 0) {
-    return <span>∞ Tak terbatas</span>;
-  }
-  const remaining = Math.max(0, registrationCapacity - registrationsTowardQuota);
-  return (
-    <span>
-      {remaining} / {registrationCapacity} sisa
-    </span>
-  );
+  )
 }
 
 export function EventCard({
@@ -90,88 +66,68 @@ export function EventCard({
   coverBlobUrl,
   venueName,
   startAtIso,
-  ticketMemberPrice,
-  ticketNonMemberPrice,
-  registrationCapacity,
-  registrationsTowardQuota,
+  lowestRegularPrice,
+  lowestMemberPrice,
   closeRegistrationAtIso,
   badgeStatus,
-  variant = "list",
+  variant = 'list',
 }: EventCardProps) {
-  const when = new Date(startAtIso).toLocaleString("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const when = new Date(startAtIso).toLocaleString('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
 
-  const closeRegistrationDate = new Date(closeRegistrationAtIso);
-  const closeDate = closeRegistrationDate.toLocaleString("id-ID", {
-    dateStyle: "medium",
-  });
-  const closeDateShort = closeRegistrationDate.toLocaleString("id-ID", {
-    day: "numeric",
-    month: "short",
-  });
+  const closeRegistrationDate = new Date(closeRegistrationAtIso)
+  const closeDate = closeRegistrationDate.toLocaleString('id-ID', {
+    dateStyle: 'medium',
+  })
+  const closeDateShort = closeRegistrationDate.toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+  })
 
-  const radius =
-    variant === "grid" ? "var(--radius-lg)" : "calc(var(--radius-lg) - 2px)";
+  const radius = variant === 'grid' ? 'var(--radius-lg)' : 'calc(var(--radius-lg) - 2px)'
 
   const inner =
-    variant === "grid" ? (
+    variant === 'grid' ? (
       <>
-        <div className="relative aspect-1200/630 w-full shrink-0 overflow-hidden rounded-t-lg">
-          <Image
-            src={coverBlobUrl}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, 50vw"
-          />
+        <div className='relative aspect-1200/630 w-full shrink-0 overflow-hidden rounded-t-lg'>
+          <Image src={coverBlobUrl} alt='' fill className='object-cover' sizes='(max-width: 640px) 100vw, 50vw' />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col p-4">
+        <div className='flex min-w-0 flex-1 flex-col p-4'>
           {/* Title row + badge */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="font-medium leading-snug">{title}</div>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='font-medium leading-snug'>{title}</div>
             <StatusBadge status={badgeStatus} />
           </div>
           {/* Summary */}
-          <p className="mt-2 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">
-            {summary}
-          </p>
+          <p className='mt-2 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]'>{summary}</p>
           {/* Venue + kickoff */}
-          <div className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          <div className='mt-1 text-sm text-[hsl(var(--muted-foreground))]'>
             {venueName} · {when}
           </div>
           {/* Deadline */}
-          <div className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Tutup pendaftaran: {closeDate}
-          </div>
+          <div className='mt-1 text-xs text-[hsl(var(--muted-foreground))]'>Tutup pendaftaran: {closeDate}</div>
           {/* Divider */}
-          <div className="my-3 h-px bg-[hsl(var(--border))]" />
+          <div className='my-3 h-px bg-[hsl(var(--border))]' />
           {/* Price + quota row */}
-          <div className="flex items-end justify-between gap-2">
-            <div className="text-sm">
-              <div>
-                <span className="font-medium">
-                  {formatIdr(ticketMemberPrice)}
-                </span>{" "}
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                  member
-                </span>
-              </div>
-              <div>
-                <span className="font-medium">
-                  {formatIdr(ticketNonMemberPrice)}
-                </span>{" "}
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                  umum
-                </span>
-              </div>
-            </div>
-            <div className="text-right text-xs text-[hsl(var(--muted-foreground))]">
-              <QuotaDisplay
-                registrationCapacity={registrationCapacity}
-                registrationsTowardQuota={registrationsTowardQuota}
-              />
+          <div className='flex items-end justify-between gap-2'>
+            <div className='text-sm'>
+              {lowestMemberPrice != null ? (
+                <div>
+                  <span className='font-medium'>{formatIdr(lowestMemberPrice)}</span>{' '}
+                  <span className='text-xs text-[hsl(var(--muted-foreground))]'>member</span>
+                </div>
+              ) : null}
+              {lowestRegularPrice != null ? (
+                <div>
+                  <span className='font-medium'>{formatIdr(lowestRegularPrice)}</span>{' '}
+                  <span className='text-xs text-[hsl(var(--muted-foreground))]'>umum</span>
+                </div>
+              ) : null}
+              {lowestMemberPrice == null && lowestRegularPrice == null ? (
+                <span className='text-[hsl(var(--muted-foreground))]'>—</span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -180,74 +136,66 @@ export function EventCard({
       <>
         <Image
           src={coverBlobUrl}
-          alt=""
+          alt=''
           width={96}
           height={96}
-          className="size-24 shrink-0 rounded-md object-cover"
-          sizes="96px"
+          className='size-24 shrink-0 rounded-md object-cover'
+          sizes='96px'
         />
-        <div className="flex min-w-0 flex-1 flex-col text-left">
+        <div className='flex min-w-0 flex-1 flex-col text-left'>
           {/* Title row + badge */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="font-medium leading-snug">{title}</div>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='font-medium leading-snug'>{title}</div>
             <StatusBadge status={badgeStatus} />
           </div>
-          <p className="mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]">
-            {summary}
-          </p>
-          <div className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          <p className='mt-1 line-clamp-2 text-sm text-[hsl(var(--muted-foreground))]'>{summary}</p>
+          <div className='mt-1 text-sm text-[hsl(var(--muted-foreground))]'>
             {venueName} · {when}
           </div>
           {/* Divider */}
-          <div className="my-2 h-px bg-[hsl(var(--border))]" />
+          <div className='my-2 h-px bg-[hsl(var(--border))]' />
           {/* Condensed info row */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[hsl(var(--muted-foreground))]">
-            <span className="font-medium text-[hsl(var(--foreground))]">
-              {formatIdrShort(ticketMemberPrice)}/
-              {formatIdrShort(ticketNonMemberPrice)}
+          <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[hsl(var(--muted-foreground))]'>
+            <span className='font-medium text-[hsl(var(--foreground))]'>
+              {lowestMemberPrice != null
+                ? formatIdrShort(lowestMemberPrice)
+                : lowestRegularPrice != null
+                  ? formatIdrShort(lowestRegularPrice)
+                  : '—'}
             </span>
             <span>·</span>
             <span>Tutup {closeDateShort}</span>
-            <span>·</span>
-            <QuotaDisplay
-              registrationCapacity={registrationCapacity}
-              registrationsTowardQuota={registrationsTowardQuota}
-            />
           </div>
         </div>
       </>
-    );
+    )
 
   return (
     <GlareHover
-      width="100%"
-      height="100%"
-      background="hsl(var(--card))"
-      borderColor="hsl(var(--border))"
+      width='100%'
+      height='100%'
+      background='hsl(var(--card))'
+      borderColor='hsl(var(--border))'
       borderRadius={radius}
       glareOpacity={0.22}
       className={cn(
-        "flex overflow-hidden shadow-sm transition-shadow hover:shadow-md",
-        variant === "grid"
-          ? "flex-col items-stretch"
-          : "min-h-0 flex-row items-stretch",
+        'flex overflow-hidden shadow-sm transition-shadow hover:shadow-md',
+        variant === 'grid' ? 'flex-col items-stretch' : 'min-h-0 flex-row items-stretch',
       )}
       style={{
-        width: "100%",
-        minHeight: variant === "list" ? undefined : "100%",
+        width: '100%',
+        minHeight: variant === 'list' ? undefined : '100%',
       }}
     >
       <Link
         href={`/events/${slug}`}
         className={cn(
-          "relative z-1 flex text-[hsl(var(--foreground))] no-underline outline-none ring-offset-[hsl(var(--background))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]",
-          variant === "grid"
-            ? "min-h-0 w-full flex-1 flex-col"
-            : "w-full gap-4 p-3",
+          'relative z-1 flex text-[hsl(var(--foreground))] no-underline outline-none ring-offset-[hsl(var(--background))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]',
+          variant === 'grid' ? 'min-h-0 w-full flex-1 flex-col' : 'w-full gap-4 p-3',
         )}
       >
         {inner}
       </Link>
     </GlareHover>
-  );
+  )
 }

@@ -43,17 +43,17 @@ Dokumen ini melengkapi **[IA navigasi admin](2026-05-02-admin-navigation-ia-v1-d
 
 ## 3) Informasi arsitektur — navigasi & rute
 
-| Konsep | Rute canonik | Item sidebar global? |
-|--------|----------------|----------------------|
-| Akun pengguna admin | **`/admin/account`** | **Tidak** — hanya dropdown header + tautan langsung opsional bookmark. |
-| Pengaturan komite (lanjutan) | **`/admin/settings`** | **Ya** (**Pengaturan**, Owner-only) seperti IA. |
-| Redirect legacy | **`/admin/pengaturan` → `/admin/settings`**, **`/admin/anggota` → `/admin/members`** | Sudah ada di **`next.config.ts`**; dokumentasi baru tidak mengharuskan link internal memakai path legacy. |
+| Konsep                       | Rute canonik                                                                         | Item sidebar global?                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Akun pengguna admin          | **`/admin/account`**                                                                 | **Tidak** — hanya dropdown header + tautan langsung opsional bookmark.                                    |
+| Pengaturan komite (lanjutan) | **`/admin/settings`**                                                                | **Ya** (**Pengaturan**, Owner-only) seperti IA.                                                           |
+| Redirect legacy              | **`/admin/pengaturan` → `/admin/settings`**, **`/admin/anggota` → `/admin/members`** | Sudah ada di **`next.config.ts`**; dokumentasi baru tidak mengharuskan link internal memakai path legacy. |
 
-**Peran:** halaman **`/admin/account`** tersedia untuk **setiap pengguna yang lolos **`admin/layout`**** (punya **`AdminProfile`** atau konteks sama yang dipakai hari ini). Tidak ada filter role tambahan untuk membaca halaman akun pada MVP ini. Jika suatu masa **Viewer** harus dibatasi dari pengeditan nama, itu menjadi revisi eksplisit (bukan cakupan dokumen ini).
+**Peran:** halaman **`/admin/account`** tersedia untuk **setiap pengguna yang lolos **`admin/layout`\***\* (punya **`AdminProfile`** atau konteks sama yang dipakai hari ini). Tidak ada filter role tambahan untuk membaca halaman akun pada MVP ini. Jika suatu masa **Viewer\*\* harus dibatasi dari pengeditan nama, itu menjadi revisi eksplisit (bukan cakupan dokumen ini).
 
 ## 4) Pendekatan data & stack (yang disepakati)
 
-### 4.1 Tema (**disarankan: tanpa kolom baru Prisma`)
+### 4.1 Tema (\*\*disarankan: tanpa kolom baru Prisma`)
 
 - Tambah **`next-themes`** (atau setara kurang lebih setara perilaku yang disetujui tim) dengan **`ThemeProvider`** membungkus anak **`RootLayout`**.
 - Mengatur **`class`** pada **`html`** (mis. **`dark`**) dan opsi penyimpanan **`localStorage`** + mitigasi FOUC (**`suppressHydrationWarning`** pada tag **`html`** selaras dokumentasi **`next-themes`**).
@@ -67,16 +67,16 @@ Dokumen ini melengkapi **[IA navigasi admin](2026-05-02-admin-navigation-ia-v1-d
 
 ### 4.3 Jika **`User.name` tidak dapat diperbarui** dalam konfigurasi berjalan
 
-- **Plan B** (implementasi dokumentasikan satu baris ketika terjadi): field opsional **`displayName`** pada **`AdminProfile`** + migrasi; UI membaca gabungan (**`AdminProfile.displayName` ?? **`User.name`**) dalam urutan tertentu. Desain utama tetap Preferensi **Tanpa migration** (**§4.1–4.2**).
+- **Plan B** (implementasi dokumentasikan satu baris ketika terjadi): field opsional **`displayName`** pada **`AdminProfile`** + migrasi; UI membaca gabungan (**`AdminProfile.displayName` ?? **`User.name`**) dalam urutan tertentu. Desain utama tetap Preferensi **Tanpa migration** (**§4.1–4.2\*\*).
 
 ## 5) Pengaturan komite — kerangka tab/section (**tanpa** data)
 
 Tab atau section bernama konsisten roadmap (huruf tepat bisa disesuaikan implementasi tetapi semantika tetap):
 
-1. PIC & admin aplikasi (**menyusul**)  
-2. Rekening bank & PIC (**menyusul**)  
-3. Harga default global (**menyusul**)  
-4. Template WhatsApp (**menyusul**)  
+1. PIC & admin aplikasi (**menyusul**)
+2. Rekening bank & PIC (**menyusul**)
+3. Harga default global (**menyusul**)
+4. Template WhatsApp (**menyusul**)
 
 Masing-masing: judul deskriptif pendek + paragraf penjelasan + area dashed; **tidak** ada tombol simpan untuk konfigurasi komite sampai backlog modul tersebut.
 
@@ -87,7 +87,7 @@ Masing-masing: judul deskriptif pendek + paragraf penjelasan + area dashed; **ti
 
 ## 7) Pengujian
 
-- **Vitest**: helper validasi nama (jika diekstrak ke modul murni).  
+- **Vitest**: helper validasi nama (jika diekstrak ke modul murni).
 - Tema: bergantung integrasi penyedia — uji otomatis penuh **opsional**; verifikasi manual wajib sebelum klaim siap-merge.
 
 ## 8) Open points (titik eksplisit untuk rencana implementasi)

@@ -14,17 +14,17 @@
 
 ## File map
 
-| File | Peran |
-|------|--------|
-| `src/lib/registrations/resolve-primary-purchaser-identity.ts` | Fungsi murni `resolvePrimaryPurchaserIdentity(trimmed, deps)` — urutan: lookup member → jika tidak ditemukan lookup management; hasil discriminated union. |
-| `src/lib/registrations/resolve-primary-purchaser-identity.test.ts` | Vitest: empat skenario (empty, member, management, neither) dengan `vi.fn` mock deps. |
-| `src/lib/forms/submit-registration-schema.ts` | Tambah konstanta pesan error gabungan opsional untuk parity dengan UI (bila hook memakai string yang sama). |
-| `src/components/public/registration-form/use-primary-purchaser-identity-gate.ts` | Hook baru: menggantikan pemakaian `usePartnerGate` + `useManagementCodeGate` untuk identitas utama pada `RegistrationForm`. |
-| `src/components/public/registration-form/registration-form.tsx` | Wire hook baru; sesuaikan `goNext` / `submitForm` fokus & pesan "tunggu validasi" agar satu id input; hapus impor hook lama yang tidak terpakai. |
-| `src/components/public/registration-form/purchaser-info-section.tsx` | Satu `Input` + label/deskripsi tanpa narasi pengurus; gabungkan indikator "memeriksa…" dan error dari kedua path. |
-| `src/components/public/registration-form/registration-steps.ts` | Opsional: tetap `trigger` kedua field untuk `superRefine` Zod (disarankan **tidak** mengurangi field agar tidak mengubah perilaku validasi). |
-| `src/components/public/registration-form/use-partner-gate.ts` | Hapus dari rantai form jika tidak ada konsumen lain; jika masih dipakai di luar, biarkan — grep sebelum hapus. |
-| `src/components/public/registration-form/use-management-code-gate.ts` | Sama seperti di atas. |
+| File                                                                             | Peran                                                                                                                                                      |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/registrations/resolve-primary-purchaser-identity.ts`                    | Fungsi murni `resolvePrimaryPurchaserIdentity(trimmed, deps)` — urutan: lookup member → jika tidak ditemukan lookup management; hasil discriminated union. |
+| `src/lib/registrations/resolve-primary-purchaser-identity.test.ts`               | Vitest: empat skenario (empty, member, management, neither) dengan `vi.fn` mock deps.                                                                      |
+| `src/lib/forms/submit-registration-schema.ts`                                    | Tambah konstanta pesan error gabungan opsional untuk parity dengan UI (bila hook memakai string yang sama).                                                |
+| `src/components/public/registration-form/use-primary-purchaser-identity-gate.ts` | Hook baru: menggantikan pemakaian `usePartnerGate` + `useManagementCodeGate` untuk identitas utama pada `RegistrationForm`.                                |
+| `src/components/public/registration-form/registration-form.tsx`                  | Wire hook baru; sesuaikan `goNext` / `submitForm` fokus & pesan "tunggu validasi" agar satu id input; hapus impor hook lama yang tidak terpakai.           |
+| `src/components/public/registration-form/purchaser-info-section.tsx`             | Satu `Input` + label/deskripsi tanpa narasi pengurus; gabungkan indikator "memeriksa…" dan error dari kedua path.                                          |
+| `src/components/public/registration-form/registration-steps.ts`                  | Opsional: tetap `trigger` kedua field untuk `superRefine` Zod (disarankan **tidak** mengurangi field agar tidak mengubah perilaku validasi).               |
+| `src/components/public/registration-form/use-partner-gate.ts`                    | Hapus dari rantai form jika tidak ada konsumen lain; jika masih dipakai di luar, biarkan — grep sebelum hapus.                                             |
+| `src/components/public/registration-form/use-management-code-gate.ts`            | Sama seperti di atas.                                                                                                                                      |
 
 ---
 
@@ -43,7 +43,7 @@ Modify `src/lib/forms/submit-registration-schema.ts` — setelah `MEMBER_NOT_IN_
 ```ts
 /** Dipakai setelah direktori & jalur kode pengurus sama-sama gagal (satu field identitas). */
 export const PRIMARY_PURCHASER_IDENTITY_NOT_RECOGNIZED_MESSAGE =
-  "Identitas tidak dikenali. Periksa nomor member di direktori atau kode akses yang Anda terima." as const;
+  'Identitas tidak dikenali. Periksa nomor member di direktori atau kode akses yang Anda terima.' as const
 ```
 
 - [ ] **Step 2: Tulis modul resolver**
@@ -51,67 +51,67 @@ export const PRIMARY_PURCHASER_IDENTITY_NOT_RECOGNIZED_MESSAGE =
 Create `src/lib/registrations/resolve-primary-purchaser-identity.ts`:
 
 ```ts
-import type { LookupManagementCodeResult } from "@/lib/actions/lookup-management-code-for-registration";
-import type { MemberPartnerLookupResult } from "@/lib/actions/lookup-member-partner-eligibility";
-import { normalizePublicManagementCode } from "@/lib/management/normalize-public-code";
+import type { LookupManagementCodeResult } from '@/lib/actions/lookup-management-code-for-registration'
+import type { MemberPartnerLookupResult } from '@/lib/actions/lookup-member-partner-eligibility'
+import { normalizePublicManagementCode } from '@/lib/management/normalize-public-code'
 
 export type PrimaryPurchaserIdentityDeps = {
-  lookupMember: (raw: string) => Promise<MemberPartnerLookupResult>;
-  lookupManagement: (raw: string) => Promise<LookupManagementCodeResult>;
-};
+  lookupMember: (raw: string) => Promise<MemberPartnerLookupResult>
+  lookupManagement: (raw: string) => Promise<LookupManagementCodeResult>
+}
 
 export type ResolvePrimaryPurchaserIdentityResult =
-  | { branch: "empty" }
+  | { branch: 'empty' }
   | {
-      branch: "member";
-      inputTrim: string;
-      canonicalMemberNumber: string;
-      fullName: string;
-      whatsapp: string | null;
-      isManagementMember: boolean;
+      branch: 'member'
+      inputTrim: string
+      canonicalMemberNumber: string
+      fullName: string
+      whatsapp: string | null
+      isManagementMember: boolean
     }
   | {
-      branch: "management";
-      inputTrim: string;
-      normalizedCode: string;
-      fullName: string;
-      managementMemberId: string;
+      branch: 'management'
+      inputTrim: string
+      normalizedCode: string
+      fullName: string
+      managementMemberId: string
     }
-  | { branch: "neither"; inputTrim: string };
+  | { branch: 'neither'; inputTrim: string }
 
 export async function resolvePrimaryPurchaserIdentity(
   raw: string,
   deps: PrimaryPurchaserIdentityDeps,
 ): Promise<ResolvePrimaryPurchaserIdentityResult> {
-  const inputTrim = raw.trim();
+  const inputTrim = raw.trim()
   if (!inputTrim) {
-    return { branch: "empty" };
+    return { branch: 'empty' }
   }
 
-  const member = await deps.lookupMember(inputTrim);
-  if (member.kind === "ok" && member.found) {
+  const member = await deps.lookupMember(inputTrim)
+  if (member.kind === 'ok' && member.found) {
     return {
-      branch: "member",
+      branch: 'member',
       inputTrim,
       canonicalMemberNumber: member.canonicalMemberNumber,
       fullName: member.fullName,
       whatsapp: member.whatsapp,
       isManagementMember: member.isManagementMember,
-    };
+    }
   }
 
-  const management = await deps.lookupManagement(inputTrim);
-  if (management.kind === "ok") {
+  const management = await deps.lookupManagement(inputTrim)
+  if (management.kind === 'ok') {
     return {
-      branch: "management",
+      branch: 'management',
       inputTrim,
       normalizedCode: normalizePublicManagementCode(inputTrim),
       fullName: management.fullName,
       managementMemberId: management.managementMemberId,
-    };
+    }
   }
 
-  return { branch: "neither", inputTrim };
+  return { branch: 'neither', inputTrim }
 }
 ```
 
@@ -120,93 +120,93 @@ export async function resolvePrimaryPurchaserIdentity(
 Create `src/lib/registrations/resolve-primary-purchaser-identity.test.ts`:
 
 ```ts
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest'
 
-import type { LookupManagementCodeResult } from "@/lib/actions/lookup-management-code-for-registration";
-import type { MemberPartnerLookupResult } from "@/lib/actions/lookup-member-partner-eligibility";
+import type { LookupManagementCodeResult } from '@/lib/actions/lookup-management-code-for-registration'
+import type { MemberPartnerLookupResult } from '@/lib/actions/lookup-member-partner-eligibility'
 
 import {
   resolvePrimaryPurchaserIdentity,
   type PrimaryPurchaserIdentityDeps,
-} from "./resolve-primary-purchaser-identity";
+} from './resolve-primary-purchaser-identity'
 
 function memberFound(
-  overrides: Partial<Extract<MemberPartnerLookupResult, { kind: "ok"; found: true }>> = {},
+  overrides: Partial<Extract<MemberPartnerLookupResult, { kind: 'ok'; found: true }>> = {},
 ): MemberPartnerLookupResult {
   return {
-    kind: "ok",
+    kind: 'ok',
     found: true,
-    canonicalMemberNumber: "CISC-1",
-    fullName: "Budi",
-    whatsapp: "08123456789",
+    canonicalMemberNumber: 'CISC-1',
+    fullName: 'Budi',
+    whatsapp: '08123456789',
     isManagementMember: false,
     ...overrides,
-  };
+  }
 }
 
 function memberNotFound(): MemberPartnerLookupResult {
-  return { kind: "ok", found: false, isManagementMember: false };
+  return { kind: 'ok', found: false, isManagementMember: false }
 }
 
 function managementOk(
-  overrides: Partial<Extract<LookupManagementCodeResult, { kind: "ok" }>> = {},
+  overrides: Partial<Extract<LookupManagementCodeResult, { kind: 'ok' }>> = {},
 ): LookupManagementCodeResult {
   return {
-    kind: "ok",
-    fullName: "Ani",
-    managementMemberId: "mm-1",
+    kind: 'ok',
+    fullName: 'Ani',
+    managementMemberId: 'mm-1',
     ...overrides,
-  };
+  }
 }
 
-describe("resolvePrimaryPurchaserIdentity", () => {
-  it("returns empty for whitespace-only input", async () => {
+describe('resolvePrimaryPurchaserIdentity', () => {
+  it('returns empty for whitespace-only input', async () => {
     const deps: PrimaryPurchaserIdentityDeps = {
       lookupMember: vi.fn(),
       lookupManagement: vi.fn(),
-    };
-    const r = await resolvePrimaryPurchaserIdentity("  \t ", deps);
-    expect(r.branch).toBe("empty");
-    expect(deps.lookupMember).not.toHaveBeenCalled();
-    expect(deps.lookupManagement).not.toHaveBeenCalled();
-  });
+    }
+    const r = await resolvePrimaryPurchaserIdentity('  \t ', deps)
+    expect(r.branch).toBe('empty')
+    expect(deps.lookupMember).not.toHaveBeenCalled()
+    expect(deps.lookupManagement).not.toHaveBeenCalled()
+  })
 
-  it("returns member and does not call management when directory matches", async () => {
+  it('returns member and does not call management when directory matches', async () => {
     const deps: PrimaryPurchaserIdentityDeps = {
       lookupMember: vi.fn().mockResolvedValue(memberFound()),
       lookupManagement: vi.fn(),
-    };
-    const r = await resolvePrimaryPurchaserIdentity(" cisc-1 ", deps);
-    expect(r.branch).toBe("member");
-    if (r.branch !== "member") throw new Error("expected member");
-    expect(r.canonicalMemberNumber).toBe("CISC-1");
-    expect(deps.lookupManagement).not.toHaveBeenCalled();
-  });
+    }
+    const r = await resolvePrimaryPurchaserIdentity(' cisc-1 ', deps)
+    expect(r.branch).toBe('member')
+    if (r.branch !== 'member') throw new Error('expected member')
+    expect(r.canonicalMemberNumber).toBe('CISC-1')
+    expect(deps.lookupManagement).not.toHaveBeenCalled()
+  })
 
-  it("returns management when member not found and code resolves", async () => {
+  it('returns management when member not found and code resolves', async () => {
     const deps: PrimaryPurchaserIdentityDeps = {
       lookupMember: vi.fn().mockResolvedValue(memberNotFound()),
       lookupManagement: vi.fn().mockResolvedValue(managementOk()),
-    };
-    const r = await resolvePrimaryPurchaserIdentity("reg-a", deps);
-    expect(r.branch).toBe("management");
-    if (r.branch !== "management") throw new Error("expected management");
-    expect(r.normalizedCode).toBe("REG-A");
-    expect(deps.lookupMember).toHaveBeenCalledWith("reg-a");
-    expect(deps.lookupManagement).toHaveBeenCalledWith("reg-a");
-  });
+    }
+    const r = await resolvePrimaryPurchaserIdentity('reg-a', deps)
+    expect(r.branch).toBe('management')
+    if (r.branch !== 'management') throw new Error('expected management')
+    expect(r.normalizedCode).toBe('REG-A')
+    expect(deps.lookupMember).toHaveBeenCalledWith('reg-a')
+    expect(deps.lookupManagement).toHaveBeenCalledWith('reg-a')
+  })
 
-  it("returns neither when member not found and management fails", async () => {
+  it('returns neither when member not found and management fails', async () => {
     const deps: PrimaryPurchaserIdentityDeps = {
       lookupMember: vi.fn().mockResolvedValue(memberNotFound()),
-      lookupManagement: vi.fn().mockResolvedValue({ kind: "not_found" }),
-    };
-    const r = await resolvePrimaryPurchaserIdentity("zzz", deps);
-    expect(r.branch).toBe("neither");
-    if (r.branch !== "neither") throw new Error("expected neither");
-    expect(r.inputTrim).toBe("zzz");
-  });
-});
+      lookupManagement: vi.fn().mockResolvedValue({ kind: 'not_found' }),
+    }
+    const r = await resolvePrimaryPurchaserIdentity('zzz', deps)
+    expect(r.branch).toBe('neither')
+    if (r.branch !== 'neither') throw new Error('expected neither')
+    expect(r.inputTrim).toBe('zzz')
+  })
+})
 ```
 
 - [ ] **Step 4: Jalankan tes**
@@ -254,9 +254,9 @@ Export:
 
 ```ts
 export type PrimaryPurchaserIdentityGateState =
-  | { status: "empty" }
-  | { status: "checking"; forTrim: string }
-  | PartnerGateCompatibleReadyState; // reuse union dari types.ts jika memungkinkan, atau duplikasi minimal untuk member path + seat
+  | { status: 'empty' }
+  | { status: 'checking'; forTrim: string }
+  | PartnerGateCompatibleReadyState // reuse union dari types.ts jika memungkinkan, atau duplikasi minimal untuk member path + seat
 ```
 
 Minimal: kembalikan `{ effectivePartnerGate, effectiveManagementCodeGate, directoryVerifiedByCode, showPartnerSection }` dengan bentuk yang **kompatibel** dengan pemakaian saat ini di `registration-form.tsx` agar diff `PurchaserInfoSection` lebih kecil — `effectiveManagementCodeGate` bisa disintesis dari state internal saat jalur management aktif.
@@ -266,27 +266,31 @@ Minimal: kembalikan `{ effectivePartnerGate, effectiveManagementCodeGate, direct
 Replace:
 
 ```ts
-const { effectivePartnerGate, showPartnerSection: showPartnerByNumber } =
-  usePartnerGate(form, event.slug, claimedMemberTrim, managementCodeTrim);
+const { effectivePartnerGate, showPartnerSection: showPartnerByNumber } = usePartnerGate(
+  form,
+  event.slug,
+  claimedMemberTrim,
+  managementCodeTrim,
+)
 
-const { directoryVerifiedByCode, effectiveManagementCodeGate } =
-  useManagementCodeGate(form, managementCodeTrim, claimedMemberTrim);
+const { directoryVerifiedByCode, effectiveManagementCodeGate } = useManagementCodeGate(
+  form,
+  managementCodeTrim,
+  claimedMemberTrim,
+)
 ```
 
 dengan pemanggilan hook baru, misalnya:
 
 ```ts
-const primaryIdentityTrim =
-  claimedMemberTrim.length > 0
-    ? claimedMemberTrim
-    : managementCodeTrim;
+const primaryIdentityTrim = claimedMemberTrim.length > 0 ? claimedMemberTrim : managementCodeTrim
 
 const {
   effectivePartnerGate,
   effectiveManagementCodeGate,
   directoryVerifiedByCode,
   showPartnerSection: showPartnerByNumber,
-} = usePrimaryPurchaserIdentityGate(form, event.slug, primaryIdentityTrim);
+} = usePrimaryPurchaserIdentityGate(form, event.slug, primaryIdentityTrim)
 ```
 
 Pastikan `showPartnerSection = showPartnerByNumber || directoryVerifiedByCode` tetap.
@@ -326,11 +330,11 @@ Untuk `purchaserIsMember === true`:
 - `onChange`:
 
 ```ts
-const v = e.target.value;
-setValue("managementPublicCode", "", { shouldValidate: false });
-setValue("claimedMemberNumber", v === "" ? undefined : v, {
+const v = e.target.value
+setValue('managementPublicCode', '', { shouldValidate: false })
+setValue('claimedMemberNumber', v === '' ? undefined : v, {
   shouldValidate: true,
-});
+})
 ```
 
 Hook Task 2 akan memigrasikan ke `managementPublicCode` setelah debounce bila direktori gagal dan kode valid — jangan panggil `setValue` management dari `onChange` manual.
@@ -340,15 +344,18 @@ Hook Task 2 akan memigrasikan ke `managementPublicCode` setelah debounce bila di
 - Gabungkan status "memeriksa":
 
 ```tsx
-{(claimedMemberTrim.length > 0 || managementCodeTrim.length > 0) &&
-effectivePartnerGate.status === "checking" ? (
-  <FieldDescription>Memeriksa data member di direktori…</FieldDescription>
-) : null}
-{(claimedMemberTrim.length > 0 || managementCodeTrim.length > 0) &&
-managementCodeTrim.length > 0 &&
-effectiveManagementCodeGate.status === "checking" ? (
-  <FieldDescription>Memeriksa kode akses…</FieldDescription>
-) : null}
+{
+  ;(claimedMemberTrim.length > 0 || managementCodeTrim.length > 0) && effectivePartnerGate.status === 'checking' ? (
+    <FieldDescription>Memeriksa data member di direktori…</FieldDescription>
+  ) : null
+}
+{
+  ;(claimedMemberTrim.length > 0 || managementCodeTrim.length > 0) &&
+  managementCodeTrim.length > 0 &&
+  effectiveManagementCodeGate.status === 'checking' ? (
+    <FieldDescription>Memeriksa kode akses…</FieldDescription>
+  ) : null
+}
 ```
 
 (Sesuaikan kondisi dengan implementasi hook agar tidak double teks — idealnya satu baris "Memeriksa identitas…".)
@@ -432,11 +439,11 @@ git commit -m "fix(registration): align goNext and cleanup legacy identity hooks
 
 **1. Spec coverage**
 
-| Permintaan | Task |
-|------------|------|
-| Satu input untuk nomor atau kode | Task 3 + hook Task 2 |
-| Tidak menampilkan keterangan pengurus di publik | Task 3 (hapus deskripsi field kedua & label bantu pengurus) |
-| Privilege pengurus non-member tetap ada | Task 1–2 (fallback lookup management setelah direktori gagal) |
+| Permintaan                                      | Task                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| Satu input untuk nomor atau kode                | Task 3 + hook Task 2                                          |
+| Tidak menampilkan keterangan pengurus di publik | Task 3 (hapus deskripsi field kedua & label bantu pengurus)   |
+| Privilege pengurus non-member tetap ada         | Task 1–2 (fallback lookup management setelah direktori gagal) |
 
 **2. Placeholder scan**
 

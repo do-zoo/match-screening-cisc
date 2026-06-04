@@ -12,19 +12,19 @@
 
 ## File Map
 
-| File | Tanggung jawab |
-|------|----------------|
-| `prisma/schema.prisma` | Enum `EventSettlementArtifactKind`, enum `UploadPurpose` (+3 nilai), model `EventSettlementArtifact`, relasi `Event` / `AdminProfile` / `Upload` |
-| `prisma/migrations/*/migration.sql` | Hasil `pnpm db:migrate:dev` (nama folder dari Prisma) |
-| `src/lib/reports/settlement-expected-amounts.ts` | `getSettlementExpectedAmountsForEvent(report: EventReport['finance']): { venueMenuPayout: number; treasurerMargin: number }` — rumus terpusat + komentar satu sumber kebenaran |
-| `src/lib/reports/settlement-expected-amounts.test.ts` | Unit test rumus dari objek finance tiruan |
-| `src/lib/actions/guard-event-settlement.ts` | `assertCanManageEventSettlement(ctx, eventId): Promise<{ eventId: string; picAdminProfileId: string }>` — `guardEvent` + load PIC + cek izin; lempar `FORBIDDEN` jika tidak lolos |
-| `src/lib/actions/upload-event-settlement-proof.ts` | Server action: validasi file, delta nominal, `mismatchAcknowledged` + `mismatchReason`, nested create artifact + upload, `revalidatePath` laporan |
-| `src/lib/reports/queries.ts` | (Opsional) Re-export atau panggil helper expected amounts dari `getEventReport` agar halaman laporan tidak duplikasi query |
-| `src/app/admin/events/[eventId]/report/page.tsx` | `Promise.all` + `findMany` artifact; render section baru |
-| `src/components/admin/event-settlement-proofs-panel.tsx` | Client: form unggah per `kind`, daftar riwayat, dialog konfirmasi selisih |
-| `CLAUDE.md` | Route/layout: catatan modul settlement; data model baru |
-| `docs/user-stories-stakeholder.md` | Tambah/mutakhirkan US terkait bukti penutupan (opsional satu paragraf kriteria) |
+| File                                                     | Tanggung jawab                                                                                                                                                                    |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prisma/schema.prisma`                                   | Enum `EventSettlementArtifactKind`, enum `UploadPurpose` (+3 nilai), model `EventSettlementArtifact`, relasi `Event` / `AdminProfile` / `Upload`                                  |
+| `prisma/migrations/*/migration.sql`                      | Hasil `pnpm db:migrate:dev` (nama folder dari Prisma)                                                                                                                             |
+| `src/lib/reports/settlement-expected-amounts.ts`         | `getSettlementExpectedAmountsForEvent(report: EventReport['finance']): { venueMenuPayout: number; treasurerMargin: number }` — rumus terpusat + komentar satu sumber kebenaran    |
+| `src/lib/reports/settlement-expected-amounts.test.ts`    | Unit test rumus dari objek finance tiruan                                                                                                                                         |
+| `src/lib/actions/guard-event-settlement.ts`              | `assertCanManageEventSettlement(ctx, eventId): Promise<{ eventId: string; picAdminProfileId: string }>` — `guardEvent` + load PIC + cek izin; lempar `FORBIDDEN` jika tidak lolos |
+| `src/lib/actions/upload-event-settlement-proof.ts`       | Server action: validasi file, delta nominal, `mismatchAcknowledged` + `mismatchReason`, nested create artifact + upload, `revalidatePath` laporan                                 |
+| `src/lib/reports/queries.ts`                             | (Opsional) Re-export atau panggil helper expected amounts dari `getEventReport` agar halaman laporan tidak duplikasi query                                                        |
+| `src/app/admin/events/[eventId]/report/page.tsx`         | `Promise.all` + `findMany` artifact; render section baru                                                                                                                          |
+| `src/components/admin/event-settlement-proofs-panel.tsx` | Client: form unggah per `kind`, daftar riwayat, dialog konfirmasi selisih                                                                                                         |
+| `CLAUDE.md`                                              | Route/layout: catatan modul settlement; data model baru                                                                                                                           |
+| `docs/user-stories-stakeholder.md`                       | Tambah/mutakhirkan US terkait bukti penutupan (opsional satu paragraf kriteria)                                                                                                   |
 
 **Rumus v1 (wajib dokumentasikan di `settlement-expected-amounts.ts`):**
 
@@ -105,79 +105,74 @@ Di `Event`, `AdminProfile`, dan `Upload`, tambahkan relasi balik yang diperlukan
 
 ```typescript
 // settlement-expected-amounts.ts
-export const SETTLEMENT_AMOUNT_TOLERANCE_IDR = 50_000;
+export const SETTLEMENT_AMOUNT_TOLERANCE_IDR = 50_000
 
 export type SettlementFinanceSnapshot = {
-  ticketRevenueApproved: number;
-  menuVenuePayoutApproved: number;
-  adjustmentsPaidTotal: number;
-};
+  ticketRevenueApproved: number
+  menuVenuePayoutApproved: number
+  adjustmentsPaidTotal: number
+}
 
-export function getSettlementExpectedAmounts(
-  f: SettlementFinanceSnapshot,
-): { venueMenuPayout: number; treasurerMargin: number } {
+export function getSettlementExpectedAmounts(f: SettlementFinanceSnapshot): {
+  venueMenuPayout: number
+  treasurerMargin: number
+} {
   return {
     venueMenuPayout: f.menuVenuePayoutApproved,
     treasurerMargin: f.ticketRevenueApproved + f.adjustmentsPaidTotal,
-  };
+  }
 }
 
 export function settlementAmountMismatch(
   declared: number,
   expected: number,
 ): { delta: number; withinTolerance: boolean } {
-  const delta = declared - expected;
+  const delta = declared - expected
   return {
     delta,
     withinTolerance: Math.abs(delta) <= SETTLEMENT_AMOUNT_TOLERANCE_IDR,
-  };
+  }
 }
 ```
 
 ```typescript
 // settlement-expected-amounts.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from 'vitest'
 import {
   getSettlementExpectedAmounts,
   settlementAmountMismatch,
   SETTLEMENT_AMOUNT_TOLERANCE_IDR,
-} from "./settlement-expected-amounts";
+} from './settlement-expected-amounts'
 
-describe("getSettlementExpectedAmounts", () => {
-  it("maps finance snapshot to venue and treasurer expectations", () => {
+describe('getSettlementExpectedAmounts', () => {
+  it('maps finance snapshot to venue and treasurer expectations', () => {
     expect(
       getSettlementExpectedAmounts({
         ticketRevenueApproved: 1_000_000,
         menuVenuePayoutApproved: 400_000,
         adjustmentsPaidTotal: 50_000,
       }),
-    ).toEqual({ venueMenuPayout: 400_000, treasurerMargin: 1_050_000 });
-  });
-});
+    ).toEqual({ venueMenuPayout: 400_000, treasurerMargin: 1_050_000 })
+  })
+})
 
-describe("settlementAmountMismatch", () => {
-  it("is within tolerance at exact boundary", () => {
-    const { withinTolerance, delta } = settlementAmountMismatch(
-      100 + SETTLEMENT_AMOUNT_TOLERANCE_IDR,
-      100,
-    );
-    expect(withinTolerance).toBe(true);
-    expect(delta).toBe(SETTLEMENT_AMOUNT_TOLERANCE_IDR);
-  });
+describe('settlementAmountMismatch', () => {
+  it('is within tolerance at exact boundary', () => {
+    const { withinTolerance, delta } = settlementAmountMismatch(100 + SETTLEMENT_AMOUNT_TOLERANCE_IDR, 100)
+    expect(withinTolerance).toBe(true)
+    expect(delta).toBe(SETTLEMENT_AMOUNT_TOLERANCE_IDR)
+  })
 
-  it("is outside tolerance when beyond one rupiah", () => {
-    const { withinTolerance } = settlementAmountMismatch(
-      SETTLEMENT_AMOUNT_TOLERANCE_IDR + 2,
-      0,
-    );
-    expect(withinTolerance).toBe(false);
-  });
-});
+  it('is outside tolerance when beyond one rupiah', () => {
+    const { withinTolerance } = settlementAmountMismatch(SETTLEMENT_AMOUNT_TOLERANCE_IDR + 2, 0)
+    expect(withinTolerance).toBe(false)
+  })
+})
 ```
 
 - [ ] **Step 1:** Tambahkan kedua file; jalankan  
-  `export NVM_DIR="${NVM_DIR:-$HOME/.nvm}" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && cd /Users/mac/Documents/CISC/match-screening && nvm use && pnpm vitest run src/lib/reports/settlement-expected-amounts.test.ts`  
-  **Expected:** semua tes PASS.
+       `export NVM_DIR="${NVM_DIR:-$HOME/.nvm}" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && cd /Users/mac/Documents/CISC/match-screening && nvm use && pnpm vitest run src/lib/reports/settlement-expected-amounts.test.ts`  
+       **Expected:** semua tes PASS.
 
 ---
 
@@ -188,12 +183,12 @@ describe("settlementAmountMismatch", () => {
 - Create: `src/lib/actions/guard-event-settlement.ts`
 
 ```typescript
-"use server";
+'use server'
 
-import { prisma } from "@/lib/db/prisma";
-import { guardEvent, isAuthError } from "@/lib/actions/guard";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
-import type { AdminContext } from "@/lib/permissions/guards";
+import { prisma } from '@/lib/db/prisma'
+import { guardEvent, isAuthError } from '@/lib/actions/guard'
+import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
+import type { AdminContext } from '@/lib/permissions/guards'
 
 export async function assertCanManageEventSettlement(
   eventId: string,
@@ -202,12 +197,12 @@ export async function assertCanManageEventSettlement(
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { picAdminProfileId: true },
-  });
-  if (!event) throw new Error("FORBIDDEN");
-  const isPic = ctx.profileId === event.picAdminProfileId;
-  const isOps = hasOperationalOwnerParity(ctx.role);
-  if (!isPic && !isOps) throw new Error("FORBIDDEN");
-  return { picAdminProfileId: event.picAdminProfileId };
+  })
+  if (!event) throw new Error('FORBIDDEN')
+  const isPic = ctx.profileId === event.picAdminProfileId
+  const isOps = hasOperationalOwnerParity(ctx.role)
+  if (!isPic && !isOps) throw new Error('FORBIDDEN')
+  return { picAdminProfileId: event.picAdminProfileId }
 }
 ```
 
@@ -235,7 +230,7 @@ Alur:
 4. Tentukan `expected` per kind (`venue_transfer` / `treasurer_margin` → expected terkait; `venue_receipt` → skip nominal).
 5. Parse nominal: gunakan `parseIdrDigitsToInt` dari `lib/utils/idr-input.ts` jika input teks; atau integer dari hidden field.
 6. Jika kind membutuhkan nominal dan `!withinTolerance && !mismatchAcknowledged` → `rootError("Selisih nominal terlalu besar. Centang konfirmasi dan isi alasan.")` (bahasa Indonesia konkret).
-7. `blobPath = \`events/${eventId}/settlement/${crypto.randomUUID()}.webp\`` (atau `randomUUID` dari `node:crypto`).
+7. `blobPath = \`events/${eventId}/settlement/${crypto.randomUUID()}.webp\``(atau`randomUUID`dari`node:crypto`).
 8. `prisma.upload.create` lalu `prisma.eventSettlementArtifact.create` dengan `uploadId` (nested `upload: { create }` tidak dipakai — batasan tipe Prisma pada relasi ini).
 9. `revalidatePath(\`/admin/events/${eventId}/report\`)`.
 10. Return `ok({ artifactId })`.
@@ -280,14 +275,14 @@ Tampilkan angka acuan dari props server (venue / treasurer) agar PIC melihat per
 
 ## Self-review (spec coverage)
 
-| Kebutuhan percakapan | Task |
-|----------------------|------|
-| PIC + Owner/Admin operasional | Task 3 |
-| Bukti transfer venue + nota/bukti terima | Enum `venue_transfer`, `venue_receipt` + UI dua slot |
-| Bukti margin bendahara | `treasurer_margin` |
-| Validasi lunak + alasan | Task 2 + Task 4 (`mismatchAcknowledged` / `mismatchReason` + toleransi) |
-| Beberapa versi | `findMany` order by `createdAt`; tidak update baris lama |
-| Bahasa Indonesia error/toast | Task 4–5 |
+| Kebutuhan percakapan                     | Task                                                                    |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| PIC + Owner/Admin operasional            | Task 3                                                                  |
+| Bukti transfer venue + nota/bukti terima | Enum `venue_transfer`, `venue_receipt` + UI dua slot                    |
+| Bukti margin bendahara                   | `treasurer_margin`                                                      |
+| Validasi lunak + alasan                  | Task 2 + Task 4 (`mismatchAcknowledged` / `mismatchReason` + toleransi) |
+| Beberapa versi                           | `findMany` order by `createdAt`; tidak update baris lama                |
+| Bahasa Indonesia error/toast             | Task 4–5                                                                |
 
 **Placeholder scan:** Tidak ada TBD pada langkah wajib; rumus bendahara v1 eksplisit di Task 2 (dapat diubah satu file jika bisnis menyempurnakan).
 

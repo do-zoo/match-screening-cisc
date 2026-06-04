@@ -1,0 +1,12 @@
+node_modules
+.next
+.superpowers
+.vercel
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.agents
+.claude
+.cursor

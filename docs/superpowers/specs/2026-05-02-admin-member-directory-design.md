@@ -28,15 +28,15 @@ Memberikan area admin untuk **mengelola direktori** `MasterMember`: pencarian, *
 
 ## 3) Locked product decisions
 
-| Topic | Decision |
-|--------|-----------|
-| Akses | **Owner** dan **Admin** saja (`guardOwnerOrAdmin`). Verifier/Viewer **tidak** mengakses modul ini. |
-| Impor v1 | **Wajib** di UI bersama CRUD dan pencarian. |
-| Hasil impor | **Best effort**: baris valid diterapkan; baris gagal dilaporkan; DB tidak di-rollback untuk baris yang sudah sukses. |
-| Upsert | `member_number` (CSV) / `memberNumber` (DB) sebagai **kunci unik**; ada → **update** parsial; tidak ada → **create** jika syarat create terpenuhi. |
-| Sel kosong (CSV) | **Partial update**: sel kosong = **jangan ubah** field tersebut di DB. |
-| Duplikat nomor dalam satu file | **Baris pertama** dengan nomor itu diproses; baris berikutnya dengan nomor sama → **gagal** dengan alasan duplikat internal file. |
-| Edit manual | `memberNumber` **read-only** setelah dibuat. |
+| Topic                          | Decision                                                                                                                                           |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Akses                          | **Owner** dan **Admin** saja (`guardOwnerOrAdmin`). Verifier/Viewer **tidak** mengakses modul ini.                                                 |
+| Impor v1                       | **Wajib** di UI bersama CRUD dan pencarian.                                                                                                        |
+| Hasil impor                    | **Best effort**: baris valid diterapkan; baris gagal dilaporkan; DB tidak di-rollback untuk baris yang sudah sukses.                               |
+| Upsert                         | `member_number` (CSV) / `memberNumber` (DB) sebagai **kunci unik**; ada → **update** parsial; tidak ada → **create** jika syarat create terpenuhi. |
+| Sel kosong (CSV)               | **Partial update**: sel kosong = **jangan ubah** field tersebut di DB.                                                                             |
+| Duplikat nomor dalam satu file | **Baris pertama** dengan nomor itu diproses; baris berikutnya dengan nomor sama → **gagal** dengan alasan duplikat internal file.                  |
+| Edit manual                    | `memberNumber` **read-only** setelah dibuat.                                                                                                       |
 
 ## 4) UI & information architecture
 
@@ -75,14 +75,14 @@ Memberikan area admin untuk **mengelola direktori** `MasterMember`: pencarian, *
 
 ### 5.2 Kolom v1
 
-| Kolom CSV | Field DB | Create baru | Update |
-|------------|-----------|-------------|--------|
-| `member_number` | `memberNumber` | Wajib terisi | Wajib terisi |
-| `full_name` | `fullName` | Wajib terisi (non-kosong setelah trim) | Kosong = tidak ubah; terisi = update |
-| `whatsapp` | `whatsapp` | Opsional | Kosong = tidak ubah |
-| `is_active` | `isActive` | Opsional (default DB jika tidak diset lewat baris) | Hanya ubah jika sel berisi token boolean yang dikenali (§5.3) |
-| `is_pengurus` | `isPengurus` | idem | idem |
-| `can_be_pic` | `canBePIC` | idem | idem |
+| Kolom CSV       | Field DB       | Create baru                                        | Update                                                        |
+| --------------- | -------------- | -------------------------------------------------- | ------------------------------------------------------------- |
+| `member_number` | `memberNumber` | Wajib terisi                                       | Wajib terisi                                                  |
+| `full_name`     | `fullName`     | Wajib terisi (non-kosong setelah trim)             | Kosong = tidak ubah; terisi = update                          |
+| `whatsapp`      | `whatsapp`     | Opsional                                           | Kosong = tidak ubah                                           |
+| `is_active`     | `isActive`     | Opsional (default DB jika tidak diset lewat baris) | Hanya ubah jika sel berisi token boolean yang dikenali (§5.3) |
+| `is_pengurus`   | `isPengurus`   | idem                                               | idem                                                          |
+| `can_be_pic`    | `canBePIC`     | idem                                               | idem                                                          |
 
 **Create:** jika `member_number` belum ada dan `full_name` kosong atau hanya spasi setelah trim → baris **gagal**.
 
@@ -101,7 +101,7 @@ Sel kosong atau teks lain → pada **update** berarti **jangan ubah**; pada **cr
 
 ### 5.5 Batas unggahan
 
-- Batas keras ukuran/ jumlah baris ditetapkan di implementasi untuk mencegah timeout (target awal: **≤ 5.000 baris data** atau **≤ 2 MiB** file, mana yang lebih ketat—sesuaikan setelah uji di lingkungan deployment).  
+- Batas keras ukuran/ jumlah baris ditetapkan di implementasi untuk mencegah timeout (target awal: **≤ 5.000 baris data** atau **≤ 2 MiB** file, mana yang lebih ketat—sesuaikan setelah uji di lingkungan deployment).
 - Melampaui batas → **galat root** pada aksi impor, **tanpa** commit parsial.
 
 ### 5.6 Galat parse / bukan CSV

@@ -12,64 +12,65 @@
 
 ## File map (create / modify)
 
-| Path | Peran |
-|------|--------|
-| **Create** `src/lib/auth/email-otp-config.ts` | `isEmailOtpConfigured()` membaca env yang disepakati. |
-| **Create** `src/lib/auth/email-otp-config.test.ts` | Unit test gate env (Vitest `vi.stubEnv`). |
-| **Create** `src/lib/auth/send-transactional-email.ts` | Kirim email teks via Resend; dipakai `otpOptions.sendOTP`. |
-| **Create** `src/lib/auth/build-two-factor-plugin-options.ts` | Membangun opsi plugin `twoFactor` (TOTP/backup + OTP bersyarat). |
-| **Create** `src/lib/auth/build-two-factor-plugin-options.test.ts` | Memastikan `otpOptions` hanya ada jika gate true. |
-| **Create** `src/lib/auth/admin-auth-client.ts` | Export `adminAuthClient` (satu klien untuk semua UI admin auth). |
-| **Create** `src/components/admin/admin-two-factor-verify-client.tsx` | Form verifikasi setelah sign-in (TOTP / backup / kirim+isi OTP email). |
-| **Create** `src/components/admin/admin-account-two-factor-section.tsx` | Panel enrol/matikan/regenerasi cadangan di halaman Akun. |
-| **Create** `src/app/(auth)/admin/sign-in/two-factor/page.tsx` | RSC: pass `emailOtpAvailable` + render klien verifikasi. |
-| **Modify** `src/lib/auth/auth.ts` | Ganti literal `twoFactor({ issuer })` → `twoFactor(buildTwoFactorPluginOptions())`. |
-| **Modify** `src/app/(auth)/admin/sign-in/page.tsx` | Pakai `adminAuthClient`; jangan `router.push(next)` jika 2FA redirect. |
-| **Modify** `src/app/admin/account/page.tsx` | Ambil `twoFactorEnabled` dari Prisma + `emailOtpAvailable`; oper ke klien. |
-| **Modify** `src/components/admin/admin-account-page-client.tsx` | Sisipkan section 2FA + props baru. |
-| **Modify** `src/components/admin/admin-account-menu.tsx` | Pakai `adminAuthClient` untuk sign-out. |
-| **Modify** `src/app/admin/settings/security/page.tsx` | Copy sesuai spesifikasi (manajemen di Akun; OTP email = config). |
-| **Modify** `.env.example` | Dokumentasi `RESEND_API_KEY`, `AUTH_TRANSACTIONAL_FROM`. |
-| **Modify** `package.json` | Bergantung pada `pnpm add resend react-qr-code` (lockfile ikut). |
+| Path                                                                   | Peran                                                                               |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Create** `src/lib/auth/email-otp-config.ts`                          | `isEmailOtpConfigured()` membaca env yang disepakati.                               |
+| **Create** `src/lib/auth/email-otp-config.test.ts`                     | Unit test gate env (Vitest `vi.stubEnv`).                                           |
+| **Create** `src/lib/auth/send-transactional-email.ts`                  | Kirim email teks via Resend; dipakai `otpOptions.sendOTP`.                          |
+| **Create** `src/lib/auth/build-two-factor-plugin-options.ts`           | Membangun opsi plugin `twoFactor` (TOTP/backup + OTP bersyarat).                    |
+| **Create** `src/lib/auth/build-two-factor-plugin-options.test.ts`      | Memastikan `otpOptions` hanya ada jika gate true.                                   |
+| **Create** `src/lib/auth/admin-auth-client.ts`                         | Export `adminAuthClient` (satu klien untuk semua UI admin auth).                    |
+| **Create** `src/components/admin/admin-two-factor-verify-client.tsx`   | Form verifikasi setelah sign-in (TOTP / backup / kirim+isi OTP email).              |
+| **Create** `src/components/admin/admin-account-two-factor-section.tsx` | Panel enrol/matikan/regenerasi cadangan di halaman Akun.                            |
+| **Create** `src/app/(auth)/admin/sign-in/two-factor/page.tsx`          | RSC: pass `emailOtpAvailable` + render klien verifikasi.                            |
+| **Modify** `src/lib/auth/auth.ts`                                      | Ganti literal `twoFactor({ issuer })` → `twoFactor(buildTwoFactorPluginOptions())`. |
+| **Modify** `src/app/(auth)/admin/sign-in/page.tsx`                     | Pakai `adminAuthClient`; jangan `router.push(next)` jika 2FA redirect.              |
+| **Modify** `src/app/admin/account/page.tsx`                            | Ambil `twoFactorEnabled` dari Prisma + `emailOtpAvailable`; oper ke klien.          |
+| **Modify** `src/components/admin/admin-account-page-client.tsx`        | Sisipkan section 2FA + props baru.                                                  |
+| **Modify** `src/components/admin/admin-account-menu.tsx`               | Pakai `adminAuthClient` untuk sign-out.                                             |
+| **Modify** `src/app/admin/settings/security/page.tsx`                  | Copy sesuai spesifikasi (manajemen di Akun; OTP email = config).                    |
+| **Modify** `.env.example`                                              | Dokumentasi `RESEND_API_KEY`, `AUTH_TRANSACTIONAL_FROM`.                            |
+| **Modify** `package.json`                                              | Bergantung pada `pnpm add resend react-qr-code` (lockfile ikut).                    |
 
 ---
 
 ### Task 1: Gate env `isEmailOtpConfigured` + unit tests
 
 **Files:**
+
 - Create: `src/lib/auth/email-otp-config.ts`
 - Create: `src/lib/auth/email-otp-config.test.ts`
 
 - [ ] **Step 1: Write failing tests**
 
 ```typescript
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { isEmailOtpConfigured } from "@/lib/auth/email-otp-config";
+import { isEmailOtpConfigured } from '@/lib/auth/email-otp-config'
 
-describe("isEmailOtpConfigured", () => {
+describe('isEmailOtpConfigured', () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
-  });
+    vi.unstubAllEnvs()
+  })
 
-  it("returns false when RESEND_API_KEY is missing", () => {
-    vi.stubEnv("RESEND_API_KEY", "");
-    vi.stubEnv("AUTH_TRANSACTIONAL_FROM", "Match Screening <otp@example.com>");
-    expect(isEmailOtpConfigured()).toBe(false);
-  });
+  it('returns false when RESEND_API_KEY is missing', () => {
+    vi.stubEnv('RESEND_API_KEY', '')
+    vi.stubEnv('AUTH_TRANSACTIONAL_FROM', 'Match Screening <otp@example.com>')
+    expect(isEmailOtpConfigured()).toBe(false)
+  })
 
-  it("returns false when AUTH_TRANSACTIONAL_FROM is missing", () => {
-    vi.stubEnv("RESEND_API_KEY", "re_xxx");
-    vi.stubEnv("AUTH_TRANSACTIONAL_FROM", "");
-    expect(isEmailOtpConfigured()).toBe(false);
-  });
+  it('returns false when AUTH_TRANSACTIONAL_FROM is missing', () => {
+    vi.stubEnv('RESEND_API_KEY', 're_xxx')
+    vi.stubEnv('AUTH_TRANSACTIONAL_FROM', '')
+    expect(isEmailOtpConfigured()).toBe(false)
+  })
 
-  it("returns true when both are non-empty trimmed", () => {
-    vi.stubEnv("RESEND_API_KEY", "re_xxx");
-    vi.stubEnv("AUTH_TRANSACTIONAL_FROM", "Match Screening <otp@example.com>");
-    expect(isEmailOtpConfigured()).toBe(true);
-  });
-});
+  it('returns true when both are non-empty trimmed', () => {
+    vi.stubEnv('RESEND_API_KEY', 're_xxx')
+    vi.stubEnv('AUTH_TRANSACTIONAL_FROM', 'Match Screening <otp@example.com>')
+    expect(isEmailOtpConfigured()).toBe(true)
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests — expect FAIL**
@@ -90,9 +91,9 @@ Expected: error import/module missing atau fungsi tidak terdefinisi.
  * transactional email is configured (Resend + RFC From).
  */
 export function isEmailOtpConfigured(): boolean {
-  const key = process.env.RESEND_API_KEY?.trim() ?? "";
-  const from = process.env.AUTH_TRANSACTIONAL_FROM?.trim() ?? "";
-  return key.length > 0 && from.length > 0;
+  const key = process.env.RESEND_API_KEY?.trim() ?? ''
+  const from = process.env.AUTH_TRANSACTIONAL_FROM?.trim() ?? ''
+  return key.length > 0 && from.length > 0
 }
 ```
 
@@ -112,6 +113,7 @@ git commit -m "feat(auth): add isEmailOtpConfigured gate for Resend OTP"
 ### Task 2: Resend helper `sendTransactionalEmail`
 
 **Files:**
+
 - Modify: `package.json` / `pnpm-lock.yaml` (via install)
 - Create: `src/lib/auth/send-transactional-email.ts`
 
@@ -124,36 +126,36 @@ cd /Users/mac/Documents/CISC/match-screening && nvm use && pnpm add resend
 - [ ] **Step 2: Implement helper (throws if send fails; caller handles user message)**
 
 ```typescript
-import { Resend } from "resend";
+import { Resend } from 'resend'
 
 export type SendTransactionalEmailInput = {
-  to: string;
-  subject: string;
-  text: string;
-};
+  to: string
+  subject: string
+  text: string
+}
 
 /**
  * Sends a plain-text transactional email. Requires RESEND_API_KEY and uses
  * AUTH_TRANSACTIONAL_FROM as the sender (same gate as OTP plugin).
  */
 export async function sendTransactionalEmail(input: SendTransactionalEmailInput): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.AUTH_TRANSACTIONAL_FROM?.trim();
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  const from = process.env.AUTH_TRANSACTIONAL_FROM?.trim()
   if (!apiKey || !from) {
-    throw new Error("Email pengiriman belum dikonfigurasi.");
+    throw new Error('Email pengiriman belum dikonfigurasi.')
   }
 
-  const resend = new Resend(apiKey);
+  const resend = new Resend(apiKey)
   const { error } = await resend.emails.send({
     from,
     to: input.to,
     subject: input.subject,
     text: input.text,
-  });
+  })
 
   if (error) {
-    console.error("[sendTransactionalEmail]", error);
-    throw new Error("Gagal mengirim email.");
+    console.error('[sendTransactionalEmail]', error)
+    throw new Error('Gagal mengirim email.')
   }
 }
 ```
@@ -170,41 +172,38 @@ git commit -m "feat(auth): add Resend transactional email helper"
 ### Task 3: `buildTwoFactorPluginOptions` + conditional `otpOptions` test
 
 **Files:**
+
 - Create: `src/lib/auth/build-two-factor-plugin-options.ts`
 - Create: `src/lib/auth/build-two-factor-plugin-options.test.ts`
 
 - [ ] **Step 1: Write failing test that stubs module**
 
 ```typescript
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-describe("buildTwoFactorPluginOptions", () => {
+describe('buildTwoFactorPluginOptions', () => {
   afterEach(() => {
-    vi.resetModules();
-    vi.unstubAllEnvs();
-  });
+    vi.resetModules()
+    vi.unstubAllEnvs()
+  })
 
-  it("omits otpOptions when email OTP is not configured", async () => {
-    vi.stubEnv("RESEND_API_KEY", "");
-    vi.stubEnv("AUTH_TRANSACTIONAL_FROM", "");
-    const { buildTwoFactorPluginOptions } = await import(
-      "@/lib/auth/build-two-factor-plugin-options"
-    );
-    const opts = buildTwoFactorPluginOptions();
-    expect(opts).not.toHaveProperty("otpOptions");
-  });
+  it('omits otpOptions when email OTP is not configured', async () => {
+    vi.stubEnv('RESEND_API_KEY', '')
+    vi.stubEnv('AUTH_TRANSACTIONAL_FROM', '')
+    const { buildTwoFactorPluginOptions } = await import('@/lib/auth/build-two-factor-plugin-options')
+    const opts = buildTwoFactorPluginOptions()
+    expect(opts).not.toHaveProperty('otpOptions')
+  })
 
-  it("includes otpOptions when email OTP is configured", async () => {
-    vi.stubEnv("RESEND_API_KEY", "re_test");
-    vi.stubEnv("AUTH_TRANSACTIONAL_FROM", "App <x@y.com>");
-    const { buildTwoFactorPluginOptions } = await import(
-      "@/lib/auth/build-two-factor-plugin-options"
-    );
-    const opts = buildTwoFactorPluginOptions();
-    expect(opts.otpOptions).toBeDefined();
-    expect(typeof opts.otpOptions?.sendOTP).toBe("function");
-  });
-});
+  it('includes otpOptions when email OTP is configured', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    vi.stubEnv('AUTH_TRANSACTIONAL_FROM', 'App <x@y.com>')
+    const { buildTwoFactorPluginOptions } = await import('@/lib/auth/build-two-factor-plugin-options')
+    const opts = buildTwoFactorPluginOptions()
+    expect(opts.otpOptions).toBeDefined()
+    expect(typeof opts.otpOptions?.sendOTP).toBe('function')
+  })
+})
 ```
 
 - [ ] **Step 2: Run — expect FAIL**
@@ -216,31 +215,31 @@ pnpm vitest run src/lib/auth/build-two-factor-plugin-options.test.ts
 - [ ] **Step 3: Implement builder**
 
 ```typescript
-import { twoFactor } from "better-auth/plugins";
+import { twoFactor } from 'better-auth/plugins'
 
-import { isEmailOtpConfigured } from "@/lib/auth/email-otp-config";
-import { sendTransactionalEmail } from "@/lib/auth/send-transactional-email";
+import { isEmailOtpConfigured } from '@/lib/auth/email-otp-config'
+import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
 
 export function buildTwoFactorPlugin() {
-  return twoFactor(buildTwoFactorPluginOptions());
+  return twoFactor(buildTwoFactorPluginOptions())
 }
 
 export function buildTwoFactorPluginOptions() {
   const base = {
-    issuer: "match-screening",
+    issuer: 'match-screening',
     backupCodeOptions: {
       amount: 10,
       length: 10,
-      storeBackupCodes: "encrypted" as const,
+      storeBackupCodes: 'encrypted' as const,
     },
     totpOptions: {
       digits: 6 as const,
       period: 30,
     },
-  };
+  }
 
   if (!isEmailOtpConfigured()) {
-    return base;
+    return base
   }
 
   return {
@@ -249,16 +248,16 @@ export function buildTwoFactorPluginOptions() {
       period: 5,
       digits: 6,
       allowedAttempts: 5,
-      storeOTP: "encrypted" as const,
+      storeOTP: 'encrypted' as const,
       sendOTP: async ({ user, otp }: { user: { email: string }; otp: string }) => {
         await sendTransactionalEmail({
           to: user.email,
-          subject: "Kode verifikasi Match Screening",
+          subject: 'Kode verifikasi Match Screening',
           text: `Kode verifikasi Anda: ${otp}\n\nKode berlaku singkat. Jika Anda tidak meminta kode ini, abaikan email ini.`,
-        });
+        })
       },
     },
-  };
+  }
 }
 ```
 
@@ -267,7 +266,7 @@ export function buildTwoFactorPluginOptions() {
 Replace plugin entry:
 
 ```typescript
-import { buildTwoFactorPlugin } from "@/lib/auth/build-two-factor-plugin-options";
+import { buildTwoFactorPlugin } from '@/lib/auth/build-two-factor-plugin-options'
 
 // inside plugins: [
 //   nextCookies(),
@@ -294,21 +293,22 @@ git commit -m "feat(auth): conditional twoFactor otpOptions from Resend config"
 ### Task 4: Shared `adminAuthClient` + `twoFactorClient`
 
 **Files:**
+
 - Create: `src/lib/auth/admin-auth-client.ts`
 
 - [ ] **Step 1: Implement**
 
 ```typescript
-"use client";
+'use client'
 
-import { createAuthClient } from "better-auth/react";
-import { twoFactorClient } from "better-auth/client/plugins";
+import { createAuthClient } from 'better-auth/react'
+import { twoFactorClient } from 'better-auth/client/plugins'
 
 function redirectToTwoFactorStep(): void {
-  if (typeof window === "undefined") return;
-  const params = new URLSearchParams(window.location.search);
-  const next = params.get("next") ?? "/admin";
-  window.location.href = `/admin/sign-in/two-factor?next=${encodeURIComponent(next)}`;
+  if (typeof window === 'undefined') return
+  const params = new URLSearchParams(window.location.search)
+  const next = params.get('next') ?? '/admin'
+  window.location.href = `/admin/sign-in/two-factor?next=${encodeURIComponent(next)}`
 }
 
 export const adminAuthClient = createAuthClient({
@@ -317,7 +317,7 @@ export const adminAuthClient = createAuthClient({
       onTwoFactorRedirect: redirectToTwoFactorStep,
     }),
   ],
-});
+})
 ```
 
 - [ ] **Step 2: Commit**
@@ -332,12 +332,13 @@ git commit -m "feat(auth): admin auth client with twoFactorClient redirect"
 ### Task 5: Sign-in — pakai `adminAuthClient` + jangan push jika 2FA
 
 **Files:**
+
 - Modify: `src/app/(auth)/admin/sign-in/page.tsx`
 
 - [ ] **Step 1: Replace client**
 
 ```typescript
-import { adminAuthClient } from "@/lib/auth/admin-auth-client";
+import { adminAuthClient } from '@/lib/auth/admin-auth-client'
 ```
 
 Remove `const authClient = createAuthClient()`. Use `adminAuthClient.signIn.email` everywhere `authClient` was used.
@@ -350,18 +351,18 @@ Di dalam `handleSubmit`, setelah `await adminAuthClient.signIn.email({ email, pa
 const res = await adminAuthClient.signIn.email({
   email: values.email,
   password: values.password,
-});
+})
 if (res.error) {
-  form.setError("root.server", {
-    message: res.error.message ?? "Sign in failed.",
-  });
-  return;
+  form.setError('root.server', {
+    message: res.error.message ?? 'Sign in failed.',
+  })
+  return
 }
-const data = res.data as { twoFactorRedirect?: boolean } | undefined;
+const data = res.data as { twoFactorRedirect?: boolean } | undefined
 if (data?.twoFactorRedirect) {
-  return;
+  return
 }
-router.push(next);
+router.push(next)
 ```
 
 Jika TypeScript mengeluh, gunakan `if (res.data && "twoFactorRedirect" in res.data && res.data.twoFactorRedirect) return;`.
@@ -382,6 +383,7 @@ git commit -m "fix(auth): sign-in uses adminAuthClient and respects 2FA redirect
 ### Task 6: Halaman `/admin/sign-in/two-factor` + komponen verifikasi
 
 **Files:**
+
 - Create: `src/app/(auth)/admin/sign-in/two-factor/page.tsx`
 - Create: `src/components/admin/admin-two-factor-verify-client.tsx`
 - Modify: `package.json` — `pnpm add react-qr-code` hanya jika diperlukan di halaman ini (**tidak** — QR di Akun; halaman ini tidak perlu QR).
@@ -424,6 +426,7 @@ git commit -m "feat(auth): admin 2FA verification step after sign-in"
 ### Task 7: Akun — section TOTP + cadangan
 
 **Files:**
+
 - Create: `src/components/admin/admin-account-two-factor-section.tsx`
 - Modify: `src/app/admin/account/page.tsx`
 - Modify: `src/components/admin/admin-account-page-client.tsx`
@@ -443,7 +446,7 @@ Di `account/page.tsx`, import `prisma` dari `@/lib/db/prisma` dan:
 const dbUser = await prisma.user.findUnique({
   where: { id: session.user.id },
   select: { twoFactorEnabled: true },
-});
+})
 ```
 
 Pass ke klien: `twoFactorEnabled={Boolean(dbUser?.twoFactorEnabled)}` dan `emailOtpAvailable={isEmailOtpConfigured()}`.
@@ -471,6 +474,7 @@ git commit -m "feat(admin): account page TOTP enrollment and backup codes"
 ### Task 8: Menu akun — `adminAuthClient` untuk sign-out
 
 **Files:**
+
 - Modify: `src/components/admin/admin-account-menu.tsx`
 
 - [ ] **Step 1:** Ganti `createAuthClient()` dengan import `adminAuthClient` dari `@/lib/auth/admin-auth-client` dan pakai `adminAuthClient.signOut()`.
@@ -487,6 +491,7 @@ git commit -m "refactor(admin): use adminAuthClient for sign out"
 ### Task 9: Copy `security/page.tsx`
 
 **Files:**
+
 - Modify: `src/app/admin/settings/security/page.tsx`
 
 - [ ] **Step 1:** Ganti paragraf “Autentikasi & 2FA” agar menyatakan: manajemen 2FA di **Akun**; OTP email hanya jika pengurus menyetel pengiriman email (tanpa nama env); tautan dokumentasi tetap.
@@ -503,6 +508,7 @@ git commit -m "docs(admin): clarify 2FA management and email OTP config"
 ### Task 10: `.env.example`
 
 **Files:**
+
 - Modify: `.env.example`
 
 - [ ] **Step 1:** Tambahkan baris:
@@ -550,15 +556,15 @@ pnpm build
 
 **Spec coverage**
 
-| Spesifikasi | Task |
-|-------------|------|
-| TOTP + backup + verify sign-in | 3, 4, 5, 6, 7 |
-| OTP email hanya jika config | 1, 2, 3, 6, 7 |
-| Akun sebagai pusat pengelolaan | 7 |
-| Security copy | 9 |
-| Helper email terpusat | 2 |
-| Pesan error generik OTP | dimasukkan di Step Task 6 |
-| Pengujian unit gate | 1, 3 |
+| Spesifikasi                    | Task                      |
+| ------------------------------ | ------------------------- |
+| TOTP + backup + verify sign-in | 3, 4, 5, 6, 7             |
+| OTP email hanya jika config    | 1, 2, 3, 6, 7             |
+| Akun sebagai pusat pengelolaan | 7                         |
+| Security copy                  | 9                         |
+| Helper email terpusat          | 2                         |
+| Pesan error generik OTP        | dimasukkan di Step Task 6 |
+| Pengujian unit gate            | 1, 3                      |
 
 **Placeholder scan:** Tidak ada TBD — nama env dan path file konkret.
 

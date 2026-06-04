@@ -35,14 +35,14 @@ _count: {
 
 New fields added to the existing type:
 
-| Field | Type | Source |
-|---|---|---|
-| `ticketMemberPrice` | `number` | direct |
-| `ticketNonMemberPrice` | `number` | direct |
-| `registrationCapacity` | `number \| null` | direct |
-| `registrationsTowardQuota` | `number` | from `_count.registrations` |
-| `closeRegistrationAtIso` | `string` | `closeRegistrationAt.toISOString()` |
-| `badgeStatus` | `BadgeStatus` | computed in mapper |
+| Field                      | Type             | Source                              |
+| -------------------------- | ---------------- | ----------------------------------- |
+| `ticketMemberPrice`        | `number`         | direct                              |
+| `ticketNonMemberPrice`     | `number`         | direct                              |
+| `registrationCapacity`     | `number \| null` | direct                              |
+| `registrationsTowardQuota` | `number`         | from `_count.registrations`         |
+| `closeRegistrationAtIso`   | `string`         | `closeRegistrationAt.toISOString()` |
+| `badgeStatus`              | `BadgeStatus`    | computed in mapper                  |
 
 ### Badge status type
 
@@ -89,12 +89,12 @@ Layout B (structured rows):
 
 ### Badge colors
 
-| Status | Color |
-|---|---|
-| `open` | Green (`badge-open`) |
+| Status         | Color                       |
+| -------------- | --------------------------- |
+| `open`         | Green (`badge-open`)        |
 | `closing_soon` | Amber/orange (`badge-soon`) |
-| `full` | Red (`badge-full`) |
-| `closed` | Gray (`badge-closed`) |
+| `full`         | Red (`badge-full`)          |
+| `closed`       | Gray (`badge-closed`)       |
 
 ---
 
@@ -172,14 +172,14 @@ Source: already included via `venue: true` in `getActiveEventRegistrationPageDat
 
 Replace the current dense single-line meta with a structured `<dl>` grid:
 
-| Label | Value |
-|---|---|
-| Venue | La Liga Venue |
-| Alamat | Jl. Sudirman No. 1, Jakarta &nbsp; `[MapPin icon →]` |
-| Registrasi | 1 Jun 2026 — 5 Jun 2026 |
-| Gate dibuka | 10 Jun 2026, 02.30 |
-| Mulai | 10 Jun 2026, 03.00 |
-| Harga tiket | Rp 150.000 (member) / Rp 200.000 (umum) |
+| Label       | Value                                                |
+| ----------- | ---------------------------------------------------- |
+| Venue       | La Liga Venue                                        |
+| Alamat      | Jl. Sudirman No. 1, Jakarta &nbsp; `[MapPin icon →]` |
+| Registrasi  | 1 Jun 2026 — 5 Jun 2026                              |
+| Gate dibuka | 10 Jun 2026, 02.30                                   |
+| Mulai       | 10 Jun 2026, 03.00                                   |
+| Harga tiket | Rp 150.000 (member) / Rp 200.000 (umum)              |
 
 ### Map icon link
 
@@ -196,16 +196,16 @@ Replace the current dense single-line meta with a structured `<dl>` grid:
 
 ## 6. Files Changed
 
-| File | Change |
-|---|---|
-| `src/lib/events/public-active-events.ts` | Extend select + mapper, add badge computation |
-| `src/lib/utils/format-idr-short.ts` | New helper |
-| `src/components/public/event-card.tsx` | New props, updated grid + list layout |
-| `src/components/public/event-serialization.ts` | Add `venueAddress`, `venueMapUrl` |
-| `src/lib/events/event-registration-page.ts` | Expose venue address + mapUrl in serializer |
-| `src/components/public/event-summary.tsx` | Replace meta line with `<dl>`, add map icon, add pricing row |
-| `src/app/(public)/events/page.tsx` | Pass new props to `EventCard` |
-| `src/components/public/home-landing.tsx` | Pass new props to `EventCard` |
+| File                                           | Change                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| `src/lib/events/public-active-events.ts`       | Extend select + mapper, add badge computation                |
+| `src/lib/utils/format-idr-short.ts`            | New helper                                                   |
+| `src/components/public/event-card.tsx`         | New props, updated grid + list layout                        |
+| `src/components/public/event-serialization.ts` | Add `venueAddress`, `venueMapUrl`                            |
+| `src/lib/events/event-registration-page.ts`    | Expose venue address + mapUrl in serializer                  |
+| `src/components/public/event-summary.tsx`      | Replace meta line with `<dl>`, add map icon, add pricing row |
+| `src/app/(public)/events/page.tsx`             | Pass new props to `EventCard`                                |
+| `src/components/public/home-landing.tsx`       | Pass new props to `EventCard`                                |
 
 ---
 

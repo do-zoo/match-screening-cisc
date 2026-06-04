@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Mempersistensi **pengaturan operasional klub** (singleton Postgres): *(1)* penutupan **pendaftaran publik secara global** dengan pesan kustom atau salinan baku, *(2)* **banner peringatan/perawatan** teks polos di seluruh `**(public)**`; serta **titik percabangan teruji** di server saat penyimpanan pendaftaran.
+**Goal:** Mempersistensi **pengaturan operasional klub** (singleton Postgres): _(1)_ penutupan **pendaftaran publik secara global** dengan pesan kustom atau salinan baku, _(2)_ **banner peringatan/perawatan** teks polos di seluruh `**(public)**`; serta **titik percabangan teruji** di server saat penyimpanan pendaftaran.
 
 **Architecture:** Mengikuti pola **Phase A/B**: model **singleton** Prisma satu baris (bukan satu JSON tidak terstruktur), key stabil `singletonKey === "default"`, pembaca publik **`React.cache`** di `**/lib/public/**`, mutasi **`guardOwner`** + **`ActionResult`** + Zod seperti `**/admin-club-branding.ts**`. Penggabungan “apakah registrasi dibuka untuk pengunjung” dilakukan di **helper murni** yang diuji Vitest lalu dipakai di **`getSerializedEventForPublicRegistration`** dan **cek awal `submitRegistration`** (serangan tidak bisa mem‑bypass dengan FormData palsu).
 
@@ -16,31 +16,31 @@
 
 ## File map — penciptaan & tanggung jawab
 
-| File | Tanggung jawab |
-|------|----------------|
-| `prisma/schema.prisma` | Model `ClubOperationalSettings` singleton (kolom eksplisit per perilaku, spek §5.4). |
-| `prisma/migrations/*/` | DDL dari `pnpm prisma migrate dev`. |
-| `src/lib/public/club-operational-policy.ts` | Konstanta pesan baku + **`mergeGlobalRegistrationClosure`** + **`effectiveMaintenanceBanner`** (murni, terdokumentasi satu kalimat perilaku tiap perilaku cabang). |
-| `src/lib/public/club-operational-policy.test.ts` | Vitest: buka → tutup global, tetap tertutup bila event sudah tutup, banner null/trim. |
-| `src/lib/public/load-club-operational-settings.ts` | `cache()` + `prisma`; export `CLUB_OPERATIONAL_SINGLETON_KEY`; fallback bila row belum ada. |
-| `src/lib/forms/club-operational-settings-schema.ts` | Zod: boolean dari checkbox FormData + dua string opsional dibatasi panjang. |
-| `src/lib/actions/admin-club-operational-settings.ts` | `saveClubOperationalSettings(_prev, fd)` Owner-only, upsert singleton, **`revalidatePath`**. |
-| `src/components/admin/club-operational-settings-form.tsx` | Klien: `useActionState`, Checkbox + Textarea untuk pesan tutup global + textarea banner (polos); teks ditampilkan sebagai string biasa tanpa markup. |
-| `src/app/admin/settings/operations/page.tsx` | Ganti placeholder: RSC prefetch baris atau default. |
-| `src/app/admin/settings/page.tsx` | Update deskripsi kartu **Operasional** (hilangkan “Menyusul…” bila ada). |
-| `src/lib/events/event-registration-page.ts` | Gabungkan hasil `registrationOpen`/`registrationClosedMessage` dengan flag global. |
-| `src/lib/actions/submit-registration.ts` | Guard setelah event aktif diketahui memakai **muatan singleton yang sama** (satu lookup DB konsisten dengan halaman publik). |
-| `src/app/(public)/layout.tsx` | Jika banner efektif non-null → `Alert` antara header dan konten (atau tepat di bawah header). |
+| File                                                      | Tanggung jawab                                                                                                                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `prisma/schema.prisma`                                    | Model `ClubOperationalSettings` singleton (kolom eksplisit per perilaku, spek §5.4).                                                                               |
+| `prisma/migrations/*/`                                    | DDL dari `pnpm prisma migrate dev`.                                                                                                                                |
+| `src/lib/public/club-operational-policy.ts`               | Konstanta pesan baku + **`mergeGlobalRegistrationClosure`** + **`effectiveMaintenanceBanner`** (murni, terdokumentasi satu kalimat perilaku tiap perilaku cabang). |
+| `src/lib/public/club-operational-policy.test.ts`          | Vitest: buka → tutup global, tetap tertutup bila event sudah tutup, banner null/trim.                                                                              |
+| `src/lib/public/load-club-operational-settings.ts`        | `cache()` + `prisma`; export `CLUB_OPERATIONAL_SINGLETON_KEY`; fallback bila row belum ada.                                                                        |
+| `src/lib/forms/club-operational-settings-schema.ts`       | Zod: boolean dari checkbox FormData + dua string opsional dibatasi panjang.                                                                                        |
+| `src/lib/actions/admin-club-operational-settings.ts`      | `saveClubOperationalSettings(_prev, fd)` Owner-only, upsert singleton, **`revalidatePath`**.                                                                       |
+| `src/components/admin/club-operational-settings-form.tsx` | Klien: `useActionState`, Checkbox + Textarea untuk pesan tutup global + textarea banner (polos); teks ditampilkan sebagai string biasa tanpa markup.               |
+| `src/app/admin/settings/operations/page.tsx`              | Ganti placeholder: RSC prefetch baris atau default.                                                                                                                |
+| `src/app/admin/settings/page.tsx`                         | Update deskripsi kartu **Operasional** (hilangkan “Menyusul…” bila ada).                                                                                           |
+| `src/lib/events/event-registration-page.ts`               | Gabungkan hasil `registrationOpen`/`registrationClosedMessage` dengan flag global.                                                                                 |
+| `src/lib/actions/submit-registration.ts`                  | Guard setelah event aktif diketahui memakai **muatan singleton yang sama** (satu lookup DB konsisten dengan halaman publik).                                       |
+| `src/app/(public)/layout.tsx`                             | Jika banner efektif non-null → `Alert` antara header dan konten (atau tepat di bawah header).                                                                      |
 
 ---
 
 ## Perilaku produk yang di-lock (implementor jangan improvisasi nama sembarangan)
 
-| Kolom DB / nama konsep | Nama stabil di schema | Pengaruh aplikasi |
-|------------------------|------------------------|-------------------|
-| `registrationGloballyDisabled` | kolom Boolean `@default(false)` | Jika `true`: **`registrationOpen` dipaksa `false`** di serialisasi acara publik; **`submitRegistration` mengembalikan `rootError`** dengan pesan yang sama seperti yang dilihat pengunjung jika bisa (kustom atau baku). |
-| `globalRegistrationClosedMessage` | `String?` | Hanya dipakai jika `registrationGloballyDisabled === true`; jika `null` atau string kosong setelah trim, pakai **`DEFAULT_GLOBAL_REGISTRATION_CLOSED`** di `club-operational-policy.ts`. |
-| `maintenanceBannerPlainText` | `String?` | Jika setelah **`effectiveMaintenanceBanner`** hasilnya non-null, **layout publik menampilkan `<Alert>`** dengan teks tersebut sebagai **teks biasa di `AlertDescription`** (tidak memparsing markup). |
+| Kolom DB / nama konsep            | Nama stabil di schema           | Pengaruh aplikasi                                                                                                                                                                                                        |
+| --------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `registrationGloballyDisabled`    | kolom Boolean `@default(false)` | Jika `true`: **`registrationOpen` dipaksa `false`** di serialisasi acara publik; **`submitRegistration` mengembalikan `rootError`** dengan pesan yang sama seperti yang dilihat pengunjung jika bisa (kustom atau baku). |
+| `globalRegistrationClosedMessage` | `String?`                       | Hanya dipakai jika `registrationGloballyDisabled === true`; jika `null` atau string kosong setelah trim, pakai **`DEFAULT_GLOBAL_REGISTRATION_CLOSED`** di `club-operational-policy.ts`.                                 |
+| `maintenanceBannerPlainText`      | `String?`                       | Jika setelah **`effectiveMaintenanceBanner`** hasilnya non-null, **layout publik menampilkan `<Alert>`** dengan teks tersebut sebagai **teks biasa di `AlertDescription`** (tidak memparsing markup).                    |
 
 **Teks baku cadangan tunggal (wajib persis dalam kode pertama; tes mengunci string ini):**
 
@@ -53,6 +53,7 @@ Sementara waktu pendaftaran acara ditutup sementara oleh pengurus. Silakan coba 
 ### Task 1: Prisma `ClubOperationalSettings` + migrasi
 
 **Files:**
+
 - Modify: `prisma/schema.prisma`
 - Create: `prisma/migrations/<stamp>_club_operational_settings/migration.sql` (hasil CLI)
 
@@ -92,22 +93,23 @@ git commit -m "feat(db): club operational settings singleton"
 ### Task 2: Kebijakan murni + tes (TDD)
 
 **Files:**
+
 - Create: `src/lib/public/club-operational-policy.ts`
 - Create: `src/lib/public/club-operational-policy.test.ts`
 
 - [ ] **Step 1: Tulis tes dulu**
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_GLOBAL_REGISTRATION_CLOSED,
   effectiveMaintenanceBanner,
   mergeGlobalRegistrationClosure,
-} from "./club-operational-policy";
+} from './club-operational-policy'
 
-describe("mergeGlobalRegistrationClosure", () => {
-  it("meneruskan event terbuka bila penutupan global tidak aktif", () => {
+describe('mergeGlobalRegistrationClosure', () => {
+  it('meneruskan event terbuka bila penutupan global tidak aktif', () => {
     expect(
       mergeGlobalRegistrationClosure({
         registrationOpen: true,
@@ -115,59 +117,59 @@ describe("mergeGlobalRegistrationClosure", () => {
         registrationGloballyDisabled: false,
         globalRegistrationClosedMessage: null,
       }),
-    ).toEqual({ registrationOpen: true, registrationClosedMessage: null });
-  });
+    ).toEqual({ registrationOpen: true, registrationClosedMessage: null })
+  })
 
-  it("memaksa tutup ketika penutupan global aktif walau event terbuka", () => {
+  it('memaksa tutup ketika penutupan global aktif walau event terbuka', () => {
     expect(
       mergeGlobalRegistrationClosure({
         registrationOpen: true,
         registrationClosedMessage: null,
         registrationGloballyDisabled: true,
-        globalRegistrationClosedMessage: "Libur kolektif.",
+        globalRegistrationClosedMessage: 'Libur kolektif.',
       }),
     ).toEqual({
       registrationOpen: false,
-      registrationClosedMessage: "Libur kolektif.",
-    });
-  });
+      registrationClosedMessage: 'Libur kolektif.',
+    })
+  })
 
-  it("memakai salinan DEFAULT jika pesan global kosong tetapi penutupan aktif", () => {
+  it('memakai salinan DEFAULT jika pesan global kosong tetapi penutupan aktif', () => {
     expect(
       mergeGlobalRegistrationClosure({
         registrationOpen: true,
         registrationClosedMessage: null,
         registrationGloballyDisabled: true,
-        globalRegistrationClosedMessage: "   ",
+        globalRegistrationClosedMessage: '   ',
       }).registrationClosedMessage,
-    ).toBe(DEFAULT_GLOBAL_REGISTRATION_CLOSED);
-  });
+    ).toBe(DEFAULT_GLOBAL_REGISTRATION_CLOSED)
+  })
 
-  it("tetap menutup bila event sudah tertutup sebelumnya", () => {
+  it('tetap menutup bila event sudah tertutup sebelumnya', () => {
     expect(
       mergeGlobalRegistrationClosure({
         registrationOpen: false,
-        registrationClosedMessage: "Kuota habis.",
+        registrationClosedMessage: 'Kuota habis.',
         registrationGloballyDisabled: true,
         globalRegistrationClosedMessage: null,
       }),
     ).toEqual({
       registrationOpen: false,
       registrationClosedMessage: DEFAULT_GLOBAL_REGISTRATION_CLOSED,
-    });
-  });
-});
+    })
+  })
+})
 
-describe("effectiveMaintenanceBanner", () => {
-  it("menghasilkan null untuk null atau hanya whitespace", () => {
-    expect(effectiveMaintenanceBanner(null)).toBeNull();
-    expect(effectiveMaintenanceBanner("  ")).toBeNull();
-  });
+describe('effectiveMaintenanceBanner', () => {
+  it('menghasilkan null untuk null atau hanya whitespace', () => {
+    expect(effectiveMaintenanceBanner(null)).toBeNull()
+    expect(effectiveMaintenanceBanner('  ')).toBeNull()
+  })
 
-  it("mempertahankan teks tidak kosong ter-trim", () => {
-    expect(effectiveMaintenanceBanner("  Peringatan tes  ")).toBe("Peringatan tes");
-  });
-});
+  it('mempertahankan teks tidak kosong ter-trim', () => {
+    expect(effectiveMaintenanceBanner('  Peringatan tes  ')).toBe('Peringatan tes')
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan tes — harus gagal**
@@ -183,39 +185,37 @@ Expected: FAIL module not found atau export missing.
 ```typescript
 /** Pesan pengunjung bila pengurus menutup pendaftaran seluruh situs tanpa mengisi pesan kustom. */
 export const DEFAULT_GLOBAL_REGISTRATION_CLOSED =
-  "Sementara waktu pendaftaran acara ditutup sementara oleh pengurus. Silakan coba lagi nanti.";
+  'Sementara waktu pendaftaran acara ditutup sementara oleh pengurus. Silakan coba lagi nanti.'
 
 /**
  * Menggabungkan apakah alur registrasi umum bisa dilanjutkan di UI untuk satu acara,
  * dengan prioritas tertinggi pada penutupan global komite (`registrationGloballyDisabled`).
  */
 export function mergeGlobalRegistrationClosure(args: {
-  registrationOpen: boolean;
-  registrationClosedMessage: string | null;
-  registrationGloballyDisabled: boolean;
-  globalRegistrationClosedMessage: string | null;
+  registrationOpen: boolean
+  registrationClosedMessage: string | null
+  registrationGloballyDisabled: boolean
+  globalRegistrationClosedMessage: string | null
 }): {
-  registrationOpen: boolean;
-  registrationClosedMessage: string | null;
+  registrationOpen: boolean
+  registrationClosedMessage: string | null
 } {
   if (!args.registrationGloballyDisabled) {
     return {
       registrationOpen: args.registrationOpen,
       registrationClosedMessage: args.registrationClosedMessage,
-    };
+    }
   }
-  const trimmed = args.globalRegistrationClosedMessage?.trim() ?? "";
-  const msg = trimmed !== "" ? trimmed : DEFAULT_GLOBAL_REGISTRATION_CLOSED;
-  return { registrationOpen: false, registrationClosedMessage: msg };
+  const trimmed = args.globalRegistrationClosedMessage?.trim() ?? ''
+  const msg = trimmed !== '' ? trimmed : DEFAULT_GLOBAL_REGISTRATION_CLOSED
+  return { registrationOpen: false, registrationClosedMessage: msg }
 }
 
 /** Banner publik: null berarti tidak menampilkan alert. Teks dipakai apa adanya. */
-export function effectiveMaintenanceBanner(
-  plain: string | null | undefined,
-): string | null {
-  if (plain == null) return null;
-  const t = plain.trim();
-  return t === "" ? null : t;
+export function effectiveMaintenanceBanner(plain: string | null | undefined): string | null {
+  if (plain == null) return null
+  const t = plain.trim()
+  return t === '' ? null : t
 }
 ```
 
@@ -239,36 +239,34 @@ git commit -m "feat(ops): operational registration merge policy with tests"
 ### Task 3: Loader `React.cache` + VM publik
 
 **Files:**
+
 - Create: `src/lib/public/load-club-operational-settings.ts`
 
 - [ ] **Step 1:** Implementasi berikut:
 
 ```typescript
-import { cache } from "react";
+import { cache } from 'react'
 
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma'
 
-export const CLUB_OPERATIONAL_SINGLETON_KEY = "default" as const;
+export const CLUB_OPERATIONAL_SINGLETON_KEY = 'default' as const
 
 export type ClubOperationalVm = {
-  registrationGloballyDisabled: boolean;
-  globalRegistrationClosedMessage: string | null;
-  maintenanceBannerPlainText: string | null;
-};
+  registrationGloballyDisabled: boolean
+  globalRegistrationClosedMessage: string | null
+  maintenanceBannerPlainText: string | null
+}
 
-export const loadClubOperationalSettings = cache(
-  async (): Promise<ClubOperationalVm> => {
-    const row = await prisma.clubOperationalSettings.findUnique({
-      where: { singletonKey: CLUB_OPERATIONAL_SINGLETON_KEY },
-    });
-    return {
-      registrationGloballyDisabled: row?.registrationGloballyDisabled ?? false,
-      globalRegistrationClosedMessage:
-        row?.globalRegistrationClosedMessage ?? null,
-      maintenanceBannerPlainText: row?.maintenanceBannerPlainText ?? null,
-    };
-  },
-);
+export const loadClubOperationalSettings = cache(async (): Promise<ClubOperationalVm> => {
+  const row = await prisma.clubOperationalSettings.findUnique({
+    where: { singletonKey: CLUB_OPERATIONAL_SINGLETON_KEY },
+  })
+  return {
+    registrationGloballyDisabled: row?.registrationGloballyDisabled ?? false,
+    globalRegistrationClosedMessage: row?.globalRegistrationClosedMessage ?? null,
+    maintenanceBannerPlainText: row?.maintenanceBannerPlainText ?? null,
+  }
+})
 ```
 
 - [ ] **Step 2:** Setelah **`pnpm prisma generate`**, jalankan `pnpm exec tsc --noEmit` atau `pnpm build` untuk memastikan nama model prisma cocok.
@@ -285,6 +283,7 @@ git commit -m "feat(ops): cached loader for operational settings"
 ### Task 4: Sematkan penggabungan ke data acara publik
 
 **Files:**
+
 - Modify: `src/lib/events/event-registration-page.ts`
 
 - [ ] **Step 1:** Setelah Anda menghitung `registrationOpen`, `registrationClosedMessage` seperti hari ini, impor **`loadClubOperationalSettings`** dari loader baru dan **`mergeGlobalRegistrationClosure`** dari **`club-operational-policy`**.
@@ -292,15 +291,15 @@ git commit -m "feat(ops): cached loader for operational settings"
 - [ ] **Step 2:** Panggil `await loadClubOperationalSettings()` sekali dalam `getSerializedEventForPublicRegistration` (di dalam pengclosure `cache`-nya), gabungkan hasilnya:
 
 ```typescript
-const ops = await loadClubOperationalSettings();
+const ops = await loadClubOperationalSettings()
 const merged = mergeGlobalRegistrationClosure({
   registrationOpen,
   registrationClosedMessage,
   registrationGloballyDisabled: ops.registrationGloballyDisabled,
   globalRegistrationClosedMessage: ops.globalRegistrationClosedMessage,
-});
-registrationOpen = merged.registrationOpen;
-registrationClosedMessage = merged.registrationClosedMessage;
+})
+registrationOpen = merged.registrationOpen
+registrationClosedMessage = merged.registrationClosedMessage
 ```
 
 - [ ] **Step 3: Commit**
@@ -315,26 +314,27 @@ git commit -m "feat(public): honor global registration closure in event serializ
 ### Task 5: Guard server `submitRegistration`
 
 **Files:**
+
 - Modify: `src/lib/actions/submit-registration.ts`
 
 - [ ] **Step 1:** Setelah blok “event tidak ditemukan”, setelah Anda punya **`event`** aktif tetapi **sebelum transaksi utama**, impor **`loadClubOperationalSettings`**, **`mergeGlobalRegistrationClosure`**, **`registrationBlockMessageForPublic`**, **`isRegistrationOpenForEvent`** (berapa pun yang sudah ada file ini), serta **`DEFAULT_GLOBAL_REGISTRATION_CLOSED`**.
 
 ```typescript
-import { loadClubOperationalSettings } from "@/lib/public/load-club-operational-settings";
+import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-settings'
 import {
   mergeGlobalRegistrationClosure,
   DEFAULT_GLOBAL_REGISTRATION_CLOSED,
-} from "@/lib/public/club-operational-policy";
+} from '@/lib/public/club-operational-policy'
 ```
 
 - [ ] **Step 2:** Bangun gabungan menggunakan **hitungan kuota yang sama** dengan validasi Anda saat ini (variabel seperti `registrationsTowardQuotaPreview` di file Anda):
 
 ```typescript
-const opsGate = await loadClubOperationalSettings();
+const opsGate = await loadClubOperationalSettings()
 const locallyOpen = isRegistrationOpenForEvent({
   event,
   registrationsTowardQuota: registrationsTowardQuotaPreview,
-});
+})
 const mergedGate = mergeGlobalRegistrationClosure({
   registrationOpen: locallyOpen,
   registrationClosedMessage: locallyOpen
@@ -347,13 +347,10 @@ const mergedGate = mergeGlobalRegistrationClosure({
       }),
   registrationGloballyDisabled: opsGate.registrationGloballyDisabled,
   globalRegistrationClosedMessage: opsGate.globalRegistrationClosedMessage,
-});
+})
 
 if (!mergedGate.registrationOpen) {
-  return rootError(
-    mergedGate.registrationClosedMessage ??
-      DEFAULT_GLOBAL_REGISTRATION_CLOSED,
-  );
+  return rootError(mergedGate.registrationClosedMessage ?? DEFAULT_GLOBAL_REGISTRATION_CLOSED)
 }
 ```
 
@@ -371,85 +368,67 @@ git commit -m "fix(ops): enforce global registration closure in submit-registrat
 ### Task 6: Zod + Server Action penyimpanan (Owner)
 
 **Files:**
+
 - Create: `src/lib/forms/club-operational-settings-schema.ts`
 - Create: `src/lib/actions/admin-club-operational-settings.ts`
 
 - [ ] **Step 1:** Schema formulir dengan checkbox tidak terkirim ⇒ false:
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod'
 
 function checkboxToBoolean(value: unknown): boolean {
-  if (value === "on" || value === true || value === "true" || value === "1")
-    return true;
-  return false;
+  if (value === 'on' || value === true || value === 'true' || value === '1') return true
+  return false
 }
 
 export const clubOperationalSettingsSaveSchema = z.object({
-  registrationGloballyDisabled: z.preprocess(
-    checkboxToBoolean,
-    z.boolean(),
-  ),
+  registrationGloballyDisabled: z.preprocess(checkboxToBoolean, z.boolean()),
   globalRegistrationClosedMessage: z
     .string()
     .optional()
-    .transform((v) => (v ?? "").trim())
-    .transform((v) =>
-      v === "" ? "" : v.slice(0, 500),
-    ),
+    .transform(v => (v ?? '').trim())
+    .transform(v => (v === '' ? '' : v.slice(0, 500))),
   maintenanceBannerPlainText: z
     .string()
     .optional()
-    .transform((v) => (v ?? "").trim())
-    .transform((v) =>
-      v === "" ? "" : v.slice(0, 800),
-    ),
-});
+    .transform(v => (v ?? '').trim())
+    .transform(v => (v === '' ? '' : v.slice(0, 800))),
+})
 ```
 
 - [ ] **Step 2:** Server Action (**dua-argumen** untuk `useActionState`):
 
 ```typescript
-"use server";
+'use server'
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from 'next/cache'
 
-import { guardOwner, isAuthError } from "@/lib/actions/guard";
-import { prisma } from "@/lib/db/prisma";
-import {
-  clubOperationalSettingsSaveSchema,
-} from "@/lib/forms/club-operational-settings-schema";
-import {
-  ok,
-  rootError,
-  fieldError,
-  type ActionResult,
-} from "@/lib/forms/action-result";
-import { zodToFieldErrors } from "@/lib/forms/zod";
-import {
-  CLUB_OPERATIONAL_SINGLETON_KEY,
-} from "@/lib/public/load-club-operational-settings";
+import { guardOwner, isAuthError } from '@/lib/actions/guard'
+import { prisma } from '@/lib/db/prisma'
+import { clubOperationalSettingsSaveSchema } from '@/lib/forms/club-operational-settings-schema'
+import { ok, rootError, fieldError, type ActionResult } from '@/lib/forms/action-result'
+import { zodToFieldErrors } from '@/lib/forms/zod'
+import { CLUB_OPERATIONAL_SINGLETON_KEY } from '@/lib/public/load-club-operational-settings'
 
 export async function saveClubOperationalSettings(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
   try {
-    await guardOwner();
+    await guardOwner()
   } catch (e) {
-    if (isAuthError(e)) return rootError("Tidak diizinkan.");
-    throw e;
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
   }
 
   const parsed = clubOperationalSettingsSaveSchema.safeParse({
-    registrationGloballyDisabled: formData.get("registrationGloballyDisabled"),
-    globalRegistrationClosedMessage:
-      formData.get("globalRegistrationClosedMessage"),
-    maintenanceBannerPlainText: formData.get("maintenanceBannerPlainText"),
-  });
+    registrationGloballyDisabled: formData.get('registrationGloballyDisabled'),
+    globalRegistrationClosedMessage: formData.get('globalRegistrationClosedMessage'),
+    maintenanceBannerPlainText: formData.get('maintenanceBannerPlainText'),
+  })
 
-  if (!parsed.success)
-    return fieldError(zodToFieldErrors(parsed.error));
+  if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
 
   try {
     await prisma.clubOperationalSettings.upsert({
@@ -458,34 +437,26 @@ export async function saveClubOperationalSettings(
         singletonKey: CLUB_OPERATIONAL_SINGLETON_KEY,
         registrationGloballyDisabled: parsed.data.registrationGloballyDisabled,
         globalRegistrationClosedMessage:
-          parsed.data.globalRegistrationClosedMessage === ""
-            ? null
-            : parsed.data.globalRegistrationClosedMessage,
+          parsed.data.globalRegistrationClosedMessage === '' ? null : parsed.data.globalRegistrationClosedMessage,
         maintenanceBannerPlainText:
-          parsed.data.maintenanceBannerPlainText === ""
-            ? null
-            : parsed.data.maintenanceBannerPlainText,
+          parsed.data.maintenanceBannerPlainText === '' ? null : parsed.data.maintenanceBannerPlainText,
       },
       update: {
         registrationGloballyDisabled: parsed.data.registrationGloballyDisabled,
         globalRegistrationClosedMessage:
-          parsed.data.globalRegistrationClosedMessage === ""
-            ? null
-            : parsed.data.globalRegistrationClosedMessage,
+          parsed.data.globalRegistrationClosedMessage === '' ? null : parsed.data.globalRegistrationClosedMessage,
         maintenanceBannerPlainText:
-          parsed.data.maintenanceBannerPlainText === ""
-            ? null
-            : parsed.data.maintenanceBannerPlainText,
+          parsed.data.maintenanceBannerPlainText === '' ? null : parsed.data.maintenanceBannerPlainText,
       },
-    });
+    })
   } catch {
-    return rootError("Gagal menyimpan pengaturan.");
+    return rootError('Gagal menyimpan pengaturan.')
   }
 
-  revalidatePath("/admin/settings/operations");
-  revalidatePath("/");
-  revalidatePath("/events");
-  return ok({ saved: true });
+  revalidatePath('/admin/settings/operations')
+  revalidatePath('/')
+  revalidatePath('/events')
+  return ok({ saved: true })
 }
 ```
 
@@ -501,6 +472,7 @@ git commit -m "feat(admin): owner action to persist operational settings"
 ### Task 7: Komponen klien form
 
 **Files:**
+
 - Create: `src/components/admin/club-operational-settings-form.tsx`
 
 - [ ] **Step 1:** Pola dari `**/club-branding-settings-form.tsx` — `useActionState(saveClubOperationalSettings, null)`. Gunakan **`form action={dispatch}`**.
@@ -523,6 +495,7 @@ git commit -m "feat(admin): operations settings client form"
 ### Task 8: Halaman `/admin/settings/operations`
 
 **Files:**
+
 - Modify: `src/app/admin/settings/operations/page.tsx`
 
 - [ ] **Step 1:** Hapus `CommitteeSettingsPlaceholder`. Prefetch prisma row `clubOperationalSettings` dengan key `default`; set props awal Checkbox + textarea (string kosong = field kosong seperti branding).
@@ -541,6 +514,7 @@ git commit -m "feat(admin): operations settings page"
 ### Task 9: Banner di layout publik
 
 **Files:**
+
 - Modify: `src/app/(public)/layout.tsx`
 
 - [ ] **Step 1:** `await loadClubOperationalSettings()` bisa digabung `Promise.all` dengan branding untuk satu round-trip.
@@ -548,21 +522,23 @@ git commit -m "feat(admin): operations settings page"
 Tarik teks efektif:
 
 ```tsx
-const ops = await loadClubOperationalSettings();
-const bannerText = effectiveMaintenanceBanner(ops.maintenanceBannerPlainText);
+const ops = await loadClubOperationalSettings()
+const bannerText = effectiveMaintenanceBanner(ops.maintenanceBannerPlainText)
 ```
 
 Render:
 
 ```tsx
-{bannerText ? (
-  <div className="border-b bg-muted/50 px-4 py-3">
-    <Alert>
-      <AlertTitle>Pemberitahuan</AlertTitle>
-      <AlertDescription>{bannerText}</AlertDescription>
-    </Alert>
-  </div>
-) : null}
+{
+  bannerText ? (
+    <div className='border-b bg-muted/50 px-4 py-3'>
+      <Alert>
+        <AlertTitle>Pemberitahuan</AlertTitle>
+        <AlertDescription>{bannerText}</AlertDescription>
+      </Alert>
+    </div>
+  ) : null
+}
 ```
 
 Letakkan setelah **`PublicHeader`**, sebelum pembungkus utama `children`. Impor **`Alert*`** dari ui, serta **`effectiveMaintenanceBanner`**, **`loadClubOperationalSettings`**.
@@ -579,6 +555,7 @@ git commit -m "feat(public): show maintenance banner when configured"
 ### Task 10: Hub Pengaturan — salinan kartu
 
 **Files:**
+
 - Modify: `src/app/admin/settings/page.tsx`
 
 - [ ] **Step 1:** Ganti **`description`** pada kartu **`/admin/settings/operations`** dengan kalimat konkret (penutupan pendaftaran global + banner perawatan bagi pengunjung; bahasa Indonesia; tanpa frasa roadmap).
@@ -624,11 +601,11 @@ Expected: keluar kode **0**.
 
 ## Spec coverage checklist
 
-| Butir spek | Task |
-|-----------|------|
+| Butir spek                                                        | Task                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------- |
 | §5.4 key stabil + dokumen perilaku satu baris per flag dalam kode | `club-operational-policy.ts` + tabel “Perilaku produk yang di-lock” |
-| Phase C banner / tutup registrasi global | Tasks 4, 5, 9 |
-| §5.5 audit untuk flag operasional | **Ditunda Phase D** (per bagian atas rencana) |
+| Phase C banner / tutup registrasi global                          | Tasks 4, 5, 9                                                       |
+| §5.5 audit untuk flag operasional                                 | **Ditunda Phase D** (per bagian atas rencana)                       |
 
 ---
 

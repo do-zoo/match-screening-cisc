@@ -1,112 +1,102 @@
-"use client";
+'use client'
 
-import { useActionState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { useActionState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 
-import { saveClubBranding } from "@/lib/actions/admin-club-branding";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { FileField } from "@/components/ui/file-field";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import type { ActionResult } from "@/lib/forms/action-result";
-import { toastCudSuccess } from "@/lib/client/cud-notify";
+import { saveClubBranding } from '@/lib/actions/admin-club-branding'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { FileField } from '@/components/ui/file-field'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import type { ActionResult } from '@/lib/forms/action-result'
+import { toastCudSuccess } from '@/lib/client/cud-notify'
 
 export function ClubBrandingSettingsForm(props: {
-  initialClubName: string;
-  initialFooter: string;
-  logoUrl: string | null;
+  initialClubName: string
+  initialFooter: string
+  logoUrl: string | null
 }) {
-  const [state, dispatch, pending] = useActionState(
-    saveClubBranding,
-    null as ActionResult<{ saved: true }> | null,
-  );
+  const [state, dispatch, pending] = useActionState(saveClubBranding, null as ActionResult<{ saved: true }> | null)
 
   useEffect(() => {
     if (state?.ok) {
-      toastCudSuccess("update", "Branding berhasil disimpan.");
+      toastCudSuccess('update', 'Branding berhasil disimpan.')
     }
-  }, [state]);
+  }, [state])
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className='max-w-xl space-y-6'>
       {state?.ok === false && state.rootError ? (
-        <Alert variant="destructive">
+        <Alert variant='destructive'>
           <AlertTitle>Gagal</AlertTitle>
           <AlertDescription>{state.rootError}</AlertDescription>
         </Alert>
       ) : null}
       {state?.ok === false && state.fieldErrors ? (
-        <Alert variant="destructive">
+        <Alert variant='destructive'>
           <AlertTitle>Periksa isian</AlertTitle>
-          <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
+          <AlertDescription className='font-mono text-xs whitespace-pre-wrap'>
             {Object.entries(state.fieldErrors)
               .map(([k, v]) => `${k}: ${v}`)
-              .join("\n")}
+              .join('\n')}
           </AlertDescription>
         </Alert>
       ) : null}
-      <form action={dispatch} className="space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="clubNameNav">Nama di header publik</Label>
+      <form action={dispatch} className='space-y-5'>
+        <div className='space-y-2'>
+          <Label htmlFor='clubNameNav'>Nama di header publik</Label>
           <Input
-            id="clubNameNav"
-            name="clubNameNav"
+            id='clubNameNav'
+            name='clubNameNav'
             required
             defaultValue={props.initialClubName}
             disabled={pending}
-            autoComplete="off"
+            autoComplete='off'
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="footerPlainText">Teks footer (opsional)</Label>
+        <div className='space-y-2'>
+          <Label htmlFor='footerPlainText'>Teks footer (opsional)</Label>
           <Textarea
-            id="footerPlainText"
-            name="footerPlainText"
+            id='footerPlainText'
+            name='footerPlainText'
             rows={3}
-            placeholder="Misalnya hak cipta singkat atau alamat kontak"
+            placeholder='Misalnya hak cipta singkat atau alamat kontak'
             defaultValue={props.initialFooter}
             disabled={pending}
           />
-          <p className="text-muted-foreground text-xs">
-            Ditampilkan sebagai teks polos di bawah halaman publik. Kosongkan untuk
-            menyembunyikan footer.
+          <p className='text-muted-foreground text-xs'>
+            Ditampilkan sebagai teks polos di bawah halaman publik. Kosongkan untuk menyembunyikan footer.
           </p>
         </div>
         <FileField
-          id="logo"
-          name="logo"
-          label="Logo klub (opsional, gambar raster)"
+          id='logo'
+          name='logo'
+          label='Logo klub (opsional, gambar raster)'
           description={
             props.logoUrl
-              ? "Unggah berkas baru untuk mengganti. Lewati jika hanya mengubah teks."
-              : "Format JPG, PNG, atau WebP."
+              ? 'Unggah berkas baru untuk mengganti. Lewati jika hanya mengubah teks.'
+              : 'Format JPG, PNG, atau WebP.'
           }
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
           disabled={pending}
           existingPreviewUrl={props.logoUrl}
-          pickPrompt="Ketuk untuk memilih logo"
-          replacePrompt="Ganti logo"
+          pickPrompt='Ketuk untuk memilih logo'
+          replacePrompt='Ganti logo'
         />
-        <Button type="submit" disabled={pending}>
+        <Button type='submit' disabled={pending}>
           {pending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' aria-hidden />
               Menyimpan…
             </>
           ) : (
-            "Simpan"
+            'Simpan'
           )}
         </Button>
       </form>
-      {state?.ok === true ? (
-        <p className="text-sm font-medium text-emerald-600">Branding disimpan.</p>
-      ) : null}
+      {state?.ok === true ? <p className='text-sm font-medium text-emerald-600'>Branding disimpan.</p> : null}
     </div>
-  );
+  )
 }

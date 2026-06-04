@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useReducer, useTransition } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm, type Resolver } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useReducer, useTransition } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Controller, useForm, type Resolver } from 'react-hook-form'
+import { Loader2 } from 'lucide-react'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -13,100 +13,97 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { EntityCombobox } from "@/components/ui/entity-combobox";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { EntityCombobox } from '@/components/ui/entity-combobox'
 import {
   createManagementMember,
   deleteManagementMember,
   updateManagementMember,
-} from "@/lib/actions/admin-management-members";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+} from '@/lib/actions/admin-management-members'
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import {
   adminManagementMemberCreateSchema,
   adminManagementMemberUpdateSchema,
-} from "@/lib/forms/admin-management-member-schema";
+} from '@/lib/forms/admin-management-member-schema'
 
 type MasterMemberOption = {
-  id: string;
-  memberNumber: string;
-  fullName: string;
-};
+  id: string
+  memberNumber: string
+  fullName: string
+}
 
 type MemberRow = {
-  id: string;
-  fullName: string;
-  publicCode: string;
-  whatsapp: string | null;
-  masterMemberId: string | null;
-};
+  id: string
+  fullName: string
+  publicCode: string
+  whatsapp: string | null
+  masterMemberId: string | null
+}
 
 type FormValues = {
-  id?: string;
-  fullName: string;
-  publicCode: string;
-  whatsapp: string;
-  masterMemberId: string;
-};
+  id?: string
+  fullName: string
+  publicCode: string
+  whatsapp: string
+  masterMemberId: string
+}
 
-const NO_LINK = "__none__";
+const NO_LINK = '__none__'
 
 type DialogExtras = {
-  rootMessage: string | null;
-  deleteError: string | null;
-  showDeleteConfirm: boolean;
-};
+  rootMessage: string | null
+  deleteError: string | null
+  showDeleteConfirm: boolean
+}
 
 type ExtrasAction =
-  | { type: "opened"; showDeleteConfirm: boolean }
-  | { type: "closed" }
-  | { type: "set-root-message"; message: string | null }
-  | { type: "set-delete-error"; message: string | null }
-  | { type: "show-delete-prompt" }
-  | { type: "cancel-delete-prompt" };
+  | { type: 'opened'; showDeleteConfirm: boolean }
+  | { type: 'closed' }
+  | { type: 'set-root-message'; message: string | null }
+  | { type: 'set-delete-error'; message: string | null }
+  | { type: 'show-delete-prompt' }
+  | { type: 'cancel-delete-prompt' }
 
 const INITIAL_EXTRAS: DialogExtras = {
   rootMessage: null,
   deleteError: null,
   showDeleteConfirm: false,
-};
+}
 
-function extrasReducer(
-  state: DialogExtras,
-  action: ExtrasAction,
-): DialogExtras {
+function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
   switch (action.type) {
-    case "opened":
+    case 'opened':
       return {
         rootMessage: null,
         deleteError: null,
         showDeleteConfirm: action.showDeleteConfirm,
-      };
-    case "closed":
-      return INITIAL_EXTRAS;
-    case "set-root-message":
-      return { ...state, rootMessage: action.message };
-    case "set-delete-error":
-      return { ...state, deleteError: action.message };
-    case "show-delete-prompt":
-      return { ...state, showDeleteConfirm: true };
-    case "cancel-delete-prompt":
-      return { ...state, showDeleteConfirm: false, deleteError: null };
+      }
+    case 'closed':
+      return INITIAL_EXTRAS
+    case 'set-root-message':
+      return { ...state, rootMessage: action.message }
+    case 'set-delete-error':
+      return { ...state, deleteError: action.message }
+    case 'show-delete-prompt':
+      return { ...state, showDeleteConfirm: true }
+    case 'cancel-delete-prompt':
+      return { ...state, showDeleteConfirm: false, deleteError: null }
     default:
-      return state;
+      return state
   }
 }
 
 type Props = {
-  mode: "create" | "edit";
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  member?: MemberRow | null;
-  availableMasterMembers: MasterMemberOption[];
-  onSaved: () => void;
-  defaultShowDeleteConfirm?: boolean;
-};
+  mode: 'create' | 'edit'
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  member?: MemberRow | null
+  availableMasterMembers: MasterMemberOption[]
+  onSaved: () => void
+  defaultShowDeleteConfirm?: boolean
+}
 
 export function ManagementMemberFormDialog({
   mode,
@@ -117,71 +114,68 @@ export function ManagementMemberFormDialog({
   onSaved,
   defaultShowDeleteConfirm = false,
 }: Props) {
-  const [isPending, startTransition] = useTransition();
-  const [extras, dispatchExtras] = useReducer(extrasReducer, INITIAL_EXTRAS);
-  const { rootMessage, showDeleteConfirm, deleteError } = extras;
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isPending, startTransition] = useTransition()
+  const [extras, dispatchExtras] = useReducer(extrasReducer, INITIAL_EXTRAS)
+  const { rootMessage, showDeleteConfirm, deleteError } = extras
+  const [isDeleting, startDeleteTransition] = useTransition()
 
   const defaultValues = useMemo<FormValues>(
     () => ({
       id: member?.id,
-      fullName: member?.fullName ?? "",
-      publicCode: member?.publicCode ?? "",
-      whatsapp: member?.whatsapp ?? "",
+      fullName: member?.fullName ?? '',
+      publicCode: member?.publicCode ?? '',
+      whatsapp: member?.whatsapp ?? '',
       masterMemberId: member?.masterMemberId ?? NO_LINK,
     }),
     [member],
-  );
+  )
 
   const masterMemberComboboxOptions = useMemo(
     () => [
       {
         value: NO_LINK,
-        label: "Tidak ditautkan",
-        keywords: "tidak taut",
+        label: 'Tidak ditautkan',
+        keywords: 'tidak taut',
       },
-      ...availableMasterMembers.map((m) => ({
+      ...availableMasterMembers.map(m => ({
         value: m.id,
         label: `${m.memberNumber} — ${m.fullName}`,
         keywords: `${m.memberNumber} ${m.fullName}`,
       })),
     ],
     [availableMasterMembers],
-  );
+  )
 
   const form = useForm<FormValues>({
     resolver: zodResolver(
-      (mode === "create"
-        ? adminManagementMemberCreateSchema
-        : adminManagementMemberUpdateSchema) as never,
+      (mode === 'create' ? adminManagementMemberCreateSchema : adminManagementMemberUpdateSchema) as never,
     ) as Resolver<FormValues>,
     defaultValues,
-  });
+  })
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return
     dispatchExtras({
-      type: "opened",
+      type: 'opened',
       showDeleteConfirm: defaultShowDeleteConfirm,
-    });
-    form.reset(defaultValues);
-  }, [open, defaultValues, form, defaultShowDeleteConfirm]);
+    })
+    form.reset(defaultValues)
+  }, [open, defaultValues, form, defaultShowDeleteConfirm])
 
   function submit(values: FormValues) {
-    if (mode === "edit" && !member) {
+    if (mode === 'edit' && !member) {
       dispatchExtras({
-        type: "set-root-message",
-        message: "Data pengurus tidak ditemukan.",
-      });
-      return;
+        type: 'set-root-message',
+        message: 'Data pengurus tidak ditemukan.',
+      })
+      return
     }
-    dispatchExtras({ type: "set-root-message", message: null });
+    dispatchExtras({ type: 'set-root-message', message: null })
     startTransition(async () => {
-      const fd = new FormData();
-      const masterMemberId =
-        values.masterMemberId === NO_LINK ? null : values.masterMemberId;
+      const fd = new FormData()
+      const masterMemberId = values.masterMemberId === NO_LINK ? null : values.masterMemberId
       const payload =
-        mode === "create"
+        mode === 'create'
           ? {
               fullName: values.fullName,
               publicCode: values.publicCode,
@@ -194,144 +188,121 @@ export function ManagementMemberFormDialog({
               publicCode: values.publicCode,
               whatsapp: values.whatsapp,
               masterMemberId,
-            };
-      fd.set("payload", JSON.stringify(payload));
+            }
+      fd.set('payload', JSON.stringify(payload))
       const result =
-        mode === "create"
-          ? await createManagementMember(undefined, fd)
-          : await updateManagementMember(undefined, fd);
+        mode === 'create' ? await createManagementMember(undefined, fd) : await updateManagementMember(undefined, fd)
       if (!result.ok) {
-        toastActionErr(result);
+        toastActionErr(result)
         for (const [f, m] of Object.entries(result.fieldErrors ?? {}))
-          form.setError(f as keyof FormValues, { message: m });
+          form.setError(f as keyof FormValues, { message: m })
         dispatchExtras({
-          type: "set-root-message",
-          message: result.rootError ?? "Terjadi kesalahan.",
-        });
-        return;
+          type: 'set-root-message',
+          message: result.rootError ?? 'Terjadi kesalahan.',
+        })
+        return
       }
       toastCudSuccess(
-        mode === "create" ? "create" : "update",
-        mode === "create"
-          ? "Pengurus berhasil ditambahkan."
-          : "Pengurus berhasil diperbarui.",
-      );
-      onOpenChange(false);
-      onSaved();
-    });
+        mode === 'create' ? 'create' : 'update',
+        mode === 'create' ? 'Pengurus berhasil ditambahkan.' : 'Pengurus berhasil diperbarui.',
+      )
+      onOpenChange(false)
+      onSaved()
+    })
   }
 
   function handleDelete() {
-    if (!member) return;
-    dispatchExtras({ type: "set-delete-error", message: null });
+    if (!member) return
+    dispatchExtras({ type: 'set-delete-error', message: null })
     startDeleteTransition(async () => {
-      const fd = new FormData();
-      fd.set("payload", JSON.stringify({ id: member.id }));
-      const result = await deleteManagementMember(undefined, fd);
+      const fd = new FormData()
+      fd.set('payload', JSON.stringify({ id: member.id }))
+      const result = await deleteManagementMember(undefined, fd)
       if (!result.ok) {
-        toastActionErr(result, "Gagal menghapus pengurus.");
+        toastActionErr(result, 'Gagal menghapus pengurus.')
         dispatchExtras({
-          type: "set-delete-error",
-          message: result.rootError ?? "Gagal menghapus pengurus.",
-        });
-        return;
+          type: 'set-delete-error',
+          message: result.rootError ?? 'Gagal menghapus pengurus.',
+        })
+        return
       }
-      toastCudSuccess("delete", "Pengurus berhasil dihapus.");
-      onOpenChange(false);
-      onSaved();
-    });
+      toastCudSuccess('delete', 'Pengurus berhasil dihapus.')
+      onOpenChange(false)
+      onSaved()
+    })
   }
 
   return (
     <Dialog
       open={open}
-      onOpenChange={(next) => {
+      onOpenChange={next => {
         if (!next) {
-          dispatchExtras({ type: "closed" });
+          dispatchExtras({ type: 'closed' })
         }
-        onOpenChange(next);
+        onOpenChange(next)
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
-          <DialogTitle>
-            {mode === "create" ? "Tambah pengurus" : "Edit pengurus"}
-          </DialogTitle>
+          <DialogTitle>{mode === 'create' ? 'Tambah pengurus' : 'Edit pengurus'}</DialogTitle>
           <DialogDescription>
-            {mode === "create"
-              ? "Tambahkan pengurus baru. Kode publik otomatis diubah ke huruf kapital."
-              : "Perbarui data pengurus. Kode publik otomatis diubah ke huruf kapital."}
+            {mode === 'create'
+              ? 'Tambahkan pengurus baru. Kode publik otomatis diubah ke huruf kapital.'
+              : 'Perbarui data pengurus. Kode publik otomatis diubah ke huruf kapital.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={form.handleSubmit(submit)}
-        >
+        <form className='flex flex-col gap-4' onSubmit={form.handleSubmit(submit)}>
           {rootMessage ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <p className='rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
               {rootMessage}
             </p>
           ) : null}
 
-          <Field
-            label="Nama lengkap"
-            htmlFor="mm-full-name"
-            error={form.formState.errors.fullName?.message}
-          >
+          <Field label='Nama lengkap' htmlFor='mm-full-name' error={form.formState.errors.fullName?.message}>
             <Input
-              id="mm-full-name"
+              id='mm-full-name'
               aria-invalid={Boolean(form.formState.errors.fullName)}
               disabled={isPending}
-              {...form.register("fullName")}
+              {...form.register('fullName')}
             />
           </Field>
 
-          <Field
-            label="Kode publik"
-            htmlFor="mm-public-code"
-            error={form.formState.errors.publicCode?.message}
-          >
+          <Field label='Kode publik' htmlFor='mm-public-code' error={form.formState.errors.publicCode?.message}>
             <Input
-              id="mm-public-code"
+              id='mm-public-code'
               aria-invalid={Boolean(form.formState.errors.publicCode)}
               disabled={isPending}
-              className="font-mono uppercase"
-              placeholder="cth: AF2025"
-              {...form.register("publicCode")}
+              className='font-mono uppercase'
+              placeholder='cth: AF2025'
+              {...form.register('publicCode')}
             />
           </Field>
 
-          <Field
-            label="WhatsApp (opsional)"
-            htmlFor="mm-whatsapp"
-            error={form.formState.errors.whatsapp?.message}
-          >
+          <Field label='WhatsApp (opsional)' htmlFor='mm-whatsapp' error={form.formState.errors.whatsapp?.message}>
             <Input
-              id="mm-whatsapp"
+              id='mm-whatsapp'
               aria-invalid={Boolean(form.formState.errors.whatsapp)}
               disabled={isPending}
-              placeholder="6281234567890"
-              {...form.register("whatsapp")}
+              placeholder='6281234567890'
+              {...form.register('whatsapp')}
             />
           </Field>
 
           <Field
-            label="Tautan anggota (opsional)"
-            htmlFor="mm-master-member"
+            label='Tautan anggota (opsional)'
+            htmlFor='mm-master-member'
             error={form.formState.errors.masterMemberId?.message}
           >
             <Controller
               control={form.control}
-              name="masterMemberId"
+              name='masterMemberId'
               render={({ field }) => (
                 <EntityCombobox
-                  id="mm-master-member"
-                  placeholder="Tidak ditautkan"
+                  id='mm-master-member'
+                  placeholder='Tidak ditautkan'
                   value={field.value ?? NO_LINK}
-                  onValueChange={(next) =>
-                    field.onChange(next ?? NO_LINK)
-                  }
+                  onValueChange={next => field.onChange(next ?? NO_LINK)}
                   options={masterMemberComboboxOptions}
                   disabled={isPending}
                   aria-invalid={Boolean(form.formState.errors.masterMemberId)}
@@ -341,65 +312,51 @@ export function ManagementMemberFormDialog({
           </Field>
 
           <DialogFooter>
-            {mode === "edit" && !showDeleteConfirm ? (
+            {mode === 'edit' && !showDeleteConfirm ? (
               <Button
-                type="button"
-                variant="ghost"
-                className="mr-auto text-destructive hover:text-destructive"
+                type='button'
+                variant='ghost'
+                className='mr-auto text-destructive hover:text-destructive'
                 disabled={isPending || isDeleting}
-                onClick={() => dispatchExtras({ type: "show-delete-prompt" })}
+                onClick={() => dispatchExtras({ type: 'show-delete-prompt' })}
               >
                 Hapus
               </Button>
             ) : null}
-            {mode === "edit" && showDeleteConfirm ? (
-              <div className="mr-auto flex flex-wrap items-center gap-2">
-                <span className="text-sm text-destructive">Yakin hapus?</span>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    "Ya, hapus"
-                  )}
+            {mode === 'edit' && showDeleteConfirm ? (
+              <div className='mr-auto flex flex-wrap items-center gap-2'>
+                <span className='text-sm text-destructive'>Yakin hapus?</span>
+                <Button type='button' variant='destructive' size='sm' disabled={isDeleting} onClick={handleDelete}>
+                  {isDeleting ? <Loader2 className='size-4 animate-spin' /> : 'Ya, hapus'}
                 </Button>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   disabled={isDeleting}
-                  onClick={() =>
-                    dispatchExtras({ type: "cancel-delete-prompt" })
-                  }
+                  onClick={() => dispatchExtras({ type: 'cancel-delete-prompt' })}
                 >
                   Batal
                 </Button>
-                {deleteError ? (
-                  <p className="text-sm text-destructive">{deleteError}</p>
-                ) : null}
+                {deleteError ? <p className='text-sm text-destructive'>{deleteError}</p> : null}
               </div>
             ) : null}
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               disabled={isPending || isDeleting}
               onClick={() => onOpenChange(false)}
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isPending || isDeleting}>
-              {isPending ? "Menyimpan..." : "Simpan"}
+            <Button type='submit' disabled={isPending || isDeleting}>
+              {isPending ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 function Field({
@@ -408,16 +365,16 @@ function Field({
   error,
   children,
 }: {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  children: React.ReactNode;
+  label: string
+  htmlFor: string
+  error?: string
+  children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className='flex flex-col gap-1'>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? <p className='text-xs text-destructive'>{error}</p> : null}
     </div>
-  );
+  )
 }

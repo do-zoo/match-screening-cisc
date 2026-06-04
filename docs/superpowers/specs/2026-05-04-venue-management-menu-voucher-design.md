@@ -64,9 +64,9 @@ Related: [`2026-05-02-event-management-admin-design.md`](./2026-05-02-event-mana
 
 ## 5) Admin information architecture
 
-| Area | Purpose |
-|------|---------|
-| **Venues** (new) | CRUD venues; CRUD **`VenueMenuItem`** ordered list per venue. |
+| Area                      | Purpose                                                                                                                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Venues** (new)          | CRUD venues; CRUD **`VenueMenuItem`** ordered list per venue.                                                                                                                           |
 | **Event edit** (existing) | Select **`venueId`**; configure **`EventVenueMenuItem`** subset (pick rows + reorder). Menu mode (`PRESELECT` / `VOUCHER`), `menuSelection`, **`voucherPrice`** unchanged semantically. |
 
 Deep-link patterns and nav placement follow existing admin IA patterns (committee settings vs event-scoped routes — implementation plan).

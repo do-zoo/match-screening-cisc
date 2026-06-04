@@ -1,11 +1,11 @@
-import { formatWaIdr } from "@/lib/wa-templates/format-wa-idr";
+import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 export type RegistrationMessageCtx = {
-  contactName: string;
-  eventTitle: string;
-  registrationId: string;
-  computedTotalIdr: number;
-};
+  contactName: string
+  eventTitle: string
+  registrationId: string
+  computedTotalIdr: number
+}
 
 export function templateReceipt(c: RegistrationMessageCtx): string {
   return [
@@ -15,7 +15,7 @@ export function templateReceipt(c: RegistrationMessageCtx): string {
     `ID: \`${c.registrationId}\``,
     `Total (snapshot): *${formatWaIdr(c.computedTotalIdr)}*`,
     `Status: *menunggu verifikasi admin*.`,
-  ].join("\n");
+  ].join('\n')
 }
 
 export function templatePaymentIssue(reason: string): string {
@@ -26,34 +26,25 @@ export function templatePaymentIssue(reason: string): string {
     reason,
     ``,
     `Mohon balas pesan ini setelah menyesuaikan / mengunggah ulang bukti sesuai arahan.`,
-  ].join("\n");
+  ].join('\n')
 }
 
-export function templateApproved(
-  eventTitle: string,
-  venue: string,
-  startAtIso: string,
-): string {
-  const when = new Date(startAtIso).toLocaleString("id-ID", {
-    timeZone: "Asia/Jakarta",
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+export function templateApproved(eventTitle: string, venue: string, startAtIso: string): string {
+  const when = new Date(startAtIso).toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    dateStyle: 'long',
+    timeStyle: 'short',
+  })
   return [
     `Selamat — pendaftaran untuk *${eventTitle}* *disetujui*.`,
     ``,
     `Detail acara: ${venue}`,
     `Waktu: ${when}`,
-  ].join("\n");
+  ].join('\n')
 }
 
 export function templateRejected(reason: string): string {
-  return [
-    `Mohon maaf, pendaftaran belum dapat kami proses.`,
-    ``,
-    `Alasan:`,
-    reason,
-  ].join("\n");
+  return [`Mohon maaf, pendaftaran belum dapat kami proses.`, ``, `Alasan:`, reason].join('\n')
 }
 
 export function templateCancelled(contactName: string, eventTitle: string): string {
@@ -63,7 +54,7 @@ export function templateCancelled(contactName: string, eventTitle: string): stri
     `Kami informasikan bahwa pendaftaran Anda untuk *${eventTitle}* telah *dibatalkan*.`,
     ``,
     `Jika ada pertanyaan, silakan hubungi panitia.`,
-  ].join("\n");
+  ].join('\n')
 }
 
 export function templateRefunded(contactName: string, eventTitle: string): string {
@@ -73,20 +64,20 @@ export function templateRefunded(contactName: string, eventTitle: string): strin
     `Pembayaran Anda untuk *${eventTitle}* telah *dikembalikan (refunded)*.`,
     ``,
     `Mohon konfirmasi penerimaan. Terima kasih.`,
-  ].join("\n");
+  ].join('\n')
 }
 
 export type UnderpaymentInvoiceCtx = {
-  contactName: string;
-  eventTitle: string;
-  adjustmentAmountIdr: number;
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-};
+  contactName: string
+  eventTitle: string
+  adjustmentAmountIdr: number
+  bankName: string
+  accountNumber: string
+  accountName: string
+}
 
 export function templateUnderpaymentInvoice(c: UnderpaymentInvoiceCtx): string {
-  const amount = formatWaIdr(c.adjustmentAmountIdr);
+  const amount = formatWaIdr(c.adjustmentAmountIdr)
 
   return [
     `Halo ${c.contactName},`,
@@ -99,5 +90,5 @@ export function templateUnderpaymentInvoice(c: UnderpaymentInvoiceCtx): string {
     `Atas nama: *${c.accountName}*`,
     ``,
     `Setelah transfer, unggah bukti pembayaran melalui panitia atau balas pesan ini.`,
-  ].join("\n");
+  ].join('\n')
 }

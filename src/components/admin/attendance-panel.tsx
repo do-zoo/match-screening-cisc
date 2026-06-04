@@ -1,36 +1,36 @@
-"use client";
+'use client'
 
-import { useState, useTransition } from "react";
-import { AttendanceStatus, RegistrationStatus } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { setAttendance } from "@/lib/actions/attendance";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { useState, useTransition } from 'react'
+import { AttendanceStatus, RegistrationStatus } from '@prisma/client'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { setAttendance } from '@/lib/actions/attendance'
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 
 type Props = {
-  eventId: string;
-  registrationId: string;
-  current: AttendanceStatus;
-  registrationStatus: RegistrationStatus;
-};
+  eventId: string
+  registrationId: string
+  current: AttendanceStatus
+  registrationStatus: RegistrationStatus
+}
 
 export function AttendancePanel({ eventId, registrationId, current, registrationStatus }: Props) {
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
-  const canSetAttendance = registrationStatus === RegistrationStatus.approved;
+  const canSetAttendance = registrationStatus === RegistrationStatus.approved
 
   function handleSet(status: AttendanceStatus) {
-    setError(null);
+    setError(null)
     startTransition(async () => {
-      const result = await setAttendance(eventId, registrationId, status);
+      const result = await setAttendance(eventId, registrationId, status)
       if (!result.ok) {
-        toastActionErr(result);
-        setError(result.rootError ?? "Terjadi kesalahan.");
+        toastActionErr(result)
+        setError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
-        toastCudSuccess("update", "Kehadiran diperbarui.");
+        toastCudSuccess('update', 'Kehadiran diperbarui.')
       }
-    });
+    })
   }
 
   return (
@@ -38,35 +38,34 @@ export function AttendancePanel({ eventId, registrationId, current, registration
       <CardHeader>
         <CardTitle>Kehadiran</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="text-sm text-muted-foreground">
-          Status saat ini:{" "}
-          <span className="font-medium capitalize">{current.replace("_", " ")}</span>
+      <CardContent className='flex flex-col gap-3'>
+        <div className='text-sm text-muted-foreground'>
+          Status saat ini: <span className='font-medium capitalize'>{current.replace('_', ' ')}</span>
         </div>
         {!canSetAttendance && (
-          <p className="text-sm text-muted-foreground">
+          <p className='text-sm text-muted-foreground'>
             Kehadiran hanya dapat dicatat untuk pendaftaran yang sudah disetujui.
           </p>
         )}
         {canSetAttendance && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap'>
             <Button
-              variant="default"
-              className="bg-emerald-600 hover:bg-emerald-700"
+              variant='default'
+              className='bg-emerald-600 hover:bg-emerald-700'
               disabled={isPending || current === AttendanceStatus.attended}
               onClick={() => handleSet(AttendanceStatus.attended)}
             >
               Hadir
             </Button>
             <Button
-              variant="outline"
+              variant='outline'
               disabled={isPending || current === AttendanceStatus.no_show}
               onClick={() => handleSet(AttendanceStatus.no_show)}
             >
               Tidak hadir
             </Button>
             <Button
-              variant="ghost"
+              variant='ghost'
               disabled={isPending || current === AttendanceStatus.unknown}
               onClick={() => handleSet(AttendanceStatus.unknown)}
             >
@@ -74,8 +73,8 @@ export function AttendancePanel({ eventId, registrationId, current, registration
             </Button>
           </div>
         )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className='text-sm text-destructive'>{error}</p>}
       </CardContent>
     </Card>
-  );
+  )
 }

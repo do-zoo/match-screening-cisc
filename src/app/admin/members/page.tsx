@@ -1,62 +1,54 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
-import { requireAdminSession } from "@/lib/auth/session";
+import { requireAdminSession } from '@/lib/auth/session'
 
-export const metadata: Metadata = { title: "Direktori Anggota" };
-import { getAdminContext } from "@/lib/auth/admin-context";
-import { hasOperationalOwnerParity } from "@/lib/permissions/roles";
-import { MembersAdminPage } from "@/components/admin/members-admin-page";
-import { buildMasterMemberCsvTemplate } from "@/lib/members/master-member-csv-template";
+export const metadata: Metadata = { title: 'Direktori Anggota' }
+import { getAdminContext } from '@/lib/auth/admin-context'
+import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
+import { MembersAdminPage } from '@/components/admin/members-admin-page'
+import { buildMasterMemberCsvTemplate } from '@/lib/members/master-member-csv-template'
 import {
   countMasterMembersByTabForAdmin,
   countMasterMembersForAdmin,
   listMasterMembersForAdmin,
-} from "@/lib/members/query-admin-master-members";
-import {
-  ADMIN_TABLE_PAGE_SIZE,
-  parseAdminTablePage,
-  resolveClampedPage,
-} from "@/lib/table/admin-pagination";
+} from '@/lib/members/query-admin-master-members'
+import { ADMIN_TABLE_PAGE_SIZE, parseAdminTablePage, resolveClampedPage } from '@/lib/table/admin-pagination'
 
 function firstString(param: string | string[] | undefined): string | undefined {
-  if (param === undefined) return undefined;
-  if (Array.isArray(param)) return param[0];
-  return param;
+  if (param === undefined) return undefined
+  if (Array.isArray(param)) return param[0]
+  return param
 }
 
-function parseFilter(v: string | undefined): "all" | "active" | "inactive" {
-  if (v === "active" || v === "inactive") return v;
-  return "all";
+function parseFilter(v: string | undefined): 'all' | 'active' | 'inactive' {
+  if (v === 'active' || v === 'inactive') return v
+  return 'all'
 }
 
 export default async function AdminMembersPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
 
   if (!ctx || !hasOperationalOwnerParity(ctx.role)) {
-    notFound();
+    notFound()
   }
 
-  const sp = (await searchParams) ?? {};
-  const filter = parseFilter(firstString(sp.filter));
-  const qRaw = firstString(sp.q) ?? "";
-  const q = qRaw.trim().slice(0, 200) || undefined;
+  const sp = (await searchParams) ?? {}
+  const filter = parseFilter(firstString(sp.filter))
+  const qRaw = firstString(sp.q) ?? ''
+  const q = qRaw.trim().slice(0, 200) || undefined
 
-  const csvTemplateText = buildMasterMemberCsvTemplate();
-  const requestedPage = parseAdminTablePage(sp.page);
+  const csvTemplateText = buildMasterMemberCsvTemplate()
+  const requestedPage = parseAdminTablePage(sp.page)
 
-  const totalItems = await countMasterMembersForAdmin({ filter, q });
-  const page = resolveClampedPage(
-    requestedPage,
-    totalItems,
-    ADMIN_TABLE_PAGE_SIZE,
-  );
-  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE;
+  const totalItems = await countMasterMembersForAdmin({ filter, q })
+  const page = resolveClampedPage(requestedPage, totalItems, ADMIN_TABLE_PAGE_SIZE)
+  const skip = (page - 1) * ADMIN_TABLE_PAGE_SIZE
 
   const [rows, counts] = await Promise.all([
     listMasterMembersForAdmin({
@@ -66,7 +58,7 @@ export default async function AdminMembersPage({
       take: ADMIN_TABLE_PAGE_SIZE,
     }),
     countMasterMembersByTabForAdmin({ q }),
-  ]);
+  ])
 
   return (
     <MembersAdminPage
@@ -78,9 +70,9 @@ export default async function AdminMembersPage({
         totalItems,
       }}
       filter={filter}
-      searchQuery={q ?? ""}
+      searchQuery={q ?? ''}
       tabCounts={counts}
-      isOwner={ctx.role === "Owner"}
+      isOwner={ctx.role === 'Owner'}
     />
-  );
+  )
 }

@@ -12,20 +12,21 @@
 
 ## Struktur berkas
 
-| Berkas | Tanggung jawab |
-| --- | --- |
-| **Create:** [`docs/uat/templates/README-templates-spreadsheet.md`](../../uat/templates/README-templates-spreadsheet.md) | Instruksi impor per aplikasi spreadsheet, nama kolom, nilai sah `hasil_uat`, alur tautan ke runbook/lembar. |
-| **Create:** [`docs/uat/templates/uat-hasil-skenario.template.csv`](../../uat/templates/uat-hasil-skenario.template.csv) | Seluruh baris skenario pengujian sama urutan dengan [`lembar-hasil-uat-ringkas.md`](../../uat/lembar-hasil-uat-ringkas.md); kolom hasil kosong untuk diisi. |
-| **Create:** [`docs/uat/templates/uat-lingkungan.template.csv`](../../uat/templates/uat-lingkungan.template.csv) | Baris-baris untuk BASE_URL dan akun penguji (**nilai isian diketik langsung pengguna** sesuai `pengurus-runbook-uat.md` §2). |
-| **Create:** [`docs/uat/templates/uat-log-defek.template.csv`](../../uat/templates/uat-log-defek.template.csv) | Header + baris pembuka kosong pertama untuk menduplikasi ke baris baru; mengikuti struktur eskalasi [`pengurus-runbook-uat.md`](../../uat/pengurus-runbook-uat.md) §10. |
-| **Create:** [`docs/uat/templates/uat-tanda-tangan.template.csv`](../../uat/templates/uat-tanda-tangan.template.csv) | Dua baris persis seperti blok tanda tangan lembar ringkas markdown. |
-| **Modify:** [`docs/uat/README.md`](../../uat/README.md) | Tambah satu tautan bullet ke [`templates/README-templates-spreadsheet.md`](../../uat/templates/README-templates-spreadsheet.md). |
+| Berkas                                                                                                                  | Tanggung jawab                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Create:** [`docs/uat/templates/README-templates-spreadsheet.md`](../../uat/templates/README-templates-spreadsheet.md) | Instruksi impor per aplikasi spreadsheet, nama kolom, nilai sah `hasil_uat`, alur tautan ke runbook/lembar.                                                             |
+| **Create:** [`docs/uat/templates/uat-hasil-skenario.template.csv`](../../uat/templates/uat-hasil-skenario.template.csv) | Seluruh baris skenario pengujian sama urutan dengan [`lembar-hasil-uat-ringkas.md`](../../uat/lembar-hasil-uat-ringkas.md); kolom hasil kosong untuk diisi.             |
+| **Create:** [`docs/uat/templates/uat-lingkungan.template.csv`](../../uat/templates/uat-lingkungan.template.csv)         | Baris-baris untuk BASE_URL dan akun penguji (**nilai isian diketik langsung pengguna** sesuai `pengurus-runbook-uat.md` §2).                                            |
+| **Create:** [`docs/uat/templates/uat-log-defek.template.csv`](../../uat/templates/uat-log-defek.template.csv)           | Header + baris pembuka kosong pertama untuk menduplikasi ke baris baru; mengikuti struktur eskalasi [`pengurus-runbook-uat.md`](../../uat/pengurus-runbook-uat.md) §10. |
+| **Create:** [`docs/uat/templates/uat-tanda-tangan.template.csv`](../../uat/templates/uat-tanda-tangan.template.csv)     | Dua baris persis seperti blok tanda tangan lembar ringkas markdown.                                                                                                     |
+| **Modify:** [`docs/uat/README.md`](../../uat/README.md)                                                                 | Tambah satu tautan bullet ke [`templates/README-templates-spreadsheet.md`](../../uat/templates/README-templates-spreadsheet.md).                                        |
 
 ---
 
 ### Task 1: README template spreadsheet
 
 **Files:**
+
 - Create: `docs/uat/templates/README-templates-spreadsheet.md`
 
 - [ ] **Step 1: Buat berkas berikut secara persis**
@@ -37,12 +38,12 @@ Paket ini melengkapi [**`pengurus-runbook-uat.md`**](../pengurus-runbook-uat.md)
 
 ## Berkas di folder ini
 
-| Berkas | Kegunaan |
-| --- | --- |
+| Berkas                            | Kegunaan                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `uat-hasil-skenario.template.csv` | Satu baris per skenario `UAT-*`; isi kolom `hasil_uat`, `penguji`, `tanggal_YYYY_MM_DD`, `catatan`. |
-| `uat-lingkungan.template.csv` | Salin nilai konfigurasi dari runbook §2 (BASE_URL, email akun uji, **tanpa** kata sandi). |
-| `uat-log-defek.template.csv` | Satu baris per temuan **Gagal**; duplikasi baris template kosong bila perlu. |
-| `uat-tanda-tangan.template.csv` | Dua baris: Eksekutor utama dan Penanggung jawab bisnis. |
+| `uat-lingkungan.template.csv`     | Salin nilai konfigurasi dari runbook §2 (BASE_URL, email akun uji, **tanpa** kata sandi).           |
+| `uat-log-defek.template.csv`      | Satu baris per temuan **Gagal**; duplikasi baris template kosong bila perlu.                        |
+| `uat-tanda-tangan.template.csv`   | Dua baris: Eksekutor utama dan Penanggung jawab bisnis.                                             |
 
 ## Cara impor (ringkas)
 
@@ -62,7 +63,6 @@ Paket ini melengkapi [**`pengurus-runbook-uat.md`**](../pengurus-runbook-uat.md)
 ## Pelaporan ke tim IT
 
 Ekspor tab yang sudah diisi kembali ke CSV UTF-8 atau bagikan salinan spreadsheet hanya lewat saluran internal yang disetujui klub.
-
 ```
 
 - [ ] **Step 2: Commit**
@@ -78,6 +78,7 @@ git commit -m "docs(uat): add spreadsheet template README for CSV import"
 ### Task 2: CSV skenario hasil UAT (semua baris)
 
 **Files:**
+
 - Create: `docs/uat/templates/uat-hasil-skenario.template.csv`
 
 - [ ] **Step 1: Buat berkas dengan isi persis di bawah (satu baris header + 24 baris data)**
@@ -127,6 +128,7 @@ git commit -m "docs(uat): add UAT scenario results CSV template"
 ### Task 3: CSV konfigurasi lingkungan
 
 **Files:**
+
 - Create: `docs/uat/templates/uat-lingkungan.template.csv`
 
 - [ ] **Step 1: Buat berkas dengan isi persis**
@@ -155,6 +157,7 @@ git commit -m "docs(uat): add UAT environment config CSV template"
 ### Task 4: CSV log defek + CSV tanda tangan
 
 **Files:**
+
 - Create: `docs/uat/templates/uat-log-defek.template.csv`
 - Create: `docs/uat/templates/uat-tanda-tangan.template.csv`
 
@@ -188,6 +191,7 @@ git commit -m "docs(uat): add defect log and sign-off CSV templates"
 ### Task 5: Tautan dari `docs/uat/README.md`
 
 **Files:**
+
 - Modify: `docs/uat/README.md`
 
 - [ ] **Step 1: Sisipkan bullet setelah baris lembar hasil**

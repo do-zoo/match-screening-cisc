@@ -178,77 +178,77 @@ git commit -m "feat(db): add board management and registration primary managemen
 Create `src/lib/management/recompute-directory-flags.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import { findActiveBoardPeriod } from "@/lib/management/active-period";
+import { findActiveBoardPeriod } from '@/lib/management/active-period'
 import {
   computeIsManagementMemberForMember,
   type BoardAssignmentRow,
   type BoardPeriodRow,
-} from "@/lib/management/recompute-directory-flags";
+} from '@/lib/management/recompute-directory-flags'
 
-describe("findActiveBoardPeriod", () => {
+describe('findActiveBoardPeriod', () => {
   const periods: BoardPeriodRow[] = [
     {
-      id: "p1",
-      startsAt: new Date("2025-01-01T00:00:00.000Z"),
-      endsAt: new Date("2025-12-31T00:00:00.000Z"),
+      id: 'p1',
+      startsAt: new Date('2025-01-01T00:00:00.000Z'),
+      endsAt: new Date('2025-12-31T00:00:00.000Z'),
     },
     {
-      id: "p2",
-      startsAt: new Date("2026-01-01T00:00:00.000Z"),
-      endsAt: new Date("2026-12-31T00:00:00.000Z"),
+      id: 'p2',
+      startsAt: new Date('2026-01-01T00:00:00.000Z'),
+      endsAt: new Date('2026-12-31T00:00:00.000Z'),
     },
-  ];
+  ]
 
-  it("returns period where startsAt <= now < endsAt", () => {
-    const now = new Date("2026-06-15T12:00:00.000Z");
-    expect(findActiveBoardPeriod(periods, now)?.id).toBe("p2");
-  });
+  it('returns period where startsAt <= now < endsAt', () => {
+    const now = new Date('2026-06-15T12:00:00.000Z')
+    expect(findActiveBoardPeriod(periods, now)?.id).toBe('p2')
+  })
 
-  it("returns null when none match", () => {
-    const now = new Date("2027-06-15T12:00:00.000Z");
-    expect(findActiveBoardPeriod(periods, now)).toBeNull();
-  });
-});
+  it('returns null when none match', () => {
+    const now = new Date('2027-06-15T12:00:00.000Z')
+    expect(findActiveBoardPeriod(periods, now)).toBeNull()
+  })
+})
 
-describe("computeIsManagementMemberForMember", () => {
-  const activeId = "active";
+describe('computeIsManagementMemberForMember', () => {
+  const activeId = 'active'
 
-  it("true when member linked and assigned in active period", () => {
+  it('true when member linked and assigned in active period', () => {
     const assignments: BoardAssignmentRow[] = [
       {
         boardPeriodId: activeId,
-        managementMemberId: "mm1",
-        masterMemberId: "m1",
+        managementMemberId: 'mm1',
+        masterMemberId: 'm1',
       },
-    ];
+    ]
     expect(
       computeIsManagementMemberForMember({
-        masterMemberId: "m1",
+        masterMemberId: 'm1',
         activePeriodId: activeId,
         assignments,
       }),
-    ).toBe(true);
-  });
+    ).toBe(true)
+  })
 
-  it("false when period inactive", () => {
+  it('false when period inactive', () => {
     const assignments: BoardAssignmentRow[] = [
       {
-        boardPeriodId: "other",
-        managementMemberId: "mm1",
-        masterMemberId: "m1",
+        boardPeriodId: 'other',
+        managementMemberId: 'mm1',
+        masterMemberId: 'm1',
       },
-    ];
+    ]
     expect(
       computeIsManagementMemberForMember({
-        masterMemberId: "m1",
+        masterMemberId: 'm1',
         activePeriodId: null,
         assignments,
       }),
-    ).toBe(false);
-  });
-});
+    ).toBe(false)
+  })
+})
 ```
 
 - [ ] **Step 2: Run test — expect FAIL**
@@ -266,7 +266,7 @@ Expected: FAIL (missing modules).
 ```typescript
 /** Single rule: trim ASCII whitespace, uppercase A–Z for stable uniqueness. */
 export function normalizePublicManagementCode(raw: string): string {
-  return raw.trim().toUpperCase();
+  return raw.trim().toUpperCase()
 }
 ```
 
@@ -274,24 +274,18 @@ export function normalizePublicManagementCode(raw: string): string {
 
 ```typescript
 export type BoardPeriodRow = {
-  id: string;
-  startsAt: Date;
-  endsAt: Date;
-};
-
-/** Active iff startsAt <= now < endsAt (UTC instants). */
-export function findActiveBoardPeriod(
-  periods: BoardPeriodRow[],
-  now: Date,
-): BoardPeriodRow | null {
-  return periods.find((p) => p.startsAt <= now && now < p.endsAt) ?? null;
+  id: string
+  startsAt: Date
+  endsAt: Date
 }
 
-export function periodsOverlap(
-  a: { startsAt: Date; endsAt: Date },
-  b: { startsAt: Date; endsAt: Date },
-): boolean {
-  return a.startsAt < b.endsAt && b.startsAt < a.endsAt;
+/** Active iff startsAt <= now < endsAt (UTC instants). */
+export function findActiveBoardPeriod(periods: BoardPeriodRow[], now: Date): BoardPeriodRow | null {
+  return periods.find(p => p.startsAt <= now && now < p.endsAt) ?? null
+}
+
+export function periodsOverlap(a: { startsAt: Date; endsAt: Date }, b: { startsAt: Date; endsAt: Date }): boolean {
+  return a.startsAt < b.endsAt && b.startsAt < a.endsAt
 }
 ```
 
@@ -299,23 +293,21 @@ export function periodsOverlap(
 
 ```typescript
 export type BoardAssignmentRow = {
-  boardPeriodId: string;
-  managementMemberId: string;
+  boardPeriodId: string
+  managementMemberId: string
   /** Denormalized from `ManagementMember.masterMemberId` for the same `managementMemberId`. */
-  masterMemberId: string | null;
-};
+  masterMemberId: string | null
+}
 
 export function computeIsManagementMemberForMember(input: {
-  masterMemberId: string;
-  activePeriodId: string | null;
-  assignments: BoardAssignmentRow[];
+  masterMemberId: string
+  activePeriodId: string | null
+  assignments: BoardAssignmentRow[]
 }): boolean {
-  if (!input.activePeriodId) return false;
+  if (!input.activePeriodId) return false
   return input.assignments.some(
-    (r) =>
-      r.boardPeriodId === input.activePeriodId &&
-      r.masterMemberId === input.masterMemberId,
-  );
+    r => r.boardPeriodId === input.activePeriodId && r.masterMemberId === input.masterMemberId,
+  )
 }
 ```
 
@@ -381,59 +373,59 @@ git commit -m "feat(audit): add board and management member actions"
 - [ ] **Step 1: Write failing test** — Create `src/lib/actions/admin-board-periods.test.ts`:
 
 ```typescript
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-vi.mock("@/lib/db/prisma", () => ({
+vi.mock('@/lib/db/prisma', () => ({
   prisma: {
     boardPeriod: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
   },
-}));
+}))
 
-vi.mock("@/lib/actions/guard", () => ({
+vi.mock('@/lib/actions/guard', () => ({
   guardOwnerOrAdmin: vi.fn().mockResolvedValue({
-    profileId: "actor_prof",
-    role: "Owner",
+    profileId: 'actor_prof',
+    role: 'Owner',
     helperEventIds: [],
-    authUserId: "actor_user",
+    authUserId: 'actor_user',
   }),
   isAuthError: vi.fn().mockReturnValue(false),
-}));
+}))
 
-vi.mock("@/lib/audit/append-club-audit-log", () => ({
+vi.mock('@/lib/audit/append-club-audit-log', () => ({
   appendClubAuditLog: vi.fn(),
-}));
+}))
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { prisma } from "@/lib/db/prisma";
-import { createBoardPeriod } from "@/lib/actions/admin-board-periods";
+import { prisma } from '@/lib/db/prisma'
+import { createBoardPeriod } from '@/lib/actions/admin-board-periods'
 
-describe("createBoardPeriod", () => {
+describe('createBoardPeriod', () => {
   beforeEach(() => {
-    vi.mocked(prisma.boardPeriod.findMany).mockReset();
-    vi.mocked(prisma.boardPeriod.create).mockReset();
-  });
+    vi.mocked(prisma.boardPeriod.findMany).mockReset()
+    vi.mocked(prisma.boardPeriod.create).mockReset()
+  })
 
-  it("rejects overlapping period", async () => {
+  it('rejects overlapping period', async () => {
     vi.mocked(prisma.boardPeriod.findMany).mockResolvedValue([
       {
-        id: "existing",
-        startsAt: new Date("2026-01-01T00:00:00.000Z"),
-        endsAt: new Date("2026-12-31T00:00:00.000Z"),
+        id: 'existing',
+        startsAt: new Date('2026-01-01T00:00:00.000Z'),
+        endsAt: new Date('2026-12-31T00:00:00.000Z'),
       },
-    ] as never);
+    ] as never)
 
-    const fd = new FormData();
-    fd.set("label", "Kabinet B");
-    fd.set("startsAt", "2026-06-01T00:00:00.000Z");
-    fd.set("endsAt", "2027-06-01T00:00:00.000Z");
+    const fd = new FormData()
+    fd.set('label', 'Kabinet B')
+    fd.set('startsAt', '2026-06-01T00:00:00.000Z')
+    fd.set('endsAt', '2027-06-01T00:00:00.000Z')
 
-    const res = await createBoardPeriod(null, fd);
-    expect(res.ok).toBe(false);
-    if (res.ok) throw new Error("expected fail");
-    expect(String(res.rootError)).toMatch(/bertabrakan/i);
-  });
-});
+    const res = await createBoardPeriod(null, fd)
+    expect(res.ok).toBe(false)
+    if (res.ok) throw new Error('expected fail')
+    expect(String(res.rootError)).toMatch(/bertabrakan/i)
+  })
+})
 ```
 
 Adjust import path to match exported function name you implement.
@@ -568,13 +560,10 @@ Partner gate snippet concept (server):
 
 ```typescript
 const primaryEligible =
-  Boolean(primaryDirectoryRow?.isManagementMember) ||
-  Boolean(resolvedManagementMemberId /* active assignment */);
+  Boolean(primaryDirectoryRow?.isManagementMember) || Boolean(resolvedManagementMemberId /* active assignment */)
 
 if (includePartner && !primaryEligible) {
-  return rootError(
-    "Tiket partner hanya untuk pengurus (komite) — validasi identitas utama.",
-  );
+  return rootError('Tiket partner hanya untuk pengurus (komite) — validasi identitas utama.')
 }
 ```
 

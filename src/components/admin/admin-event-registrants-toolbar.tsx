@@ -1,31 +1,22 @@
-"use client";
+'use client'
 
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation'
 
-import { AdminListToolbar } from "@/components/admin/admin-list-toolbar";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  buildEventRegistrantsListUrl,
-  type EventRegistrantsTab,
-} from "@/lib/admin/event-registrants-list-url";
-import type { EventsIndexViewMode } from "@/lib/admin/events-index-view";
+import { AdminListToolbar } from '@/components/admin/admin-list-toolbar'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { buildEventRegistrantsListUrl, type EventRegistrantsTab } from '@/lib/admin/event-registrants-list-url'
+import type { EventsIndexViewMode } from '@/lib/admin/events-index-view'
 
 const tabOptions: { tab: EventRegistrantsTab; label: string }[] = [
-  { tab: "all", label: "Semua status" },
-  { tab: "pending_review", label: "Menunggu tinjauan" },
-  { tab: "submitted", label: "Terkirim" },
-  { tab: "payment_issue", label: "Masalah pembayaran" },
-  { tab: "approved", label: "Disetujui" },
-  { tab: "rejected", label: "Ditolak" },
-  { tab: "closed", label: "Dibatalkan / refund" },
-];
+  { tab: 'all', label: 'Semua status' },
+  { tab: 'pending_review', label: 'Menunggu tinjauan' },
+  { tab: 'submitted', label: 'Terkirim' },
+  { tab: 'payment_issue', label: 'Masalah pembayaran' },
+  { tab: 'approved', label: 'Disetujui' },
+  { tab: 'rejected', label: 'Ditolak' },
+  { tab: 'closed', label: 'Dibatalkan / refund' },
+]
 
 export function AdminEventRegistrantsToolbar({
   eventId,
@@ -33,21 +24,21 @@ export function AdminEventRegistrantsToolbar({
   viewMode,
   searchQuery,
 }: {
-  eventId: string;
-  tab: EventRegistrantsTab;
-  viewMode: EventsIndexViewMode;
-  searchQuery: string;
+  eventId: string
+  tab: EventRegistrantsTab
+  viewMode: EventsIndexViewMode
+  searchQuery: string
 }) {
-  const router = useRouter();
+  const router = useRouter()
 
   return (
     <AdminListToolbar
       search={{
-        inputId: "admin-event-registrants-search",
-        label: "Cari peserta",
-        placeholder: "Nama, WhatsApp, atau nomor anggota…",
+        inputId: 'admin-event-registrants-search',
+        label: 'Cari peserta',
+        placeholder: 'Nama, WhatsApp, atau nomor anggota…',
         value: searchQuery,
-        getUrlForQuery: (q) =>
+        getUrlForQuery: q =>
           buildEventRegistrantsListUrl(eventId, {
             tab,
             view: viewMode,
@@ -59,29 +50,26 @@ export function AdminEventRegistrantsToolbar({
         mode: viewMode,
         tableHref: buildEventRegistrantsListUrl(eventId, {
           tab,
-          view: "table",
+          view: 'table',
           q: searchQuery.trim() || undefined,
           page: 1,
         }),
         cardsHref: buildEventRegistrantsListUrl(eventId, {
           tab,
-          view: "cards",
+          view: 'cards',
           q: searchQuery.trim() || undefined,
           page: 1,
         }),
       }}
       filterSlot={
         <>
-          <Label
-            htmlFor="admin-event-registrants-tab"
-            className="text-muted-foreground text-xs"
-          >
+          <Label htmlFor='admin-event-registrants-tab' className='text-muted-foreground text-xs'>
             Status pendaftaran
           </Label>
           <Select
             value={tab}
-            onValueChange={(v) => {
-              if (!v) return;
+            onValueChange={v => {
+              if (!v) return
               router.push(
                 buildEventRegistrantsListUrl(eventId, {
                   tab: v as EventRegistrantsTab,
@@ -89,14 +77,10 @@ export function AdminEventRegistrantsToolbar({
                   q: searchQuery.trim() || undefined,
                   page: 1,
                 }),
-              );
+              )
             }}
           >
-            <SelectTrigger
-              id="admin-event-registrants-tab"
-              size="sm"
-              className="w-full min-w-0 sm:w-56"
-            >
+            <SelectTrigger id='admin-event-registrants-tab' size='sm' className='w-full min-w-0 sm:w-56'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -110,5 +94,5 @@ export function AdminEventRegistrantsToolbar({
         </>
       }
     />
-  );
+  )
 }

@@ -1,24 +1,20 @@
-import { notFound } from "next/navigation";
+import { notFound } from 'next/navigation'
 
-import { CommitteeSettingsSubnav } from "@/components/admin/committee-settings-subnav";
-import { requireAdminSession } from "@/lib/auth/session";
-import { getAdminContext } from "@/lib/auth/admin-context";
+import { CommitteeSettingsSubnav } from '@/components/admin/committee-settings-subnav'
+import { requireAdminSession } from '@/lib/auth/session'
+import { getAdminContext } from '@/lib/auth/admin-context'
 
-export default async function AdminSettingsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await requireAdminSession();
-  const ctx = await getAdminContext(session.user.id);
-  if (!ctx) notFound();
+export default async function AdminSettingsLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireAdminSession()
+  const ctx = await getAdminContext(session.user.id)
+  if (!ctx) notFound()
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-6 py-8 lg:flex-row lg:gap-10 lg:py-10">
-      <aside className="hidden lg:block lg:w-56 lg:shrink-0 lg:overflow-visible">
+    <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-6 py-8 lg:flex-row lg:gap-10 lg:py-10'>
+      <aside className='hidden lg:block lg:w-56 lg:shrink-0 lg:overflow-visible'>
         <CommitteeSettingsSubnav />
       </aside>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className='min-w-0 flex-1'>{children}</div>
     </main>
-  );
+  )
 }

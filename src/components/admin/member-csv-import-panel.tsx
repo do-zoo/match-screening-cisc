@@ -1,126 +1,111 @@
-"use client";
+'use client'
 
-import { useRef, useState, useTransition, type FormEvent } from "react";
-import { DownloadIcon, UploadIcon } from "lucide-react";
+import { useRef, useState, useTransition, type FormEvent } from 'react'
+import { DownloadIcon, UploadIcon } from 'lucide-react'
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { FileField } from "@/components/ui/file-field";
-import { importMasterMembersCsv } from "@/lib/actions/admin-master-members";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { FileField } from '@/components/ui/file-field'
+import { importMasterMembersCsv } from '@/lib/actions/admin-master-members'
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 
 type Props = {
-  csvTemplateText: string;
-  onImported: () => void;
-};
+  csvTemplateText: string
+  onImported: () => void
+}
 
 type ImportSummary = {
-  successCount: number;
-  failureCount: number;
-  errorCsvBase64: string | null;
-};
+  successCount: number
+  failureCount: number
+  errorCsvBase64: string | null
+}
 
 export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
-  const [isPending, startTransition] = useTransition();
-  const [summary, setSummary] = useState<ImportSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [csvFieldKey, setCsvFieldKey] = useState(0);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [isPending, startTransition] = useTransition()
+  const [summary, setSummary] = useState<ImportSummary | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [csvFieldKey, setCsvFieldKey] = useState(0)
+  const fileRef = useRef<HTMLInputElement | null>(null)
 
   function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSummary(null);
-    setError(null);
+    event.preventDefault()
+    setSummary(null)
+    setError(null)
 
-    const file = fileRef.current?.files?.[0];
+    const file = fileRef.current?.files?.[0]
     if (!file) {
-      setError("Pilih berkas CSV terlebih dahulu.");
-      return;
+      setError('Pilih berkas CSV terlebih dahulu.')
+      return
     }
 
-    const fd = new FormData();
-    fd.set("file", file);
+    const fd = new FormData()
+    fd.set('file', file)
 
     startTransition(async () => {
-      const result = await importMasterMembersCsv(undefined, fd);
+      const result = await importMasterMembersCsv(undefined, fd)
       if (!result.ok) {
-        toastActionErr(result, "CSV gagal diimpor.");
-        setError(
-          result.rootError ??
-            Object.values(result.fieldErrors ?? {}).join(", ") ??
-            "CSV gagal diimpor.",
-        );
-        return;
+        toastActionErr(result, 'CSV gagal diimpor.')
+        setError(result.rootError ?? Object.values(result.fieldErrors ?? {}).join(', ') ?? 'CSV gagal diimpor.')
+        return
       }
 
       toastCudSuccess(
-        "create",
-        `Import CSV selesai: ${result.data.successCount} berhasil${result.data.failureCount > 0 ? `, ${result.data.failureCount} gagal` : ""}.`,
-      );
-      setSummary(result.data);
-      setCsvFieldKey((k) => k + 1);
-      onImported();
-    });
+        'create',
+        `Import CSV selesai: ${result.data.successCount} berhasil${result.data.failureCount > 0 ? `, ${result.data.failureCount} gagal` : ''}.`,
+      )
+      setSummary(result.data)
+      setCsvFieldKey(k => k + 1)
+      onImported()
+    })
   }
 
   function downloadTemplate() {
-    downloadTextFile(csvTemplateText, "template-master-anggota.csv");
+    downloadTextFile(csvTemplateText, 'template-master-anggota.csv')
   }
 
   function downloadErrors() {
-    if (!summary?.errorCsvBase64) return;
-    downloadTextFile(
-      decodeBase64Utf8(summary.errorCsvBase64),
-      "master-anggota-errors.csv",
-    );
+    if (!summary?.errorCsvBase64) return
+    downloadTextFile(decodeBase64Utf8(summary.errorCsvBase64), 'master-anggota-errors.csv')
   }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Import CSV</CardTitle>
-        <CardDescription>
-          Unggah CSV untuk membuat atau memperbarui master anggota.
-        </CardDescription>
+        <CardDescription>Unggah CSV untuk membuat atau memperbarui master anggota.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={downloadTemplate}>
-            <DownloadIcon data-icon="inline-start" />
+      <CardContent className='flex flex-col gap-4'>
+        <div className='flex flex-wrap gap-2'>
+          <Button type='button' variant='outline' onClick={downloadTemplate}>
+            <DownloadIcon data-icon='inline-start' />
             Unduh template
           </Button>
         </div>
 
-        <form className="flex flex-col gap-3" onSubmit={submit}>
+        <form className='flex flex-col gap-3' onSubmit={submit}>
           <FileField
             key={csvFieldKey}
             ref={fileRef}
-            id="master-member-csv"
-            name="file"
-            label="Berkas CSV"
-            description="Pilih berkas .csv yang sudah diisi."
-            accept=".csv,text/csv"
+            id='master-member-csv'
+            name='file'
+            label='Berkas CSV'
+            description='Pilih berkas .csv yang sudah diisi.'
+            accept='.csv,text/csv'
             disabled={isPending}
-            pickerVariant="document"
-            pickPrompt="Ketuk untuk memilih CSV"
-            replacePrompt="Ganti berkas CSV"
-            emptySubtitle="Belum ada CSV dipilih"
+            pickerVariant='document'
+            pickPrompt='Ketuk untuk memilih CSV'
+            replacePrompt='Ganti berkas CSV'
+            emptySubtitle='Belum ada CSV dipilih'
           />
-          <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-            <UploadIcon data-icon="inline-start" />
-            {isPending ? "Mengimpor..." : "Import CSV"}
+          <Button type='submit' disabled={isPending} className='w-full sm:w-auto'>
+            <UploadIcon data-icon='inline-start' />
+            {isPending ? 'Mengimpor...' : 'Import CSV'}
           </Button>
         </form>
 
         {error ? (
-          <Alert variant="destructive">
+          <Alert variant='destructive'>
             <AlertTitle>Import gagal</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -130,12 +115,11 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
           <Alert>
             <AlertTitle>Import selesai</AlertTitle>
             <AlertDescription>
-              {summary.successCount} baris berhasil, {summary.failureCount}{" "}
-              baris gagal.
+              {summary.successCount} baris berhasil, {summary.failureCount} baris gagal.
             </AlertDescription>
             {summary.errorCsvBase64 ? (
-              <div data-slot="alert-action">
-                <Button type="button" size="sm" onClick={downloadErrors}>
+              <div data-slot='alert-action'>
+                <Button type='button' size='sm' onClick={downloadErrors}>
                   Unduh error
                 </Button>
               </div>
@@ -144,20 +128,20 @@ export function MemberCsvImportPanel({ csvTemplateText, onImported }: Props) {
         ) : null}
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function downloadTextFile(text: string, filename: string) {
-  const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 function decodeBase64Utf8(value: string) {
-  const bytes = Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
+  const bytes = Uint8Array.from(atob(value), char => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
 }

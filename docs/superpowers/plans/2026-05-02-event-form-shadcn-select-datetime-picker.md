@@ -14,21 +14,21 @@
 
 Komponen UI berikut harus ada di repo (jika masih berstatus untracked, commit dulu bersama tugas ini):
 
-| File | Peran |
-|------|------|
-| `src/components/ui/select.tsx` | Select shadcn (sudah dipakai admin lain) |
-| `src/components/ui/calendar.tsx` | DayPicker styling |
-| `src/components/ui/popover.tsx` | Anchor popup kalender |
+| File                             | Peran                                    |
+| -------------------------------- | ---------------------------------------- |
+| `src/components/ui/select.tsx`   | Select shadcn (sudah dipakai admin lain) |
+| `src/components/ui/calendar.tsx` | DayPicker styling                        |
+| `src/components/ui/popover.tsx`  | Anchor popup kalender                    |
 
 ---
 
 ## Inventaris (hasil pencarian `src/`)
 
-| Lokasi | Temuan |
-|--------|--------|
+| Lokasi                                            | Temuan                                                                                                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `src/components/admin/forms/event-admin-form.tsx` | **Satu-satunya** file dengan `<select>` (6 lokasi): `status`, `pricingSource`, `menuMode`, `menuSelection`, `picMasterMemberId`, `bankAccountId` |
-| Sama file | `startAtIso`, `endAtIso` pakai `<Input {...register(...)}>` teks ISO (bukan `type="date"`) |
-| Form publik | Tidak ada `<select>` atau `type="date"` |
+| Sama file                                         | `startAtIso`, `endAtIso` pakai `<Input {...register(...)}>` teks ISO (bukan `type="date"`)                                                       |
+| Form publik                                       | Tidak ada `<select>` atau `type="date"`                                                                                                          |
 
 Tidak ada field **tanggal-saja** (tanpa jam) yang perlu Date Picker terpisah; keduanya waktu lengkap → satu pola **Date Time Picker** untuk keduanya.
 
@@ -36,18 +36,19 @@ Tidak ada field **tanggal-saja** (tanpa jam) yang perlu Date Picker terpisah; ke
 
 ## File Map
 
-| Action | File | Tanggung jawab |
-|--------|------|----------------|
-| **Create** | `src/lib/datetime/local-iso-datetime.ts` | Parse/format ISO ↔ hari lokal + `HH:mm` (tanpa DOM) |
-| **Create** | `src/lib/datetime/local-iso-datetime.test.ts` | Vitest untuk fungsi di atas |
-| **Create** | `src/components/ui/datetime-picker.tsx` | `"use client"` — Popover + Calendar + input waktu; label tombol bahasa Indonesia |
-| **Modify** | `src/components/admin/forms/event-admin-form.tsx` | Select untuk 6 field; Controller + DateTimePicker untuk jadwal; impor baru |
+| Action     | File                                              | Tanggung jawab                                                                   |
+| ---------- | ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Create** | `src/lib/datetime/local-iso-datetime.ts`          | Parse/format ISO ↔ hari lokal + `HH:mm` (tanpa DOM)                              |
+| **Create** | `src/lib/datetime/local-iso-datetime.test.ts`     | Vitest untuk fungsi di atas                                                      |
+| **Create** | `src/components/ui/datetime-picker.tsx`           | `"use client"` — Popover + Calendar + input waktu; label tombol bahasa Indonesia |
+| **Modify** | `src/components/admin/forms/event-admin-form.tsx` | Select untuk 6 field; Controller + DateTimePicker untuk jadwal; impor baru       |
 
 ---
 
 ### Task 1: Fungsi murni `local-iso-datetime`
 
 **Files:**
+
 - Create: `src/lib/datetime/local-iso-datetime.ts`
 - Create: `src/lib/datetime/local-iso-datetime.test.ts`
 
@@ -56,34 +57,31 @@ Tidak ada field **tanggal-saja** (tanpa jam) yang perlu Date Picker terpisah; ke
 Buat `src/lib/datetime/local-iso-datetime.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
-import {
-  calendarDayAndTimeToIso,
-  isoStringToCalendarAndTime,
-} from "./local-iso-datetime";
+import { describe, expect, it } from 'vitest'
+import { calendarDayAndTimeToIso, isoStringToCalendarAndTime } from './local-iso-datetime'
 
-describe("isoStringToCalendarAndTime", () => {
-  it("returns local calendar day and HH:mm for a valid ISO string", () => {
-    const iso = "2026-07-04T06:30:00.000Z";
-    const got = isoStringToCalendarAndTime(iso);
-    expect(got).not.toBeNull();
-    expect(got!.hhmm).toMatch(/^\d{2}:\d{2}$/);
-    const roundTrip = calendarDayAndTimeToIso(got!.day, got!.hhmm);
-    expect(roundTrip).not.toBeNull();
-    expect(new Date(roundTrip!).getTime()).toBe(new Date(iso).getTime());
-  });
+describe('isoStringToCalendarAndTime', () => {
+  it('returns local calendar day and HH:mm for a valid ISO string', () => {
+    const iso = '2026-07-04T06:30:00.000Z'
+    const got = isoStringToCalendarAndTime(iso)
+    expect(got).not.toBeNull()
+    expect(got!.hhmm).toMatch(/^\d{2}:\d{2}$/)
+    const roundTrip = calendarDayAndTimeToIso(got!.day, got!.hhmm)
+    expect(roundTrip).not.toBeNull()
+    expect(new Date(roundTrip!).getTime()).toBe(new Date(iso).getTime())
+  })
 
-  it("returns null for non-parseable string", () => {
-    expect(isoStringToCalendarAndTime("")).toBeNull();
-    expect(isoStringToCalendarAndTime("bukan-waktu")).toBeNull();
-  });
-});
+  it('returns null for non-parseable string', () => {
+    expect(isoStringToCalendarAndTime('')).toBeNull()
+    expect(isoStringToCalendarAndTime('bukan-waktu')).toBeNull()
+  })
+})
 
-describe("calendarDayAndTimeToIso", () => {
-  it("returns null for invalid time token", () => {
-    expect(calendarDayAndTimeToIso(new Date(), "99:qq")).toBeNull();
-  });
-});
+describe('calendarDayAndTimeToIso', () => {
+  it('returns null for invalid time token', () => {
+    expect(calendarDayAndTimeToIso(new Date(), '99:qq')).toBeNull()
+  })
+})
 ```
 
 - [ ] **Step 2: Jalankan tes — harus gagal**
@@ -101,37 +99,32 @@ Expected: gagal dengan modul tidak ditemukan / fungsi tidak terdefinisi.
 Buat `src/lib/datetime/local-iso-datetime.ts`:
 
 ```typescript
-import { setHours, setMinutes, startOfDay } from "date-fns";
+import { setHours, setMinutes, startOfDay } from 'date-fns'
 
 /** Parse ISO; derive local-calendar midnight + HH:mm untuk editor. */
-export function isoStringToCalendarAndTime(
-  iso: string,
-): { day: Date; hhmm: string } | null {
-  const t = Date.parse(iso);
-  if (!Number.isFinite(t)) return null;
-  const d = new Date(t);
-  const day = startOfDay(d);
-  const hh = d.getHours().toString().padStart(2, "0");
-  const mm = d.getMinutes().toString().padStart(2, "0");
-  return { day, hhmm: `${hh}:${mm}` };
+export function isoStringToCalendarAndTime(iso: string): { day: Date; hhmm: string } | null {
+  const t = Date.parse(iso)
+  if (!Number.isFinite(t)) return null
+  const d = new Date(t)
+  const day = startOfDay(d)
+  const hh = d.getHours().toString().padStart(2, '0')
+  const mm = d.getMinutes().toString().padStart(2, '0')
+  return { day, hhmm: `${hh}:${mm}` }
 }
 
-const HH_MM = /^(\d{1,2}):(\d{2})$/;
+const HH_MM = /^(\d{1,2}):(\d{2})$/
 
 /** Bangun UTC ISO dari hari kalender (lokal) + waktu HH:mm (lokal). */
-export function calendarDayAndTimeToIso(
-  day: Date,
-  hhmm: string,
-): string | null {
-  const m = hhmm.trim().match(HH_MM);
-  if (!m) return null;
-  const h = Number(m[1]);
-  const mins = Number(m[2]);
-  if (!Number.isInteger(h) || h < 0 || h > 23) return null;
-  if (!Number.isInteger(mins) || mins < 0 || mins > 59) return null;
-  const atDay = startOfDay(day);
-  const withClock = setMinutes(setHours(atDay, h), mins);
-  return withClock.toISOString();
+export function calendarDayAndTimeToIso(day: Date, hhmm: string): string | null {
+  const m = hhmm.trim().match(HH_MM)
+  if (!m) return null
+  const h = Number(m[1])
+  const mins = Number(m[2])
+  if (!Number.isInteger(h) || h < 0 || h > 23) return null
+  if (!Number.isInteger(mins) || mins < 0 || mins > 59) return null
+  const atDay = startOfDay(day)
+  const withClock = setMinutes(setHours(atDay, h), mins)
+  return withClock.toISOString()
 }
 ```
 
@@ -155,108 +148,95 @@ git commit -m "feat: helpers for ISO datetime local calendar editing"
 ### Task 2: Komponen `DateTimePicker`
 
 **Files:**
+
 - Create: `src/components/ui/datetime-picker.tsx`
 
 - [ ] **Step 1: Buat file lengkap**
 
 ```tsx
-"use client";
+'use client'
 
-import * as React from "react";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import * as React from 'react'
+import { format } from 'date-fns'
+import { id as localeId } from 'date-fns/locale'
+import { CalendarIcon } from 'lucide-react'
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import {
-  calendarDayAndTimeToIso,
-  isoStringToCalendarAndTime,
-} from "@/lib/datetime/local-iso-datetime";
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
+import { calendarDayAndTimeToIso, isoStringToCalendarAndTime } from '@/lib/datetime/local-iso-datetime'
 
 export type DateTimePickerProps = {
-  value: string;
-  onChange: (nextIso: string) => void;
-  disabled?: boolean;
-  id?: string;
-  "aria-invalid"?: boolean;
-  placeholder?: string;
-};
+  value: string
+  onChange: (nextIso: string) => void
+  disabled?: boolean
+  id?: string
+  'aria-invalid'?: boolean
+  placeholder?: string
+}
 
 export function DateTimePicker({
   value,
   onChange,
   disabled,
   id,
-  "aria-invalid": ariaInvalid,
-  placeholder = "Pilih tanggal & waktu",
+  'aria-invalid': ariaInvalid,
+  placeholder = 'Pilih tanggal & waktu',
 }: DateTimePickerProps) {
-  const parts = isoStringToCalendarAndTime(value);
-  const selectedDay = parts?.day ?? undefined;
-  const timeStr = parts?.hhmm ?? "09:00";
+  const parts = isoStringToCalendarAndTime(value)
+  const selectedDay = parts?.day ?? undefined
+  const timeStr = parts?.hhmm ?? '09:00'
 
   function applyNewDay(day: Date | undefined) {
-    if (!day) return;
-    const iso = calendarDayAndTimeToIso(day, timeStr);
-    if (iso) onChange(iso);
+    if (!day) return
+    const iso = calendarDayAndTimeToIso(day, timeStr)
+    if (iso) onChange(iso)
   }
 
   function applyNewTime(nextHhmm: string) {
-    if (!selectedDay) return;
-    const iso = calendarDayAndTimeToIso(selectedDay, nextHhmm);
-    if (iso) onChange(iso);
+    if (!selectedDay) return
+    const iso = calendarDayAndTimeToIso(selectedDay, nextHhmm)
+    if (iso) onChange(iso)
   }
 
-  const label = parts
-    ? format(parts.day, "d MMMM yyyy, HH:mm", { locale: localeId })
-    : placeholder;
+  const label = parts ? format(parts.day, 'd MMMM yyyy, HH:mm', { locale: localeId }) : placeholder
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
       <Popover>
         <PopoverTrigger
           disabled={disabled}
           id={id}
           aria-invalid={ariaInvalid ?? false}
-          render={
-            <Button
-              variant="outline"
-              className="w-full justify-start font-normal sm:flex-1"
-            />
-          }
+          render={<Button variant='outline' className='w-full justify-start font-normal sm:flex-1' />}
         >
-          <CalendarIcon className="mr-2 size-4 shrink-0" />
-          <span className={cn(!parts && "text-muted-foreground")}>{label}</span>
+          <CalendarIcon className='mr-2 size-4 shrink-0' />
+          <span className={cn(!parts && 'text-muted-foreground')}>{label}</span>
         </PopoverTrigger>
-        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+        <PopoverContent className='w-auto overflow-hidden p-0' align='start'>
           <Calendar
-            mode="single"
+            mode='single'
             locale={localeId}
-            captionLayout="dropdown"
+            captionLayout='dropdown'
             selected={selectedDay}
-            onSelect={(d) => applyNewDay(d)}
+            onSelect={d => applyNewDay(d)}
             disabled={disabled}
           />
         </PopoverContent>
       </Popover>
       <Input
-        type="time"
+        type='time'
         step={60}
         disabled={disabled || !selectedDay}
         aria-invalid={ariaInvalid}
-        value={selectedDay ? timeStr : ""}
-        onChange={(e) => applyNewTime(e.target.value)}
-        className="bg-background sm:w-[8.5rem]"
+        value={selectedDay ? timeStr : ''}
+        onChange={e => applyNewTime(e.target.value)}
+        className='bg-background sm:w-[8.5rem]'
       />
     </div>
-  );
+  )
 }
 ```
 
@@ -282,6 +262,7 @@ git commit -m "feat(ui): DateTime picker with calendar and local time input"
 ### Task 3: Migrasi `EventAdminForm` — Select + DateTimePicker
 
 **Files:**
+
 - Modify: `src/components/admin/forms/event-admin-form.tsx` (impor bagian atas, blok "Jadwal & lokasi" ~251–263, blok `<select>` 265–541)
 
 - [ ] **Step 1: Tambah impor**
@@ -289,14 +270,8 @@ git commit -m "feat(ui): DateTime picker with calendar and local time input"
 Di bagian impor `@/components`, tambahkan:
 
 ```typescript
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
 ```
 
 - [ ] **Step 2: Ganti kolom jadwal**
@@ -350,23 +325,19 @@ menjadi:
 Ganti `<Field label="Status acara">` + `<select {...form.register("status")}>…` dengan:
 
 ```tsx
-<Field label="Status acara">
+<Field label='Status acara'>
   <Controller
     control={form.control}
-    name="status"
+    name='status'
     render={({ field }) => (
-      <Select
-        value={field.value}
-        onValueChange={(v) => field.onChange(v)}
-        disabled={pending}
-      >
-        <SelectTrigger className="w-full">
+      <Select value={field.value} onValueChange={v => field.onChange(v)} disabled={pending}>
+        <SelectTrigger className='w-full'>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="draft">Draf</SelectItem>
-          <SelectItem value="active">Aktif</SelectItem>
-          <SelectItem value="finished">Selesai</SelectItem>
+          <SelectItem value='draft'>Draf</SelectItem>
+          <SelectItem value='active'>Aktif</SelectItem>
+          <SelectItem value='finished'>Selesai</SelectItem>
         </SelectContent>
       </Select>
     )}
@@ -379,22 +350,22 @@ Ganti `<Field label="Status acara">` + `<select {...form.register("status")}>…
 Ganti `<Field label="Sumber harga">` dan `<select value={pricingSource} …>` dengan:
 
 ```tsx
-<Field label="Sumber harga">
+<Field label='Sumber harga'>
   <Select
     value={pricingSource}
-    onValueChange={(v) => {
-      const next = v as AdminEventUpsertInput["pricingSource"];
-      form.setValue("pricingSource", next, { shouldDirty: true });
-      if (next === "global_default") pickCommitteePrices();
+    onValueChange={v => {
+      const next = v as AdminEventUpsertInput['pricingSource']
+      form.setValue('pricingSource', next, { shouldDirty: true })
+      if (next === 'global_default') pickCommitteePrices()
     }}
     disabled={pending}
   >
-    <SelectTrigger className="w-full">
+    <SelectTrigger className='w-full'>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value="global_default">Default komite</SelectItem>
-      <SelectItem value="overridden">Override per acara</SelectItem>
+      <SelectItem value='global_default'>Default komite</SelectItem>
+      <SelectItem value='overridden'>Override per acara</SelectItem>
     </SelectContent>
   </Select>
 </Field>
@@ -405,27 +376,25 @@ Ganti `<Field label="Sumber harga">` dan `<select value={pricingSource} …>` de
 Ganti `<Field label="Mode menu">` + `<select value={menuMode} …>` dengan:
 
 ```tsx
-<Field label="Mode menu">
+<Field label='Mode menu'>
   <Select
     value={menuMode}
-    onValueChange={(v) =>
-      form.setValue("menuMode", v as AdminEventUpsertInput["menuMode"], {
+    onValueChange={v =>
+      form.setValue('menuMode', v as AdminEventUpsertInput['menuMode'], {
         shouldDirty: true,
       })
     }
-    disabled={pending || lockedMenuKeys.includes("menuMode")}
+    disabled={pending || lockedMenuKeys.includes('menuMode')}
   >
-    <SelectTrigger className="w-full">
+    <SelectTrigger className='w-full'>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value="PRESELECT">Pilih menu di form</SelectItem>
-      <SelectItem value="VOUCHER">Voucher</SelectItem>
+      <SelectItem value='PRESELECT'>Pilih menu di form</SelectItem>
+      <SelectItem value='VOUCHER'>Voucher</SelectItem>
     </SelectContent>
   </Select>
-  {lockedMenuKeys.includes("menuMode") ? (
-    <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
-  ) : null}
+  {lockedMenuKeys.includes('menuMode') ? <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted> : null}
 </Field>
 ```
 
@@ -434,29 +403,23 @@ Ganti `<Field label="Mode menu">` + `<select value={menuMode} …>` dengan:
 Ganti `<Field label="Pilihan menu">` + select terkait dengan:
 
 ```tsx
-<Field label="Pilihan menu">
+<Field label='Pilihan menu'>
   <Select
     value={menuSelection}
-    onValueChange={(v) =>
-      form.setValue(
-        "menuSelection",
-        v as AdminEventUpsertInput["menuSelection"],
-        { shouldDirty: true },
-      )
+    onValueChange={v =>
+      form.setValue('menuSelection', v as AdminEventUpsertInput['menuSelection'], { shouldDirty: true })
     }
-    disabled={pending || lockedMenuKeys.includes("menuSelection")}
+    disabled={pending || lockedMenuKeys.includes('menuSelection')}
   >
-    <SelectTrigger className="w-full">
+    <SelectTrigger className='w-full'>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value="SINGLE">Satu opsi per tiket</SelectItem>
-      <SelectItem value="MULTI">Multi pilih per tiket</SelectItem>
+      <SelectItem value='SINGLE'>Satu opsi per tiket</SelectItem>
+      <SelectItem value='MULTI'>Multi pilih per tiket</SelectItem>
     </SelectContent>
   </Select>
-  {lockedMenuKeys.includes("menuSelection") ? (
-    <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted>
-  ) : null}
+  {lockedMenuKeys.includes('menuSelection') ? <Muted>Terhubung pada pendaftar — tidak dapat diubah.</Muted> : null}
 </Field>
 ```
 
@@ -465,21 +428,21 @@ Ganti `<Field label="Pilihan menu">` + select terkait dengan:
 Ganti `<Field label="PIC utama">` + `<select value={picId} …>` dengan:
 
 ```tsx
-<Field label="PIC utama">
+<Field label='PIC utama'>
   <Select
     value={picId}
-    onValueChange={(next) => {
-      form.setValue("picMasterMemberId", next, { shouldDirty: true });
-      const first = props.banksByPic[next]?.[0]?.id ?? "";
-      form.setValue("bankAccountId", first, { shouldDirty: true });
+    onValueChange={next => {
+      form.setValue('picMasterMemberId', next, { shouldDirty: true })
+      const first = props.banksByPic[next]?.[0]?.id ?? ''
+      form.setValue('bankAccountId', first, { shouldDirty: true })
     }}
     disabled={pending}
   >
-    <SelectTrigger className="w-full">
+    <SelectTrigger className='w-full'>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      {props.picOptions.map((p) => (
+      {props.picOptions.map(p => (
         <SelectItem key={p.id} value={p.id}>
           {p.label}
         </SelectItem>
@@ -494,19 +457,17 @@ Ganti `<Field label="PIC utama">` + `<select value={picId} …>` dengan:
 Ganti `<Field label="Rekening pembayaran">` + `<select value={bankAccountId} …>` dengan:
 
 ```tsx
-<Field label="Rekening pembayaran">
+<Field label='Rekening pembayaran'>
   <Select
     value={bankAccountId}
-    onValueChange={(v) =>
-      form.setValue("bankAccountId", v, { shouldDirty: true })
-    }
+    onValueChange={v => form.setValue('bankAccountId', v, { shouldDirty: true })}
     disabled={pending || bankChoices.length === 0}
   >
-    <SelectTrigger className="w-full">
+    <SelectTrigger className='w-full'>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      {bankChoices.map((b) => (
+      {bankChoices.map(b => (
         <SelectItem key={b.id} value={b.id}>
           {b.label}
         </SelectItem>
@@ -514,10 +475,7 @@ Ganti `<Field label="Rekening pembayaran">` + `<select value={bankAccountId} …
     </SelectContent>
   </Select>
   {bankChoices.length === 0 ? (
-    <Muted>
-      Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan
-      komite.
-    </Muted>
+    <Muted>Tidak ada rekening aktif untuk PIC ini — tambahkan di pengaturan komite.</Muted>
   ) : null}
 </Field>
 ```

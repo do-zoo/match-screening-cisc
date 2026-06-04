@@ -1,20 +1,20 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from '@prisma/client'
 
-import type { ClubAuditAction } from "@/lib/audit/club-audit-actions";
-import { sanitizeAuditMetadata } from "@/lib/audit/sanitize-audit-metadata";
+import type { ClubAuditAction } from '@/lib/audit/club-audit-actions'
+import { sanitizeAuditMetadata } from '@/lib/audit/sanitize-audit-metadata'
 
 export async function appendClubAuditLog(
   db: PrismaClient,
   row: {
-    actorProfileId: string;
-    actorAuthUserId: string;
-    action: ClubAuditAction;
-    targetType?: string | null;
-    targetId?: string | null;
-    metadata?: unknown;
+    actorProfileId: string
+    actorAuthUserId: string
+    action: ClubAuditAction
+    targetType?: string | null
+    targetId?: string | null
+    metadata?: unknown
   },
 ): Promise<void> {
-  const metadata = sanitizeAuditMetadata(row.metadata);
+  const metadata = sanitizeAuditMetadata(row.metadata)
   try {
     await db.clubAuditLog.create({
       data: {
@@ -25,8 +25,8 @@ export async function appendClubAuditLog(
         targetId: row.targetId ?? null,
         metadata: metadata === null ? undefined : metadata,
       },
-    });
+    })
   } catch (e) {
-    console.error("[clubAuditLog] insert failed", { action: row.action, e });
+    console.error('[clubAuditLog] insert failed', { action: row.action, e })
   }
 }

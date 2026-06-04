@@ -1,10 +1,6 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation'
 
-export default async function AdminVenueIndexRedirect({
-  params,
-}: {
-  params: Promise<{ venueId: string }>;
-}) {
-  const { venueId } = await params;
-  redirect(`/admin/venues/${venueId}/edit`);
+export default async function AdminVenueIndexRedirect({ params }: { params: Promise<{ venueId: string }> }) {
+  const { venueId } = await params
+  redirect(`/admin/venues/${venueId}/edit`)
 }

@@ -1,138 +1,121 @@
-"use client";
+'use client'
 
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  approveRegistration,
-  rejectRegistration,
-  markPaymentIssue,
-} from "@/lib/actions/verify-registration";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { useState, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { approveRegistration, rejectRegistration, markPaymentIssue } from '@/lib/actions/verify-registration'
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 
 type Props = {
-  eventId: string;
-  registrationId: string;
-};
+  eventId: string
+  registrationId: string
+}
 
 export function RegistrationActions({ eventId, registrationId }: Props) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition()
 
   // Reject panel state
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectError, setRejectError] = useState<string | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectError, setRejectError] = useState<string | null>(null)
 
   // Payment issue panel state
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [paymentReason, setPaymentReason] = useState("");
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false)
+  const [paymentReason, setPaymentReason] = useState('')
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   // Approve error state
-  const [approveError, setApproveError] = useState<string | null>(null);
+  const [approveError, setApproveError] = useState<string | null>(null)
 
   function handleApprove() {
-    setApproveError(null);
+    setApproveError(null)
     startTransition(async () => {
-      const result = await approveRegistration(eventId, registrationId);
+      const result = await approveRegistration(eventId, registrationId)
       if (!result.ok) {
-        toastActionErr(result);
-        setApproveError(result.rootError ?? "Terjadi kesalahan.");
+        toastActionErr(result)
+        setApproveError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
-        toastCudSuccess("update", "Pendaftaran disetujui.");
+        toastCudSuccess('update', 'Pendaftaran disetujui.')
       }
-    });
+    })
   }
 
   function handleReject() {
-    setRejectError(null);
+    setRejectError(null)
     startTransition(async () => {
-      const result = await rejectRegistration(eventId, registrationId, rejectReason);
+      const result = await rejectRegistration(eventId, registrationId, rejectReason)
       if (!result.ok) {
-        toastActionErr(result);
-        setRejectError(result.rootError ?? "Terjadi kesalahan.");
+        toastActionErr(result)
+        setRejectError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
-        toastCudSuccess("update", "Pendaftaran ditolak.");
-        setRejectOpen(false);
-        setRejectReason("");
+        toastCudSuccess('update', 'Pendaftaran ditolak.')
+        setRejectOpen(false)
+        setRejectReason('')
       }
-    });
+    })
   }
 
   function handlePaymentIssue() {
-    setPaymentError(null);
+    setPaymentError(null)
     startTransition(async () => {
-      const result = await markPaymentIssue(eventId, registrationId, paymentReason);
+      const result = await markPaymentIssue(eventId, registrationId, paymentReason)
       if (!result.ok) {
-        toastActionErr(result);
-        setPaymentError(result.rootError ?? "Terjadi kesalahan.");
+        toastActionErr(result)
+        setPaymentError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
-        toastCudSuccess("update", "Status pembayaran diperbarui.");
-        setPaymentOpen(false);
-        setPaymentReason("");
+        toastCudSuccess('update', 'Status pembayaran diperbarui.')
+        setPaymentOpen(false)
+        setPaymentReason('')
       }
-    });
+    })
   }
 
   return (
-    <div className="mt-4 flex flex-col gap-3">
+    <div className='mt-4 flex flex-col gap-3'>
       {/* Approve */}
-      <div className="flex flex-col gap-1">
-        <Button
-          variant="default"
-          className="w-full sm:w-auto"
-          disabled={isPending}
-          onClick={handleApprove}
-        >
+      <div className='flex flex-col gap-1'>
+        <Button variant='default' className='w-full sm:w-auto' disabled={isPending} onClick={handleApprove}>
           Approve
         </Button>
-        {approveError && (
-          <p className="text-sm text-destructive">{approveError}</p>
-        )}
+        {approveError && <p className='text-sm text-destructive'>{approveError}</p>}
       </div>
 
       {/* Reject */}
-      <div className="flex flex-col gap-2">
+      <div className='flex flex-col gap-2'>
         {!rejectOpen ? (
           <Button
-            variant="destructive"
-            className="w-full sm:w-auto"
+            variant='destructive'
+            className='w-full sm:w-auto'
             disabled={isPending}
             onClick={() => {
-              setRejectOpen(true);
-              setPaymentOpen(false);
+              setRejectOpen(true)
+              setPaymentOpen(false)
             }}
           >
             Reject
           </Button>
         ) : (
-          <div className="flex flex-col gap-2 rounded-lg border p-3">
-            <p className="text-sm font-medium">Alasan penolakan</p>
+          <div className='flex flex-col gap-2 rounded-lg border p-3'>
+            <p className='text-sm font-medium'>Alasan penolakan</p>
             <Textarea
-              placeholder="Tuliskan alasan penolakan..."
+              placeholder='Tuliskan alasan penolakan...'
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
+              onChange={e => setRejectReason(e.target.value)}
               rows={3}
               disabled={isPending}
             />
-            {rejectError && (
-              <p className="text-sm text-destructive">{rejectError}</p>
-            )}
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                disabled={isPending}
-                onClick={handleReject}
-              >
+            {rejectError && <p className='text-sm text-destructive'>{rejectError}</p>}
+            <div className='flex gap-2'>
+              <Button variant='destructive' disabled={isPending} onClick={handleReject}>
                 Konfirmasi Tolak
               </Button>
               <Button
-                variant="outline"
+                variant='outline'
                 disabled={isPending}
                 onClick={() => {
-                  setRejectOpen(false);
-                  setRejectReason("");
-                  setRejectError(null);
+                  setRejectOpen(false)
+                  setRejectReason('')
+                  setRejectError(null)
                 }}
               >
                 Batal
@@ -143,47 +126,41 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
       </div>
 
       {/* Payment Issue */}
-      <div className="flex flex-col gap-2">
+      <div className='flex flex-col gap-2'>
         {!paymentOpen ? (
           <Button
-            variant="outline"
-            className="w-full sm:w-auto"
+            variant='outline'
+            className='w-full sm:w-auto'
             disabled={isPending}
             onClick={() => {
-              setPaymentOpen(true);
-              setRejectOpen(false);
+              setPaymentOpen(true)
+              setRejectOpen(false)
             }}
           >
             Payment issue
           </Button>
         ) : (
-          <div className="flex flex-col gap-2 rounded-lg border p-3">
-            <p className="text-sm font-medium">Alasan masalah pembayaran</p>
+          <div className='flex flex-col gap-2 rounded-lg border p-3'>
+            <p className='text-sm font-medium'>Alasan masalah pembayaran</p>
             <Textarea
-              placeholder="Tuliskan masalah pembayaran..."
+              placeholder='Tuliskan masalah pembayaran...'
               value={paymentReason}
-              onChange={(e) => setPaymentReason(e.target.value)}
+              onChange={e => setPaymentReason(e.target.value)}
               rows={3}
               disabled={isPending}
             />
-            {paymentError && (
-              <p className="text-sm text-destructive">{paymentError}</p>
-            )}
-            <div className="flex gap-2">
-              <Button
-                variant="default"
-                disabled={isPending}
-                onClick={handlePaymentIssue}
-              >
+            {paymentError && <p className='text-sm text-destructive'>{paymentError}</p>}
+            <div className='flex gap-2'>
+              <Button variant='default' disabled={isPending} onClick={handlePaymentIssue}>
                 Konfirmasi Masalah Pembayaran
               </Button>
               <Button
-                variant="outline"
+                variant='outline'
                 disabled={isPending}
                 onClick={() => {
-                  setPaymentOpen(false);
-                  setPaymentReason("");
-                  setPaymentError(null);
+                  setPaymentOpen(false)
+                  setPaymentReason('')
+                  setPaymentError(null)
                 }}
               >
                 Batal
@@ -193,5 +170,5 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
         )}
       </div>
     </div>
-  );
+  )
 }

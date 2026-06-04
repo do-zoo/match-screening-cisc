@@ -12,14 +12,14 @@
 
 ## Peta file (struktur)
 
-| File | Tanggung jawab |
-|------|----------------|
-| `src/lib/forms/format-action-error-message.ts` | Fungsi murni: rangkai pesan gagal dari `ActionErr` (aman diimpor dari tes tanpa `sonner`). |
-| `src/lib/forms/format-action-error-message.test.ts` | Tes unit perilaku format pesan. |
-| `src/lib/client/cud-notify.ts` | `"use client"` — `toastCudSuccess`, `toastActionErr`, re-export message formatter jika perlu. |
-| `src/app/globals.css` | Gaya `.cn-toast` dan penyesuaian `.toaster`/wrapper agar konsisten dengan design token. |
-| `src/components/ui/sonner.tsx` | Opsional: `duration`, `closeButton`, kelas tambahan pada `toastOptions.classNames`. |
-| Daftar ~24 komponen TSX di bawah | Panggilan pembantu setelah aksi server. |
+| File                                                | Tanggung jawab                                                                                |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `src/lib/forms/format-action-error-message.ts`      | Fungsi murni: rangkai pesan gagal dari `ActionErr` (aman diimpor dari tes tanpa `sonner`).    |
+| `src/lib/forms/format-action-error-message.test.ts` | Tes unit perilaku format pesan.                                                               |
+| `src/lib/client/cud-notify.ts`                      | `"use client"` — `toastCudSuccess`, `toastActionErr`, re-export message formatter jika perlu. |
+| `src/app/globals.css`                               | Gaya `.cn-toast` dan penyesuaian `.toaster`/wrapper agar konsisten dengan design token.       |
+| `src/components/ui/sonner.tsx`                      | Opsional: `duration`, `closeButton`, kelas tambahan pada `toastOptions.classNames`.           |
+| Daftar ~24 komponen TSX di bawah                    | Panggilan pembantu setelah aksi server.                                                       |
 
 **Komponen yang memanggil `@/lib/actions/*` (harus dapat notifikasi CUD):**
 
@@ -59,60 +59,55 @@
 - [ ] **Step 1: Buat modul murni**
 
 ```typescript
-import type { ActionErr } from "@/lib/forms/action-result";
+import type { ActionErr } from '@/lib/forms/action-result'
 
 /**
  * Merangkum ActionErr menjadi satu string untuk toast atau log.
  * Urutan: rootError → gabungan fieldErrors → fallback.
  */
-export function formatActionErrorMessage(
-  err: ActionErr,
-  fallback = "Terjadi kesalahan.",
-): string {
-  if (err.rootError?.trim()) return err.rootError.trim();
-  const fe = err.fieldErrors;
+export function formatActionErrorMessage(err: ActionErr, fallback = 'Terjadi kesalahan.'): string {
+  if (err.rootError?.trim()) return err.rootError.trim()
+  const fe = err.fieldErrors
   if (fe && Object.keys(fe).length > 0) {
     return Object.entries(fe)
       .map(([k, v]) => `${k}: ${v}`)
-      .join(" · ");
+      .join(' · ')
   }
-  return fallback;
+  return fallback
 }
 ```
 
 - [ ] **Step 2: Tulis tes yang gagal dulu**
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import type { ActionErr } from "@/lib/forms/action-result";
-import { formatActionErrorMessage } from "@/lib/forms/format-action-error-message";
+import type { ActionErr } from '@/lib/forms/action-result'
+import { formatActionErrorMessage } from '@/lib/forms/format-action-error-message'
 
-describe("formatActionErrorMessage", () => {
-  it("prefers rootError over fieldErrors", () => {
+describe('formatActionErrorMessage', () => {
+  it('prefers rootError over fieldErrors', () => {
     const err: ActionErr = {
       ok: false,
-      rootError: "Tidak diizinkan.",
-      fieldErrors: { email: "Invalid" },
-    };
-    expect(formatActionErrorMessage(err)).toBe("Tidak diizinkan.");
-  });
+      rootError: 'Tidak diizinkan.',
+      fieldErrors: { email: 'Invalid' },
+    }
+    expect(formatActionErrorMessage(err)).toBe('Tidak diizinkan.')
+  })
 
-  it("joins fieldErrors when rootError absent", () => {
+  it('joins fieldErrors when rootError absent', () => {
     const err: ActionErr = {
       ok: false,
-      fieldErrors: { a: "satu", b: "dua" },
-    };
-    expect(formatActionErrorMessage(err)).toBe("a: satu · b: dua");
-  });
+      fieldErrors: { a: 'satu', b: 'dua' },
+    }
+    expect(formatActionErrorMessage(err)).toBe('a: satu · b: dua')
+  })
 
-  it("uses fallback when empty err", () => {
-    expect(formatActionErrorMessage({ ok: false })).toBe("Terjadi kesalahan.");
-    expect(formatActionErrorMessage({ ok: false }, "Fallback khusus")).toBe(
-      "Fallback khusus",
-    );
-  });
-});
+  it('uses fallback when empty err', () => {
+    expect(formatActionErrorMessage({ ok: false })).toBe('Terjadi kesalahan.')
+    expect(formatActionErrorMessage({ ok: false }, 'Fallback khusus')).toBe('Fallback khusus')
+  })
+})
 ```
 
 - [ ] **Step 3: Jalankan tes hingga PASS**
@@ -145,32 +140,29 @@ git commit -m "feat(forms): add ActionErr message formatter with tests"
 - [ ] **Step 1: Implementasi**
 
 ```typescript
-"use client";
+'use client'
 
-import { toast } from "sonner";
+import { toast } from 'sonner'
 
-import type { ActionErr } from "@/lib/forms/action-result";
-import { formatActionErrorMessage } from "@/lib/forms/format-action-error-message";
+import type { ActionErr } from '@/lib/forms/action-result'
+import { formatActionErrorMessage } from '@/lib/forms/format-action-error-message'
 
-export type CudOperation = "create" | "update" | "delete";
+export type CudOperation = 'create' | 'update' | 'delete'
 
 const DEFAULT_SUCCESS: Record<CudOperation, string> = {
-  create: "Data berhasil ditambahkan.",
-  update: "Data berhasil diperbarui.",
-  delete: "Data berhasil dihapus.",
-};
+  create: 'Data berhasil ditambahkan.',
+  update: 'Data berhasil diperbarui.',
+  delete: 'Data berhasil dihapus.',
+}
 
 /** Toast sukses CUD. Gunakan explicitMessage untuk konteks singkat (judul tetap bahasa Indonesia). */
-export function toastCudSuccess(
-  operation: CudOperation,
-  explicitMessage?: string,
-): void {
-  toast.success(explicitMessage ?? DEFAULT_SUCCESS[operation]);
+export function toastCudSuccess(operation: CudOperation, explicitMessage?: string): void {
+  toast.success(explicitMessage ?? DEFAULT_SUCCESS[operation])
 }
 
 /** Toast gagal untuk sembarang ActionErr (setelah pemeriksaan !result.ok). */
 export function toastActionErr(err: ActionErr, fallback?: string): void {
-  toast.error(formatActionErrorMessage(err, fallback ?? "Terjadi kesalahan."));
+  toast.error(formatActionErrorMessage(err, fallback ?? 'Terjadi kesalahan.'))
 }
 ```
 
@@ -266,7 +258,7 @@ git commit -m "style(ui): base Sonner toast tokens and toaster options"
 - [ ] **Step 1: Impor pembantu**
 
 ```typescript
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 ```
 
 - [ ] **Step 2: Setelah submit sukses, toast lalu navigasi**
@@ -274,16 +266,14 @@ import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
 Di dalam handler setelah `const result = await submitRegistration(...)`, pada cabang `if (result.ok) {`:
 
 ```typescript
-      toastCudSuccess("create", "Pendaftaran berhasil dikirim.");
-      router.push(
-        `/events/${event.slug}/register/${result.data.registrationId}`,
-      );
+toastCudSuccess('create', 'Pendaftaran berhasil dikirim.')
+router.push(`/events/${event.slug}/register/${result.data.registrationId}`)
 ```
 
 - [ ] **Step 3: Pada cabang gagal**, sebelum atau sesudah `form.setError`, panggil:
 
 ```typescript
-    toastActionErr(result);
+toastActionErr(result)
 ```
 
 - [ ] **Step 4: Commit**
@@ -307,7 +297,7 @@ git commit -m "feat(registration): sonner CUD feedback on submit"
 Impor:
 
 ```typescript
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 ```
 
 Mencari panggilan `createAdminEvent` / `updateAdminEvent` di dalam `startTransition`. Jika `result.ok`, panggil:
@@ -322,15 +312,15 @@ Jika `!result.ok`, panggil `toastActionErr(result)` (tetap pertahankan `setRootM
 Impor `toastCudSuccess` dan `toastActionErr`. Di `useEffect` yang memantau `state?.ok` untuk redirect, tambahkan sebelum `router`:
 
 ```typescript
-      toastCudSuccess("delete", "Acara berhasil dihapus.");
+toastCudSuccess('delete', 'Acara berhasil dihapus.')
 ```
 
 Tambahkan `useEffect` terpisah:
 
 ```typescript
-  useEffect(() => {
-    if (state?.ok === false) toastActionErr(state);
-  }, [state]);
+useEffect(() => {
+  if (state?.ok === false) toastActionErr(state)
+}, [state])
 ```
 
 (Hindari double-toast sukses: hanya toast sukses di cabang yang sama dengan redirect yang sudah ada.)
@@ -357,7 +347,7 @@ git commit -m "feat(admin-events): sonner feedback for event CUD"
 Impor:
 
 ```typescript
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 ```
 
 - [ ] **Step 2: `member-form-dialog.tsx`**
@@ -399,7 +389,6 @@ git commit -m "feat(admin-members): sonner CUD feedback for master directory"
 - [ ] **Step 1:** Impor `toastActionErr`, `toastCudSuccess`.
 
 - [ ] **Step 2:** Untuk setiap handler simpan baru vs edit gunakan `"create"` / `"update"` dengan pesan eksplisit bermakna:
-
   - Pengurus: "Pengurus berhasil ditambahkan." / diperbarui.
   - Penugasan: "Penugasan berhasil ditambahkan." / diperbarui.
   - Periode: "Periode berhasil ditambahkan." / diperbarui.
@@ -491,8 +480,8 @@ git commit -m "feat(admin-inbox): sonner feedback for registration mutations"
 - [ ] **Step 1: Impor di setiap file**
 
 ```typescript
-import { useEffect } from "react";
-import { toastCudSuccess } from "@/lib/client/cud-notify";
+import { useEffect } from 'react'
+import { toastCudSuccess } from '@/lib/client/cud-notify'
 ```
 
 (If `useEffect` already imported, merge import line.)
@@ -502,11 +491,11 @@ import { toastCudSuccess } from "@/lib/client/cud-notify";
 Tambahkan:
 
 ```typescript
-  useEffect(() => {
-    if (state?.ok) {
-      toastCudSuccess("update", "Pengaturan berhasil disimpan.");
-    }
-  }, [state]);
+useEffect(() => {
+  if (state?.ok) {
+    toastCudSuccess('update', 'Pengaturan berhasil disimpan.')
+  }
+}, [state])
 ```
 
 Sesuaikan frasa jika perlu (mis. "Harga default disimpan." di `committee-default-pricing-form.tsx`).
@@ -516,13 +505,13 @@ Sesuaikan frasa jika perlu (mis. "Harga default disimpan." di `committee-default
 Dua `useActionState` (`saveState`, `resetState`). Dua efek:
 
 ```typescript
-  useEffect(() => {
-    if (saveState?.ok) toastCudSuccess("update", "Template WA disimpan.");
-  }, [saveState]);
+useEffect(() => {
+  if (saveState?.ok) toastCudSuccess('update', 'Template WA disimpan.')
+}, [saveState])
 
-  useEffect(() => {
-    if (resetState?.ok) toastCudSuccess("update", "Template WA dikembalikan ke default.");
-  }, [resetState]);
+useEffect(() => {
+  if (resetState?.ok) toastCudSuccess('update', 'Template WA dikembalikan ke default.')
+}, [resetState])
 ```
 
 - [ ] **Step 4: `committee-admin-settings-panel.tsx`**
@@ -530,21 +519,21 @@ Dua `useActionState` (`saveState`, `resetState`). Dua efek:
 Di `ManageAdminDialogs`, tambahkan empat efek memantau `roleState`, `memberState`, `revokeState`, `deleteState` masing-masing:
 
 ```typescript
-  useEffect(() => {
-    if (roleState?.ok) toastCudSuccess("update", "Peran admin diperbarui.");
-  }, [roleState]);
+useEffect(() => {
+  if (roleState?.ok) toastCudSuccess('update', 'Peran admin diperbarui.')
+}, [roleState])
 
-  useEffect(() => {
-    if (memberState?.ok) toastCudSuccess("update", "Tautan anggota admin diperbarui.");
-  }, [memberState]);
+useEffect(() => {
+  if (memberState?.ok) toastCudSuccess('update', 'Tautan anggota admin diperbarui.')
+}, [memberState])
 
-  useEffect(() => {
-    if (revokeState?.ok) toastCudSuccess("update", "Akses admin dicabut.");
-  }, [revokeState]);
+useEffect(() => {
+  if (revokeState?.ok) toastCudSuccess('update', 'Akses admin dicabut.')
+}, [revokeState])
 
-  useEffect(() => {
-    if (deleteState?.ok) toastCudSuccess("delete", "Admin komite dihapus.");
-  }, [deleteState]);
+useEffect(() => {
+  if (deleteState?.ok) toastCudSuccess('delete', 'Admin komite dihapus.')
+}, [deleteState])
 ```
 
 Untuk `addCommitteeAdminByEmail` (state `addState` di bagian bawah file), efek serupa: `toastCudSuccess("create", "Admin komite ditambahkan.");`
@@ -569,7 +558,7 @@ git commit -m "feat(admin-settings): sonner success toasts for club and committe
 - [ ] **Step 1:** Impor `toastActionErr`, `toastCudSuccess`.
 
 - [ ] **Step 2:** Di dalam `startTransition` setelah `updateAdminDisplayName`, jika `res.ok` → `toastCudSuccess("update", "Nama tampilan diperbarui.");`  
-  jika `!res.ok` → `toastActionErr(res)` (tetap biarkan `form.setError`).
+       jika `!res.ok` → `toastActionErr(res)` (tetap biarkan `form.setError`).
 
 - [ ] **Step 3: Commit**
 

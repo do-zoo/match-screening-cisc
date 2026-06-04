@@ -31,22 +31,22 @@ Spek cetak biru **[Nobar 2026-04-29](2026-04-29-nobar-cisc-tangsel-design.md)** 
 
 ## 3) Locked navigation decisions
 
-| Topik | Keputusan v1 |
-|--------|----------------|
-| Laporan di sidebar global | **Tidak**; akses dari **kartu Beranda** dan **sub-nav** saat dalam acara (`/report`). |
-| Sub-nav konteks acara | **Hibrida**: sidebar (≥ lg) untuk blok nama acara + **Inbox \| Laporan**; **< lg** pills/tabs horizontal di atas konten, di bawah header jalur dalam. URL tetap canonik. |
-| Pohon seluruh acara di sidebar | **Tidak** — selaras spek shell. |
+| Topik                          | Keputusan v1                                                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Laporan di sidebar global      | **Tidak**; akses dari **kartu Beranda** dan **sub-nav** saat dalam acara (`/report`).                                                                                    |
+| Sub-nav konteks acara          | **Hibrida**: sidebar (≥ lg) untuk blok nama acara + **Inbox \| Laporan**; **< lg** pills/tabs horizontal di atas konten, di bawah header jalur dalam. URL tetap canonik. |
+| Pohon seluruh acara di sidebar | **Tidak** — selaras spek shell.                                                                                                                                          |
 
 ## 4) Role admin PIC (`AdminRole`)
 
 Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma):
 
-| Nilai enum | Nama UI (opsional, konsisten Indo) | Inti akses navigasi / operasi |
-|------------|-------------------------------------|--------------------------------|
-| **Owner** | Owner | Konfigurasi komite (**Pengaturan**), master **Anggota**, serta semua operasional acara bagi event yang boleh diakses. |
-| **Admin** | Admin | **Paritas operasional dengan Owner** pada Beranda, Acara, Anggota, inbox/laporan (verifikasi global). **Tidak** boleh **`Pengaturan` / pengaturan lanjutan komite**: kelola admin PIC, rekening bank PIC, default harga global, template WA (**`canManageCommitteeAdvancedSettings`** hanya Owner). |
-| **Verifier** | Verifier | Beranda, kelola jalur **Acara**/inbox/laporan per event untuk event yang boleh diakses; **tidak** menu **Pengaturan**. |
-| **Viewer** | Viewer | Lihat dashboard dan laporan/ekspor sesuai izin tanpa tombol verifikasi kecuali **elevator** PIC Helper untuk event tertentu. |
+| Nilai enum   | Nama UI (opsional, konsisten Indo) | Inti akses navigasi / operasi                                                                                                                                                                                                                                                                       |
+| ------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner**    | Owner                              | Konfigurasi komite (**Pengaturan**), master **Anggota**, serta semua operasional acara bagi event yang boleh diakses.                                                                                                                                                                               |
+| **Admin**    | Admin                              | **Paritas operasional dengan Owner** pada Beranda, Acara, Anggota, inbox/laporan (verifikasi global). **Tidak** boleh **`Pengaturan` / pengaturan lanjutan komite**: kelola admin PIC, rekening bank PIC, default harga global, template WA (**`canManageCommitteeAdvancedSettings`** hanya Owner). |
+| **Verifier** | Verifier                           | Beranda, kelola jalur **Acara**/inbox/laporan per event untuk event yang boleh diakses; **tidak** menu **Pengaturan**.                                                                                                                                                                              |
+| **Viewer**   | Viewer                             | Lihat dashboard dan laporan/ekspor sesuai izin tanpa tombol verifikasi kecuali **elevator** PIC Helper untuk event tertentu.                                                                                                                                                                        |
 
 **Elevator PIC Helper (bukan nilai enum baru):** PIC dengan role global **`Viewer`** yang menjadi **PIC Helper** pada sebuah **event** memperoleh kemampuan setara peninjau/registrasi **hanya** untuk **`eventId`** itu (logika aplikasi seperti **`canVerifyEvent`** + **`helperEventIds`**).
 
@@ -54,12 +54,12 @@ Peran PIC disimpan sebagai enum **`AdminRole`** pada **`AdminProfile`** (Prisma)
 
 ### 4.1 Matriks visibilitas item sidebar global v1
 
-| Item menu | Rute | Owner | Admin | Verifier | Viewer\* |
-|-----------|------|:-----:|:-----:|:--------:|:--------:|
-| **Beranda** | `/admin` | ✓ | ✓ | ✓ | ✓ |
-| **Acara** | `/admin/events` (indeks kelola)\*\* | ✓ | ✓ | ✓ | ✓ |
-| **Anggota** | `/admin/anggota` | ✓ | ✓ | — | — |
-| **Pengaturan** | `/admin/pengaturan` | ✓ | — | — | — |
+| Item menu      | Rute                                | Owner | Admin | Verifier | Viewer\* |
+| -------------- | ----------------------------------- | :---: | :---: | :------: | :------: |
+| **Beranda**    | `/admin`                            |   ✓   |   ✓   |    ✓     |    ✓     |
+| **Acara**      | `/admin/events` (indeks kelola)\*\* |   ✓   |   ✓   |    ✓     |    ✓     |
+| **Anggota**    | `/admin/anggota`                    |   ✓   |   ✓   |    —     |    —     |
+| **Pengaturan** | `/admin/pengaturan`                 |   ✓   |   —   |    —     |    —     |
 
 \* **Viewer**: hanya melihat data acara yang lolos **`canVerifyEvent`** (biasanya sebagai helper tugas tertentu; tanpa pohon kosong mengherankan ketika tidak ada tugas helper).
 
@@ -91,12 +91,12 @@ Halaman **`/admin`** (Beranda kartu event, tab status, aggregat **menunggu tinja
 
 **Prioritas iterasi pertama:** **A** — sambungkan **semua item menu global** ke rute kanonik dengan **isi minimal** (placeholder atau empty state) dan **perlakuan salah hak konsisten**. CRUD lengkap Nobar (**Acara** / **Anggota** / **Pengaturan**) boleh menyusul di rencana terpisah; milestone ini menjaga tidak ada tautan menggantung atau perilaku akses tidak jelas.
 
-| Rute | Terlihat di sidebar bagi | Sasaran perilaku Milestone v1 |
-|------|---------------------------|--------------------------------|
-| `/admin` | Matriks §4.1 | Sudah ada (Beranda/shell); tetap pusat KPI + kartu. |
-| `/admin/events` | Owner, Admin, Verifier, Viewer\* | Halaman ada: judul ringkas **Acara**, copy placeholder “belum ada implementasi daftar”—**bukan** 404 bagi yang berhak. Data real menyusul. |
-| `/admin/anggota` | Owner, Admin — saja | **Owner / Admin:** halaman placeholder + copy singkat. **Verifier / Viewer / tanpa sesi:** tidak melihat link; deep link → **`notFound()`** atau setara **FORBIDDEN** konsisten repo. |
-| `/admin/pengaturan` | Owner saja | **Owner:** placeholder “Pengaturan komite”. **Lainnya:** tidak melihat link; deep link → **`notFound()`** / **FORBIDDEN**. |
+| Rute                | Terlihat di sidebar bagi         | Sasaran perilaku Milestone v1                                                                                                                                                         |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/admin`            | Matriks §4.1                     | Sudah ada (Beranda/shell); tetap pusat KPI + kartu.                                                                                                                                   |
+| `/admin/events`     | Owner, Admin, Verifier, Viewer\* | Halaman ada: judul ringkas **Acara**, copy placeholder “belum ada implementasi daftar”—**bukan** 404 bagi yang berhak. Data real menyusul.                                            |
+| `/admin/anggota`    | Owner, Admin — saja              | **Owner / Admin:** halaman placeholder + copy singkat. **Verifier / Viewer / tanpa sesi:** tidak melihat link; deep link → **`notFound()`** atau setara **FORBIDDEN** konsisten repo. |
+| `/admin/pengaturan` | Owner saja                       | **Owner:** placeholder “Pengaturan komite”. **Lainnya:** tidak melihat link; deep link → **`notFound()`** / **FORBIDDEN**.                                                            |
 
 **Shell UI:** sidebar (dan drawer mobile) menyajikan tautan untuk item yang boleh user itu lihat (**role** diketahui dari server / layout sama pola existing); aktiv state pakai **`pathname`**.
 

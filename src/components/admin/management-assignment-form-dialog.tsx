@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useReducer, useTransition } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm, type Resolver } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useReducer, useTransition } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Controller, useForm, type Resolver } from 'react-hook-form'
+import { Loader2 } from 'lucide-react'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -13,351 +13,320 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { EntityCombobox } from "@/components/ui/entity-combobox";
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { EntityCombobox } from '@/components/ui/entity-combobox'
 import {
   createBoardAssignment,
   deleteBoardAssignment,
   updateBoardAssignment,
-} from "@/lib/actions/admin-board-assignments";
-import { toastActionErr, toastCudSuccess } from "@/lib/client/cud-notify";
+} from '@/lib/actions/admin-board-assignments'
+import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import {
   adminBoardAssignmentUpsertSchema,
   adminBoardAssignmentUpdateSchema,
-} from "@/lib/forms/admin-board-assignment-schema";
+} from '@/lib/forms/admin-board-assignment-schema'
 
-type MemberOption = { id: string; fullName: string; publicCode: string };
-type RoleOption = { id: string; title: string };
+type MemberOption = { id: string; fullName: string; publicCode: string }
+type RoleOption = { id: string; title: string }
 
-const NO_AVAILABLE_MEMBERS: readonly MemberOption[] = [];
+const NO_AVAILABLE_MEMBERS: readonly MemberOption[] = []
 
 type AssignmentRow = {
-  id: string;
-  boardRole: { id: string; title: string };
-  managementMember: { id: string; fullName: string; publicCode: string };
-};
+  id: string
+  boardRole: { id: string; title: string }
+  managementMember: { id: string; fullName: string; publicCode: string }
+}
 
 type CreateProps = {
-  mode: "create";
-  boardPeriodId: string;
-  availableMembers: MemberOption[];
-  availableRoles: RoleOption[];
+  mode: 'create'
+  boardPeriodId: string
+  availableMembers: MemberOption[]
+  availableRoles: RoleOption[]
   /** Pre-select role (e.g. from tree view click). */
-  defaultRoleId?: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-};
+  defaultRoleId?: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSaved: () => void
+}
 
 type EditProps = {
-  mode: "edit";
-  boardPeriodId: string;
-  assignment: AssignmentRow;
-  availableRoles: RoleOption[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-  defaultShowDeleteConfirm?: boolean;
-};
+  mode: 'edit'
+  boardPeriodId: string
+  assignment: AssignmentRow
+  availableRoles: RoleOption[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSaved: () => void
+  defaultShowDeleteConfirm?: boolean
+}
 
-type Props = CreateProps | EditProps;
+type Props = CreateProps | EditProps
 
 type CreateFormValues = {
-  boardPeriodId: string;
-  managementMemberId: string;
-  boardRoleId: string;
-};
+  boardPeriodId: string
+  managementMemberId: string
+  boardRoleId: string
+}
 
 type EditFormValues = {
-  id: string;
-  boardPeriodId: string;
-  managementMemberId: string;
-  boardRoleId: string;
-};
+  id: string
+  boardPeriodId: string
+  managementMemberId: string
+  boardRoleId: string
+}
 
 type DialogExtras = {
-  rootMessage: string | null;
-  deleteError: string | null;
-  showDeleteConfirm: boolean;
-};
+  rootMessage: string | null
+  deleteError: string | null
+  showDeleteConfirm: boolean
+}
 
 type ExtrasAction =
   | {
-      type: "opened";
-      showDeleteConfirm: boolean;
+      type: 'opened'
+      showDeleteConfirm: boolean
     }
-  | { type: "closed" }
-  | { type: "set-root-message"; message: string | null }
-  | { type: "set-delete-error"; message: string | null }
-  | { type: "show-delete-prompt" }
-  | { type: "cancel-delete-prompt" };
+  | { type: 'closed' }
+  | { type: 'set-root-message'; message: string | null }
+  | { type: 'set-delete-error'; message: string | null }
+  | { type: 'show-delete-prompt' }
+  | { type: 'cancel-delete-prompt' }
 
 const INITIAL_EXTRAS: DialogExtras = {
   rootMessage: null,
   deleteError: null,
   showDeleteConfirm: false,
-};
+}
 
-function extrasReducer(
-  state: DialogExtras,
-  action: ExtrasAction,
-): DialogExtras {
+function extrasReducer(state: DialogExtras, action: ExtrasAction): DialogExtras {
   switch (action.type) {
-    case "opened":
+    case 'opened':
       return {
         rootMessage: null,
         deleteError: null,
         showDeleteConfirm: action.showDeleteConfirm,
-      };
-    case "closed":
-      return INITIAL_EXTRAS;
-    case "set-root-message":
-      return { ...state, rootMessage: action.message };
-    case "set-delete-error":
-      return { ...state, deleteError: action.message };
-    case "show-delete-prompt":
-      return { ...state, showDeleteConfirm: true };
-    case "cancel-delete-prompt":
-      return { ...state, showDeleteConfirm: false, deleteError: null };
+      }
+    case 'closed':
+      return INITIAL_EXTRAS
+    case 'set-root-message':
+      return { ...state, rootMessage: action.message }
+    case 'set-delete-error':
+      return { ...state, deleteError: action.message }
+    case 'show-delete-prompt':
+      return { ...state, showDeleteConfirm: true }
+    case 'cancel-delete-prompt':
+      return { ...state, showDeleteConfirm: false, deleteError: null }
     default:
-      return state;
+      return state
   }
 }
 
 export function ManagementAssignmentFormDialog(props: Props) {
-  const [isPending, startTransition] = useTransition();
-  const [extras, dispatchExtras] = useReducer(extrasReducer, INITIAL_EXTRAS);
-  const { rootMessage, showDeleteConfirm, deleteError } = extras;
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isPending, startTransition] = useTransition()
+  const [extras, dispatchExtras] = useReducer(extrasReducer, INITIAL_EXTRAS)
+  const { rootMessage, showDeleteConfirm, deleteError } = extras
+  const [isDeleting, startDeleteTransition] = useTransition()
 
-  const defaultShowDeleteConfirm =
-    props.mode === "edit" ? (props.defaultShowDeleteConfirm ?? false) : false;
+  const defaultShowDeleteConfirm = props.mode === 'edit' ? (props.defaultShowDeleteConfirm ?? false) : false
 
   const defaultValues = useMemo(() => {
-    if (props.mode === "create") {
+    if (props.mode === 'create') {
       return {
         boardPeriodId: props.boardPeriodId,
-        managementMemberId: "",
-        boardRoleId: props.defaultRoleId ?? "",
-      } as CreateFormValues;
+        managementMemberId: '',
+        boardRoleId: props.defaultRoleId ?? '',
+      } as CreateFormValues
     }
     return {
       id: props.assignment.id,
       boardPeriodId: props.boardPeriodId,
       managementMemberId: props.assignment.managementMember.id,
       boardRoleId: props.assignment.boardRole.id,
-    } as EditFormValues;
-  }, [props]);
+    } as EditFormValues
+  }, [props])
 
-  const schema =
-    props.mode === "create"
-      ? adminBoardAssignmentUpsertSchema
-      : adminBoardAssignmentUpdateSchema;
+  const schema = props.mode === 'create' ? adminBoardAssignmentUpsertSchema : adminBoardAssignmentUpdateSchema
 
   const form = useForm({
-    resolver: zodResolver(schema as never) as Resolver<
-      CreateFormValues | EditFormValues
-    >,
+    resolver: zodResolver(schema as never) as Resolver<CreateFormValues | EditFormValues>,
     defaultValues: defaultValues as CreateFormValues | EditFormValues,
-  });
+  })
 
   useEffect(() => {
-    if (!props.open) return;
+    if (!props.open) return
     dispatchExtras({
-      type: "opened",
+      type: 'opened',
       showDeleteConfirm: defaultShowDeleteConfirm,
-    });
-    form.reset(defaultValues as CreateFormValues | EditFormValues);
-  }, [props.open, defaultValues, form, defaultShowDeleteConfirm]);
+    })
+    form.reset(defaultValues as CreateFormValues | EditFormValues)
+  }, [props.open, defaultValues, form, defaultShowDeleteConfirm])
 
   function submit(values: CreateFormValues | EditFormValues) {
-    dispatchExtras({ type: "set-root-message", message: null });
+    dispatchExtras({ type: 'set-root-message', message: null })
     startTransition(async () => {
-      const fd = new FormData();
-      fd.set("payload", JSON.stringify(values));
+      const fd = new FormData()
+      fd.set('payload', JSON.stringify(values))
       const result =
-        props.mode === "create"
+        props.mode === 'create'
           ? await createBoardAssignment(undefined, fd)
-          : await updateBoardAssignment(undefined, fd);
+          : await updateBoardAssignment(undefined, fd)
       if (!result.ok) {
-        toastActionErr(result);
+        toastActionErr(result)
         dispatchExtras({
-          type: "set-root-message",
-          message: result.rootError ?? "Terjadi kesalahan.",
-        });
-        return;
+          type: 'set-root-message',
+          message: result.rootError ?? 'Terjadi kesalahan.',
+        })
+        return
       }
       toastCudSuccess(
-        props.mode === "create" ? "create" : "update",
-        props.mode === "create"
-          ? "Penugasan berhasil ditambahkan."
-          : "Penugasan berhasil diperbarui.",
-      );
-      props.onOpenChange(false);
-      props.onSaved();
-    });
+        props.mode === 'create' ? 'create' : 'update',
+        props.mode === 'create' ? 'Penugasan berhasil ditambahkan.' : 'Penugasan berhasil diperbarui.',
+      )
+      props.onOpenChange(false)
+      props.onSaved()
+    })
   }
 
   function handleDelete() {
-    if (props.mode !== "edit") return;
-    dispatchExtras({ type: "set-delete-error", message: null });
+    if (props.mode !== 'edit') return
+    dispatchExtras({ type: 'set-delete-error', message: null })
     startDeleteTransition(async () => {
-      const fd = new FormData();
-      fd.set("payload", JSON.stringify({ id: props.assignment.id }));
-      const result = await deleteBoardAssignment(undefined, fd);
+      const fd = new FormData()
+      fd.set('payload', JSON.stringify({ id: props.assignment.id }))
+      const result = await deleteBoardAssignment(undefined, fd)
       if (!result.ok) {
-        toastActionErr(result, "Gagal menghapus penugasan.");
+        toastActionErr(result, 'Gagal menghapus penugasan.')
         dispatchExtras({
-          type: "set-delete-error",
-          message: result.rootError ?? "Gagal menghapus penugasan.",
-        });
-        return;
+          type: 'set-delete-error',
+          message: result.rootError ?? 'Gagal menghapus penugasan.',
+        })
+        return
       }
-      toastCudSuccess("delete", "Penugasan berhasil dihapus.");
-      props.onOpenChange(false);
-      props.onSaved();
-    });
+      toastCudSuccess('delete', 'Penugasan berhasil dihapus.')
+      props.onOpenChange(false)
+      props.onSaved()
+    })
   }
 
-  const availableRoles = props.availableRoles;
-  const availableMembersForPicker =
-    props.mode === "create" ? props.availableMembers : NO_AVAILABLE_MEMBERS;
+  const availableRoles = props.availableRoles
+  const availableMembersForPicker = props.mode === 'create' ? props.availableMembers : NO_AVAILABLE_MEMBERS
 
   const assignmentMemberOptions = useMemo(
     () =>
-      availableMembersForPicker.map((m) => ({
+      availableMembersForPicker.map(m => ({
         value: m.id,
         label: `${m.fullName} (${m.publicCode})`,
         keywords: `${m.fullName} ${m.publicCode}`,
       })),
     [availableMembersForPicker],
-  );
+  )
 
   const assignmentRoleOptions = useMemo(
     () =>
-      availableRoles.map((r) => ({
+      availableRoles.map(r => ({
         value: r.id,
         label: r.title,
         keywords: r.title,
       })),
     [availableRoles],
-  );
+  )
 
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(next) => {
+      onOpenChange={next => {
         if (!next) {
-          dispatchExtras({ type: "closed" });
+          dispatchExtras({ type: 'closed' })
         }
-        props.onOpenChange(next);
+        props.onOpenChange(next)
       }}
     >
-      <DialogContent className="gap-0 p-0 sm:max-w-lg sm:rounded-2xl">
-        <DialogHeader className="space-y-2 border-b border-border/80 px-4 md:px-6 pt-6 pb-5 text-left sm:pr-14">
-          <DialogTitle className="text-lg leading-tight font-semibold tracking-tight sm:text-xl">
-            {props.mode === "create" ? "Tambah penugasan" : "Ubah jabatan"}
+      <DialogContent className='gap-0 p-0 sm:max-w-lg sm:rounded-2xl'>
+        <DialogHeader className='space-y-2 border-b border-border/80 px-4 md:px-6 pt-6 pb-5 text-left sm:pr-14'>
+          <DialogTitle className='text-lg leading-tight font-semibold tracking-tight sm:text-xl'>
+            {props.mode === 'create' ? 'Tambah penugasan' : 'Ubah jabatan'}
           </DialogTitle>
-          <DialogDescription className="text-pretty text-[0.9375rem] leading-relaxed text-muted-foreground">
-            {props.mode === "create"
-              ? "Pilih pengurus dan jabatan untuk periode ini."
+          <DialogDescription className='text-pretty text-[0.9375rem] leading-relaxed text-muted-foreground'>
+            {props.mode === 'create'
+              ? 'Pilih pengurus dan jabatan untuk periode ini.'
               : `Ganti jabatan untuk ${props.assignment.managementMember.fullName}.`}
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          className="flex flex-col"
-          onSubmit={form.handleSubmit(submit as never)}
-        >
-          <div className="flex flex-col gap-4 md:p-6 px-4 md:px-6 py-6">
+        <form className='flex flex-col' onSubmit={form.handleSubmit(submit as never)}>
+          <div className='flex flex-col gap-4 md:p-6 px-4 md:px-6 py-6'>
             {rootMessage ? (
               <p
-                role="alert"
-                className="rounded-lg border border-destructive/35 bg-destructive/10 px-3.5 py-3 text-sm text-destructive"
+                role='alert'
+                className='rounded-lg border border-destructive/35 bg-destructive/10 px-3.5 py-3 text-sm text-destructive'
               >
                 {rootMessage}
               </p>
             ) : null}
 
-            <div className="flex flex-col gap-4 md:p-6">
-              {props.mode === "create" ? (
-                <div className="space-y-2.5">
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor="assign-member"
-                      className="text-sm font-medium text-foreground"
-                    >
+            <div className='flex flex-col gap-4 md:p-6'>
+              {props.mode === 'create' ? (
+                <div className='space-y-2.5'>
+                  <div className='space-y-1'>
+                    <Label htmlFor='assign-member' className='text-sm font-medium text-foreground'>
                       Pengurus
                     </Label>
                   </div>
                   <Controller
                     control={form.control}
-                    name="managementMemberId"
+                    name='managementMemberId'
                     render={({ field, fieldState }) => (
-                      <div className="space-y-1.5">
+                      <div className='space-y-1.5'>
                         <EntityCombobox
-                          id="assign-member"
-                          placeholder="Pilih pengurus…"
-                          value={field.value === "" ? null : field.value}
-                          onValueChange={(next) => field.onChange(next ?? "")}
+                          id='assign-member'
+                          placeholder='Pilih pengurus…'
+                          value={field.value === '' ? null : field.value}
+                          onValueChange={next => field.onChange(next ?? '')}
                           options={assignmentMemberOptions}
                           disabled={isPending}
                           aria-invalid={fieldState.invalid}
                         />
                         {fieldState.error ? (
-                          <p className="text-xs text-destructive">
-                            {fieldState.error.message}
-                          </p>
+                          <p className='text-xs text-destructive'>{fieldState.error.message}</p>
                         ) : null}
                       </div>
                     )}
                   />
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  <Label className="text-sm font-medium text-foreground">
-                    Pengurus
-                  </Label>
-                  <div className="rounded-xl border border-border/80 bg-muted/35 px-4 md:px-6 py-3.5 text-sm shadow-inner">
-                    <p className="font-medium leading-snug">
-                      {props.assignment.managementMember.fullName}
-                    </p>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                <div className='space-y-2.5'>
+                  <Label className='text-sm font-medium text-foreground'>Pengurus</Label>
+                  <div className='rounded-xl border border-border/80 bg-muted/35 px-4 md:px-6 py-3.5 text-sm shadow-inner'>
+                    <p className='font-medium leading-snug'>{props.assignment.managementMember.fullName}</p>
+                    <p className='mt-1 font-mono text-xs text-muted-foreground'>
                       {props.assignment.managementMember.publicCode}
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2.5">
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="assign-role"
-                    className="text-sm font-medium text-foreground"
-                  >
+              <div className='space-y-2.5'>
+                <div className='space-y-1'>
+                  <Label htmlFor='assign-role' className='text-sm font-medium text-foreground'>
                     Jabatan
                   </Label>
                 </div>
                 <Controller
                   control={form.control}
-                  name="boardRoleId"
+                  name='boardRoleId'
                   render={({ field, fieldState }) => (
-                    <div className="space-y-1.5">
+                    <div className='space-y-1.5'>
                       <EntityCombobox
-                        id="assign-role"
-                        placeholder="Pilih jabatan…"
-                        value={field.value === "" ? null : field.value}
-                        onValueChange={(next) => field.onChange(next ?? "")}
+                        id='assign-role'
+                        placeholder='Pilih jabatan…'
+                        value={field.value === '' ? null : field.value}
+                        onValueChange={next => field.onChange(next ?? '')}
                         options={assignmentRoleOptions}
                         disabled={isPending}
                         aria-invalid={fieldState.invalid}
                       />
-                      {fieldState.error ? (
-                        <p className="text-xs text-destructive">
-                          {fieldState.error.message}
-                        </p>
-                      ) : null}
+                      {fieldState.error ? <p className='text-xs text-destructive'>{fieldState.error.message}</p> : null}
                     </div>
                   )}
                 />
@@ -365,64 +334,50 @@ export function ManagementAssignmentFormDialog(props: Props) {
             </div>
           </div>
 
-          <DialogFooter className="mx-0 mb-0 flex-col-reverse gap-3 rounded-b-2xl border-t border-border/80 bg-muted/30 px-4 md:px-6 py-4 sm:flex-row sm:justify-end [&>button:last-of-type]:min-w-25">
-            {props.mode === "edit" && !showDeleteConfirm ? (
+          <DialogFooter className='mx-0 mb-0 flex-col-reverse gap-3 rounded-b-2xl border-t border-border/80 bg-muted/30 px-4 md:px-6 py-4 sm:flex-row sm:justify-end [&>button:last-of-type]:min-w-25'>
+            {props.mode === 'edit' && !showDeleteConfirm ? (
               <Button
-                type="button"
-                variant="ghost"
-                className="mr-auto text-destructive hover:text-destructive"
+                type='button'
+                variant='ghost'
+                className='mr-auto text-destructive hover:text-destructive'
                 disabled={isPending || isDeleting}
-                onClick={() => dispatchExtras({ type: "show-delete-prompt" })}
+                onClick={() => dispatchExtras({ type: 'show-delete-prompt' })}
               >
                 Hapus penugasan
               </Button>
             ) : null}
-            {props.mode === "edit" && showDeleteConfirm ? (
-              <div className="mr-auto flex flex-wrap items-center gap-2">
-                <span className="text-sm text-destructive">Yakin hapus?</span>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    "Ya, hapus"
-                  )}
+            {props.mode === 'edit' && showDeleteConfirm ? (
+              <div className='mr-auto flex flex-wrap items-center gap-2'>
+                <span className='text-sm text-destructive'>Yakin hapus?</span>
+                <Button type='button' variant='destructive' size='sm' disabled={isDeleting} onClick={handleDelete}>
+                  {isDeleting ? <Loader2 className='size-4 animate-spin' /> : 'Ya, hapus'}
                 </Button>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   disabled={isDeleting}
-                  onClick={() =>
-                    dispatchExtras({ type: "cancel-delete-prompt" })
-                  }
+                  onClick={() => dispatchExtras({ type: 'cancel-delete-prompt' })}
                 >
                   Batal
                 </Button>
-                {deleteError ? (
-                  <p className="text-sm text-destructive">{deleteError}</p>
-                ) : null}
+                {deleteError ? <p className='text-sm text-destructive'>{deleteError}</p> : null}
               </div>
             ) : null}
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               disabled={isPending || isDeleting}
               onClick={() => props.onOpenChange(false)}
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isPending || isDeleting}>
-              {isPending ? "Menyimpan..." : "Simpan"}
+            <Button type='submit' disabled={isPending || isDeleting}>
+              {isPending ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

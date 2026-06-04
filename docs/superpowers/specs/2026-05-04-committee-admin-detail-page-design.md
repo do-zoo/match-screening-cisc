@@ -28,8 +28,8 @@ Solusi: ringkaskan tabel menjadi list navigasi, dan pindahkan seluruh detail + a
 
 Menggunakan `DataTable` (extended) dengan 5 kolom:
 
-| Email | Nama | Peran | Aktivitas sesi* | Aksi |
-|-------|------|-------|-----------------|------|
+| Email         | Nama        | Peran      | Aktivitas sesi\*  | Aksi              |
+| ------------- | ----------- | ---------- | ----------------- | ----------------- |
 | font-mono, xs | displayName | badge role | last session date | tombol "Detail →" |
 
 - Filter teks: cari berdasarkan nama atau email (client-side)
@@ -65,12 +65,14 @@ Selalu tampil di atas tabs, tidak ikut scroll per-tab:
 ### Tab 1 — Profil & Aksi
 
 **Info read-only (grid 2 kolom):**
+
 - Peran
 - Anggota terkait (nama + nomor anggota, atau "—")
 - 2FA (Ya / Tidak)
 - Aktivitas sesi terakhir
 
 **Aksi (sama persis dengan dialog yang sudah ada di `ManageAdminDialogs`):**
+
 - Ubah peran → dialog
 - Tautan anggota → dialog
 - Cabut akses bermakna → dialog konfirmasi
@@ -92,8 +94,8 @@ Label tab: `Acara PIC (n)` — n = total acara di mana admin ini adalah PIC.
 
 **Tabel menggunakan `DataTable` (extended):**
 
-| Nama Acara | Tanggal | Status | Aksi |
-|------------|---------|--------|------|
+| Nama Acara      | Tanggal   | Status       | Aksi         |
+| --------------- | --------- | ------------ | ------------ |
 | slug/nama event | eventDate | badge status | Link → Inbox |
 
 - Filter teks: nama acara
@@ -114,14 +116,15 @@ Props baru (semuanya opsional, default = false/undefined = perilaku lama):
 type DataTableProps<TData, TValue> = {
   // ... props yang sudah ada ...
   enableFiltering?: boolean
-  filterColumn?: string        // kolom yang difilter teks (jika enableFiltering)
-  filterPlaceholder?: string   // placeholder input filter
+  filterColumn?: string // kolom yang difilter teks (jika enableFiltering)
+  filterPlaceholder?: string // placeholder input filter
   enablePagination?: boolean
-  pageSize?: number            // default 10
+  pageSize?: number // default 10
 }
 ```
 
 Implementasi:
+
 - Filter: `getFilteredRowModel()` dari TanStack Table + input teks di atas tabel
 - Pagination: `getPaginationRowModel()` + kontrol prev/next + info "halaman X dari Y" di bawah tabel
 
@@ -136,6 +139,7 @@ File: `src/lib/admin/load-committee-admin-detail.ts`
 Fungsi: `loadCommitteeAdminDetail(adminProfileId: string)`
 
 Return shape:
+
 ```ts
 {
   profile: {
@@ -157,22 +161,25 @@ Query `eventsAsPic`: `Event.findMany({ where: { picAdminProfileId: adminProfileI
 ## File Summary
 
 ### Baru
-| File | Keterangan |
-|------|-----------|
-| `src/app/admin/settings/committee/layout.tsx` | Guard `guardOwner()` |
+
+| File                                                         | Keterangan                                |
+| ------------------------------------------------------------ | ----------------------------------------- |
+| `src/app/admin/settings/committee/layout.tsx`                | Guard `guardOwner()`                      |
 | `src/app/admin/settings/committee/[adminProfileId]/page.tsx` | Server component: load data + render tabs |
-| `src/lib/admin/load-committee-admin-detail.ts` | Query profil + rekening + acara |
-| `src/components/admin/committee-admin-detail-tabs.tsx` | Client component: tab controller + Tab 1 |
-| `src/components/admin/committee-admin-pic-events-tab.tsx` | Tab 3: DataTable acara PIC |
+| `src/lib/admin/load-committee-admin-detail.ts`               | Query profil + rekening + acara           |
+| `src/components/admin/committee-admin-detail-tabs.tsx`       | Client component: tab controller + Tab 1  |
+| `src/components/admin/committee-admin-pic-events-tab.tsx`    | Tab 3: DataTable acara PIC                |
 
 ### Dimodifikasi
-| File | Perubahan |
-|------|-----------|
-| `src/components/ui/data-table.tsx` | Tambah `enableFiltering`, `enablePagination`, `pageSize` |
+
+| File                                                      | Perubahan                                                                   |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `src/components/ui/data-table.tsx`                        | Tambah `enableFiltering`, `enablePagination`, `pageSize`                    |
 | `src/components/admin/committee-admin-settings-panel.tsx` | Pangkas ke 5 kolom, hapus expand + `ManageAdminDialogs`, tambah link Detail |
-| `src/app/admin/settings/committee/page.tsx` | Pakai `DataTable` extended untuk tabel admin + undangan |
+| `src/app/admin/settings/committee/page.tsx`               | Pakai `DataTable` extended untuk tabel admin + undangan                     |
 
 ### Tidak Berubah
+
 - Semua server actions (`admin-committee-profiles.ts`, `admin-pic-bank-accounts.ts`, dll.)
 - `src/components/admin/admin-pic-bank-accounts-inline.tsx` — hanya dipindah lokasi render
 - Prisma schema

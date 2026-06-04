@@ -7,6 +7,7 @@ Context: Registration system for CISC Tangerang Selatan watch parties + admin pa
 ## 1) Goals & Non-Goals
 
 ### Goals
+
 - Participants can register for **one event** and upload **transfer payment proof**.
 - The system supports **members and non-members**.
 - The payable total is computed automatically from:
@@ -21,6 +22,7 @@ Context: Registration system for CISC Tangerang Selatan watch parties + admin pa
 - WhatsApp notifications (phase 1): **`wa.me` click-to-chat** + text templates (no paid API).
 
 ### Non-Goals (phase 1)
+
 - Official WhatsApp API/provider integration (Cloud API, Qontak, etc).
 - Automated payments (VA/QRIS) and bank reconciliation.
 - Automatic membership validation against external systems (master members are managed by admins).
@@ -30,6 +32,7 @@ Context: Registration system for CISC Tangerang Selatan watch parties + admin pa
 > Note: this is a conceptual model for design. The physical schema/ORM details are defined in the implementation plan.
 
 ### 2.1 Event
+
 - **Identity**: `id`, event `slug`/code, `title`, `startAt`, `venueName`, `venueAddress`
 - **Lifecycle**: `status = draft | active | finished`
 - **Pricing**:
@@ -48,6 +51,7 @@ Context: Registration system for CISC Tangerang Selatan watch parties + admin pa
   - `bankAccountId` (required; 1 bank account per event; belongs to PIC Master)
 
 ### 2.2 Master Member
+
 - **Member identity**: `memberNumber` (unique membership ID), `fullName`
 - **Status**: `isActive`
 - **Privileges**:
@@ -55,20 +59,24 @@ Context: Registration system for CISC Tangerang Selatan watch parties + admin pa
   - `canBePIC` (subset of `isPengurus`; eligible to be PIC Master)
 
 ### 2.3 PIC Bank Account
+
 Bank accounts selectable when creating an event (owned by PIC Master).
+
 - `id`, `ownerMemberId` (PIC master)
 - `bankName`, `accountNumber`, `accountName`
 - `isActive`
 
 ### 2.4 Registration (Order)
+
 Each registration belongs to **one event** and can contain 1–2 people (tickets).
+
 - **Identity**: `id`, `eventId`, `createdAt`
 - **Primary contact**:
   - `contactName`
   - `contactWhatsapp`
 - **Member claim**:
   - `claimedMemberNumber` (optional)
-  - `memberCardPhoto` (required *only* if claiming member/committee; not required for non-members)
+  - `memberCardPhoto` (required _only_ if claiming member/committee; not required for non-members)
   - `memberValidation = unknown | valid | invalid | overridden`
   - `memberId` (optional) once validated/mapped
 - **Uploads**:
@@ -87,7 +95,9 @@ Each registration belongs to **one event** and can contain 1–2 people (tickets
   - `paymentIssueReason` (optional)
 
 ### 2.5 Ticket (Person under a Registration)
+
 A registration has 1–2 tickets.
+
 - `id`, `registrationId`, `role = primary | partner`
 - `fullName`
 - `whatsapp` (optional for partner; if empty, notifications go to the primary contact only)
@@ -95,7 +105,9 @@ A registration has 1–2 tickets.
 - `ticketPriceType = member | non_member | privilege_partner_member_price`
 
 ### 2.6 Menu / Voucher Redemption
+
 Each ticket has a menu entitlement:
+
 - If `PRESELECT`:
   - `selectedMenuItemIds[]` (1 atau banyak tergantung `menuSelection`)
 - If `VOUCHER`:
@@ -103,7 +115,9 @@ Each ticket has a menu entitlement:
   - `voucherRedeemedAt` (optional)
 
 ### 2.7 Invoice Adjustment (Underpayment / Total Adjustments)
+
 Used when admins override member/non-member status or correct pricing/quantity resulting in a delta.
+
 - `id`, `registrationId`
 - `type = underpayment | other_adjustment`
 - `amount`
@@ -114,6 +128,7 @@ Used when admins override member/non-member status or correct pricing/quantity r
 ## 3) Business Rules (Must-Haves)
 
 ### 3.1 Member vs Non-member
+
 - If a participant fills `claimedMemberNumber`, the system treats it as a **member claim** (pending validation).
 - Admin validates against **Master Member**.
 - If **invalid**, admin may:
@@ -121,11 +136,13 @@ Used when admins override member/non-member status or correct pricing/quantity r
   - or override to member (manual decision) when operationally needed.
 
 ### 3.2 One Ticket per Member per Event
+
 - Each `memberNumber` may have **at most one ticket per event**.
   - Applies to both primary and partner if partner also provides a `memberNumber`.
   - Goal: prevent double booking / multiple tickets under one member.
 
 ### 3.3 Committee Privilege: Optional Partner Ticket
+
 - If the primary ticket is **committee/board** (`isPengurus`), the system provides `qtyPartner = 0 | 1` (default 0).
 - If `qtyPartner = 1`:
   - `partnerName` is required
@@ -134,6 +151,7 @@ Used when admins override member/non-member status or correct pricing/quantity r
   - partner `memberNumber` is optional; if provided, it still counts towards the one-ticket-per-member rule.
 
 ### 3.4 Mandatory Menu and Voucher Mode
+
 - Each ticket must include a menu entitlement:
   - `PRESELECT`: menu selected during registration (single/multi based on event config)
   - `VOUCHER`: participant pays a fixed-price voucher during registration, then selects the menu **later** (on event day / attendance confirmation)
@@ -141,7 +159,9 @@ Used when admins override member/non-member status or correct pricing/quantity r
 - No top-up/delta is supported in voucher mode (all voucher-eligible items are treated as equivalent for that voucher).
 
 ### 3.5 Pricing Formula (Locked)
+
 For each registration, the total is computed and **locked** at submission:
+
 - Ticket cost:
   - primary: member/non-member (based on claim and verification/override result)
   - partner (if any): `privilege_partner_member_price` (member price)
@@ -150,35 +170,42 @@ For each registration, the total is computed and **locked** at submission:
 - If admin overrides change the total, use **Invoice Adjustment** for the delta (do not silently rewrite historical totals).
 
 ### 3.6 Event Payment Account
+
 - Each event must select **exactly one** bank account for payments.
 - The bank account must belong to the event's **PIC Master**.
 
 ## 4) Admin & Permissions
 
 ### 4.1 Admin authentication methods
+
 - Admin login supports:
   - Email + password
   - Magic link (email)
 
 ### 4.2 Roles (Global)
+
 - `Owner`: manage admins, master members, global defaults (pricing), PIC & bank accounts, WA templates, and all data.
 - `Admin`: operational parity with `Owner` on dashboard, events, inbox/reports, and master members; **cannot** access committee **advanced settings** (manage PIC admins, PIC bank accounts, global default pricing, WA template configuration) — those remain `Owner`-only.
 - `Verifier`: event operations (inbox), registration verification, underpayment adjustments, attendance, cancel/refund.
 - `Viewer`: view dashboard/reports/exports without verification actions.
 
 ### 4.3 PIC Assignments (Per Event) + Hybrid Permission
+
 Each event has:
+
 - **PIC Master** (required, exactly 1): finance owner for bank account selection and payment accountability.
 - **PIC Helper** (optional, can be >1): operations backup when PIC Master is unavailable.
 
 Access rules (hybrid):
+
 - Global roles still apply.
-- However, if an admin is assigned as **PIC Helper** for event X, they gain **Verifier capabilities** *only for event X*, even if their global role is `Viewer`.
+- However, if an admin is assigned as **PIC Helper** for event X, they gain **Verifier capabilities** _only for event X_, even if their global role is `Viewer`.
 - PIC assignment does not affect other events.
 
 ## 5) Admin Panel: Information Architecture (Menus)
 
 ### 5.1 Dashboard
+
 - Per-event summary:
   - total registrations
   - counts per status: pending_review, payment_issue, approved, rejected, cancelled, refunded
@@ -186,6 +213,7 @@ Access rules (hybrid):
   - total revenue (baseline) + total adjustments (paid underpayments)
 
 ### 5.2 Events (CRUD)
+
 - Create/edit event:
   - event info (title, time, venue, status)
   - pricing (global default → may override per event)
@@ -194,7 +222,9 @@ Access rules (hybrid):
   - choose 1 bank account (owned by PIC Master)
 
 ### 5.3 Registration Inbox (Per Event)
+
 List + filters + details drawer/page:
+
 - Registration data: contact, claimed member, transfer proof, total snapshot
 - Tickets: primary + partner (if any) + attendance status
 - Menu/voucher: selected menus or voucher redemption
@@ -208,10 +238,12 @@ List + filters + details drawer/page:
   - `wa.me` buttons for message templates (receipt, approve, payment issue, underpayment invoice, etc)
 
 ### 5.4 Master Members
+
 - CRUD members (`memberNumber`, `fullName`, `isActive`)
 - Privilege flags: `isPengurus`, `canBePIC`
 
 ### 5.5 Committee Settings (Owner-only)
+
 - Admin management:
   - create admins
   - assign global roles
@@ -223,7 +255,9 @@ List + filters + details drawer/page:
 - WhatsApp templates (text)
 
 ### 5.6 Reports
+
 Per event + date range filter:
+
 - Participant recap:
   - member vs non-member
   - committee+partner usage
@@ -241,11 +275,14 @@ Per event + date range filter:
 ## 6) Participant UX (Front Office)
 
 ### 6.1 Browse & Select Event
+
 - Landing page / list of active events
 - Select event → go to registration page
 
 ### 6.2 Registration Form (per event)
+
 Fields:
+
 - Full name (contact)
 - WhatsApp number (contact)
 - Member number (optional)
@@ -261,16 +298,19 @@ Fields:
   - computed automatically and displayed as a breakdown
 
 Submission result:
+
 - initial status: `submitted` then `pending_review`
 - show payment instructions based on the event bank account (from PIC Master)
 
 ## 7) Notifications (WhatsApp, No-budget Mode)
 
 ### 7.1 Mechanism
+
 - The system does not send WhatsApp messages automatically.
 - The system provides `wa.me/<number>?text=<encoded_template>` buttons in the admin panel and (optionally) on the post-submit page.
 
 ### 7.2 Minimum Templates
+
 - Receipt (after submit)
 - Request clarification (payment issue)
 - Underpayment invoice (request for additional payment)
@@ -281,6 +321,7 @@ Submission result:
 ## 8) Status Machine (S3) — Operational Semantics
 
 ### 8.1 Registration status
+
 - `submitted`: form submitted successfully (internal)
 - `pending_review`: waiting for admin verification
 - `payment_issue`: missing/incorrect proof or underpayment, awaiting participant/admin action
@@ -290,11 +331,13 @@ Submission result:
 - `refunded`: funds returned (if any)
 
 ### 8.2 Attendance status
+
 - `unknown`: default
 - `attended`: hadir
 - `no_show`: tidak hadir
 
 Rules:
+
 - Attendance is only meaningful when status is `approved` (it may still be logged for audit, but UI should typically restrict it).
 
 ## 9) Edge Cases & Validation
@@ -310,6 +353,7 @@ Rules:
   - the system prevents saving a second ticket with the same `memberNumber` within the same event (must show a clear admin UI error).
 
 ## 10) Success Criteria (MVP Acceptance)
+
 - Admin can create events, set default/override prices, configure voucher/preselect mode, set PIC Master+Helpers, and pick 1 bank account.
 - Participants can register, upload transfer proof, total is computed automatically, and the snapshot is stored.
 - Admin can verify registrations, change statuses, record attendance, and handle cancel/refund.

@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **New environment variable** → add to the environment variable table
 - **New CLI command or script** → add to "Commands"
 
-Do **not** document ephemeral implementation details (local variable names, internal function bodies). Document only things that a future agent needs to understand *before* reading the code — cross-file invariants, non-obvious constraints, and conventions that would take multiple file reads to discover.
+Do **not** document ephemeral implementation details (local variable names, internal function bodies). Document only things that a future agent needs to understand _before_ reading the code — cross-file invariants, non-obvious constraints, and conventions that would take multiple file reads to discover.
 
 ## Commands
 
@@ -52,15 +52,15 @@ All commands need Node 24 active. See AGENTS.md for the `nvm use` bootstrap patt
 
 Copy `.env.example` to `.env.local` and fill in for local development. Optionally keep `.env.prod` on your machine **only** for operator commands targeting production Postgres (never commit; `.env*` is gitignored):
 
-| Variable                | Purpose                                                                                                                                                                                                               |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MATCH_DB_PROFILE`      | Optional for **local CLI only**: unset / `development` / `dev` → load `.env` then `.env.local`; `production` / `prod` → `.env` then `.env.prod`. Ignored on Vercel.                                                   |
-| `DATABASE_URL`          | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
-| `DATABASE_URL_UNPOOLED` | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
-| `BETTER_AUTH_SECRET`    | Min 32-char secret for Better Auth; juga dipakai untuk menandatangani token unggah gambar deskripsi acara bila `DESCRIPTION_ASSET_SIGNING_SECRET` tidak diatur |
-| `DESCRIPTION_ASSET_SIGNING_SECRET` | Opsional: secret terpisah untuk HMAC token unggah gambar di editor deskripsi (`signDescriptionAssetEventId`); jika kosong dipakai `BETTER_AUTH_SECRET`. |
-| `BETTER_AUTH_URL`       | App origin (e.g. `http://localhost:3000`)                                                                                                                                                                             |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for file uploads                                                                                                                                                                                    |
+| Variable                           | Purpose                                                                                                                                                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MATCH_DB_PROFILE`                 | Optional for **local CLI only**: unset / `development` / `dev` → load `.env` then `.env.local`; `production` / `prod` → `.env` then `.env.prod`. Ignored on Vercel.                                                   |
+| `DATABASE_URL`                     | **Pooled** PostgreSQL URL for the app (Neon: hostname includes `-pooler`; also used by Prisma Client via `@prisma/adapter-neon`). Optional: add `connect_timeout=10` (seconds) if cold starts time out.               |
+| `DATABASE_URL_UNPOOLED`            | **Direct** PostgreSQL URL for Prisma CLI (`migrate`, `db push`, Studio). Neon: hostname **without** `-pooler`. On local Postgres, set the same value as `DATABASE_URL` or omit (config falls back to `DATABASE_URL`). |
+| `BETTER_AUTH_SECRET`               | Min 32-char secret for Better Auth; juga dipakai untuk menandatangani token unggah gambar deskripsi acara bila `DESCRIPTION_ASSET_SIGNING_SECRET` tidak diatur                                                        |
+| `DESCRIPTION_ASSET_SIGNING_SECRET` | Opsional: secret terpisah untuk HMAC token unggah gambar di editor deskripsi (`signDescriptionAssetEventId`); jika kosong dipakai `BETTER_AUTH_SECRET`.                                                               |
+| `BETTER_AUTH_URL`                  | App origin (e.g. `http://localhost:3000`)                                                                                                                                                                             |
+| `BLOB_READ_WRITE_TOKEN`            | Vercel Blob token for file uploads                                                                                                                                                                                    |
 
 On **Vercel**, add **`DATABASE_URL_UNPOOLED`** (Neon non-pooler connection string) for Production and Preview so `scripts/vercel-migrate.mjs` runs `prisma migrate deploy` against a direct endpoint.
 
@@ -97,12 +97,12 @@ An event registration system for a members-only social club (CISC). Members and 
 
 ### Role permission model
 
-| Capability | Owner | Admin | Verifier | Viewer |
-| --- | --- | --- | --- | --- |
-| Verify/edit registrations on all events | ✓ | ✓ | ✓ | — |
-| Verify/edit registrations on assigned events | ✓ | ✓ | ✓ | ✓ (via `EventPicHelper`) |
-| Operational management (members, events, venues, management) | ✓ | ✓ | — | — |
-| Committee advanced settings (WA templates, branding, security) | ✓ | — | — | — |
+| Capability                                                     | Owner | Admin | Verifier | Viewer                   |
+| -------------------------------------------------------------- | ----- | ----- | -------- | ------------------------ |
+| Verify/edit registrations on all events                        | ✓     | ✓     | ✓        | —                        |
+| Verify/edit registrations on assigned events                   | ✓     | ✓     | ✓        | ✓ (via `EventPicHelper`) |
+| Operational management (members, events, venues, management)   | ✓     | ✓     | —        | —                        |
+| Committee advanced settings (WA templates, branding, security) | ✓     | —     | —        | —                        |
 
 `lib/permissions/roles.ts` exports `hasGlobalVerifierAccess`, `hasOperationalOwnerParity`, and `canManageCommitteeAdvancedSettings`. Use these functions rather than comparing role strings directly. Guard functions in `lib/actions/guard.ts` wrap these for server actions.
 
@@ -112,11 +112,13 @@ An event registration system for a members-only social club (CISC). Members and 
 
 Key entities:
 
-- **`MasterMember`** — the club member directory; `isManagementMember` gates partner ticket eligibility and is **derived from kepengurusan** (`BoardAssignment` for the active `BoardPeriod` when the pengurus row links via `ManagementMember.masterMemberId`), not edited manually in the directory UI
-- **`Event`** — slug, harga tiket per acara (`ticketMemberPrice`, `ticketNonMemberPrice` dalam IDR), timeline **`openRegistrationAt` / `closeRegistrationAt` / `openGateAt` / `kickOffAt`**, **`mandatoryMenuItemIds`** (subset of the event’s **`EventVenueMenuItem`** rows), linked menu via **`EventVenueMenuItem`**; financial PIC is **`picAdminProfileId`** (`AdminProfile`); pembayaran via **`bankAccountId`** → **`PicBankAccount`**
+- **`MasterMember`** — the club member directory; `isManagementMember` is **derived from kepengurusan** (`BoardAssignment` for the active `BoardPeriod` when the pengurus row links via `ManagementMember.masterMemberId`), not edited manually in the directory UI
+- **`Event`** — slug, timeline **`openRegistrationAt` / `closeRegistrationAt` / `openGateAt` / `kickOffAt`**, **`mandatoryMenuItemIds`** (subset of the event’s **`EventVenueMenuItem`** rows), linked menu via **`EventVenueMenuItem`**; `multiCategoryPurchase Boolean` — izinkan beli lintas kategori; `requireAllHolderData Boolean` — jika `false`, form publik hanya tampilkan 1 holder card (primary-only mode); server mengkloning data holder utama ke slot 2+ saat submit; dikunci setelah registrasi pertama; `ticketCategories EventTicketCategory[]` — kategori tiket per acara; financial PIC is **`picAdminProfileId`** (`AdminProfile`); pembayaran via **`bankAccountId`** → **`PicBankAccount`**
 - **`Venue`** / **`VenueMenuItem`** — venues carry `name`, `address`, optional `mapUrl` (tautan peta), plus a reusable menu item catalogue (`name`, `price` IDR, `sortOrder`, optional public `description` + `imageBlobUrl`/`imageBlobPath`); **`EventVenueMenuItem`** snapshots which catalogue rows an event uses (with **no** registrations the admin editor links **all** venue items; after the first registration, join rows and order are frozen — see `lib/venues/venue-menu-frozen-item-ids.ts` and `lib/events/event-edit-guards.ts`). Menu `description`/image metadata stays editable even when name/price are locked, because it only affects presentation.
-- **`Registration`** — **satu baris per tiket** (utama dan/atau partner sebagai baris terpisah); partner menaut ke pembeli utama lewat **`primaryRegistrationId`**; **`ticketRole`**, **`ticketPriceType`**, **`mandatoryMenuItemId`**, **`ticketPriceApplied`**, **`mandatoryMenuPriceApplied`**, **`computedTotalAtSubmit`**; status flows: `submitted → pending_review → approved / rejected / payment_issue` (sumber kebenaran tiket; tidak ada tabel `Ticket` terpisah)
-- **`Upload`** — Vercel Blob metadata for transfer proofs, member card photos, invoice adjustment proofs, and **event settlement** proofs (`UploadPurpose.event_settlement_*`); converted to WebP before storage
+- **`Registration`** — **satu baris per transaksi** (bukan per tiket); `ticketCategoryId` → `EventTicketCategory`; `ticketQty` = total tiket; `computedTotalAtSubmit` = sum `ticketPriceApplied` semua holder; konsep partner **dihapus**; status flows: `submitted → pending_review → approved / rejected / payment_issue`
+- **`RegistrationHolder`** — satu baris per tiket dalam transaksi; `sortOrder=1` = pemesan utama; `holderName`, `holderWhatsapp` (opsional — diisi dari direktori jika member terverifikasi, atau manual oleh pendaftar), `claimedMemberNumber`, `memberValidation` (`MemberValidation` enum), `ticketPriceApplied` (snapshot), `mandatoryMenuItemId` (nullable jika menu tidak wajib); `memberType MemberType?` (`null` = non-member, `tangsel` = direktori Tangsel, `regional` = manual claim + upload bukti)
+- **`EventTicketCategory`** — kategori tiket per acara: `name`, `regularPrice`, `memberPrice` (IDR whole rupiah), `maxQtyPerPerson` (null=tak terbatas), `capacity` (null=tak terbatas; batas total registrasi per kategori — dicek optimistik sebelum tx dan ulang di dalam tx), `isActive`, `sortOrder`; admin dapat tambah/edit/hapus lewat tab Harga & Tiket; harga terkunci setelah ada registrasi pertama; `capacity` selalu dapat diubah
+- **`Upload`** — Vercel Blob metadata for transfer proofs, member card photos, invoice adjustment proofs, and **event settlement** proofs (`UploadPurpose.event_settlement_*`); converted to WebP before storage; `registrationHolderId` pada `Upload` mengaitkan upload `member_card_photo` ke `RegistrationHolder` spesifik (untuk klaim member regional dengan beberapa holder)
 - **`EventSettlementArtifact`** — append-only bukti penutupan keuangan per acara (`venue_transfer`, `venue_receipt`, `treasurer_margin`); satu baris per unggahan dengan snapshot acuan nominal + selisih; diunggah oleh PIC acara (`Event.picAdminProfileId`) atau Owner/Admin operasional (`hasOperationalOwnerParity`)
 - **`AdminProfile`** — links a Better Auth `authUserId` to an `AdminRole` (`Owner` | `Admin` | `Verifier` | `Viewer`) and optionally to a `MasterMember`; **`Admin`** mirrors **`Owner`** operationally but not committee advanced settings (`canManageCommitteeAdvancedSettings`)
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
@@ -139,8 +141,11 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/client/cud-notify.ts` — client-side toast helpers: `toastCudSuccess(operation, message?)` and `toastActionErr(err, fallback?)`. Use these after calling a server action on the client instead of calling `toast` directly.
 - `lib/utils/idr-input.ts` — `parseIdrDigitsToInt` mengambil digit dari teks terformat Rupiah; dipakai bersama `format-idr.ts` dan `components/ui/idr-amount-input.tsx`
 - `lib/audit/append-club-audit-log.ts` — `appendClubAuditLog(db, row)` — call this inside any Owner mutation that touches club-level configuration; use constants from `lib/audit/club-audit-actions.ts` for the `action` field
-- `lib/actions/submit-registration.ts` — the main public Server Action; validates form, computes pricing, runs a Prisma transaction, then uploads files to Vercel Blob; rolls back blob uploads on failure
-- `lib/pricing/compute-submit-total.ts` — pure function for total calculation; tested in isolation
+- `lib/actions/submit-registration.ts` — the main public Server Action; validates form (holder array schema), computes pricing via `computeSubmitTotal`, creates `Registration` + `RegistrationHolder[]` in one Prisma transaction, uploads payment proof; rolls back blob on failure
+- `lib/pricing/compute-submit-total.ts` — pure function for total calculation; accepts `SubmitPricingInput { holders: HolderInput[] }` — each holder has `memberValidation` + category prices; `grandTotal` = sum of ticket prices (menu excluded); tested in isolation
+- `lib/tickets/get-event-ticket-categories.ts` — `getEventTicketCategories` (all categories + registration count, for admin) / `getActiveEventTicketCategories` (active only, for public form)
+- `lib/actions/admin-ticket-categories.ts` — CRUD server actions untuk `EventTicketCategory`: `createTicketCategory`, `updateTicketCategory` (locks price after first registration), `deleteTicketCategory` (guard if registrations exist), `toggleTicketCategoryActive`
+- `lib/forms/ticket-category-schema.ts` — Zod schema `ticketCategorySchema` untuk form kategori tiket; `TicketCategoryInput` type
 - `lib/uploads/upload-image.ts` — converts any allowed image to WebP via Sharp, uploads to Blob with retry, saves metadata to DB
 - `lib/uploads/upload-event-description-image.ts` — gambar isi deskripsi acara ke Blob (`events/{eventId}/description/{uuid}.webp`, WebP)
 - `lib/uploads/delete-blobs-by-prefix.ts` — `deleteAllBlobsWithPrefix` untuk penghapusan massal Blob (paginasi `list` + `del` berkelompok)
@@ -153,10 +158,9 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/maps/map-embed-preview.ts` — `resolveMapEmbedSearchQuery`, `buildGoogleMapsEmbedSrc`, `mapEmbedPreviewCaption` untuk iframe Google Maps (`output=embed`); dipakai `components/map-embed-preview.tsx` (admin venue + halaman publik)
 - `lib/actions/admin-venues.ts` — `saveVenueBasics` / `saveVenueMenu` / `saveVenueCatalog` (payload penuh, dipakai uji); unggah gambar menu venue; item terkunci pendaftar mengikuti `venueMenuItemIdsFrozenByExistingRegistrations`
 - `lib/uploads/upload-venue-menu-image.ts` — helper unggah gambar menu venue ke Blob (`venues/{venueId}/menu/{menuItemId}.webp`) untuk metadata katalog menu; tidak memakai tabel `Upload`
-- `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — CSV UTF-8 satu baris per `Registration` (peran, pembeli utama untuk partner, menu wajib, harga snapshot, kolom legacy tiket, penyesuaian)
+- `lib/reports/csv.ts` — `generateRegistrationsCsv(eventId)` — CSV UTF-8 satu baris per `Registration`; kolom holder dinamis (Holder N Nama · Member · Status · Harga) sesuai `ticketQty` maksimal; plus kolom kategori, status, penyesuaian
 - `lib/events/event-timing.ts` — helper fase/waktu pendaftaran dan gate (`isRegistrationTimeWindowOpen`, `isRegistrationOpen`, `canEditEventBeforeRegistrationClose`, `canEditEvent`, `getEventPhase`, dll.)
 - `lib/events/event-registration-window.ts` — re-export dari `registration-window.ts` (nama modul selaras dokumen rencana)
-- `lib/registrations/partner-registration.ts` — helper baris utama/partner (`getPrimaryRegistration`, `getPartnerRegistrations` / `getPartnerRegistrationsForPrimary`, `getRegistrationPair`, dll.)
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page
@@ -164,8 +168,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/public/description-asset-token.ts` — `signDescriptionAssetEventId` / `verifyDescriptionAssetEventId` (HMAC) untuk token unggah gambar di editor deskripsi dan penyelarisan `Event.id` pada **Buat acara**
 - `lib/public/event-description-image-src.ts` — `isAllowedEventDescriptionImageSrc` untuk validasi host `src` gambar
 - `lib/events/registration-window.ts` — `RegistrationNotAcceptableError`; quota counting that excludes `rejected`, `cancelled`, `refunded` statuses; kapasitas `null` atau ≤ 0 = tak terbatas (sama seperti form admin kosong)
-- `lib/events/event-admin-defaults.ts` — konstanta fallback harga tiket awal form buat acara (`COMMITTEE_TICKET_FALLBACK_*_IDR`)
-- `lib/registrations/admin-ticket-context.ts` — builds the full ticket context used by the admin registration detail page
+- `lib/registrations/admin-ticket-context.ts` — `RegistrationHolderContext` type + `aggregateCrossRegistrationConflicts`; builds holder context for admin registration detail page
 - `lib/admin/admin-events-delete-flash.ts` — konstanta nilai query `flash` setelah redirect sukses hapus acara (`deleteAdminEvent` → indeks + toast klien)
 - `lib/admin/events-index-view.ts` — parse mode kartu vs tabel (`view`), parse `q`, dan `buildAdminEventsIndexUrl` untuk query indeks acara
 - `lib/admin/event-registrants-paths.ts` — `eventRegistrantsListPath` / `eventRegistrationDetailPath` untuk URL daftar & detail peserta acara
@@ -184,13 +187,13 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - **Header halaman admin (aksi di samping judul)** — baris pertama `flex` dengan `h1` + satu kontrol utama (`shrink-0 sm:self-center`); deskripsi di baris berikutnya. Contoh: `admin-events-index-header.tsx` (Buat acara), `venues/admin-venue-menu-panel.tsx` (Tambah item di samping "Menu kanonik"). Toolbar daftar (`admin-list-toolbar`) memuat cari/filter/toggle bentuk daftar, bukan menggandakan aksi utama header kecuali memang khusus konteks toolbar.
 - `src/components/ui/` — shadcn/ui primitives (auto-generated; edit with caution); tambahan: `file-field.tsx` (pemilih berkas seragam: registrasi publik, sampul acara admin, CSV anggota, bukti admin, logo komite), `idr-amount-input.tsx` (harga IDR terformat)
 - `src/components/map-embed-preview.tsx` — pratinjau embed Google Maps (`output=embed`); dipakai bersama `lib/maps/map-embed-preview.ts` di admin venue dan halaman publik
-- `src/components/public/` — public-facing: `RegistrationForm`, `EventCard`, `PriceBreakdown`
+- `src/components/public/` — public-facing: `RegistrationForm` (category picker + holder cards), `EventCard`; `registration-form/` subdir contains `category-picker.tsx`, `holder-card.tsx`
 - `src/components/admin/` — admin-facing panels and layout; `registration-detail-panels/registration-detail-shell.tsx` + `registration-detail-header.tsx` + `registration-detail-tabs.tsx` + folder `tab-summary/` / `tab-verification/` / `tab-operations/` — halaman detail peserta (Ringkasan, Verifikasi & Komunikasi, Operasi); memakai `AttendancePanel`, `CancelRefundPanel`, `MemberValidationPanel`, `InvoiceAdjustmentPanel`, `RegistrationActions`; `event-settlement-proofs-panel.tsx` — bukti rekapitulasi penutupan di halaman laporan acara; `admin-list-toolbar.tsx` — toolbar daftar generik (cari debounce ke URL, toggle tabel/kartu, slot filter, opsional `endSlot`); `admin-event-registrants-toolbar.tsx` + `event-registrants-table.tsx` + `admin-event-registrants-cards-view.tsx` — daftar peserta per acara (`/admin/events/[eventId]/registrants`); `venues/admin-venue-menu-panel.tsx` — menu kanonik venue: header judul + **Tambah item**, dialog CRUD, toolbar + paginasi URL; `admin-events-index-header.tsx` — judul indeks acara + tautan Buat acara; `admin-events-index-toolbar.tsx` — cari (debounce) + status + toggle kartu/tabel untuk `/admin/events`; `admin-events-pending-review-alert.tsx` — ringkasan registrasi menunggu tinjauan (kartu & tabel); `admin-events-cards-view.tsx` — grid kartu ringkasan acara + paginasi; `admin-venues-index-header.tsx` / `admin-venues-index-toolbar.tsx` / `admin-venues-cards-view.tsx` / `admin-venues-table.tsx` — indeks `/admin/venues` (pola mirip indeks acara)
 
 **`@base-ui/react` Dialog pattern** (not Radix UI — APIs differ): use the `render` prop, not `asChild`. To disable a trigger while a transition is pending, put `disabled` on `<DialogTrigger>`, not on the inner element:
 
 ```tsx
-<DialogTrigger disabled={isPending} render={<Button variant="outline" />}>
+<DialogTrigger disabled={isPending} render={<Button variant='outline' />}>
   Open
 </DialogTrigger>
 ```
