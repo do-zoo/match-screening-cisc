@@ -46,16 +46,14 @@ export function AdminFilterSelect<T extends string>({
         }}
       >
         <SelectTrigger id={id} size='sm' className={cn('w-full min-w-0 sm:w-56', triggerClassName)}>
-          <SelectValue placeholder={placeholder}>
-            {v => labelByValue.get(v as T) ?? placeholder}
-          </SelectValue>
+          <SelectValue placeholder={placeholder}>{v => labelByValue.get(v as T) ?? placeholder}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map(o => {
             const count = counts?.[o.value]
             return (
               <SelectItem key={o.value} value={o.value}>
-                <span className='flex w-full min-w-[11rem] items-center justify-between gap-4'>
+                <span className='flex w-full min-w-44 items-center justify-between gap-4'>
                   <span>{o.label}</span>
                   {count !== undefined ? (
                     <span className='text-muted-foreground text-xs tabular-nums'>{count}</span>
