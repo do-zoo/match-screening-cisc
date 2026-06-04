@@ -1,6 +1,12 @@
 import { z } from 'zod'
 
-const memberNumberSchema = z.string().trim().min(1, 'Nomor member wajib.')
+import { normalizeMemberNumber } from '@/lib/members/normalize-member-number'
+
+const memberNumberSchema = z
+  .string()
+  .trim()
+  .min(1, 'Nomor member wajib.')
+  .transform(normalizeMemberNumber)
 const nameSchema = z.string().trim().min(1, 'Nama wajib.')
 const optionalEmailField = z.union([z.string().trim().email('Format email tidak valid.'), z.literal('')]).optional()
 

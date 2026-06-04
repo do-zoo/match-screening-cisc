@@ -146,7 +146,10 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
               id='member-number'
               disabled={mode === 'edit' || isPending}
               aria-invalid={Boolean(form.formState.errors.memberNumber)}
-              {...form.register('memberNumber')}
+              className='font-mono uppercase'
+              {...form.register('memberNumber', {
+                setValueAs: value => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+              })}
             />
           </Field>
 

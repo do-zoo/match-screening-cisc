@@ -204,7 +204,7 @@ export async function createMasterMember(_prev: unknown, formData: FormData): Pr
   try {
     const row = await prisma.masterMember.create({
       data: {
-        memberNumber: z.data.memberNumber.trim(),
+        memberNumber: z.data.memberNumber,
         fullName: z.data.fullName.trim(),
         whatsapp: whatsappStored,
         email: emailStored,

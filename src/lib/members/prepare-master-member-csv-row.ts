@@ -1,6 +1,7 @@
 import { normalizeStoredEmail } from '@/lib/email/normalize-email'
 
 import { interpretMasterMemberCsvBoolean } from './master-member-csv-boolean'
+import { normalizeMemberNumber } from './normalize-member-number'
 
 export type MasterMemberCsvWritablePatch = {
   fullName?: string
@@ -26,7 +27,7 @@ export type PreparedMasterMemberCsvRow =
     }
 
 /**
- * @param memberNumberFirstLine — `new Map()`; diisi `lowercase(member_number)` → baris pertama file untuk nomor itu.
+ * @param memberNumberFirstLine — `new Map()`; diisi `normalizeMemberNumber(member_number)` → baris pertama file untuk nomor itu.
  */
 export function prepareMasterMemberCsvRow(
   lineNumberPhysical: number,
@@ -42,17 +43,17 @@ export function prepareMasterMemberCsvRow(
     }
   }
 
-  const keyLower = rawNum.toLowerCase()
-  const firstLineNumber = memberNumberFirstLine.get(keyLower)
+  const canonicalMemberNumber = normalizeMemberNumber(rawNum)
+  const firstLineNumber = memberNumberFirstLine.get(canonicalMemberNumber)
   if (firstLineNumber !== undefined) {
     return {
       tag: 'duplicate',
       lineNumberPhysical,
-      memberNumber: rawNum,
+      memberNumber: canonicalMemberNumber,
       firstLineNumber,
     }
   }
-  memberNumberFirstLine.set(keyLower, lineNumberPhysical)
+  memberNumberFirstLine.set(canonicalMemberNumber, lineNumberPhysical)
 
   const patch: MasterMemberCsvWritablePatch = {}
   const nameTrim = (cells.full_name ?? '').trim()
@@ -79,7 +80,7 @@ export function prepareMasterMemberCsvRow(
   return {
     tag: 'ok',
     lineNumberPhysical,
-    canonicalMemberNumber: rawNum,
+    canonicalMemberNumber,
     patch,
     requiresFullNameForCreate: !nameTrim,
   }

@@ -23,6 +23,42 @@ describe('prepareMasterMemberCsvRow', () => {
     })
   })
 
+  it('normalizes member_number to uppercase', () => {
+    const m = new Map<string, number>()
+    const r = prepareMasterMemberCsvRow(
+      2,
+      {
+        member_number: 'cisc-0001',
+        full_name: 'N',
+        whatsapp: '',
+        is_active: '',
+        is_management_member: '',
+      },
+      m,
+    )
+    expect(r.tag).toBe('ok')
+    expect((r as Extract<PreparedMasterMemberCsvRow, { tag: 'ok' }>).canonicalMemberNumber).toBe('CISC-0001')
+  })
+
+  it('treats lowercase duplicate as same member_number', () => {
+    const m = new Map<string, number>()
+    const cells = (member_number: string) => ({
+      member_number,
+      full_name: 'A',
+      whatsapp: '',
+      is_active: '',
+      is_management_member: '',
+    })
+    prepareMasterMemberCsvRow(2, cells('M-01'), m)
+    const b = prepareMasterMemberCsvRow(3, cells('m-01'), m)
+    expect(b).toEqual({
+      tag: 'duplicate',
+      lineNumberPhysical: 3,
+      memberNumber: 'M-01',
+      firstLineNumber: 2,
+    })
+  })
+
   it('rejects empty member_number', () => {
     const m = new Map<string, number>()
     const r = prepareMasterMemberCsvRow(
