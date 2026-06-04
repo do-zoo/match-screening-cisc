@@ -4,10 +4,17 @@ import type { DetailRegistration } from '@/components/admin/registration-detail-
 type Props = {
   eventId: string
   registration: DetailRegistration
+  onUnderpaymentEmailSent?: (adjustmentAmountIdr: number) => void
 }
 
-export function InvoiceAdjustmentsSection({ eventId, registration }: Props) {
+export function InvoiceAdjustmentsSection({ eventId, registration, onUnderpaymentEmailSent }: Props) {
   return (
-    <InvoiceAdjustmentPanel eventId={eventId} registrationId={registration.id} adjustments={registration.adjustments} />
+    <InvoiceAdjustmentPanel
+      eventId={eventId}
+      registrationId={registration.id}
+      adjustments={registration.adjustments}
+      contactEmail={registration.contactEmail}
+      onUnderpaymentEmailSent={onUnderpaymentEmailSent}
+    />
   )
 }

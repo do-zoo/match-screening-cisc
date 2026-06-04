@@ -51,7 +51,7 @@ export function RegistrationDetailShell({
               waBodies={waBodies}
             />
           ),
-          operasi: <OperationsTab eventId={eventId} registration={registration} />,
+          operasi: <OperationsTab eventId={eventId} registration={registration} waBodies={waBodies} />,
         }}
       />
     </div>

@@ -10,10 +10,12 @@ export function SendInvoiceEmailButton({
   eventId,
   registrationId,
   disabled,
+  onSuccess,
 }: {
   eventId: string
   registrationId: string
   disabled?: boolean
+  onSuccess?: () => void
 }) {
   const [pending, start] = useTransition()
 
@@ -27,7 +29,10 @@ export function SendInvoiceEmailButton({
         start(async () => {
           const r = await sendInvoiceEmailToRegistration(eventId, registrationId)
           if (!r.ok) toastActionErr(r)
-          else toastCudSuccess('update', 'Email tagihan terkirim.')
+          else {
+            toastCudSuccess('update', 'Email tagihan terkirim.')
+            onSuccess?.()
+          }
         })
       }}
     >

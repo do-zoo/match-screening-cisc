@@ -4,8 +4,18 @@ import type { DetailRegistration } from '@/components/admin/registration-detail-
 type Props = {
   eventId: string
   registration: DetailRegistration
+  onCancelSuccess?: () => void
+  onRefundSuccess?: () => void
 }
 
-export function CancelRefundSection({ eventId, registration }: Props) {
-  return <CancelRefundPanel eventId={eventId} registrationId={registration.id} status={registration.status} />
+export function CancelRefundSection({ eventId, registration, onCancelSuccess, onRefundSuccess }: Props) {
+  return (
+    <CancelRefundPanel
+      eventId={eventId}
+      registrationId={registration.id}
+      status={registration.status}
+      onCancelSuccess={onCancelSuccess}
+      onRefundSuccess={onRefundSuccess}
+    />
+  )
 }

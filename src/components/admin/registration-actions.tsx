@@ -5,13 +5,18 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { approveRegistration, rejectRegistration, markPaymentIssue } from '@/lib/actions/verify-registration'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
+import type { RegistrationNotifyInput, RegistrationNotifyKind } from '@/lib/wa-templates/build-registration-notify'
 
 type Props = {
   eventId: string
   registrationId: string
+  onNotify?: (
+    kind: RegistrationNotifyKind,
+    overrides?: Pick<RegistrationNotifyInput, 'rejectionReason' | 'paymentIssueReason'>,
+  ) => void
 }
 
-export function RegistrationActions({ eventId, registrationId }: Props) {
+export function RegistrationActions({ eventId, registrationId, onNotify }: Props) {
   const [isPending, startTransition] = useTransition()
 
   // Reject panel state
@@ -36,6 +41,7 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
         setApproveError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
         toastCudSuccess('update', 'Pendaftaran disetujui.')
+        onNotify?.('approved')
       }
     })
   }
@@ -51,6 +57,7 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
         toastCudSuccess('update', 'Pendaftaran ditolak.')
         setRejectOpen(false)
         setRejectReason('')
+        onNotify?.('rejected', { rejectionReason: rejectReason.trim() })
       }
     })
   }
@@ -66,6 +73,7 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
         toastCudSuccess('update', 'Status pembayaran diperbarui.')
         setPaymentOpen(false)
         setPaymentReason('')
+        onNotify?.('payment_issue', { paymentIssueReason: paymentReason.trim() })
       }
     })
   }

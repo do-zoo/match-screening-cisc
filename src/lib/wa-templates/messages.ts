@@ -92,3 +92,17 @@ export function templateUnderpaymentInvoice(c: UnderpaymentInvoiceCtx): string {
     `Setelah transfer, unggah bukti pembayaran melalui panitia atau balas pesan ini.`,
   ].join('\n')
 }
+
+export function templateEmailInvoiceReminder(c: {
+  contactName: string
+  eventTitle: string
+  adjustmentAmountIdr: number
+}): string {
+  const amount = formatWaIdr(c.adjustmentAmountIdr)
+  return (
+    `Halo ${c.contactName},\n\n` +
+    `Kami telah mengirim detail tagihan kekurangan ${amount} untuk acara ${c.eventTitle} ke email Anda. ` +
+    `Mohon cek inbox dan folder spam.\n\n` +
+    `Terima kasih.`
+  )
+}

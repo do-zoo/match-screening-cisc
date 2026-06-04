@@ -8,6 +8,7 @@ import { FileField } from '@/components/ui/file-field'
 import { IdrAmountInput } from '@/components/ui/idr-amount-input'
 import { Separator } from '@/components/ui/separator'
 import { formatIdr } from '@/lib/utils/format-idr'
+import { SendInvoiceEmailButton } from '@/components/admin/send-invoice-email-button'
 import { createInvoiceAdjustment, markAdjustmentPaid, markAdjustmentUnpaid } from '@/lib/actions/invoice-adjustment'
 import { uploadAdjustmentProof } from '@/lib/actions/upload-adjustment-proof'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
@@ -26,9 +27,17 @@ type Props = {
   eventId: string
   registrationId: string
   adjustments: Adjustment[]
+  contactEmail: string | null
+  onUnderpaymentEmailSent?: (adjustmentAmountIdr: number) => void
 }
 
-export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }: Props) {
+export function InvoiceAdjustmentPanel({
+  eventId,
+  registrationId,
+  adjustments,
+  contactEmail,
+  onUnderpaymentEmailSent,
+}: Props) {
   const [isPending, startTransition] = useTransition()
   const [createOpen, setCreateOpen] = useState(false)
   const [amount, setAmount] = useState(0)
@@ -147,9 +156,21 @@ export function InvoiceAdjustmentPanel({ eventId, registrationId, adjustments }:
             )}
             <div className='flex flex-wrap gap-2 items-center mt-1'>
               {adj.status === InvoiceAdjustmentStatus.unpaid && (
-                <Button size='sm' variant='outline' disabled={isPending} onClick={() => handleMarkPaid(adj.id)}>
-                  Tandai lunas
-                </Button>
+                <>
+                  <Button size='sm' variant='outline' disabled={isPending} onClick={() => handleMarkPaid(adj.id)}>
+                    Tandai lunas
+                  </Button>
+                  {contactEmail ? (
+                    <SendInvoiceEmailButton
+                      eventId={eventId}
+                      registrationId={registrationId}
+                      disabled={isPending}
+                      onSuccess={() => onUnderpaymentEmailSent?.(adj.amount)}
+                    />
+                  ) : (
+                    <span className='text-xs text-muted-foreground'>Email kontak kosong — tidak dapat kirim invoice.</span>
+                  )}
+                </>
               )}
               {adj.status === InvoiceAdjustmentStatus.paid && (
                 <Button size='sm' variant='ghost' disabled={isPending} onClick={() => handleMarkUnpaid(adj.id)}>

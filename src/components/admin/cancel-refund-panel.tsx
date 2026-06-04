@@ -20,6 +20,8 @@ type Props = {
   eventId: string
   registrationId: string
   status: RegistrationStatus
+  onCancelSuccess?: () => void
+  onRefundSuccess?: () => void
 }
 
 const CANCEL_BLOCKED_FROM = new Set<RegistrationStatus>([
@@ -30,7 +32,7 @@ const CANCEL_BLOCKED_FROM = new Set<RegistrationStatus>([
 
 const REFUND_ALLOWED_FROM = new Set<RegistrationStatus>([RegistrationStatus.approved, RegistrationStatus.cancelled])
 
-export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
+export function CancelRefundPanel({ eventId, registrationId, status, onCancelSuccess, onRefundSuccess }: Props) {
   const [isPending, startTransition] = useTransition()
   const [cancelOpen, setCancelOpen] = useState(false)
   const [refundOpen, setRefundOpen] = useState(false)
@@ -49,6 +51,7 @@ export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
       } else {
         toastCudSuccess('update', 'Pendaftaran dibatalkan.')
         setCancelOpen(false)
+        onCancelSuccess?.()
       }
     })
   }
@@ -63,6 +66,7 @@ export function CancelRefundPanel({ eventId, registrationId, status }: Props) {
       } else {
         toastCudSuccess('update', 'Pengembalian dana dicatat.')
         setRefundOpen(false)
+        onRefundSuccess?.()
       }
     })
   }
