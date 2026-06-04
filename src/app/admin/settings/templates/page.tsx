@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { SettingsTemplatesTabs } from '@/components/admin/settings-templates-tabs'
 import { prisma } from '@/lib/db/prisma'
 import { loadClubEmailTemplates } from '@/lib/email-templates/load-club-email-templates'
-import type { EmailTemplateKey, WaTemplateKey } from '@prisma/client'
+import type { WaTemplateKey } from '@prisma/client'
 
 export const metadata: Metadata = { title: 'Template pesan' }
 

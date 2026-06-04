@@ -31,7 +31,7 @@ export function SettingsTemplatesTabs({ waInitial, emailInitial }: Props) {
         if (v === 'wa' || v === 'email') navigate(v)
       }}
     >
-      <TabsList>
+      <TabsList className='w-full'>
         <TabsTrigger value='wa'>WhatsApp</TabsTrigger>
         <TabsTrigger value='email'>Email</TabsTrigger>
       </TabsList>
