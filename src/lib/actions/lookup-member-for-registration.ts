@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db/prisma'
 export type MemberLookupResult =
   | { status: 'not_found' }
   | { status: 'already_registered' }
-  | { status: 'valid'; fullName: string; whatsapp: string | null }
+  | { status: 'valid'; fullName: string; whatsapp: string | null; email: string | null }
 
 const ACTIVE_STATUSES: RegistrationStatus[] = [
   RegistrationStatus.submitted,
@@ -21,7 +21,7 @@ export async function lookupMemberForRegistration(memberNumber: string, eventId:
   const [member, duplicate] = await Promise.all([
     prisma.masterMember.findUnique({
       where: { memberNumber: trimmed },
-      select: { id: true, fullName: true, whatsapp: true },
+      select: { id: true, fullName: true, whatsapp: true, email: true },
     }),
     prisma.registrationHolder.findFirst({
       where: {
@@ -37,5 +37,10 @@ export async function lookupMemberForRegistration(memberNumber: string, eventId:
 
   if (!member) return { status: 'not_found' }
   if (duplicate) return { status: 'already_registered' }
-  return { status: 'valid', fullName: member.fullName, whatsapp: member.whatsapp }
+  return {
+    status: 'valid',
+    fullName: member.fullName,
+    whatsapp: member.whatsapp,
+    email: member.email,
+  }
 }

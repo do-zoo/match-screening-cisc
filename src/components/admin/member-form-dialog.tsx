@@ -27,6 +27,7 @@ type MemberFormValues = {
   memberNumber: string
   fullName: string
   whatsapp?: string
+  email?: string
   isActive: boolean
 }
 
@@ -48,6 +49,7 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
       memberNumber: member?.memberNumber ?? '',
       fullName: member?.fullName ?? '',
       whatsapp: member?.whatsapp ?? '',
+      email: member?.email ?? '',
       isActive: member?.isActive ?? true,
     }),
     [member],
@@ -76,12 +78,14 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
               memberNumber: values.memberNumber,
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? '',
+              email: values.email ?? '',
               isActive: values.isActive,
             }
           : {
               id: member?.id ?? values.id ?? '',
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? '',
+              email: values.email ?? '',
               isActive: values.isActive,
             }
 
@@ -162,6 +166,17 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
               placeholder='6281234567890'
               aria-invalid={Boolean(form.formState.errors.whatsapp)}
               {...form.register('whatsapp')}
+            />
+          </Field>
+
+          <Field label='Email (opsional)' htmlFor='member-email' error={form.formState.errors.email?.message}>
+            <Input
+              id='member-email'
+              type='email'
+              disabled={isPending}
+              placeholder='nama@contoh.com'
+              aria-invalid={Boolean(form.formState.errors.email)}
+              {...form.register('email')}
             />
           </Field>
 

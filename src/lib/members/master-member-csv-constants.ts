@@ -3,6 +3,7 @@ export const MASTER_MEMBER_CSV_COLUMNS = [
   'member_number',
   'full_name',
   'whatsapp',
+  'email',
   'is_active',
   'is_management_member',
 ] as const

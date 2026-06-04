@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 
 import { AdminListToolbar } from '@/components/admin/admin-list-toolbar'
+import { InvoiceEmailBlastDialog } from '@/components/admin/invoice-email-blast-dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { buildEventRegistrantsListUrl, type EventRegistrantsTab } from '@/lib/admin/event-registrants-list-url'
@@ -93,6 +94,7 @@ export function AdminEventRegistrantsToolbar({
           </Select>
         </>
       }
+      endSlot={<InvoiceEmailBlastDialog eventId={eventId} tab={tab} searchQuery={searchQuery} />}
     />
   )
 }

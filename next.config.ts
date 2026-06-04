@@ -33,6 +33,11 @@ const nextConfig: NextConfig = {
         destination: '/admin/events/:eventId/registrants/:registrationId',
         permanent: true,
       },
+      {
+        source: '/admin/settings/whatsapp-templates',
+        destination: '/admin/settings/templates?tab=wa',
+        permanent: true,
+      },
     ]
   },
   images: {

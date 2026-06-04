@@ -11,7 +11,7 @@ type Props = {
   registration: DetailRegistration
 }
 
-export function SummaryTab({ eventId: _eventId, registration }: Props) {
+export function SummaryTab({ eventId, registration }: Props) {
   return (
     <Card>
       <CardHeader>
@@ -21,7 +21,7 @@ export function SummaryTab({ eventId: _eventId, registration }: Props) {
       <CardContent className='grid gap-4 md:p-6'>
         <section className='grid gap-2'>
           <h3 className='text-sm font-semibold tracking-tight'>Identitas</h3>
-          <IdentitySection registration={registration} />
+          <IdentitySection eventId={eventId} registration={registration} />
         </section>
         <Separator />
         <section className='grid gap-2'>

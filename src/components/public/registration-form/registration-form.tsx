@@ -26,7 +26,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     defaultValues: {
       ticketCategoryId: event.ticketCategories?.[0]?.id ?? '',
       ticketQty: 1,
-      holders: [{ holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
+      holders: [
+        { holderName: '', holderWhatsapp: '', holderEmail: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      ],
     },
   })
 
@@ -78,7 +80,14 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     ? holders
     : Array.from(
         { length: ticketQty },
-        () => holders[0] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+        () =>
+          holders[0] ?? {
+            holderName: '',
+            holderWhatsapp: '',
+            holderEmail: '',
+            claimedMemberNumber: '',
+            mandatoryMenuItemId: '',
+          },
       )
   const pricingValidations = event.requireAllHolderData
     ? holderValidations
@@ -98,7 +107,13 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       const next = Array.from(
         { length: qty },
         (_, i) =>
-          current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+          current[i] ?? {
+            holderName: '',
+            holderWhatsapp: '',
+            holderEmail: '',
+            claimedMemberNumber: '',
+            mandatoryMenuItemId: '',
+          },
       )
       replace(next)
       setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))

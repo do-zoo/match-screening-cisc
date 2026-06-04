@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form'
 
 import type { MemberAccessMode } from '@prisma/client'
+import { abandonDraftEventDescriptionImages } from '@/lib/actions/abandon-draft-event-description-images'
 import { createAdminEvent, updateAdminEvent } from '@/lib/actions/admin-events'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import {
@@ -100,6 +101,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
   /** Set true tepat sebelum navigasi sukses Buat acara agar pembersihan draf blob tidak jalan. */
   const createSavedRef = useRef(false)
   const abandonDraftEffectGen = useRef(0)
+  const submitInFlightRef = useRef(false)
 
   const registrationCount = props.registrationCount ?? 0
   const persistedIntegrity =
@@ -230,8 +232,11 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
   const submitPayload = useCallback(
     (withAck: boolean) => {
+      if (submitInFlightRef.current) return
+      submitInFlightRef.current = true
       setRootMessage(null)
       startTransition(async () => {
+        try {
         const fd = new FormData()
         const payload: AdminEventUpsertInput = {
           ...form.getValues(),
@@ -271,6 +276,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
         } else {
           toastCudSuccess('update', 'Acara berhasil diperbarui.')
           router.refresh()
+        }
+        } finally {
+          submitInFlightRef.current = false
         }
       })
     },
@@ -690,19 +698,24 @@ export function EventAdminForm(props: EventAdminFormProps) {
 
   // ─── Edit mode: Tabs layout ───────────────────────────────────────────────
 
+  const saveEventFormProps = {
+    onSubmit: form.handleSubmit(() => submitPayload(false)),
+    className: 'space-y-8' as const,
+  }
+
   if (props.mode === 'edit') {
     return (
       <>
-        <form onSubmit={form.handleSubmit(() => submitPayload(false))}>
-          {errorAlert}
-          <Tabs defaultValue='dasar' className='mt-2'>
-            <TabsList className='mb-6 w-full sm:w-auto'>
-              <TabsTrigger value='dasar'>Dasar</TabsTrigger>
-              <TabsTrigger value='tiket'>Harga &amp; Tiket</TabsTrigger>
-              <TabsTrigger value='venue'>Venue &amp; Menu</TabsTrigger>
-            </TabsList>
+        {errorAlert}
+        <Tabs defaultValue='dasar' className='mt-2'>
+          <TabsList className='mb-6 w-full sm:w-auto'>
+            <TabsTrigger value='dasar'>Dasar</TabsTrigger>
+            <TabsTrigger value='tiket'>Harga &amp; Tiket</TabsTrigger>
+            <TabsTrigger value='venue'>Venue &amp; Menu</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value='dasar' className='space-y-8'>
+          <TabsContent value='dasar' className='space-y-8'>
+            <form {...saveEventFormProps}>
               {sectionTitle}
               {sectionCover}
               {sectionSummary}
@@ -711,31 +724,35 @@ export function EventAdminForm(props: EventAdminFormProps) {
               {sectionJadwalAcara}
               {sectionRegistrasi}
               <TabSaveRow pending={pending} />
-            </TabsContent>
+            </form>
+          </TabsContent>
 
-            <TabsContent value='tiket' className='space-y-8'>
-              <section className='space-y-4'>
-                <SectionHeading>Kategori tiket</SectionHeading>
-                <TicketCategoriesPanel
-                  eventId={props.eventId ?? ''}
-                  categories={props.categories}
-                  memberAccessMode={memberAccessMode}
-                />
-              </section>
+          <TabsContent value='tiket' className='space-y-8'>
+            <section className='space-y-4'>
+              <SectionHeading>Kategori tiket</SectionHeading>
+              <TicketCategoriesPanel
+                eventId={props.eventId ?? ''}
+                categories={props.categories}
+                memberAccessMode={memberAccessMode}
+              />
+            </section>
+            <form {...saveEventFormProps}>
               {sectionMemberAccess}
               {sectionMultiCategory}
               {sectionRequireAllHolderData}
               <TabSaveRow pending={pending} />
-            </TabsContent>
+            </form>
+          </TabsContent>
 
-            <TabsContent value='venue' className='space-y-8'>
+          <TabsContent value='venue' className='space-y-8'>
+            <form {...saveEventFormProps}>
               {sectionVenue}
               {sectionMenuWajib}
               {sectionPicRekening}
               <TabSaveRow pending={pending} />
-            </TabsContent>
-          </Tabs>
-        </form>
+            </form>
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={pendingAcknowledge} onOpenChange={setPendingAcknowledge}>
           <DialogContent>

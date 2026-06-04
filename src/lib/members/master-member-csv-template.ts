@@ -6,6 +6,7 @@ const exampleRow: Record<MasterMemberCsvColumn, string> = {
   member_number: 'CISC-0001',
   full_name: 'Contoh Nama',
   whatsapp: '6281234567890',
+  email: 'contoh@email.com',
   is_active: 'true',
   is_management_member: 'false',
 }

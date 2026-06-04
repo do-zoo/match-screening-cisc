@@ -16,10 +16,13 @@ export const whatsappPhoneSchema = z
     }
   })
 
+const holderEmailOptional = z.union([z.string().trim().email('Format email tidak valid.'), z.literal('')]).optional()
+
 export const holderSchema = z
   .object({
     holderName: z.string().trim().min(1, 'Nama pemegang tiket wajib diisi'),
     holderWhatsapp: whatsappPhoneSchema,
+    holderEmail: holderEmailOptional,
     claimedMemberNumber: z.string().trim().optional(),
     mandatoryMenuItemId: z.string().optional(),
     memberType: z.enum(['tangsel', 'regional']).optional(),
@@ -36,10 +39,21 @@ export const holderSchema = z
 
 export type HolderInput = z.infer<typeof holderSchema>
 
-export const submitRegistrationSchema = z.object({
-  ticketCategoryId: z.string().min(1, 'Pilih kategori tiket'),
-  ticketQty: z.number().int().min(1, 'Jumlah tiket minimal 1'),
-  holders: z.array(holderSchema).min(1, 'Minimal satu pemegang tiket'),
-})
+export const submitRegistrationSchema = z
+  .object({
+    ticketCategoryId: z.string().min(1, 'Pilih kategori tiket'),
+    ticketQty: z.number().int().min(1, 'Jumlah tiket minimal 1'),
+    holders: z.array(holderSchema).min(1, 'Minimal satu pemegang tiket'),
+  })
+  .superRefine((data, ctx) => {
+    const firstEmail = (data.holders[0]?.holderEmail ?? '').trim()
+    if (!firstEmail) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Email kontak wajib diisi',
+        path: ['holders', 0, 'holderEmail'],
+      })
+    }
+  })
 
 export type SubmitRegistrationInput = z.infer<typeof submitRegistrationSchema>

@@ -8,7 +8,7 @@ export type HolderValidationResult =
   | { status: 'checking' }
   | { status: 'not_found' }
   | { status: 'already_registered' }
-  | { status: 'valid'; fullName: string; whatsapp: string | null }
+  | { status: 'valid'; fullName: string; whatsapp: string | null; email: string | null }
 
 /** Maps validation result to the MemberValidation string used for pricing. */
 export function validationToPricing(result: HolderValidationResult): 'valid' | 'invalid' | 'unknown' {
@@ -25,26 +25,29 @@ export function useHolderMemberValidation(
 ): HolderValidationResult {
   const [result, setResult] = useState<HolderValidationResult>({ status: 'idle' })
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resolvedKeyRef = useRef<string | null>(null)
   const trimmed = (claimedMemberNumber ?? '').trim()
+  const skipLookup = !trimmed || trimmed.includes('://')
+  const lookupKey = skipLookup ? null : `${trimmed}:${eventId}`
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
+    if (!lookupKey) return
 
-    // Skip empty values or URLs (browser extension auto-fill artefacts)
-    if (!trimmed || trimmed.includes('://')) {
-      setResult({ status: 'idle' })
-      return
-    }
-
-    setResult({ status: 'checking' })
     let cancelled = false
 
     timerRef.current = setTimeout(async () => {
       try {
         const res: MemberLookupResult = await lookupMemberForRegistration(trimmed, eventId)
-        if (!cancelled) setResult(res)
+        if (!cancelled) {
+          resolvedKeyRef.current = lookupKey
+          setResult(res)
+        }
       } catch {
-        if (!cancelled) setResult({ status: 'idle' })
+        if (!cancelled) {
+          resolvedKeyRef.current = lookupKey
+          setResult({ status: 'idle' })
+        }
       }
     }, DEBOUNCE_MS)
 
@@ -52,7 +55,9 @@ export function useHolderMemberValidation(
       cancelled = true
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [trimmed, eventId])
+  }, [lookupKey, trimmed, eventId])
 
+  if (skipLookup) return { status: 'idle' }
+  if (lookupKey !== resolvedKeyRef.current) return { status: 'checking' }
   return result
 }

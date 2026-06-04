@@ -13,6 +13,7 @@ export type DetailRegistration = {
   createdAt: Date
   contactName: string
   contactWhatsapp: string
+  contactEmail: string | null
   computedTotalAtSubmit: number
   status: RegistrationStatus
   attendanceStatus: AttendanceStatus
@@ -29,6 +30,7 @@ export type DetailRegistration = {
     id: string
     sortOrder: number
     holderName: string
+    holderEmail: string | null
     claimedMemberNumber: string | null
     memberValidation: MemberValidation
     memberType: MemberType | null
@@ -36,6 +38,7 @@ export type DetailRegistration = {
     menuItemName: string | null
   }>
   event: {
+    id: string
     title: string
     venueName: string
     kickOffAt: Date

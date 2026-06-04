@@ -1,8 +1,11 @@
+import { normalizeStoredEmail } from '@/lib/email/normalize-email'
+
 import { interpretMasterMemberCsvBoolean } from './master-member-csv-boolean'
 
 export type MasterMemberCsvWritablePatch = {
   fullName?: string
   whatsapp?: string | null
+  email?: string | null
   isActive?: boolean
 }
 
@@ -57,6 +60,19 @@ export function prepareMasterMemberCsvRow(
 
   const waTrim = (cells.whatsapp ?? '').trim()
   if (waTrim) patch.whatsapp = waTrim
+
+  const emailTrim = (cells.email ?? '').trim()
+  if (emailTrim) {
+    try {
+      patch.email = normalizeStoredEmail(emailTrim)
+    } catch {
+      return {
+        tag: 'reject',
+        lineNumberPhysical,
+        reasons: ['Format email tidak valid.'],
+      }
+    }
+  }
 
   const active = interpretMasterMemberCsvBoolean(cells.is_active)
   if (active !== undefined) patch.isActive = active

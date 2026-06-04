@@ -11,6 +11,7 @@ export function buildMasterMembersExportCsv(rows: AdminMasterMemberRowVm[]): str
     member_number: r.memberNumber,
     full_name: r.fullName,
     whatsapp: r.whatsapp ?? '',
+    email: r.email ?? '',
     is_active: r.isActive ? 'true' : 'false',
     is_management_member: r.isManagementMember ? 'true' : 'false',
   }))

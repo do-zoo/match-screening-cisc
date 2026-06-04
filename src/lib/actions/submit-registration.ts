@@ -3,6 +3,7 @@
 import { MemberType, RegistrationStatus } from '@prisma/client'
 import { lookupMemberForRegistration } from '@/lib/actions/lookup-member-for-registration'
 import { assertHolderEligibleForMemberAccessMode } from '@/lib/events/member-access-mode'
+import { optionalStoredEmail, requiredStoredEmail } from '@/lib/email/normalize-email'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema'
@@ -181,6 +182,7 @@ export async function submitRegistration(
 
       const contactName = input.holders[0].holderName
       const contactWhatsapp = input.holders[0].holderWhatsapp ?? ''
+      const contactEmail = requiredStoredEmail((input.holders[0].holderEmail ?? '').trim())
 
       return tx.registration.create({
         data: {
@@ -189,6 +191,7 @@ export async function submitRegistration(
           ticketQty: input.ticketQty,
           contactName,
           contactWhatsapp,
+          contactEmail,
           computedTotalAtSubmit: pricing.grandTotal,
           status: RegistrationStatus.submitted,
           holders: {
@@ -196,6 +199,7 @@ export async function submitRegistration(
               sortOrder: i + 1,
               holderName: h.holderName,
               holderWhatsapp: h.holderWhatsapp?.trim() || null,
+              holderEmail: optionalStoredEmail(h.holderEmail),
               claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
               memberType: h.memberType ? (h.memberType as MemberType) : null,
               ticketPriceApplied: pricing.lines[i]!.ticketPrice,

@@ -33,8 +33,8 @@ export default async function AdminSettingsHubPage() {
           description='Kelola akses aplikasi dan peran (Owner/Admin/Verifier/Viewer); tautan opsional ke anggota; rekening PIC dilampirkan ke profil admin.'
         />
         <SettingsCard
-          href='/admin/settings/whatsapp-templates'
-          title='Template WhatsApp'
+          href='/admin/settings/templates'
+          title='Template pesan'
           description='Isi pesan untuk tautan wa.me di admin; placeholder {snake_case}; fallback ke bawaan kode.'
         />
         <SettingsCard

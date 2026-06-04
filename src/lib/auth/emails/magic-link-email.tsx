@@ -1,6 +1,6 @@
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from 'react-email'
 
-export function MagicLinkEmail({ url }: { url: string }) {
+export function MagicLinkEmail({ url, introText }: { url: string; introText?: string }) {
   return (
     <Html lang='id'>
       <Head />
@@ -32,9 +32,9 @@ export function MagicLinkEmail({ url }: { url: string }) {
           >
             Match Screening
           </Text>
-          <Text style={{ color: '#374151', lineHeight: '1.6', margin: '0 0 24px' }}>
-            Klik tombol di bawah untuk masuk ke halaman admin. Link ini hanya berlaku sekali dan akan kedaluwarsa dalam
-            5 menit.
+          <Text style={{ color: '#374151', lineHeight: '1.6', margin: '0 0 24px', whiteSpace: 'pre-wrap' }}>
+            {introText ??
+              'Klik tombol di bawah untuk masuk ke halaman admin. Link ini hanya berlaku sekali dan akan kedaluwarsa dalam 5 menit.'}
           </Text>
           <Section style={{ textAlign: 'center', margin: '0 0 24px' }}>
             <Button

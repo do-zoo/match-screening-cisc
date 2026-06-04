@@ -1,5 +1,6 @@
 import { InvoiceAdjustmentStatus, WaTemplateKey } from '@prisma/client'
 
+import { SendInvoiceEmailButton } from '@/components/admin/send-invoice-email-button'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { formatCurrencyIdr } from '@/components/admin/registration-detail-panels/shared/format'
 import { waMeLink } from '@/lib/wa-templates/encode'
@@ -104,25 +105,29 @@ export function CommunicationSection({ registration, waBodies }: Props) {
         {registration.adjustments
           .filter(a => a.status === InvoiceAdjustmentStatus.unpaid)
           .map(adj => (
-            <a
-              key={adj.id}
-              href={waMeLink(
-                waPhone,
-                renderUnderpaymentInvoiceMessage(wb[WaTemplateKey.underpayment_invoice] ?? null, {
-                  contactName: registration.contactName,
-                  eventTitle: registration.event.title,
-                  adjustmentAmountIdr: adj.amount,
-                  bankName: registration.event.bankAccount?.bankName ?? '',
-                  accountNumber: registration.event.bankAccount?.accountNumber ?? '',
-                  accountName: registration.event.bankAccount?.accountName ?? '',
-                }),
-              )}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/60'
-            >
-              WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
-            </a>
+            <span key={adj.id} className='inline-flex flex-wrap items-center gap-2'>
+              <a
+                href={waMeLink(
+                  waPhone,
+                  renderUnderpaymentInvoiceMessage(wb[WaTemplateKey.underpayment_invoice] ?? null, {
+                    contactName: registration.contactName,
+                    eventTitle: registration.event.title,
+                    adjustmentAmountIdr: adj.amount,
+                    bankName: registration.event.bankAccount?.bankName ?? '',
+                    accountNumber: registration.event.bankAccount?.accountNumber ?? '',
+                    accountName: registration.event.bankAccount?.accountName ?? '',
+                  }),
+                )}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/60'
+              >
+                WhatsApp · tagihan kekurangan ({formatCurrencyIdr(adj.amount)})
+              </a>
+              {registration.contactEmail ? (
+                <SendInvoiceEmailButton eventId={registration.event.id} registrationId={registration.id} />
+              ) : null}
+            </span>
           ))}
       </div>
     </div>

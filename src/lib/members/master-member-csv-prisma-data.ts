@@ -6,6 +6,7 @@ export function masterMemberCsvPatchToUpdateData(patch: MasterMemberCsvWritableP
   const data: Prisma.MasterMemberUpdateInput = {}
   if (patch.fullName !== undefined) data.fullName = patch.fullName
   if (patch.whatsapp !== undefined) data.whatsapp = patch.whatsapp
+  if (patch.email !== undefined) data.email = patch.email
   if (patch.isActive !== undefined) data.isActive = patch.isActive
   return data
 }
@@ -21,6 +22,7 @@ export function masterMemberCsvPatchToCreateData(
     memberNumber: canonicalMemberNumber,
     fullName: patch.fullName.trim(),
     whatsapp: patch.whatsapp ?? null,
+    email: patch.email ?? null,
     ...(patch.isActive !== undefined ? { isActive: patch.isActive } : {}),
   }
 }

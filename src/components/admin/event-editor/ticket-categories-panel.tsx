@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 
 import type { MemberAccessMode } from '@prisma/client'
@@ -26,6 +26,8 @@ import { Label } from '@/components/ui/label'
 
 type DialogState = { type: 'closed' } | { type: 'create' } | { type: 'edit'; category: EventTicketCategoryRow }
 
+const TICKET_CATEGORY_DIALOG_FORM_ID = 'ticket-category-dialog-form'
+
 export function TicketCategoriesPanel({
   eventId,
   categories: initialCategories,
@@ -39,6 +41,7 @@ export function TicketCategoriesPanel({
   const [categories, setCategories] = useState<EventTicketCategoryRow[]>(initialCategories)
   const [dialog, setDialog] = useState<DialogState>({ type: 'closed' })
   const [pending, startTransition] = useTransition()
+  const submitInFlightRef = useRef(false)
 
   const isOpen = dialog.type !== 'closed'
   const mode = dialog.type === 'edit' ? 'edit' : 'create'
@@ -84,50 +87,56 @@ export function TicketCategoriesPanel({
   }
 
   function handleSubmit(values: TicketCategoryInput) {
+    if (submitInFlightRef.current) return
+    submitInFlightRef.current = true
     const payload = memberOnly ? { ...values, regularPrice: values.memberPrice } : values
     startTransition(async () => {
-      if (mode === 'create') {
-        const res = await createTicketCategory(eventId, payload)
-        if (!res.ok) {
-          toastActionErr(res, 'Gagal menambah kategori.')
-          return
+      try {
+        if (mode === 'create') {
+          const res = await createTicketCategory(eventId, payload)
+          if (!res.ok) {
+            toastActionErr(res, 'Gagal menambah kategori.')
+            return
+          }
+          const newRow: EventTicketCategoryRow = {
+            id: res.data.id,
+            name: payload.name,
+            regularPrice: payload.regularPrice,
+            memberPrice: payload.memberPrice,
+            maxQtyPerPerson: values.maxQtyPerPerson,
+            sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
+            isActive: true,
+            registrationCount: 0,
+            capacity: values.capacity,
+          }
+          setCategories(prev => [...prev, newRow])
+          toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
+          closeDialog()
+        } else if (editingCategory) {
+          const res = await updateTicketCategory(editingCategory.id, payload)
+          if (!res.ok) {
+            toastActionErr(res, 'Gagal memperbarui kategori.')
+            return
+          }
+          setCategories(prev =>
+            prev.map(c =>
+              c.id === editingCategory.id
+                ? {
+                    ...c,
+                    name: payload.name,
+                    regularPrice: priceLocked ? c.regularPrice : payload.regularPrice,
+                    memberPrice: priceLocked ? c.memberPrice : payload.memberPrice,
+                    maxQtyPerPerson: payload.maxQtyPerPerson,
+                    capacity: payload.capacity,
+                  }
+                : c,
+            ),
+          )
+          toastCudSuccess('update', 'Kategori berhasil diperbarui.')
+          closeDialog()
         }
-        const newRow: EventTicketCategoryRow = {
-          id: res.data.id,
-          name: payload.name,
-          regularPrice: payload.regularPrice,
-          memberPrice: payload.memberPrice,
-          maxQtyPerPerson: values.maxQtyPerPerson,
-          sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
-          isActive: true,
-          registrationCount: 0,
-          capacity: values.capacity,
-        }
-        setCategories(prev => [...prev, newRow])
-        toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
-        closeDialog()
-      } else if (editingCategory) {
-        const res = await updateTicketCategory(editingCategory.id, payload)
-        if (!res.ok) {
-          toastActionErr(res, 'Gagal memperbarui kategori.')
-          return
-        }
-        setCategories(prev =>
-          prev.map(c =>
-            c.id === editingCategory.id
-              ? {
-                  ...c,
-                  name: payload.name,
-                  regularPrice: priceLocked ? c.regularPrice : payload.regularPrice,
-                  memberPrice: priceLocked ? c.memberPrice : payload.memberPrice,
-                  maxQtyPerPerson: payload.maxQtyPerPerson,
-                  capacity: payload.capacity,
-                }
-              : c,
-          ),
-        )
-        toastCudSuccess('update', 'Kategori berhasil diperbarui.')
-        closeDialog()
+      } finally {
+        submitInFlightRef.current = false
       }
     })
   }
@@ -243,7 +252,14 @@ export function TicketCategoriesPanel({
             <DialogTitle>{mode === 'create' ? 'Tambah Kategori' : 'Edit Kategori'}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+          <form
+            id={TICKET_CATEGORY_DIALOG_FORM_ID}
+            onSubmit={e => {
+              e.stopPropagation()
+              void form.handleSubmit(handleSubmit)(e)
+            }}
+            className='space-y-4'
+          >
             <div className='flex flex-col gap-1'>
               <Label htmlFor='tc-name'>Nama kategori</Label>
               <Input
@@ -366,7 +382,11 @@ export function TicketCategoriesPanel({
               <Button type='button' variant='outline' onClick={closeDialog} disabled={pending}>
                 Batal
               </Button>
-              <Button type='submit' disabled={pending}>
+              <Button
+                type='button'
+                disabled={pending}
+                onClick={() => void form.handleSubmit(handleSubmit)()}
+              >
                 {pending ? 'Menyimpan…' : mode === 'create' ? 'Tambah' : 'Simpan'}
               </Button>
             </DialogFooter>

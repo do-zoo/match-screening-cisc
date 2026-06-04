@@ -68,6 +68,7 @@ export default async function AdminEventRegistrantsDetailPage({
       createdAt: true,
       contactName: true,
       contactWhatsapp: true,
+      contactEmail: true,
       computedTotalAtSubmit: true,
       ticketQty: true,
       ticketCategoryId: true,
@@ -85,6 +86,7 @@ export default async function AdminEventRegistrantsDetailPage({
           id: true,
           sortOrder: true,
           holderName: true,
+          holderEmail: true,
           claimedMemberNumber: true,
           memberValidation: true,
           memberType: true,
@@ -98,6 +100,7 @@ export default async function AdminEventRegistrantsDetailPage({
       paymentIssueReason: true,
       event: {
         select: {
+          id: true,
           title: true,
           kickOffAt: true,
           venue: { select: { name: true } },
@@ -164,6 +167,7 @@ export default async function AdminEventRegistrantsDetailPage({
       id: h.id,
       sortOrder: h.sortOrder,
       holderName: h.holderName,
+      holderEmail: h.holderEmail,
       claimedMemberNumber: h.claimedMemberNumber,
       memberValidation: h.memberValidation,
       memberType: h.memberType,
@@ -171,6 +175,7 @@ export default async function AdminEventRegistrantsDetailPage({
       menuItemName: h.mandatoryMenuItem?.name ?? null,
     })),
     event: {
+      id: prismaEvent.id,
       title: prismaEvent.title,
       venueName: prismaEvent.venue.name,
       kickOffAt: prismaEvent.kickOffAt,

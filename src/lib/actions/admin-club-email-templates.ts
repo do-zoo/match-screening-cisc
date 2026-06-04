@@ -6,13 +6,13 @@ import { appendClubAuditLog } from '@/lib/audit/append-club-audit-log'
 import { CLUB_AUDIT_ACTION } from '@/lib/audit/club-audit-actions'
 import { guardOwner, isAuthError, type OwnerGuardContext } from '@/lib/actions/guard'
 import { prisma } from '@/lib/db/prisma'
-import { saveClubWaTemplateFormSchema } from '@/lib/forms/club-wa-template-schema'
+import { CLUB_EMAIL_DEFAULT_BODIES } from '@/lib/email-templates/default-bodies'
+import { validateEmailTemplate } from '@/lib/email-templates/email-template-policy'
+import { saveClubEmailTemplateFormSchema } from '@/lib/forms/club-email-template-schema'
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
-import { CLUB_WA_DEFAULT_BODIES } from '@/lib/wa-templates/db-default-template-bodies'
-import { validateWaTemplateBody } from '@/lib/wa-templates/wa-template-policy'
 
-export async function saveClubWaTemplateBody(
+export async function saveClubEmailTemplate(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
@@ -24,43 +24,43 @@ export async function saveClubWaTemplateBody(
     throw e
   }
 
-  const parsed = saveClubWaTemplateFormSchema.safeParse({
+  const parsed = saveClubEmailTemplateFormSchema.safeParse({
     key: formData.get('key'),
-    body: typeof formData.get('body') === 'string' ? (formData.get('body') as string) : '',
+    subject: typeof formData.get('subject') === 'string' ? formData.get('subject') : '',
+    body: typeof formData.get('body') === 'string' ? formData.get('body') : '',
   })
 
   if (!parsed.success) {
     return fieldError(zodToFieldErrors(parsed.error))
   }
 
-  const { key, body } = parsed.data
-  const policyErr = validateWaTemplateBody(key, body)
+  const { key, subject, body } = parsed.data
+  const policyErr = validateEmailTemplate(key, subject, body)
   if (policyErr) return fieldError({ body: policyErr })
 
   try {
-    await prisma.clubWaTemplate.upsert({
+    await prisma.clubEmailTemplate.upsert({
       where: { key },
-      create: { key, body },
-      update: { body },
+      create: { key, subject: subject.trim(), body },
+      update: { subject: subject.trim(), body },
     })
   } catch {
-    return rootError('Gagal menyimpan templat.')
+    return rootError('Gagal menyimpan templat email.')
   }
 
   await appendClubAuditLog(prisma, {
     actorProfileId: owner.profileId,
     actorAuthUserId: owner.authUserId,
-    action: CLUB_AUDIT_ACTION.CLUB_WA_TEMPLATE_SAVED,
-    targetType: 'club_wa_template',
+    action: CLUB_AUDIT_ACTION.CLUB_EMAIL_TEMPLATE_SAVED,
+    targetType: 'club_email_template',
     targetId: key,
-    metadata: { key },
   })
 
   revalidatePath('/admin/settings/templates')
   return ok({ saved: true })
 }
 
-export async function resetClubWaTemplateBody(
+export async function resetClubEmailTemplate(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ saved: true }>> {
@@ -72,28 +72,29 @@ export async function resetClubWaTemplateBody(
     throw e
   }
 
-  const parsedKey = saveClubWaTemplateFormSchema.shape.key.safeParse(formData.get('key'))
-  if (!parsedKey.success) return fieldError({ body: 'Jenis templat tidak valid.' })
+  const keyRaw = formData.get('key')
+  const keyParsed = saveClubEmailTemplateFormSchema.shape.key.safeParse(keyRaw)
+  if (!keyParsed.success) return fieldError({ key: 'Jenis templat tidak valid.' })
 
-  const body = CLUB_WA_DEFAULT_BODIES[parsedKey.data]
+  const key = keyParsed.data
+  const defaults = CLUB_EMAIL_DEFAULT_BODIES[key]
 
   try {
-    await prisma.clubWaTemplate.upsert({
-      where: { key: parsedKey.data },
-      create: { key: parsedKey.data, body },
-      update: { body },
+    await prisma.clubEmailTemplate.upsert({
+      where: { key },
+      create: { key, subject: defaults.subject, body: defaults.body },
+      update: { subject: defaults.subject, body: defaults.body },
     })
   } catch {
-    return rootError('Gagal mengatur ulang templat.')
+    return rootError('Gagal mengembalikan templat email.')
   }
 
   await appendClubAuditLog(prisma, {
     actorProfileId: owner.profileId,
     actorAuthUserId: owner.authUserId,
-    action: CLUB_AUDIT_ACTION.CLUB_WA_TEMPLATE_RESET,
-    targetType: 'club_wa_template',
-    targetId: parsedKey.data,
-    metadata: { key: parsedKey.data },
+    action: CLUB_AUDIT_ACTION.CLUB_EMAIL_TEMPLATE_RESET,
+    targetType: 'club_email_template',
+    targetId: key,
   })
 
   revalidatePath('/admin/settings/templates')

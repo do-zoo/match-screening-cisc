@@ -42,6 +42,7 @@ const openEvent = {
 const validHolder = {
   holderName: 'Member Satu',
   holderWhatsapp: '+6281234567890',
+  holderEmail: 'kontak@example.com',
   claimedMemberNumber: '001',
   memberType: 'tangsel' as const,
 }
@@ -72,7 +73,10 @@ describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
     const fd = new FormData()
     fd.set('ticketCategoryId', 'cat-1')
     fd.set('ticketQty', '1')
-    fd.set('holders', JSON.stringify([{ holderName: 'Tester', holderWhatsapp: '+6281234567890' }]))
+    fd.set(
+      'holders',
+      JSON.stringify([{ holderName: 'Tester', holderWhatsapp: '+6281234567890', holderEmail: 'test@example.com' }]),
+    )
     const r = await submitRegistration('tidak-ada', fd)
     expect(r.ok).toBe(false)
     if (!r.ok && 'rootError' in r) {
@@ -102,7 +106,14 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
     fd.set('ticketQty', '3')
     fd.set(
       'holders',
-      JSON.stringify([{ holderName: 'Pemesan Utama', holderWhatsapp: '+6281234567890', claimedMemberNumber: '' }]),
+      JSON.stringify([
+        {
+          holderName: 'Pemesan Utama',
+          holderWhatsapp: '+6281234567890',
+          holderEmail: 'utama@example.com',
+          claimedMemberNumber: '',
+        },
+      ]),
     )
 
     const r = await submitRegistration('event-1', fd)
@@ -152,6 +163,7 @@ describe('submitRegistration — memberAccessMode', () => {
       status: 'valid',
       fullName: 'Member Satu',
       whatsapp: '+6281234567890',
+      email: 'member@example.com',
     })
   })
 
@@ -166,7 +178,14 @@ describe('submitRegistration — memberAccessMode', () => {
     fd.set('ticketQty', '1')
     fd.set(
       'holders',
-      JSON.stringify([{ holderName: 'Guest', holderWhatsapp: '+6281234567890', claimedMemberNumber: '' }]),
+      JSON.stringify([
+        {
+          holderName: 'Guest',
+          holderWhatsapp: '+6281234567890',
+          holderEmail: 'guest@example.com',
+          claimedMemberNumber: '',
+        },
+      ]),
     )
 
     const r = await submitRegistration('event-1', fd)
@@ -191,6 +210,7 @@ describe('submitRegistration — memberAccessMode', () => {
         {
           holderName: 'Regional',
           holderWhatsapp: '+6281234567890',
+          holderEmail: 'regional@example.com',
           claimedMemberNumber: 'R-1',
           memberType: 'regional',
         },

@@ -65,6 +65,35 @@ function WhatsAppField({ index }: { index: number }) {
   )
 }
 
+function HolderEmailField({ index, isPrimary }: { index: number; isPrimary: boolean }) {
+  const form = useFormContext<SubmitRegistrationInput>()
+  return (
+    <Controller
+      control={form.control}
+      name={`holders.${index}.holderEmail`}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={`holder-${index}-email`}>
+            {isPrimary ? 'Email kontak' : 'Email (opsional)'}
+          </FieldLabel>
+          <Input
+            id={`holder-${index}-email`}
+            type='email'
+            name={field.name}
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={fieldState.invalid}
+            placeholder='nama@contoh.com'
+            autoComplete='email'
+          />
+          {fieldState.error && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+}
+
 function MemberProfileCard({
   fullName,
   whatsapp,
@@ -249,20 +278,26 @@ export function HolderCard({
   const visibleTypeCount = [showNonMember, showTangsel, showRegional].filter(Boolean).length
 
   useEffect(() => {
-    if (memberAccessMode === 'tangsel_only') {
+    if (memberAccessMode !== 'tangsel_only') return
+    queueMicrotask(() => {
       setMemberType('tangsel')
       setValue(`holders.${index}.memberType`, 'tangsel')
-    }
+    })
   }, [memberAccessMode, index, setValue])
 
   const validationResult = useHolderMemberValidation(memberType === 'tangsel' ? memberNumber : undefined, eventId)
 
   // Auto-fill name and WhatsApp from directory when Tangsel member is verified.
   useEffect(() => {
-    if (memberType === 'tangsel' && validationResult.status === 'valid') {
-      setValue(`holders.${index}.holderName`, validationResult.fullName, { shouldValidate: true })
-      setValue(`holders.${index}.holderWhatsapp`, validationResult.whatsapp ?? '', { shouldValidate: false })
-    }
+    if (memberType !== 'tangsel' || validationResult.status !== 'valid') return
+    const { fullName, whatsapp, email } = validationResult
+    queueMicrotask(() => {
+      setValue(`holders.${index}.holderName`, fullName, { shouldValidate: true })
+      setValue(`holders.${index}.holderWhatsapp`, whatsapp ?? '', { shouldValidate: false })
+      if (email) {
+        setValue(`holders.${index}.holderEmail`, email, { shouldValidate: true })
+      }
+    })
   }, [memberType, validationResult, index, setValue])
 
   // Notify parent of pricing-relevant validation.
@@ -285,6 +320,7 @@ export function HolderCard({
       if (next !== 'regional') {
         setValue(`holders.${index}.holderName`, '')
         setValue(`holders.${index}.holderWhatsapp`, '')
+        setValue(`holders.${index}.holderEmail`, '')
       }
     }
     if (next !== 'regional') {
@@ -296,6 +332,7 @@ export function HolderCard({
     setValue(`holders.${index}.claimedMemberNumber`, '')
     setValue(`holders.${index}.holderName`, '')
     setValue(`holders.${index}.holderWhatsapp`, '')
+    setValue(`holders.${index}.holderEmail`, '')
   }
 
   // Whether verified Tangsel member is missing WhatsApp in the directory
@@ -430,6 +467,8 @@ export function HolderCard({
               <WhatsAppField index={index} />
             </>
           )}
+
+          <HolderEmailField index={index} isPrimary={isPrimary} />
 
           {/* Menu selection */}
           {menuRequired && menuItems && menuItems.length > 0 && (
