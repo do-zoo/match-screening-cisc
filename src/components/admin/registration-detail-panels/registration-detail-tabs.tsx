@@ -30,7 +30,7 @@ export function RegistrationDetailTabs({ eventId, registrationId, tab, showOpera
       }}
       className='gap-0 w-full'
     >
-      <TabsList className='sticky z-10 border-b border-border/60 bg-background/95  backdrop-blur supports-backdrop-filter:bg-background/80 top-0 w-full h-10! overflow-x-auto'>
+      <TabsList className='sticky top-0 z-10 h-10! w-full overflow-x-auto overflow-y-hidden border-b border-border/60 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 scrollbar-hide'>
         <TabsTrigger value='ringkasan' className=' shrink-0'>
           Ringkasan
         </TabsTrigger>
