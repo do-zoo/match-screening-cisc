@@ -29,9 +29,7 @@ export default async function AdminNewVenuePage() {
       </div>
 
       <form
-        action={async fd => {
-          await createVenueMinimal(fd)
-        }}
+        action={createVenueMinimal}
         className='grid gap-4'
       >
         <div className='grid gap-2'>
