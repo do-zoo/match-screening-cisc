@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 import { RegistrationNotifyDialog } from '@/components/admin/registration-notify-dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { AttendanceSection } from '@/components/admin/registration-detail-panels/tab-operations/attendance-section'
 import { InvoiceAdjustmentsSection } from '@/components/admin/registration-detail-panels/tab-operations/invoice-adjustments-section'
@@ -49,19 +48,21 @@ export function OperationsTabClient({ eventId, registration, waBodies }: Props) 
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className='border-b border-border/60 pb-4'>
           <CardTitle>Operasi</CardTitle>
-          <CardDescription>Kehadiran, penyesuaian invoice, dan pembatalan atau refund.</CardDescription>
+          <CardDescription>
+            Catat kehadiran, kelola penyesuaian invoice, atau batalkan dan refund pendaftaran yang sudah disetujui.
+          </CardDescription>
         </CardHeader>
-        <CardContent className='grid gap-4 md:p-6'>
-          <AttendanceSection eventId={eventId} registration={registration} />
-          <Separator />
-          <InvoiceAdjustmentsSection
-            eventId={eventId}
-            registration={registration}
-            onUnderpaymentEmailSent={amount => openNotify('underpayment_email_reminder', amount)}
-          />
-          <Separator />
+        <CardContent className='grid gap-4 p-4 md:gap-5 md:p-6'>
+          <div className='grid gap-4 lg:grid-cols-2 lg:items-start lg:gap-5'>
+            <AttendanceSection eventId={eventId} registration={registration} />
+            <InvoiceAdjustmentsSection
+              eventId={eventId}
+              registration={registration}
+              onUnderpaymentEmailSent={amount => openNotify('underpayment_email_reminder', amount)}
+            />
+          </div>
           <CancelRefundSection
             eventId={eventId}
             registration={registration}

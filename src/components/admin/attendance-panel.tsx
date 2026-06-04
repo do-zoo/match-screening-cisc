@@ -2,23 +2,34 @@
 
 import { useState, useTransition } from 'react'
 import { AttendanceStatus, RegistrationStatus } from '@prisma/client'
+import { CheckIcon, RotateCcwIcon, UserXIcon } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { setAttendance } from '@/lib/actions/attendance'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
+import { cn } from '@/lib/utils'
 
 type Props = {
   eventId: string
   registrationId: string
   current: AttendanceStatus
   registrationStatus: RegistrationStatus
+  canSetAttendance?: boolean
+  statusLabel?: string
 }
 
-export function AttendancePanel({ eventId, registrationId, current, registrationStatus }: Props) {
+export function AttendancePanel({
+  eventId,
+  registrationId,
+  current,
+  registrationStatus,
+  canSetAttendance: canSetAttendanceProp,
+  statusLabel,
+}: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  const canSetAttendance = registrationStatus === RegistrationStatus.approved
+  const canSetAttendance = canSetAttendanceProp ?? registrationStatus === RegistrationStatus.approved
 
   function handleSet(status: AttendanceStatus) {
     setError(null)
@@ -33,48 +44,62 @@ export function AttendancePanel({ eventId, registrationId, current, registration
     })
   }
 
+  if (!canSetAttendance) {
+    return (
+      <p className='text-sm leading-relaxed text-muted-foreground'>
+        Kehadiran hanya dapat dicatat setelah pendaftaran disetujui.
+        {statusLabel ? (
+          <>
+            {' '}
+            Status saat ini: <span className='font-medium text-foreground'>{statusLabel}</span>.
+          </>
+        ) : null}
+      </p>
+    )
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Kehadiran</CardTitle>
-      </CardHeader>
-      <CardContent className='flex flex-col gap-3'>
-        <div className='text-sm text-muted-foreground'>
-          Status saat ini: <span className='font-medium capitalize'>{current.replace('_', ' ')}</span>
+    <div className='grid gap-3'>
+      <p className='text-sm text-muted-foreground'>
+        Status: <span className='font-medium text-foreground'>{statusLabel ?? current.replace('_', ' ')}</span>
+      </p>
+
+      <div className='grid gap-2'>
+        <Button
+          variant='default'
+          className={cn(
+            'w-full justify-center gap-2',
+            'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500',
+          )}
+          disabled={isPending || current === AttendanceStatus.attended}
+          onClick={() => handleSet(AttendanceStatus.attended)}
+        >
+          <CheckIcon className='size-4' aria-hidden />
+          Hadir
+        </Button>
+        <div className='grid grid-cols-2 gap-2'>
+          <Button
+            variant='outline'
+            className='justify-center gap-1.5'
+            disabled={isPending || current === AttendanceStatus.no_show}
+            onClick={() => handleSet(AttendanceStatus.no_show)}
+          >
+            <UserXIcon className='size-4' aria-hidden />
+            Tidak hadir
+          </Button>
+          <Button
+            variant='ghost'
+            className='justify-center gap-1.5 text-muted-foreground hover:text-foreground'
+            disabled={isPending || current === AttendanceStatus.unknown}
+            onClick={() => handleSet(AttendanceStatus.unknown)}
+          >
+            <RotateCcwIcon className='size-4' aria-hidden />
+            Reset
+          </Button>
         </div>
-        {!canSetAttendance && (
-          <p className='text-sm text-muted-foreground'>
-            Kehadiran hanya dapat dicatat untuk pendaftaran yang sudah disetujui.
-          </p>
-        )}
-        {canSetAttendance && (
-          <div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap'>
-            <Button
-              variant='default'
-              className='bg-emerald-600 hover:bg-emerald-700'
-              disabled={isPending || current === AttendanceStatus.attended}
-              onClick={() => handleSet(AttendanceStatus.attended)}
-            >
-              Hadir
-            </Button>
-            <Button
-              variant='outline'
-              disabled={isPending || current === AttendanceStatus.no_show}
-              onClick={() => handleSet(AttendanceStatus.no_show)}
-            >
-              Tidak hadir
-            </Button>
-            <Button
-              variant='ghost'
-              disabled={isPending || current === AttendanceStatus.unknown}
-              onClick={() => handleSet(AttendanceStatus.unknown)}
-            >
-              Reset
-            </Button>
-          </div>
-        )}
-        {error && <p className='text-sm text-destructive'>{error}</p>}
-      </CardContent>
-    </Card>
+      </div>
+
+      {error ? <p className='text-sm text-destructive'>{error}</p> : null}
+    </div>
   )
 }

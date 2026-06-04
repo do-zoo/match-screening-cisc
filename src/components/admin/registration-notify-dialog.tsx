@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -40,14 +40,15 @@ export function RegistrationNotifyDialog({ open, onOpenChange, payload }: Props)
             Lewati
           </Button>
           {payload.canOpen ? (
-            <Button
-              type='button'
-              render={
-                <a target='_blank' rel='noopener noreferrer' href={payload.href} onClick={() => onOpenChange(false)} />
-              }
+            <a
+              target='_blank'
+              rel='noopener noreferrer'
+              href={payload.href}
+              onClick={() => onOpenChange(false)}
+              className={buttonVariants()}
             >
               Buka WhatsApp
-            </Button>
+            </a>
           ) : (
             <Button type='button' disabled>
               Buka WhatsApp

@@ -16,9 +16,15 @@ async function guard(eventId: string) {
   if (!canVerifyEvent(ctx, eventId)) throw new Error('FORBIDDEN')
 }
 
-const ALLOWED_TRANSITION_STATUSES: RegistrationStatus[] = [
+/** Initial review and "Ubah keputusan" — all registration statuses except none. */
+const VERIFY_FROM_STATUSES: RegistrationStatus[] = [
   RegistrationStatus.submitted,
   RegistrationStatus.pending_review,
+  RegistrationStatus.approved,
+  RegistrationStatus.rejected,
+  RegistrationStatus.payment_issue,
+  RegistrationStatus.cancelled,
+  RegistrationStatus.refunded,
 ]
 
 export async function approveRegistration(
@@ -42,7 +48,7 @@ export async function approveRegistration(
     select: { status: true, eventId: true },
   })
   if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
-  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+  if (!VERIFY_FROM_STATUSES.includes(existing.status)) {
     return rootError('Status tidak valid untuk aksi ini.')
   }
 
@@ -92,7 +98,7 @@ export async function rejectRegistration(
     select: { status: true, eventId: true },
   })
   if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
-  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+  if (!VERIFY_FROM_STATUSES.includes(existing.status)) {
     return rootError('Status tidak valid untuk aksi ini.')
   }
 
@@ -135,7 +141,7 @@ export async function markPaymentIssue(
     select: { status: true, eventId: true },
   })
   if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
-  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+  if (!VERIFY_FROM_STATUSES.includes(existing.status)) {
     return rootError('Status tidak valid untuk aksi ini.')
   }
 

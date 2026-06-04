@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { RegistrationStatus } from '@prisma/client'
+import { BanIcon, RotateCcwIcon } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cancelRegistration, refundRegistration } from '@/lib/actions/cancel-refund'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 
@@ -71,67 +72,78 @@ export function CancelRefundPanel({ eventId, registrationId, status, onCancelSuc
     })
   }
 
-  if (!canCancel && !canRefund) return null
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Batalkan / Refund</CardTitle>
-      </CardHeader>
-      <CardContent className='flex flex-col gap-3'>
-        <div className='flex flex-wrap gap-2'>
-          {canCancel && (
-            <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-              <DialogTrigger disabled={isPending} render={<Button variant='outline' />}>
-                Batalkan pendaftaran
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Konfirmasi pembatalan</DialogTitle>
-                  <DialogDescription>
-                    Pendaftaran ini akan diubah ke status <strong>cancelled</strong>. Aksi ini tidak dapat dibatalkan
-                    secara otomatis.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant='outline' onClick={() => setCancelOpen(false)} disabled={isPending}>
-                    Kembali
-                  </Button>
-                  <Button variant='destructive' onClick={handleCancel} disabled={isPending}>
-                    Ya, batalkan
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+    <div className='grid gap-3'>
+      <p className='text-sm leading-relaxed text-muted-foreground'>
+        Pembatalan mengubah status ke <span className='font-medium text-foreground'>dibatalkan</span>. Refund
+        mengubah status ke <span className='font-medium text-foreground'>refund</span> setelah dana dikembalikan.
+      </p>
 
-          {canRefund && (
-            <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
-              <DialogTrigger disabled={isPending} render={<Button variant='destructive' />}>
-                Proses refund
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Konfirmasi refund</DialogTitle>
-                  <DialogDescription>
-                    Pendaftaran ini akan diubah ke status <strong>refunded</strong>. Pastikan pembayaran sudah
-                    dikembalikan sebelum mengkonfirmasi.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant='outline' onClick={() => setRefundOpen(false)} disabled={isPending}>
-                    Kembali
-                  </Button>
-                  <Button variant='destructive' onClick={handleRefund} disabled={isPending}>
-                    Ya, proses refund
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-        {error && <p className='text-sm text-destructive'>{error}</p>}
-      </CardContent>
-    </Card>
+      <div className='grid gap-2 sm:grid-cols-2'>
+        {canCancel ? (
+          <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+            <DialogTrigger
+              disabled={isPending}
+              render={
+                <Button variant='outline' className='w-full justify-center gap-2' />
+              }
+            >
+              <BanIcon className='size-4' aria-hidden />
+              Batalkan pendaftaran
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Konfirmasi pembatalan</DialogTitle>
+                <DialogDescription>
+                  Pendaftaran ini akan diubah ke status <strong>dibatalkan</strong>. Aksi ini tidak dapat dibatalkan
+                  secara otomatis.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant='outline' onClick={() => setCancelOpen(false)} disabled={isPending}>
+                  Kembali
+                </Button>
+                <Button variant='destructive' onClick={handleCancel} disabled={isPending}>
+                  Ya, batalkan
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : null}
+
+        {canRefund ? (
+          <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
+            <DialogTrigger
+              disabled={isPending}
+              render={
+                <Button variant='destructive' className='w-full justify-center gap-2' />
+              }
+            >
+              <RotateCcwIcon className='size-4' aria-hidden />
+              Proses refund
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Konfirmasi refund</DialogTitle>
+                <DialogDescription>
+                  Pendaftaran ini akan diubah ke status <strong>refund</strong>. Pastikan pembayaran sudah dikembalikan
+                  sebelum mengkonfirmasi.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant='outline' onClick={() => setRefundOpen(false)} disabled={isPending}>
+                  Kembali
+                </Button>
+                <Button variant='destructive' onClick={handleRefund} disabled={isPending}>
+                  Ya, proses refund
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : null}
+      </div>
+
+      {error ? <p className='text-sm text-destructive'>{error}</p> : null}
+    </div>
   )
 }
