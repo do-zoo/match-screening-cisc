@@ -100,21 +100,29 @@ describe('renderEmailFromBlocks', () => {
   })
 
   it('includes contact email in html when branding contact set', async () => {
-    const entry = getEmailTemplateEntry(EmailTemplateKey.magic_link)
-    const { html, text } = await renderEmailFromBlocks({
-      key: EmailTemplateKey.magic_link,
-      subject: entry.defaultSubject,
-      blocks: entry.defaultBlocks,
-      vars: sampleVarsFromCatalog(entry),
-      contact: {
-        contactEmail: 'komite@example.com',
-        websiteUrl: 'https://cisc.example',
-        locationText: 'Tangerang Selatan',
-        socialLinks: [{ label: 'Instagram', url: 'https://instagram.com/cisc' }],
-      },
-    })
-    expect(html).toContain('komite@example.com')
-    expect(html).toContain('Tangerang Selatan')
-    expect(text).toContain('komite@example.com')
+    const prevOrigin = process.env.BETTER_AUTH_URL
+    process.env.BETTER_AUTH_URL = 'https://test.example'
+    try {
+      const entry = getEmailTemplateEntry(EmailTemplateKey.magic_link)
+      const { html, text } = await renderEmailFromBlocks({
+        key: EmailTemplateKey.magic_link,
+        subject: entry.defaultSubject,
+        blocks: entry.defaultBlocks,
+        vars: sampleVarsFromCatalog(entry),
+        contact: {
+          contactEmail: 'komite@example.com',
+          websiteUrl: 'https://cisc.example',
+          locationText: 'Tangerang Selatan',
+          socialLinks: [{ label: 'Instagram', url: 'https://instagram.com/cisc' }],
+        },
+      })
+      expect(html).toContain('komite@example.com')
+      expect(html).toContain('Tangerang Selatan')
+      expect(html).toContain('/branding-icons/email.png')
+      expect(text).toContain('komite@example.com')
+    } finally {
+      if (prevOrigin === undefined) delete process.env.BETTER_AUTH_URL
+      else process.env.BETTER_AUTH_URL = prevOrigin
+    }
   })
 })

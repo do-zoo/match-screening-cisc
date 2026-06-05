@@ -3,8 +3,13 @@
 import { useActionState, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
+import {
+  BrandingFieldIconPreview,
+  socialIconHintFromUrl,
+} from '@/components/admin/branding-field-icon-preview'
 import { saveClubBranding } from '@/lib/actions/admin-club-branding'
 import type { ClubSocialLink } from '@/lib/branding/club-social-links'
+import { detectContactPlatform } from '@/lib/branding/contact-platform'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FileField } from '@/components/ui/file-field'
@@ -112,6 +117,7 @@ export function ClubBrandingSettingsForm(props: {
               value={contactEmail}
               onChange={e => setContactEmail(e.target.value)}
             />
+            <BrandingFieldIconPreview platform='email' />
           </div>
           <div className='space-y-2'>
             <Label htmlFor='websiteUrl'>Website</Label>
@@ -123,6 +129,7 @@ export function ClubBrandingSettingsForm(props: {
               value={websiteUrl}
               onChange={e => setWebsiteUrl(e.target.value)}
             />
+            <BrandingFieldIconPreview platform='website' />
           </div>
           <div className='space-y-2'>
             <Label htmlFor='locationText'>Lokasi</Label>
@@ -135,6 +142,7 @@ export function ClubBrandingSettingsForm(props: {
               value={locationText}
               onChange={e => setLocationText(e.target.value)}
             />
+            <BrandingFieldIconPreview platform='location' />
           </div>
           <div className='space-y-4'>
             <p className='text-sm font-medium'>Sosial media (maks. 3)</p>
@@ -145,7 +153,7 @@ export function ClubBrandingSettingsForm(props: {
                   <Input
                     id={`socialLabel${i}`}
                     name={`socialLabel${i}`}
-                    placeholder='Instagram'
+                    placeholder='Opsional — kosongkan untuk nama platform otomatis'
                     value={row.label}
                     onChange={e => updateSocialSlot(i, 'label', e.target.value)}
                     maxLength={40}
@@ -160,6 +168,10 @@ export function ClubBrandingSettingsForm(props: {
                     placeholder='https://…'
                     value={row.url}
                     onChange={e => updateSocialSlot(i, 'url', e.target.value)}
+                  />
+                  <BrandingFieldIconPreview
+                    platform={detectContactPlatform(row.url)}
+                    hint={socialIconHintFromUrl(row.url)}
                   />
                 </div>
               </div>

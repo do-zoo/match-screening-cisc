@@ -190,9 +190,16 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/email-templates/email-doc-serializer.ts` — Tiptap JSON ↔ plain text; `email-doc-react.tsx` → React Email nodes
 - `lib/email-templates/render-email-from-blocks.ts` — HTML + text Resend dari susunan blok
 - `lib/email-templates/email-design-tokens.ts` — hex token layout email (selaras theme light)
-- `lib/email-templates/emails/club-email-layout.tsx` — header band + footer kontak global dari branding
+- `lib/email-templates/emails/club-email-layout.tsx` — header band + footer kontak global dari branding (`appOrigin` untuk ikon PNG)
+- `lib/email-templates/emails/club-email-contact-footer.tsx` — footer 3 kolom email dengan `<Img>` ikon kontak
 - `lib/branding/club-social-links.ts` — parse/validasi `socialLinks` JSON
-- `components/branding/club-contact-display.tsx` — footer kontak terstruktur (web)
+- `lib/branding/contact-platform.ts` — `detectContactPlatform`, `normalizeHostname` (ikon sosial dari URL)
+- `lib/branding/contact-icon-registry.ts` — map platform → PNG + label default (ID)
+- `lib/branding/resolve-contact-display-label.ts` — label tampilan sosial (admin → platform → hostname)
+- `lib/branding/branding-icon-url.ts` — `brandingIconPublicPath`, `brandingIconAbsoluteUrl` (email)
+- `public/branding-icons/*.png` — asset ikon kontak (~20×20; generator: `node scripts/generate-branding-icons.mjs`)
+- `components/branding/contact-icon-row.tsx` — baris ikon + teks (web)
+- `components/branding/club-contact-display.tsx` — footer kontak terstruktur (web, dengan ikon)
 - `lib/email-templates/render-invoice-email.ts` / `render-registration-approved-email.ts` / `render-magic-link-email.ts` — wrapper runtime
 - `lib/email-templates/load-club-email-templates.ts` — parse/migrasi body legacy
 - `lib/email-templates/load-email-template-preview-vars.ts` — variabel pratinjau editor template email dari registrasi/acara terbaru di DB (fallback katalog)

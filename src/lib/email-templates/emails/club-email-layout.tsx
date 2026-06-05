@@ -10,6 +10,7 @@ export type ClubEmailLayoutProps = {
   clubNameNav: string
   logoBlobUrl?: string | null
   contact: ClubEmailContactProps
+  appOrigin?: string | null
   children: ReactNode
 }
 
@@ -92,7 +93,11 @@ export function ClubEmailLayout(props: ClubEmailLayoutProps) {
         >
           <ClubEmailHeader clubNameNav={props.clubNameNav} logoBlobUrl={props.logoBlobUrl} />
           <ClubEmailBody>{props.children}</ClubEmailBody>
-          <ClubEmailContactFooter {...props.contact} clubNameNav={props.clubNameNav} />
+          <ClubEmailContactFooter
+            {...props.contact}
+            clubNameNav={props.clubNameNav}
+            appOrigin={props.appOrigin}
+          />
         </Container>
       </Body>
     </Html>

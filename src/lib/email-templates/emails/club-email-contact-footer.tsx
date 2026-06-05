@@ -1,7 +1,14 @@
-import { Column, Hr, Link, Row, Section, Text } from 'react-email'
-import { createElement } from 'react'
+import { Column, Hr, Img, Link, Row, Section, Text } from 'react-email'
+import { createElement, type ReactNode } from 'react'
 
 import { hasAnyClubContact } from '@/lib/branding/club-social-links'
+import { brandingIconAbsoluteUrl } from '@/lib/branding/branding-icon-url'
+import type { ContactPlatformKey } from '@/lib/branding/contact-platform'
+import { detectContactPlatform } from '@/lib/branding/contact-platform'
+import {
+  resolveContactDisplayLabel,
+  websiteLinkLabel,
+} from '@/lib/branding/resolve-contact-display-label'
 import { EMAIL_DESIGN_TOKENS as T } from '@/lib/email-templates/email-design-tokens'
 import type { ClubEmailContactProps } from '@/lib/email-templates/emails/club-email-plain-contact'
 
@@ -26,6 +33,36 @@ const linkStyle = {
   textDecoration: 'underline' as const,
 }
 
+const iconStyle = {
+  display: 'inline-block' as const,
+  verticalAlign: 'middle' as const,
+  marginRight: '6px',
+}
+
+function emailIconTextRow(
+  platform: ContactPlatformKey,
+  appOrigin: string | null | undefined,
+  child: ReactNode,
+): ReturnType<typeof createElement> {
+  const iconUrl = brandingIconAbsoluteUrl(platform, appOrigin)
+  const content =
+    iconUrl ?
+      [
+        createElement(Img, {
+          key: 'icon',
+          src: iconUrl,
+          alt: '',
+          width: 16,
+          height: 16,
+          style: iconStyle,
+        }),
+        child,
+      ]
+    : [child]
+
+  return createElement(Text, { style: columnValue }, ...content)
+}
+
 function footerColumn(title: string, children: ReturnType<typeof createElement>[]) {
   if (children.length === 0) return null
   return createElement(
@@ -36,16 +73,19 @@ function footerColumn(title: string, children: ReturnType<typeof createElement>[
   )
 }
 
-export function ClubEmailContactFooter(props: ClubEmailContactProps & { clubNameNav: string }) {
+export function ClubEmailContactFooter(
+  props: ClubEmailContactProps & { clubNameNav: string; appOrigin?: string | null },
+) {
   const hasContact = hasAnyClubContact(props)
   const year = new Date().getFullYear()
+  const appOrigin = props.appOrigin ?? process.env.BETTER_AUTH_URL ?? null
 
   const emailChildren: ReturnType<typeof createElement>[] = []
   if (props.contactEmail?.trim()) {
     emailChildren.push(
-      createElement(
-        Text,
-        { style: columnValue },
+      emailIconTextRow(
+        'email',
+        appOrigin,
         createElement(Link, { href: `mailto:${props.contactEmail}`, style: linkStyle }, props.contactEmail),
       ),
     )
@@ -54,26 +94,36 @@ export function ClubEmailContactFooter(props: ClubEmailContactProps & { clubName
   const locationChildren: ReturnType<typeof createElement>[] = []
   if (props.locationText?.trim()) {
     locationChildren.push(
-      createElement(Text, { style: { ...columnValue, whiteSpace: 'pre-wrap' as const } }, props.locationText),
+      emailIconTextRow(
+        'location',
+        appOrigin,
+        createElement(Text, { style: { margin: 0, whiteSpace: 'pre-wrap' as const } }, props.locationText),
+      ),
     )
   }
 
   const socialChildren: ReturnType<typeof createElement>[] = []
   if (props.websiteUrl?.trim()) {
     socialChildren.push(
-      createElement(
-        Text,
-        { style: columnValue },
-        createElement(Link, { href: props.websiteUrl, style: linkStyle }, 'Website'),
+      emailIconTextRow(
+        'website',
+        appOrigin,
+        createElement(Link, { href: props.websiteUrl, style: linkStyle }, websiteLinkLabel()),
       ),
     )
   }
-  for (const s of props.socialLinks.filter(l => l.label.trim() && l.url.trim())) {
+  for (const s of props.socialLinks.filter(l => l.url.trim())) {
+    const platform = detectContactPlatform(s.url)
+    const displayLabel = resolveContactDisplayLabel({
+      label: s.label,
+      url: s.url,
+      platform,
+    })
     socialChildren.push(
-      createElement(
-        Text,
-        { key: `${s.label}-${s.url}`, style: columnValue },
-        createElement(Link, { href: s.url, style: linkStyle }, s.label),
+      emailIconTextRow(
+        platform,
+        appOrigin,
+        createElement(Link, { key: `${s.label}-${s.url}`, href: s.url, style: linkStyle }, displayLabel),
       ),
     )
   }

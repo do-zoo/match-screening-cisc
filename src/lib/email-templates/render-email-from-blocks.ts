@@ -44,6 +44,7 @@ export async function renderEmailFromBlocks(opts: {
         clubNameNav,
         logoBlobUrl: opts.logoBlobUrl,
         contact,
+        appOrigin: process.env.BETTER_AUTH_URL ?? null,
       },
       renderEmailBlocks({
         templateKey: opts.key,
