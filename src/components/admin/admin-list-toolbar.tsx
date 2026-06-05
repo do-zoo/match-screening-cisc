@@ -12,6 +12,41 @@ import { cn } from '@/lib/utils'
 
 const DEFAULT_SEARCH_DEBOUNCE_MS = 350
 
+/** Cache draft antar remount (mis. halaman anggota dengan wrapper client penuh). */
+const searchDraftByInputId = new Map<string, string>()
+/** Query yang belum/sedang di-push ke URL — mencegah sinkron menimpa saat mengetik. */
+const pendingSearchQByInputId = new Map<string, string | undefined>()
+
+function normalizeSearchQuery(raw: string): string | undefined {
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+function resolveInitialDraft(inputId: string, serverValue: string): string {
+  const cached = searchDraftByInputId.get(inputId)
+  if (cached === undefined) return serverValue
+
+  const cachedQ = normalizeSearchQuery(cached)
+  const serverQ = normalizeSearchQuery(serverValue)
+  const pending = pendingSearchQByInputId.get(inputId)
+
+  if (cachedQ === serverQ) return cached
+
+  if (pending !== undefined) {
+    if (serverQ === undefined && cachedQ !== undefined) return cached
+    if (serverQ !== undefined && cached.startsWith(serverValue.trim()) && cached.length >= serverValue.trim().length) {
+      return cached
+    }
+  }
+
+  if (serverQ === undefined && cachedQ !== undefined && pending === undefined) {
+    searchDraftByInputId.delete(inputId)
+    return serverValue
+  }
+
+  return serverValue
+}
+
 export type AdminListToolbarSearchConfig = {
   inputId: string
   label: string
@@ -46,8 +81,16 @@ type AdminListToolbarProps = {
  */
 export function AdminListToolbar({ className, search, viewToggle, filterSlot, endSlot }: AdminListToolbarProps) {
   const router = useRouter()
-  const [draftQ, setDraftQ] = React.useState(search?.value ?? '')
+  const [draftQ, setDraftQ] = React.useState(() =>
+    search ? resolveInitialDraft(search.inputId, search.value) : '',
+  )
   const getUrlForQueryRef = React.useRef(search?.getUrlForQuery)
+  const isSearchFocusedRef = React.useRef(false)
+  const draftQRef = React.useRef(draftQ)
+
+  React.useLayoutEffect(() => {
+    draftQRef.current = draftQ
+  }, [draftQ])
 
   React.useLayoutEffect(() => {
     getUrlForQueryRef.current = search?.getUrlForQuery
@@ -55,10 +98,30 @@ export function AdminListToolbar({ className, search, viewToggle, filterSlot, en
 
   React.useEffect(() => {
     if (!search) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sinkron input ke nilai URL dari server
+    searchDraftByInputId.set(search.inputId, draftQ)
+  }, [draftQ, search?.inputId, search])
+
+  React.useEffect(() => {
+    if (!search) return
+
+    const serverQ = normalizeSearchQuery(search.value)
+    const pending = pendingSearchQByInputId.get(search.inputId)
+
+    if (pending !== undefined && serverQ === pending) {
+      pendingSearchQByInputId.delete(search.inputId)
+      const draftNorm = normalizeSearchQuery(draftQRef.current)
+      if (draftNorm !== serverQ) return
+    }
+
+    const isFocused =
+      isSearchFocusedRef.current ||
+      (search.inputId.length > 0 && document.activeElement?.id === search.inputId)
+    if (isFocused) return
+
+    searchDraftByInputId.set(search.inputId, search.value)
     setDraftQ(search.value)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hindari dependensi objek `search` (identitas baru tiap render)
-  }, [search?.value])
+  }, [search?.value, search?.inputId])
 
   React.useEffect(() => {
     if (!search) return
@@ -70,13 +133,25 @@ export function AdminListToolbar({ className, search, viewToggle, filterSlot, en
     if (nextQ === currentQ) return
 
     const id = window.setTimeout(() => {
+      pendingSearchQByInputId.set(search.inputId, nextQ)
       const href = getUrlForQueryRef.current?.(nextQ)
       if (href) router.push(href)
     }, debounceMs)
 
     return () => window.clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `getUrlForQuery` lewat ref; hindari dependensi objek `search`
-  }, [draftQ, search?.value, search?.debounceMs, router])
+  }, [draftQ, search?.value, search?.debounceMs, search?.inputId, router])
+
+  function handleSearchChange(next: string) {
+    setDraftQ(next)
+    if (!search) return
+    searchDraftByInputId.set(search.inputId, next)
+    const nextQ = normalizeSearchQuery(next)
+    const currentQ = normalizeSearchQuery(search.value)
+    if (nextQ !== currentQ) {
+      pendingSearchQByInputId.set(search.inputId, nextQ)
+    }
+  }
 
   const clearSearchHref = search?.getUrlForQuery(undefined)
   const showClearSearch =
@@ -102,13 +177,23 @@ export function AdminListToolbar({ className, search, viewToggle, filterSlot, en
                   autoComplete='off'
                   placeholder={search.placeholder}
                   value={draftQ}
-                  onChange={e => setDraftQ(e.target.value)}
+                  onChange={e => handleSearchChange(e.target.value)}
+                  onFocus={() => {
+                    isSearchFocusedRef.current = true
+                  }}
+                  onBlur={() => {
+                    isSearchFocusedRef.current = false
+                  }}
                   className='w-full min-w-0'
                 />
                 {showClearSearch ? (
                   <Link
                     href={clearSearchHref}
                     prefetch={false}
+                    onClick={() => {
+                      pendingSearchQByInputId.delete(search.inputId)
+                      searchDraftByInputId.set(search.inputId, '')
+                    }}
                     className={cn(
                       buttonVariants({ variant: 'ghost', size: 'sm' }),
                       'text-muted-foreground shrink-0 self-start sm:self-auto',
