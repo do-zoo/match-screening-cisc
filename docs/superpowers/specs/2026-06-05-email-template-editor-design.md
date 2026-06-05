@@ -2,7 +2,7 @@
 title: Editor template email — blok terstruktur + React Email + Tiptap
 date: 2026-06-05
 project: match-screening
-status: draft-pending-review
+status: approved
 related:
   - 2026-06-05-wa-template-editor-design.md
   - 2026-06-06-email-templates-and-blast-design.md
