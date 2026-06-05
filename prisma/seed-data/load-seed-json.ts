@@ -24,7 +24,7 @@ export function reviveDates<T>(value: T): T {
   return value
 }
 
-export function loadSeedJson<T>(name: string): T[] {
+export function loadSeedJson<T = Record<string, unknown>>(name: string): T[] {
   const path = join(SEED_DATA_DIR, `${name}.json`)
   if (!existsSync(path)) return []
   const raw = readFileSync(path, 'utf8')
