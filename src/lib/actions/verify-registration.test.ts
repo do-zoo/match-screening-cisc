@@ -11,6 +11,16 @@ vi.mock('@/lib/db/prisma', () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    clubNotificationPreferences: {
+      findUnique: vi.fn().mockResolvedValue({
+        emailAutoOnApprove: false,
+        emailAutoOnReject: false,
+        emailAutoOnPaymentIssue: false,
+        emailAutoOnReceipt: false,
+        emailAutoOnCancel: false,
+        emailAutoOnRefund: false,
+      }),
+    },
   },
 }))
 
@@ -28,6 +38,10 @@ vi.mock('@/lib/permissions/guards', () => ({
 
 vi.mock('@/lib/email/send-registration-approved-email', () => ({
   sendRegistrationApprovedEmailForRegistration: vi.fn().mockResolvedValue({ ok: true }),
+}))
+
+vi.mock('@/lib/email/send-registration-email', () => ({
+  maybeAutoSendRegistrationEmail: vi.fn().mockResolvedValue({ sent: false }),
 }))
 
 import { prisma } from '@/lib/db/prisma'

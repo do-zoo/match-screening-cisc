@@ -1,4 +1,5 @@
 import { InvoiceAdjustmentPanel } from '@/components/admin/invoice-adjustment-panel'
+import { SendRegistrationInvoiceEmailButton } from '@/components/admin/send-registration-invoice-email-button'
 import { resolveDetailRegistrationContact } from '@/lib/registrations/registration-primary-contact'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { OperationSectionShell } from '@/components/admin/registration-detail-panels/tab-operations/operation-section-shell'
@@ -27,6 +28,11 @@ export function InvoiceAdjustmentsSection({ eventId, registration, onUnderpaymen
         ) : null
       }
     >
+      {contact.email && unpaidCount === 0 ? (
+        <div className='flex flex-wrap gap-2'>
+          <SendRegistrationInvoiceEmailButton eventId={eventId} registrationId={registration.id} />
+        </div>
+      ) : null}
       <InvoiceAdjustmentPanel
         eventId={eventId}
         registrationId={registration.id}

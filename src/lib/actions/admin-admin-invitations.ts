@@ -13,7 +13,7 @@ import { createAdminInvitationSchema, revokeAdminInvitationSchema } from '@/lib/
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
 import { prisma } from '@/lib/db/prisma'
-import { renderAdminInviteEmail } from '@/lib/auth/emails/render-emails'
+import { resolveAdminInviteEmailContent } from '@/lib/email-templates/render-auth-template-email'
 import { isTransactionalEmailConfigured } from '@/lib/auth/transactional-email-config'
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
 
@@ -117,13 +117,12 @@ export async function createAdminInvitation(
 
   if (inviteUrl && isTransactionalEmailConfigured()) {
     try {
-      const html = await renderAdminInviteEmail(inviteUrl, ROLE_LABEL_EMAIL[parsed.data.role] ?? parsed.data.role)
+      const roleLabel = ROLE_LABEL_EMAIL[parsed.data.role] ?? parsed.data.role
+      const { subject, text, html } = await resolveAdminInviteEmailContent(inviteUrl, roleLabel)
       await sendTransactionalEmail({
         to: email,
-        subject: 'Undangan admin Match Screening',
-        text:
-          `Anda diundang sebagai ${ROLE_LABEL_EMAIL[parsed.data.role] ?? parsed.data.role}. ` +
-          `Buka taut berikut untuk menyelesaikan pengaturan akun (terbatas, satu kali pakai):\n\n${inviteUrl}`,
+        subject,
+        text,
         html,
       })
       revalidatePath('/admin/settings/committee')

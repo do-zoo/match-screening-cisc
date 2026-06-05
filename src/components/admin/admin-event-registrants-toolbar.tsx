@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AdminFilterSelect } from '@/components/admin/admin-filter-select'
 import { AdminListToolbar } from '@/components/admin/admin-list-toolbar'
 import { InvoiceEmailBlastDialog } from '@/components/admin/invoice-email-blast-dialog'
+import { RegistrationInvoiceEmailBlastDialog } from '@/components/admin/registration-invoice-blast-dialog'
 import { buildEventRegistrantsListUrl, type EventRegistrantsTab } from '@/lib/admin/event-registrants-list-url'
 import type { EventsIndexViewMode } from '@/lib/admin/events-index-view'
 
@@ -80,7 +81,12 @@ export function AdminEventRegistrantsToolbar({
           }}
         />
       }
-      endSlot={<InvoiceEmailBlastDialog eventId={eventId} tab={tab} searchQuery={searchQuery} />}
+      endSlot={
+        <div className='flex flex-wrap items-center gap-2'>
+          <RegistrationInvoiceEmailBlastDialog eventId={eventId} tab={tab} searchQuery={searchQuery} />
+          <InvoiceEmailBlastDialog eventId={eventId} tab={tab} searchQuery={searchQuery} />
+        </div>
+      }
     />
   )
 }

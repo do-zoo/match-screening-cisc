@@ -9,6 +9,8 @@ export type EmailTemplateIndexRow = {
   key: EmailTemplateKey
   label: string
   description: string
+  usedWhen: string
+  isSystemTemplate: boolean
   isCustomized: boolean
   updatedAtIso: string | null
 }
@@ -23,6 +25,8 @@ export function buildEmailTemplateIndexRows(
       key,
       label: entry.labelId,
       description: entry.descriptionId,
+      usedWhen: entry.triggerDescriptionId,
+      isSystemTemplate: entry.isSystemTemplate === true,
       isCustomized: customizedKeys.has(key),
       updatedAtIso: updatedAtByKey[key]?.toISOString() ?? null,
     }

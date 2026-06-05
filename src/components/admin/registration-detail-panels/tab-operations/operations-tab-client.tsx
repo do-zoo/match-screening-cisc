@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { RegistrationNotifyDialog } from '@/components/admin/registration-notify-dialog'
+import { RegistrationCommsDialog } from '@/components/admin/registration-comms-dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { AttendanceSection } from '@/components/admin/registration-detail-panels/tab-operations/attendance-section'
@@ -26,11 +26,13 @@ type Props = {
 export function OperationsTabClient({ eventId, registration, waBodies }: Props) {
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifyPayload, setNotifyPayload] = useState<RegistrationNotifyPayload | null>(null)
+  const [notifyKind, setNotifyKind] = useState<RegistrationNotifyKind | null>(null)
 
   const contact = resolveDetailRegistrationContact(registration)
   const notifyInput = notifyInputFromDetailRegistration(registration, contact)
 
   function openNotify(kind: RegistrationNotifyKind, adjustmentAmountIdr?: number) {
+    setNotifyKind(kind)
     setNotifyPayload(
       buildRegistrationWaNotify({
         kind,
@@ -68,7 +70,17 @@ export function OperationsTabClient({ eventId, registration, waBodies }: Props) 
           />
         </CardContent>
       </Card>
-      <RegistrationNotifyDialog open={notifyOpen} onOpenChange={setNotifyOpen} payload={notifyPayload} />
+      {notifyKind ? (
+        <RegistrationCommsDialog
+          open={notifyOpen}
+          onOpenChange={setNotifyOpen}
+          wa={notifyPayload}
+          eventId={eventId}
+          registrationId={registration.id}
+          kind={notifyKind}
+          contactEmail={contact.email}
+        />
+      ) : null}
     </>
   )
 }

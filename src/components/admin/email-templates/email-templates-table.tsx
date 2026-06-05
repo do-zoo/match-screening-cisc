@@ -28,12 +28,26 @@ export function EmailTemplatesTable({ rows }: { rows: EmailTemplateIndexRow[] })
         ),
       },
       {
+        accessorKey: 'usedWhen',
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Dipakai saat' />,
+        cell: ({ row }) => (
+          <span className='text-muted-foreground max-w-[280px] text-sm leading-snug'>{row.original.usedWhen}</span>
+        ),
+      },
+      {
         id: 'customized',
         header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
         cell: ({ row }) => (
-          <Badge variant={row.original.isCustomized ? 'default' : 'secondary'}>
-            {row.original.isCustomized ? 'Kustom' : 'Bawaan'}
-          </Badge>
+          <div className='flex flex-wrap gap-1'>
+            {row.original.isSystemTemplate ? (
+              <Badge variant='outline' className='text-xs'>
+                Sistem
+              </Badge>
+            ) : null}
+            <Badge variant={row.original.isCustomized ? 'default' : 'secondary'}>
+              {row.original.isCustomized ? 'Kustom' : 'Bawaan'}
+            </Badge>
+          </div>
         ),
       },
       {

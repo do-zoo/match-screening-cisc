@@ -2,16 +2,14 @@ import { EmailTemplateKey } from '@prisma/client'
 
 import { sendRegistrationEmailByKey, type SendRegistrationEmailResult } from '@/lib/email/send-registration-email'
 
-export type SendRegistrationApprovedEmailResult = SendRegistrationEmailResult
-
-export async function sendRegistrationApprovedEmailForRegistration(opts: {
+export async function sendRegistrationInvoiceEmailForRegistration(opts: {
   registrationId: string
   eventId: string
   actorAuthUserId: string
   actorProfileId: string | null
-}): Promise<SendRegistrationApprovedEmailResult> {
+}): Promise<SendRegistrationEmailResult> {
   return sendRegistrationEmailByKey({
     ...opts,
-    templateKey: EmailTemplateKey.registration_approved,
+    templateKey: EmailTemplateKey.invoice,
   })
 }

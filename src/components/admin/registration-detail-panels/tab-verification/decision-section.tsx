@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { RegistrationStatus } from '@prisma/client'
 
 import { RegistrationActions } from '@/components/admin/registration-actions'
-import { RegistrationNotifyDialog } from '@/components/admin/registration-notify-dialog'
+import { RegistrationCommsDialog } from '@/components/admin/registration-comms-dialog'
 import { SendPaymentProofEmailButton } from '@/components/admin/send-payment-proof-email-button'
 import { RegistrationStatusBadge } from '@/components/admin/registration-status-badge'
 import { Button } from '@/components/ui/button'
@@ -86,6 +86,7 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
   const [decision, setDecision] = useState<DecisionSnapshot>(() => snapshotFromRegistration(registration))
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifyPayload, setNotifyPayload] = useState<RegistrationNotifyPayload | null>(null)
+  const [notifyKind, setNotifyKind] = useState<RegistrationNotifyKind | null>(null)
 
   if (snapshotKey !== syncedSnapshotKey) {
     setSyncedSnapshotKey(snapshotKey)
@@ -103,6 +104,7 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
     kind: RegistrationNotifyKind,
     overrides?: Partial<Pick<RegistrationNotifyInput, 'rejectionReason' | 'paymentIssueReason'>>,
   ) {
+    setNotifyKind(kind)
     setNotifyPayload(
       buildRegistrationWaNotify({ kind, registration: { ...notifyInput, ...overrides }, waBodies }),
     )
@@ -191,7 +193,17 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
         )}
       </div>
 
-      <RegistrationNotifyDialog open={notifyOpen} onOpenChange={setNotifyOpen} payload={notifyPayload} />
+      {notifyKind ? (
+        <RegistrationCommsDialog
+          open={notifyOpen}
+          onOpenChange={setNotifyOpen}
+          wa={notifyPayload}
+          eventId={eventId}
+          registrationId={registration.id}
+          kind={notifyKind}
+          contactEmail={contact.email}
+        />
+      ) : null}
     </div>
   )
 }

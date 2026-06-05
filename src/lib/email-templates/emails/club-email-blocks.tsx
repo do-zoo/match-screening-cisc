@@ -251,7 +251,7 @@ export function renderEmailBlocks(props: {
             createElement(
               Button,
               {
-                href: vars.magic_link_url ?? '#',
+                href: vars.invite_url ?? vars.magic_link_url ?? '#',
                 style: {
                   backgroundColor: T.primary,
                   color: T.primaryForeground,
@@ -336,7 +336,7 @@ export function blocksToPlainText(props: {
         )
         break
       case 'cta_button':
-        lines.push(`${block.label}: ${vars.magic_link_url ?? ''}`, '')
+        lines.push(`${block.label}: ${vars.invite_url ?? vars.magic_link_url ?? ''}`, '')
         break
       case 'footer_disclaimer':
         break

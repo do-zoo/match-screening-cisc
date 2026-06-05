@@ -7,13 +7,22 @@ import { requireAdminSession } from '@/lib/auth/session'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { canVerifyEvent } from '@/lib/permissions/guards'
 import { eventRegistrationDetailPath, eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
-import { sendRegistrationApprovedEmailForRegistration } from '@/lib/email/send-registration-approved-email'
-import type { SendRegistrationApprovedEmailResult } from '@/lib/email/send-registration-approved-email'
+import { EmailTemplateKey } from '@prisma/client'
+import {
+  maybeAutoSendRegistrationEmail,
+  type SendRegistrationEmailResult,
+} from '@/lib/email/send-registration-email'
+import { loadClubNotificationPreferences } from '@/lib/public/load-club-notification-preferences'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+
+type VerifyActionData = {
+  ok: true
+  email: SendRegistrationEmailResult | null
+}
 
 type ApproveRegistrationData = {
   ok: true
-  paymentProofEmail: SendRegistrationApprovedEmailResult | null
+  paymentProofEmail: SendRegistrationEmailResult | null
 }
 
 async function guard(eventId: string) {
@@ -80,17 +89,15 @@ export async function approveRegistration(
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
 
-  let paymentProofEmail: SendRegistrationApprovedEmailResult | null = null
-  try {
-    paymentProofEmail = await sendRegistrationApprovedEmailForRegistration({
-      registrationId,
-      eventId,
-      actorAuthUserId: actor.authUserId,
-      actorProfileId: actor.profileId,
-    })
-  } catch {
-    paymentProofEmail = { ok: false, error: 'Gagal mengirim bukti pembayaran via email.' }
-  }
+  const prefs = await loadClubNotificationPreferences()
+  const paymentProofEmail = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.registration_approved,
+    enabled: prefs.emailAutoOnApprove,
+    actorAuthUserId: actor.authUserId,
+    actorProfileId: actor.profileId,
+  })
 
   return ok({ ok: true, paymentProofEmail })
 }
@@ -99,9 +106,10 @@ export async function rejectRegistration(
   eventId: string,
   registrationId: string,
   reason: string,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<VerifyActionData>> {
+  let actor: Awaited<ReturnType<typeof guard>>
   try {
-    await guard(eventId)
+    actor = await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
@@ -135,16 +143,28 @@ export async function rejectRegistration(
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const prefs = await loadClubNotificationPreferences()
+  const email = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.rejected,
+    enabled: prefs.emailAutoOnReject,
+    actorAuthUserId: actor.authUserId,
+    actorProfileId: actor.profileId,
+  })
+
+  return ok({ ok: true, email })
 }
 
 export async function markPaymentIssue(
   eventId: string,
   registrationId: string,
   reason: string,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<VerifyActionData>> {
+  let actor: Awaited<ReturnType<typeof guard>>
   try {
-    await guard(eventId)
+    actor = await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
@@ -178,5 +198,16 @@ export async function markPaymentIssue(
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const prefs = await loadClubNotificationPreferences()
+  const email = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.payment_issue,
+    enabled: prefs.emailAutoOnPaymentIssue,
+    actorAuthUserId: actor.authUserId,
+    actorProfileId: actor.profileId,
+  })
+
+  return ok({ ok: true, email })
 }

@@ -27,6 +27,7 @@ import {
   mergeGlobalRegistrationClosure,
 } from '@/lib/public/club-operational-policy'
 import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-settings'
+import { trySendReceiptEmailAfterSubmit } from '@/lib/email/send-registration-email'
 import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
 
 export type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
@@ -310,6 +311,10 @@ export async function submitRegistration(
       console.error(`[submitRegistration] Failed to upload member card photo for holder index ${inputIndex}:`, e)
     }
   }
+
+  void trySendReceiptEmailAfterSubmit({ registrationId: reg.id, eventId }).catch(e => {
+    console.error('[submitRegistration] receipt email failed', e)
+  })
 
   return ok({ registrationId: reg.id })
 }

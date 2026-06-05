@@ -27,6 +27,14 @@ export default async function NotificationsSettingsPage() {
       <ClubNotificationPreferencesForm
         initialMode={row?.outboundMode ?? 'log_only'}
         initialLabel={row?.outboundLabel ?? ''}
+        initialEmailAuto={{
+          emailAutoOnSubmitReceipt: row?.emailAutoOnSubmitReceipt ?? false,
+          emailAutoOnApprove: row?.emailAutoOnApprove ?? true,
+          emailAutoOnReject: row?.emailAutoOnReject ?? false,
+          emailAutoOnPaymentIssue: row?.emailAutoOnPaymentIssue ?? false,
+          emailAutoOnCancel: row?.emailAutoOnCancel ?? false,
+          emailAutoOnRefund: row?.emailAutoOnRefund ?? false,
+        }}
       />
     </div>
   )

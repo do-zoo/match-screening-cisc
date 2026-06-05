@@ -195,6 +195,47 @@ function varsForMagicLinkPreview(entry: EmailTemplateCatalogEntry): Record<strin
   return base
 }
 
+async function varsFromLatestRegistrationByStatus(
+  status: RegistrationStatus,
+): Promise<Record<string, string> | null> {
+  const reg = await prisma.registration.findFirst({
+    where: { status, contactEmail: { not: null } },
+    orderBy: { updatedAt: 'desc' },
+    select: {
+      id: true,
+      contactName: true,
+      computedTotalAtSubmit: true,
+      ticketQty: true,
+      ticketCategory: { select: { name: true } },
+      tickets: previewTicketSelect,
+      event: { select: { title: true } },
+      rejectionReason: true,
+      paymentIssueReason: true,
+    },
+  })
+  if (!reg) return null
+
+  const vars: Record<string, string> = {
+    contact_name: reg.contactName,
+    event_title: reg.event.title,
+    registration_id: reg.id,
+    computed_total_idr: formatWaIdr(reg.computedTotalAtSubmit),
+    ticket_qty: String(reg.ticketQty),
+    ticket_category_name: reg.ticketCategory.name,
+  }
+  if (status === RegistrationStatus.rejected && reg.rejectionReason) {
+    vars.reason = reg.rejectionReason
+  } else if (status === RegistrationStatus.payment_issue && reg.paymentIssueReason) {
+    vars.reason = reg.paymentIssueReason
+  } else {
+    vars.reason = 'Contoh alasan untuk pratinjau template.'
+  }
+  return withTransactionLineItems(
+    vars,
+    buildTicketLineItems(reg.tickets as RegistrationTicketForEmailLineItem[]),
+  )
+}
+
 async function loadDbVarsForKey(key: EmailTemplateKey): Promise<Record<string, string> | null> {
   switch (key) {
     case EmailTemplateKey.invoice:
@@ -202,7 +243,16 @@ async function loadDbVarsForKey(key: EmailTemplateKey): Promise<Record<string, s
     case EmailTemplateKey.invoice_underpayment:
       return varsFromLatestUnderpaymentInvoice()
     case EmailTemplateKey.registration_approved:
+    case EmailTemplateKey.receipt:
       return varsFromLatestApprovedRegistration()
+    case EmailTemplateKey.rejected:
+      return varsFromLatestRegistrationByStatus(RegistrationStatus.rejected)
+    case EmailTemplateKey.payment_issue:
+      return varsFromLatestRegistrationByStatus(RegistrationStatus.payment_issue)
+    case EmailTemplateKey.cancelled:
+      return varsFromLatestRegistrationByStatus(RegistrationStatus.cancelled)
+    case EmailTemplateKey.refunded:
+      return varsFromLatestRegistrationByStatus(RegistrationStatus.refunded)
     default:
       return null
   }
@@ -217,17 +267,34 @@ export async function loadEmailTemplatePreviewVars(
     return { vars: varsForMagicLinkPreview(entry), dataSource: 'sample' }
   }
 
+  if (key === EmailTemplateKey.admin_invite) {
+    const sample = sampleVarsFromCatalog(entry)
+    const origin = process.env.BETTER_AUTH_URL?.replace(/\/$/, '')
+    if (origin) sample.invite_url = `${origin}/admin/invite/contoh-token`
+    return { vars: sample, dataSource: 'sample' }
+  }
+
+  if (key === EmailTemplateKey.otp) {
+    return { vars: sampleVarsFromCatalog(entry), dataSource: 'sample' }
+  }
+
   const fromDb = await loadDbVarsForKey(key)
   if (fromDb) {
     return { vars: fromDb, dataSource: 'database' }
   }
 
   const sample = sampleVarsFromCatalog(entry)
-  if (
-    key === EmailTemplateKey.invoice ||
-    key === EmailTemplateKey.invoice_underpayment ||
-    key === EmailTemplateKey.registration_approved
-  ) {
+  const withLineItems = new Set<EmailTemplateKey>([
+    EmailTemplateKey.invoice,
+    EmailTemplateKey.invoice_underpayment,
+    EmailTemplateKey.registration_approved,
+    EmailTemplateKey.receipt,
+    EmailTemplateKey.rejected,
+    EmailTemplateKey.payment_issue,
+    EmailTemplateKey.cancelled,
+    EmailTemplateKey.refunded,
+  ])
+  if (withLineItems.has(key)) {
     sample.transaction_line_items_json = sampleTransactionLineItemsJson()
     if (key === EmailTemplateKey.invoice_underpayment) {
       sample.registration_total_idr = EMAIL_SHARED_TOKEN_META.computed_total_idr.sampleValue

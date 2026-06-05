@@ -2,42 +2,16 @@ import type { EmailTemplateKey } from '@prisma/client'
 
 import { isStoredEmailTemplateBody } from '@/lib/email-templates/email-block-types'
 import { EMAIL_PLACEHOLDER_TOKEN } from '@/lib/email-templates/email-placeholder'
+import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
 import { validateEmailTemplateBlocks } from '@/lib/email-templates/email-template-editor-validation'
 import { parseStoredEmailBody } from '@/lib/email-templates/parse-stored-email-body'
 
-const INVOICE_UNDERPAYMENT_REQUIRED = [
-  'contact_name',
-  'event_title',
-  'adjustment_amount_idr',
-  'bank_name',
-  'account_number',
-  'account_name',
-] as const
-
-const INVOICE_REGISTRATION_REQUIRED = [
-  'contact_name',
-  'event_title',
-  'total_amount_idr',
-  'bank_name',
-  'account_number',
-  'account_name',
-] as const
-
-const REGISTRATION_APPROVED_REQUIRED = [
-  'contact_name',
-  'event_title',
-  'registration_id',
-  'computed_total_idr',
-] as const
-
-const MAGIC_LINK_REQUIRED = ['magic_link_url'] as const
-
-export const REQUIRED_EMAIL_TOKENS: Record<EmailTemplateKey, readonly string[]> = {
-  invoice: INVOICE_REGISTRATION_REQUIRED,
-  invoice_underpayment: INVOICE_UNDERPAYMENT_REQUIRED,
-  registration_approved: REGISTRATION_APPROVED_REQUIRED,
-  magic_link: MAGIC_LINK_REQUIRED,
-}
+export const REQUIRED_EMAIL_TOKENS: Record<EmailTemplateKey, readonly string[]> = Object.fromEntries(
+  (Object.values(EmailTemplateKey).filter(v => typeof v === 'string') as EmailTemplateKey[]).map(key => [
+    key,
+    getEmailTemplateEntry(key).requiredTokens,
+  ]),
+) as Record<EmailTemplateKey, readonly string[]>
 
 function collectPlaceholderNames(text: string): string[] {
   const re = new RegExp(EMAIL_PLACEHOLDER_TOKEN.source, EMAIL_PLACEHOLDER_TOKEN.flags)

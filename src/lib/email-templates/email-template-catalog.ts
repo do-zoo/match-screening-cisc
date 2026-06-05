@@ -13,6 +13,8 @@ export type EmailTokenMeta = {
 export type EmailTemplateCatalogEntry = {
   labelId: string
   descriptionId: string
+  triggerDescriptionId: string
+  isSystemTemplate?: boolean
   sortOrder: number
   defaultSubject: string
   defaultBlocks: EmailBlock[]
@@ -88,6 +90,23 @@ export const EMAIL_SHARED_TOKEN_META: Record<string, EmailTokenMeta> = {
     descriptionId: 'Hanya dipakai di tombol CTA saat render',
     sampleValue: 'https://example.com/admin/sign-in/magic?token=…',
   },
+  reason: {
+    labelId: 'Alasan',
+    descriptionId: 'Alasan penolakan atau kendala pembayaran dari admin',
+    sampleValue: 'Bukti transfer kurang jelas',
+  },
+  invite_url: {
+    labelId: 'URL undangan admin',
+    sampleValue: 'https://example.com/admin/invite/abc',
+  },
+  role_label: {
+    labelId: 'Peran admin',
+    sampleValue: 'Verifier',
+  },
+  otp_code: {
+    labelId: 'Kode OTP',
+    sampleValue: '123456',
+  },
 }
 
 function paragraphBlock(text: string): EmailBlock {
@@ -130,6 +149,93 @@ const MAGIC_LINK_DEFAULT_BLOCKS: EmailBlock[] = [
   },
 ]
 
+const RECEIPT_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock(
+    [
+      'Halo {contact_name},',
+      '',
+      'Terima kasih — pendaftaran untuk {event_title} sudah kami terima.',
+      'ID: {registration_id}',
+      'Total (snapshot): {computed_total_idr}',
+      'Status: menunggu verifikasi admin.',
+    ].join('\n'),
+  ),
+  {
+    type: 'footer_disclaimer',
+    id: newBlockId(),
+    text: 'Simpan email ini sebagai referensi. Panitia akan menghubungi Anda bila diperlukan.',
+  },
+]
+
+const REJECTED_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock(
+    ['Halo {contact_name},', '', 'Mohon maaf, pendaftaran untuk {event_title} belum dapat kami proses.', '', 'Alasan:', '{reason}'].join(
+      '\n',
+    ),
+  ),
+  {
+    type: 'footer_disclaimer',
+    id: newBlockId(),
+    text: 'Jika ada pertanyaan, hubungi panitia acara.',
+  },
+]
+
+const PAYMENT_ISSUE_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock(
+    [
+      'Halo {contact_name},',
+      '',
+      'Kami perlu klarifikasi terkait bukti transfer untuk {event_title}:',
+      '{reason}',
+      '',
+      'Mohon balas atau unggah ulang bukti sesuai arahan panitia.',
+    ].join('\n'),
+  ),
+]
+
+const CANCELLED_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock(
+    [
+      'Halo {contact_name},',
+      '',
+      'Kami informasikan bahwa pendaftaran Anda untuk {event_title} telah dibatalkan.',
+      '',
+      'Jika ada pertanyaan, silakan hubungi panitia.',
+    ].join('\n'),
+  ),
+]
+
+const REFUNDED_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock(
+    [
+      'Halo {contact_name},',
+      '',
+      'Pembayaran Anda untuk {event_title} telah dikembalikan (refunded).',
+      '',
+      'Mohon konfirmasi penerimaan. Terima kasih.',
+    ].join('\n'),
+  ),
+]
+
+const ADMIN_INVITE_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock('Anda diundang sebagai {role_label} di Match Screening. Klik tombol di bawah untuk menyelesaikan pengaturan akun.'),
+  { type: 'cta_button', id: newBlockId(), label: 'Terima undangan' },
+  {
+    type: 'footer_disclaimer',
+    id: newBlockId(),
+    text: 'Tautan ini terbatas dan hanya berlaku sekali pakai.',
+  },
+]
+
+const OTP_DEFAULT_BLOCKS: EmailBlock[] = [
+  paragraphBlock(['Kode OTP Anda untuk masuk admin Match Screening:', '', '{otp_code}', '', 'Kode berlaku singkat. Jangan bagikan kepada siapa pun.'].join('\n')),
+  {
+    type: 'footer_disclaimer',
+    id: newBlockId(),
+    text: 'Jika Anda tidak meminta kode ini, abaikan email ini.',
+  },
+]
+
 const REGISTRATION_APPROVED_DEFAULT_BLOCKS: EmailBlock[] = [
   paragraphBlock(
     [
@@ -153,6 +259,7 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     labelId: 'Tagihan registrasi',
     descriptionId:
       'Email tagihan total pendaftaran ke peserta (nominal saat submit). Cocok untuk pengingat pembayaran atau konfirmasi transfer.',
+    triggerDescriptionId: 'Kirim manual atau blast tagihan pendaftaran (tanpa penyesuaian kekurangan).',
     sortOrder: 1,
     defaultSubject: 'Tagihan pendaftaran — {event_title}',
     defaultBlocks: REGISTRATION_INVOICE_DEFAULT_BLOCKS,
@@ -179,6 +286,7 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     labelId: 'Tagihan kekurangan bayar',
     descriptionId:
       'Email tagihan kekurangan bayar ke peserta. Dipakai saat blast invoice dan kirim tunggal dari operasi registrasi.',
+    triggerDescriptionId: 'Kirim manual atau blast kekurangan dari tab Operasi.',
     sortOrder: 2,
     defaultSubject: 'Tagihan kekurangan — {event_title}',
     defaultBlocks: INVOICE_UNDERPAYMENT_DEFAULT_BLOCKS,
@@ -201,23 +309,11 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
     },
   },
-  [EmailTemplateKey.magic_link]: {
-    labelId: 'Magic link masuk admin',
-    descriptionId: 'Email magic link untuk masuk admin. URL hanya di tombol CTA, bukan di paragraf.',
-    sortOrder: 4,
-    defaultSubject: 'Link masuk Match Screening',
-    defaultBlocks: MAGIC_LINK_DEFAULT_BLOCKS,
-    requiredTokens: [],
-    optionalTokens: ['club_name_nav'],
-    tokenMeta: {
-      club_name_nav: EMAIL_SHARED_TOKEN_META.club_name_nav,
-      magic_link_url: EMAIL_SHARED_TOKEN_META.magic_link_url,
-    },
-  },
   [EmailTemplateKey.registration_approved]: {
     labelId: 'Konfirmasi pembayaran',
     descriptionId:
       'Bukti resmi pendaftaran setelah pembayaran diverifikasi. Dikirim otomatis saat admin menyetujui registrasi (jika email kontak terisi).',
+    triggerDescriptionId: 'Otomatis saat approve (pref) atau kirim ulang manual.',
     sortOrder: 3,
     defaultSubject: 'Pembayaran diterima — {event_title}',
     defaultBlocks: REGISTRATION_APPROVED_DEFAULT_BLOCKS,
@@ -239,6 +335,133 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       venue: EMAIL_SHARED_TOKEN_META.venue,
       start_at_formatted: EMAIL_SHARED_TOKEN_META.start_at_formatted,
       open_gate_at_formatted: EMAIL_SHARED_TOKEN_META.open_gate_at_formatted,
+    },
+  },
+  [EmailTemplateKey.receipt]: {
+    labelId: 'Penerimaan pendaftaran',
+    descriptionId: 'Konfirmasi bahwa formulir pendaftaran telah diterima sistem.',
+    triggerDescriptionId: 'Otomatis setelah submit publik jika diaktifkan di Notifikasi.',
+    sortOrder: 4,
+    defaultSubject: 'Pendaftaran diterima — {event_title}',
+    defaultBlocks: RECEIPT_DEFAULT_BLOCKS,
+    requiredTokens: ['contact_name', 'event_title', 'registration_id', 'computed_total_idr'],
+    optionalTokens: ['ticket_qty', 'ticket_category_name'],
+    tokenMeta: {
+      contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
+      event_title: EMAIL_SHARED_TOKEN_META.event_title,
+      registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      computed_total_idr: EMAIL_SHARED_TOKEN_META.computed_total_idr,
+      ticket_qty: EMAIL_SHARED_TOKEN_META.ticket_qty,
+      ticket_category_name: EMAIL_SHARED_TOKEN_META.ticket_category_name,
+    },
+  },
+  [EmailTemplateKey.rejected]: {
+    labelId: 'Ditolak',
+    descriptionId: 'Notifikasi penolakan registrasi dengan alasan admin.',
+    triggerDescriptionId: 'Setelah tolak registrasi (dialog atau otomatis).',
+    sortOrder: 5,
+    defaultSubject: 'Pendaftaran belum disetujui — {event_title}',
+    defaultBlocks: REJECTED_DEFAULT_BLOCKS,
+    requiredTokens: ['reason'],
+    optionalTokens: ['contact_name', 'event_title', 'registration_id'],
+    tokenMeta: {
+      reason: EMAIL_SHARED_TOKEN_META.reason,
+      contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
+      event_title: EMAIL_SHARED_TOKEN_META.event_title,
+      registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+    },
+  },
+  [EmailTemplateKey.payment_issue]: {
+    labelId: 'Masalah pembayaran',
+    descriptionId: 'Permintaan klarifikasi bukti transfer.',
+    triggerDescriptionId: 'Setelah status payment issue (dialog atau otomatis).',
+    sortOrder: 6,
+    defaultSubject: 'Klarifikasi pembayaran — {event_title}',
+    defaultBlocks: PAYMENT_ISSUE_DEFAULT_BLOCKS,
+    requiredTokens: ['reason'],
+    optionalTokens: ['contact_name', 'event_title', 'registration_id', 'computed_total_idr'],
+    tokenMeta: {
+      reason: EMAIL_SHARED_TOKEN_META.reason,
+      contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
+      event_title: EMAIL_SHARED_TOKEN_META.event_title,
+      registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      computed_total_idr: EMAIL_SHARED_TOKEN_META.computed_total_idr,
+    },
+  },
+  [EmailTemplateKey.cancelled]: {
+    labelId: 'Dibatalkan',
+    descriptionId: 'Pemberitahuan pembatalan registrasi.',
+    triggerDescriptionId: 'Setelah cancel registrasi (dialog atau otomatis).',
+    sortOrder: 7,
+    defaultSubject: 'Pendaftaran dibatalkan — {event_title}',
+    defaultBlocks: CANCELLED_DEFAULT_BLOCKS,
+    requiredTokens: ['contact_name', 'event_title'],
+    optionalTokens: ['registration_id', 'ticket_qty'],
+    tokenMeta: {
+      contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
+      event_title: EMAIL_SHARED_TOKEN_META.event_title,
+      registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      ticket_qty: EMAIL_SHARED_TOKEN_META.ticket_qty,
+    },
+  },
+  [EmailTemplateKey.refunded]: {
+    labelId: 'Refunded',
+    descriptionId: 'Pemberitahuan pengembalian dana.',
+    triggerDescriptionId: 'Setelah refund registrasi (dialog atau otomatis).',
+    sortOrder: 8,
+    defaultSubject: 'Pengembalian dana — {event_title}',
+    defaultBlocks: REFUNDED_DEFAULT_BLOCKS,
+    requiredTokens: ['contact_name', 'event_title'],
+    optionalTokens: ['registration_id', 'computed_total_idr'],
+    tokenMeta: {
+      contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
+      event_title: EMAIL_SHARED_TOKEN_META.event_title,
+      registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      computed_total_idr: EMAIL_SHARED_TOKEN_META.computed_total_idr,
+    },
+  },
+  [EmailTemplateKey.magic_link]: {
+    labelId: 'Magic link masuk admin',
+    descriptionId: 'Email magic link untuk masuk admin. URL hanya di tombol CTA, bukan di paragraf.',
+    triggerDescriptionId: 'Otomatis saat admin meminta magic link masuk.',
+    isSystemTemplate: true,
+    sortOrder: 9,
+    defaultSubject: 'Link masuk Match Screening',
+    defaultBlocks: MAGIC_LINK_DEFAULT_BLOCKS,
+    requiredTokens: [],
+    optionalTokens: ['club_name_nav'],
+    tokenMeta: {
+      club_name_nav: EMAIL_SHARED_TOKEN_META.club_name_nav,
+      magic_link_url: EMAIL_SHARED_TOKEN_META.magic_link_url,
+    },
+  },
+  [EmailTemplateKey.admin_invite]: {
+    labelId: 'Undangan admin',
+    descriptionId: 'Email undangan onboarding admin baru.',
+    triggerDescriptionId: 'Otomatis saat Owner membuat undangan admin.',
+    isSystemTemplate: true,
+    sortOrder: 10,
+    defaultSubject: 'Undangan admin Match Screening',
+    defaultBlocks: ADMIN_INVITE_DEFAULT_BLOCKS,
+    requiredTokens: ['role_label'],
+    optionalTokens: ['invite_url'],
+    tokenMeta: {
+      role_label: EMAIL_SHARED_TOKEN_META.role_label,
+      invite_url: EMAIL_SHARED_TOKEN_META.invite_url,
+    },
+  },
+  [EmailTemplateKey.otp]: {
+    labelId: 'Kode OTP 2FA',
+    descriptionId: 'Kode sekali pakai untuk verifikasi dua faktor saat masuk admin.',
+    triggerDescriptionId: 'Otomatis saat admin meminta kode OTP email.',
+    isSystemTemplate: true,
+    sortOrder: 11,
+    defaultSubject: 'Kode OTP Match Screening',
+    defaultBlocks: OTP_DEFAULT_BLOCKS,
+    requiredTokens: ['otp_code'],
+    optionalTokens: [],
+    tokenMeta: {
+      otp_code: EMAIL_SHARED_TOKEN_META.otp_code,
     },
   },
 }

@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useTransition } from 'react'
 
-import { previewInvoiceEmailBlast, runInvoiceEmailBlast } from '@/lib/actions/admin-invoice-email-blast'
+import {
+  previewRegistrationInvoiceEmailBlast,
+  runRegistrationInvoiceEmailBlast,
+} from '@/lib/actions/admin-registration-invoice-email'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import type { EventRegistrantsTab } from '@/lib/admin/event-registrants-list-url'
 import { Button } from '@/components/ui/button'
@@ -21,11 +24,11 @@ import { Label } from '@/components/ui/label'
 type Preview = {
   eligible: number
   skippedNoEmail: number
-  skippedNoAdjustment: number
+  skippedHasUnderpayment: number
   skippedStatus: number
 }
 
-export function InvoiceEmailBlastDialog({
+export function RegistrationInvoiceEmailBlastDialog({
   eventId,
   tab,
   searchQuery,
@@ -43,7 +46,7 @@ export function InvoiceEmailBlastDialog({
   useEffect(() => {
     if (!open) return
     startLoad(async () => {
-      const r = await previewInvoiceEmailBlast(eventId, {
+      const r = await previewRegistrationInvoiceEmailBlast(eventId, {
         respectListTab,
         tab,
         q: searchQuery,
@@ -58,7 +61,7 @@ export function InvoiceEmailBlastDialog({
 
   function handleBlast() {
     startBlast(async () => {
-      const r = await runInvoiceEmailBlast(eventId, { respectListTab, tab, q: searchQuery })
+      const r = await runRegistrationInvoiceEmailBlast(eventId, { respectListTab, tab, q: searchQuery })
       if (!r.ok) {
         toastActionErr(r)
         return
@@ -74,13 +77,14 @@ export function InvoiceEmailBlastDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger disabled={blastPending} render={<Button variant='outline' size='sm' />}>
-        Kirim tagihan kekurangan (email)
+        Kirim tagihan pendaftaran (email)
       </DialogTrigger>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>Blast email tagihan kekurangan</DialogTitle>
+          <DialogTitle>Blast email tagihan pendaftaran</DialogTitle>
           <DialogDescription>
-            Mengirim email tagihan kekurangan bayar ke pendaftar yang punya email kontak dan penyesuaian belum lunas.
+            Mengirim email tagihan nominal pendaftaran awal ke peserta yang punya email kontak dan belum punya tagihan
+            kekurangan aktif.
           </DialogDescription>
         </DialogHeader>
         <div className='space-y-4 text-sm'>
@@ -92,7 +96,7 @@ export function InvoiceEmailBlastDialog({
                 <span className='font-medium text-foreground'>{preview.eligible}</span> siap dikirim
               </li>
               <li>{preview.skippedNoEmail} tanpa email kontak</li>
-              <li>{preview.skippedNoAdjustment} tanpa tagihan aktif</li>
+              <li>{preview.skippedHasUnderpayment} punya tagihan kekurangan (gunakan blast kekurangan)</li>
               <li>{preview.skippedStatus} status dikecualikan</li>
             </ul>
           ) : null}

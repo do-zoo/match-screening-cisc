@@ -33,8 +33,12 @@ vi.mock('@/lib/auth/send-transactional-email', () => ({
   sendTransactionalEmail: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('@/lib/auth/emails/render-emails', () => ({
-  renderAdminInviteEmail: vi.fn().mockResolvedValue('<p>x</p>'),
+vi.mock('@/lib/email-templates/render-auth-template-email', () => ({
+  resolveAdminInviteEmailContent: vi.fn().mockResolvedValue({
+    subject: 'Undangan',
+    html: '<p>x</p>',
+    text: 'x',
+  }),
 }))
 
 vi.mock('@/lib/auth/transactional-email-config', () => ({

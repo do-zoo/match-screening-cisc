@@ -75,8 +75,11 @@ export function validateEmailTemplateBlocks(
   const paragraphCount = blocks.filter(b => b.type === 'paragraph').length
   if (paragraphCount < 1) return 'Minimal satu blok paragraf diperlukan.'
 
-  if (key === EmailTemplateKey.magic_link && !blocks.some(b => b.type === 'cta_button')) {
-    return 'Template magic link harus memiliki tombol CTA.'
+  if (
+    (key === EmailTemplateKey.magic_link || key === EmailTemplateKey.admin_invite) &&
+    !blocks.some(b => b.type === 'cta_button')
+  ) {
+    return 'Template ini harus memiliki tombol CTA.'
   }
 
   if (

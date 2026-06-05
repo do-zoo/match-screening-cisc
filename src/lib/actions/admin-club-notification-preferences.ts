@@ -26,6 +26,12 @@ export async function saveClubNotificationPreferences(
   const parsed = clubNotificationPreferencesSaveSchema.safeParse({
     outboundMode: formData.get('outboundMode'),
     outboundLabel: formData.get('outboundLabel'),
+    emailAutoOnSubmitReceipt: formData.get('emailAutoOnSubmitReceipt'),
+    emailAutoOnApprove: formData.get('emailAutoOnApprove'),
+    emailAutoOnReject: formData.get('emailAutoOnReject'),
+    emailAutoOnPaymentIssue: formData.get('emailAutoOnPaymentIssue'),
+    emailAutoOnCancel: formData.get('emailAutoOnCancel'),
+    emailAutoOnRefund: formData.get('emailAutoOnRefund'),
   })
 
   if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
@@ -37,10 +43,22 @@ export async function saveClubNotificationPreferences(
         singletonKey: CLUB_NOTIFICATION_PREFS_KEY,
         outboundMode: parsed.data.outboundMode,
         outboundLabel: parsed.data.outboundLabel === '' ? null : parsed.data.outboundLabel,
+        emailAutoOnSubmitReceipt: parsed.data.emailAutoOnSubmitReceipt,
+        emailAutoOnApprove: parsed.data.emailAutoOnApprove,
+        emailAutoOnReject: parsed.data.emailAutoOnReject,
+        emailAutoOnPaymentIssue: parsed.data.emailAutoOnPaymentIssue,
+        emailAutoOnCancel: parsed.data.emailAutoOnCancel,
+        emailAutoOnRefund: parsed.data.emailAutoOnRefund,
       },
       update: {
         outboundMode: parsed.data.outboundMode,
         outboundLabel: parsed.data.outboundLabel === '' ? null : parsed.data.outboundLabel,
+        emailAutoOnSubmitReceipt: parsed.data.emailAutoOnSubmitReceipt,
+        emailAutoOnApprove: parsed.data.emailAutoOnApprove,
+        emailAutoOnReject: parsed.data.emailAutoOnReject,
+        emailAutoOnPaymentIssue: parsed.data.emailAutoOnPaymentIssue,
+        emailAutoOnCancel: parsed.data.emailAutoOnCancel,
+        emailAutoOnRefund: parsed.data.emailAutoOnRefund,
       },
     })
   } catch {
@@ -56,6 +74,12 @@ export async function saveClubNotificationPreferences(
     metadata: {
       outboundMode: parsed.data.outboundMode,
       outboundLabelSet: parsed.data.outboundLabel !== '',
+      emailAutoOnSubmitReceipt: parsed.data.emailAutoOnSubmitReceipt,
+      emailAutoOnApprove: parsed.data.emailAutoOnApprove,
+      emailAutoOnReject: parsed.data.emailAutoOnReject,
+      emailAutoOnPaymentIssue: parsed.data.emailAutoOnPaymentIssue,
+      emailAutoOnCancel: parsed.data.emailAutoOnCancel,
+      emailAutoOnRefund: parsed.data.emailAutoOnRefund,
     },
   })
 
