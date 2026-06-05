@@ -5,7 +5,6 @@ import { magicLink } from 'better-auth/plugins/magic-link'
 
 import { assertAdminMagicLinkEmail } from '@/lib/auth/assert-admin-magic-link-email'
 import { buildTwoFactorPlugin } from '@/lib/auth/build-two-factor-plugin-options'
-import { renderMagicLinkEmail } from '@/lib/auth/emails/render-emails'
 import { resolveMagicLinkEmailContent } from '@/lib/email-templates/render-magic-link-email'
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
 import { isTransactionalEmailConfigured } from '@/lib/auth/transactional-email-config'
@@ -25,8 +24,7 @@ export const auth = betterAuth({
           return
         }
         await assertAdminMagicLinkEmail(email)
-        const { subject, text, introText } = await resolveMagicLinkEmailContent(url)
-        const html = await renderMagicLinkEmail(url, introText)
+        const { subject, text, html } = await resolveMagicLinkEmailContent(url)
         await sendTransactionalEmail({
           to: email,
           subject,

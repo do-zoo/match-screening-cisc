@@ -54,7 +54,7 @@ export async function sendInvoiceEmailForRegistration(opts: {
   if (!adj) return { ok: false, error: 'Tidak ada tagihan kekurangan yang belum lunas.' }
 
   const bank = registration.event.bankAccount
-  const { subject, text } = renderInvoiceUnderpaymentEmail(
+  const { subject, text, html } = await renderInvoiceUnderpaymentEmail(
     templates[EmailTemplateKey.invoice_underpayment] ?? null,
     {
       contactName: registration.contactName,
@@ -88,7 +88,7 @@ export async function sendInvoiceEmailForRegistration(opts: {
       to: registration.contactEmail,
       subject,
       text,
-      html: `<div style="font-family:sans-serif;white-space:pre-wrap">${text.replace(/\n/g, '<br>')}</div>`,
+      html,
     })
     await prisma.emailDeliveryLog.create({
       data: {

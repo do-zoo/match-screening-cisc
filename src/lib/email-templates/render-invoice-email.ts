@@ -1,7 +1,11 @@
-import type { EmailTemplateKey } from '@prisma/client'
+import { EmailTemplateKey } from '@prisma/client'
 
 import { CLUB_EMAIL_DEFAULT_BODIES } from '@/lib/email-templates/default-bodies'
-import { applyEmailPlaceholders } from '@/lib/email-templates/email-placeholder'
+import type { EmailBlock } from '@/lib/email-templates/email-block-types'
+import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
+import { parseStoredEmailBody } from '@/lib/email-templates/parse-stored-email-body'
+import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
+import { loadPublicClubBranding } from '@/lib/public/load-club-branding'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 export type InvoiceEmailCtx = {
@@ -14,7 +18,17 @@ export type InvoiceEmailCtx = {
   registrationId?: string
 }
 
-function varsFromCtx(ctx: InvoiceEmailCtx): Record<string, string> {
+export type RegistrationInvoiceEmailCtx = {
+  contactName: string
+  eventTitle: string
+  totalAmountIdr: number
+  bankName: string
+  accountNumber: string
+  accountName: string
+  registrationId?: string
+}
+
+function varsFromUnderpaymentCtx(ctx: InvoiceEmailCtx): Record<string, string> {
   const vars: Record<string, string> = {
     contact_name: ctx.contactName,
     event_title: ctx.eventTitle,
@@ -27,36 +41,75 @@ function varsFromCtx(ctx: InvoiceEmailCtx): Record<string, string> {
   return vars
 }
 
-function safeApply(
-  subject: string,
-  body: string,
+function varsFromRegistrationCtx(ctx: RegistrationInvoiceEmailCtx): Record<string, string> {
+  const vars: Record<string, string> = {
+    contact_name: ctx.contactName,
+    event_title: ctx.eventTitle,
+    total_amount_idr: formatWaIdr(ctx.totalAmountIdr),
+    bank_name: ctx.bankName,
+    account_number: ctx.accountNumber,
+    account_name: ctx.accountName,
+  }
+  if (ctx.registrationId) vars.registration_id = ctx.registrationId
+  return vars
+}
+
+async function renderInvoiceTemplateEmail(
+  key: typeof EmailTemplateKey.invoice | typeof EmailTemplateKey.invoice_underpayment,
+  fromDb: { subject: string; body: string } | { subject: string; blocks: EmailBlock[] } | null,
   vars: Record<string, string>,
-  fallback: () => { subject: string; text: string },
-): { subject: string; text: string } {
+): Promise<{ subject: string; text: string; html: string }> {
+  const entry = getEmailTemplateEntry(key)
+  const defaults = CLUB_EMAIL_DEFAULT_BODIES[key]
+
+  const subject = fromDb?.subject ?? defaults.subject
+  const blocks =
+    fromDb && 'blocks' in fromDb
+      ? fromDb.blocks
+      : fromDb
+        ? parseStoredEmailBody(key, fromDb.body)
+        : entry.defaultBlocks
+
+  const branding = await loadPublicClubBranding()
+  const renderOpts = {
+    key,
+    subject,
+    blocks,
+    vars: { ...vars, club_name_nav: branding.clubNameNav },
+    clubNameNav: branding.clubNameNav,
+    logoBlobUrl: branding.logoBlobUrl,
+  }
+
   try {
-    return {
-      subject: applyEmailPlaceholders(subject, vars),
-      text: applyEmailPlaceholders(body, vars),
-    }
+    return await renderEmailFromBlocks(renderOpts)
   } catch {
-    return fallback()
+    return await renderEmailFromBlocks({
+      ...renderOpts,
+      subject: defaults.subject,
+      blocks: entry.defaultBlocks,
+    })
   }
 }
 
-export function renderInvoiceUnderpaymentEmail(
-  fromDb: { subject: string; body: string } | null,
+export async function renderInvoiceUnderpaymentEmail(
+  fromDb: { subject: string; body: string } | { subject: string; blocks: EmailBlock[] } | null,
   ctx: InvoiceEmailCtx,
-): { subject: string; text: string } {
-  const vars = varsFromCtx(ctx)
-  const defaults = CLUB_EMAIL_DEFAULT_BODIES.invoice_underpayment
-  const fallback = () =>
-    safeApply(defaults.subject, defaults.body, vars, () => ({
-      subject: defaults.subject.replace('{event_title}', ctx.eventTitle),
-      text: defaults.body,
-    }))
-
-  if (!fromDb) return fallback()
-  return safeApply(fromDb.subject, fromDb.body, vars, fallback)
+): Promise<{ subject: string; text: string; html: string }> {
+  return renderInvoiceTemplateEmail(
+    EmailTemplateKey.invoice_underpayment,
+    fromDb,
+    varsFromUnderpaymentCtx(ctx),
+  )
 }
 
-export const INVOICE_EMAIL_TEMPLATE_KEY = 'invoice_underpayment' satisfies EmailTemplateKey
+export async function renderRegistrationInvoiceEmail(
+  fromDb: { subject: string; body: string } | { subject: string; blocks: EmailBlock[] } | null,
+  ctx: RegistrationInvoiceEmailCtx,
+): Promise<{ subject: string; text: string; html: string }> {
+  return renderInvoiceTemplateEmail(EmailTemplateKey.invoice, fromDb, varsFromRegistrationCtx(ctx))
+}
+
+export const INVOICE_UNDERPAYMENT_EMAIL_TEMPLATE_KEY =
+  'invoice_underpayment' satisfies EmailTemplateKey
+
+export const REGISTRATION_INVOICE_EMAIL_TEMPLATE_KEY = 'invoice' satisfies EmailTemplateKey

@@ -4,13 +4,15 @@ import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import type { WaTemplateKey } from '@prisma/client'
-import { Check, X } from 'lucide-react'
 
 import { WaTemplateEditor } from '@/components/ui/wa-template-editor'
+import { TemplateChecklistPanel } from '@/components/admin/templates/template-checklist-panel'
+import { TemplateEditorActions } from '@/components/admin/templates/template-editor-actions'
+import { TemplateEditorLayout } from '@/components/admin/templates/template-editor-layout'
+import { TemplateVariablePanel } from '@/components/admin/templates/template-variable-panel'
+import { WaTemplatePreviewPanel } from '@/components/admin/wa-templates/wa-template-preview-panel'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { resetClubWaTemplateBody, saveClubWaTemplateBody } from '@/lib/actions/admin-club-wa-templates'
 import { toastCudSuccess } from '@/lib/client/cud-notify'
 import type { ActionResult } from '@/lib/forms/action-result'
@@ -93,132 +95,74 @@ export function WaTemplateEditForm(props: {
       .run()
   }
 
+  const saveHint =
+    !canSave && validation.missingRequired.length > 0
+      ? 'Lengkapi semua placeholder wajib sebelum menyimpan.'
+      : !canSave && body.trim().length === 0
+        ? 'Isi pesan template terlebih dahulu.'
+        : undefined
+
   return (
-    <div className='grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]'>
-      <div className='space-y-4'>
-        <div className='flex flex-wrap items-center gap-2'>
-          <Badge variant='outline'>{waTemplateCategoryLabel(catalogEntry.category)}</Badge>
-          <Badge variant={isCustomized ? 'default' : 'secondary'}>{isCustomized ? 'Kustom' : 'Bawaan'}</Badge>
-        </div>
+    <TemplateEditorLayout
+      main={
+        <>
+          <div className='flex flex-wrap items-center gap-2'>
+            <Badge variant='outline'>{waTemplateCategoryLabel(catalogEntry.category)}</Badge>
+            <Badge variant={isCustomized ? 'default' : 'secondary'}>{isCustomized ? 'Kustom' : 'Bawaan'}</Badge>
+          </div>
 
-        {saveState?.ok === false ? mutationErrorAlerts(saveState) : null}
-        {resetState?.ok === false ? mutationErrorAlerts(resetState) : null}
+          {saveState?.ok === false ? mutationErrorAlerts(saveState) : null}
+          {resetState?.ok === false ? mutationErrorAlerts(resetState) : null}
 
-        <WaTemplateEditor
-          templateKey={templateKey}
-          catalogEntry={catalogEntry}
-          value={body}
-          onChange={setBody}
-          disabled={combinedPending}
-          onValidationChange={setValidation}
-          onEditorReady={setEditor}
-        />
-
-        <div className='flex flex-wrap gap-2'>
-          <form action={saveDispatch}>
-            <input type='hidden' name='key' value={templateKey} />
-            <input type='hidden' name='body' value={body} />
-            <Button type='submit' disabled={combinedPending || !canSave}>
-              Simpan
-            </Button>
-          </form>
-          <form action={resetDispatch}>
-            <input type='hidden' name='key' value={templateKey} />
-            <Button type='submit' variant='outline' disabled={combinedPending}>
-              Reset ke bawaan
-            </Button>
-          </form>
-        </div>
-      </div>
-
-      <aside className='flex flex-col gap-4'>
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-base'>Variabel tersedia</CardTitle>
-            <CardDescription>Klik untuk menyisipkan di posisi kursor.</CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-4 text-sm'>
+          <section className='space-y-2'>
             <div>
-              <p className='text-muted-foreground mb-2 text-xs font-medium'>Wajib</p>
-              <ul className='space-y-1.5'>
-                {catalogEntry.requiredTokens.map(token => (
-                  <li key={token}>
-                    <button
-                      type='button'
-                      className='hover:bg-muted w-full rounded-md border px-2 py-1.5 text-left'
-                      onClick={() => insertFromSidebar(token)}
-                      disabled={combinedPending}
-                    >
-                      <span className='font-medium'>{catalogEntry.tokenMeta[token]?.labelId ?? token}</span>
-                      <span className='text-muted-foreground block font-mono text-xs'>{`{${token}}`}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {catalogEntry.optionalTokens.length > 0 ? (
-              <div>
-                <p className='text-muted-foreground mb-2 text-xs font-medium'>Opsional</p>
-                <ul className='space-y-1.5'>
-                  {catalogEntry.optionalTokens.map(token => (
-                    <li key={token}>
-                      <button
-                        type='button'
-                        className='hover:bg-muted w-full rounded-md border border-dashed px-2 py-1.5 text-left'
-                        onClick={() => insertFromSidebar(token)}
-                        disabled={combinedPending}
-                      >
-                        <span className='font-medium'>{catalogEntry.tokenMeta[token]?.labelId ?? token}</span>
-                        <span className='text-muted-foreground block font-mono text-xs'>{`{${token}}`}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-base'>Checklist wajib</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className='space-y-1.5 text-sm'>
-              {catalogEntry.requiredTokens.map(token => {
-                const ok = !validation.missingRequired.includes(token)
-                return (
-                  <li key={token} className='flex items-center gap-2'>
-                    {ok ? (
-                      <Check className='text-primary h-4 w-4 shrink-0' aria-hidden />
-                    ) : (
-                      <X className='text-destructive h-4 w-4 shrink-0' aria-hidden />
-                    )}
-                    <span className={ok ? '' : 'text-destructive'}>
-                      {catalogEntry.tokenMeta[token]?.labelId ?? token}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-            {validation.invalidTokens.length > 0 ? (
-              <p className='text-destructive mt-3 text-xs'>
-                Placeholder tidak dikenal: {validation.invalidTokens.map(t => `{${t}}`).join(', ')}
+              <h2 className='text-sm font-semibold'>Isi pesan</h2>
+              <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+                Format WhatsApp (*tebal*, _miring_, daftar). Ketik{' '}
+                <code className='text-xs'>{'{'}</code> untuk saran variabel.
               </p>
-            ) : null}
-          </CardContent>
-        </Card>
+            </div>
+            <WaTemplateEditor
+              templateKey={templateKey}
+              catalogEntry={catalogEntry}
+              value={body}
+              onChange={setBody}
+              disabled={combinedPending}
+              onValidationChange={setValidation}
+              onEditorReady={setEditor}
+            />
+          </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-base'>Pratinjau WA</CardTitle>
-            <CardDescription>Contoh nilai dari katalog variabel.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <pre className='text-muted-foreground font-mono text-xs whitespace-pre-wrap'>{previewText}</pre>
-          </CardContent>
-        </Card>
-      </aside>
-    </div>
+          <TemplateEditorActions
+            templateKey={templateKey}
+            savePending={savePending}
+            resetPending={resetPending}
+            canSave={canSave}
+            saveDispatch={saveDispatch}
+            resetDispatch={resetDispatch}
+            saveHint={saveHint}
+            saveHiddenFields={<input type='hidden' name='body' value={body} />}
+          />
+        </>
+      }
+      sidebar={
+        <>
+          <TemplateVariablePanel
+            requiredTokens={catalogEntry.requiredTokens}
+            optionalTokens={catalogEntry.optionalTokens}
+            tokenMeta={catalogEntry.tokenMeta}
+            onInsert={insertFromSidebar}
+            disabled={combinedPending}
+          />
+          <TemplateChecklistPanel
+            requiredTokens={catalogEntry.requiredTokens}
+            tokenMeta={catalogEntry.tokenMeta}
+            missingRequired={validation.missingRequired}
+            invalidTokens={validation.invalidTokens}
+          />
+          <WaTemplatePreviewPanel text={previewText} />
+        </>
+      }
+    />
   )
 }

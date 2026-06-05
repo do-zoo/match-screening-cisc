@@ -224,55 +224,30 @@ export async function submitRegistration(
         mandatoryMenuPriceApplied: null,
       }))
 
-      if (event.requireAllHolderData) {
-        return tx.registration.create({
-          data: {
-            eventId: event.id,
-            ticketCategoryId: input.ticketCategoryId,
-            ticketQty: input.ticketQty,
-            holderDataMode,
-            contactName,
-            contactWhatsapp,
-            contactEmail,
-            computedTotalAtSubmit: pricing.grandTotal,
-            status: RegistrationStatus.submitted,
-            holders: {
-              create: mergedHolders.map((h, i) => ({
-                sortOrder: i + 1,
-                holderName: h.holderName,
-                holderWhatsapp: h.holderWhatsapp?.trim() || null,
-                holderEmail: optionalStoredEmail(h.holderEmail),
-                claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
-                memberType: h.memberType ? (h.memberType as MemberType) : null,
-                assignedTickets: {
-                  create: [ticketCreates[i]!],
-                },
-              })),
-            },
-          },
-          include: {
-            holders: {
-              select: { id: true, sortOrder: true },
-              orderBy: { sortOrder: 'asc' as const },
-            },
-          },
-        })
+      const registrationBase = {
+        eventId: event.id,
+        ticketCategoryId: input.ticketCategoryId,
+        ticketQty: input.ticketQty,
+        holderDataMode,
+        contactName,
+        contactWhatsapp,
+        contactEmail,
+        computedTotalAtSubmit: pricing.grandTotal,
+        status: RegistrationStatus.submitted,
       }
 
-      const primary = mergedHolders[0]!
-      return tx.registration.create({
-        data: {
-          eventId: event.id,
-          ticketCategoryId: input.ticketCategoryId,
-          ticketQty: input.ticketQty,
-          holderDataMode,
-          contactName,
-          contactWhatsapp,
-          contactEmail,
-          computedTotalAtSubmit: pricing.grandTotal,
-          status: RegistrationStatus.submitted,
-          holders: {
-            create: [
+      const holderRows = event.requireAllHolderData
+        ? mergedHolders.map((h, i) => ({
+            sortOrder: i + 1,
+            holderName: h.holderName,
+            holderWhatsapp: h.holderWhatsapp?.trim() || null,
+            holderEmail: optionalStoredEmail(h.holderEmail),
+            claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
+            memberType: h.memberType ? (h.memberType as MemberType) : null,
+          }))
+        : (() => {
+            const primary = mergedHolders[0]!
+            return [
               {
                 sortOrder: 1,
                 holderName: primary.holderName,
@@ -280,12 +255,14 @@ export async function submitRegistration(
                 holderEmail: optionalStoredEmail(primary.holderEmail),
                 claimedMemberNumber: primary.claimedMemberNumber?.trim() || null,
                 memberType: primary.memberType ? (primary.memberType as MemberType) : null,
-                assignedTickets: {
-                  create: ticketCreates,
-                },
               },
-            ],
-          },
+            ]
+          })()
+
+      const reg = await tx.registration.create({
+        data: {
+          ...registrationBase,
+          holders: { create: holderRows },
         },
         include: {
           holders: {
@@ -294,6 +271,21 @@ export async function submitRegistration(
           },
         },
       })
+
+      const ticketRows = event.requireAllHolderData
+        ? reg.holders.map((holder, i) => ({
+            registrationId: reg.id,
+            assignedHolderId: holder.id,
+            ...ticketCreates[i]!,
+          }))
+        : ticketCreates.map(t => ({
+            registrationId: reg.id,
+            assignedHolderId: reg.holders[0]!.id,
+            ...t,
+          }))
+
+      await tx.registrationTicket.createMany({ data: ticketRows })
+      return reg
     })
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {

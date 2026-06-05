@@ -1,7 +1,7 @@
 import type { AdminRole } from '@/lib/permissions/roles'
 
 /** Sesuai spec: pembaca bisa semua yang sudah akses konteks Komite — gate pada route/halaman. */
-export function canViewPicBankListDetails(_viewerRole: AdminRole): boolean {
+export function canViewPicBankListDetails(): boolean {
   return true
 }
 

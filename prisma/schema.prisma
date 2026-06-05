@@ -99,7 +99,9 @@ enum WaTemplateKey {
 }
 
 enum EmailTemplateKey {
+  invoice
   invoice_underpayment
+  registration_approved
   magic_link
 }
 

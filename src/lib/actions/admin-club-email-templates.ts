@@ -2,12 +2,20 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { EmailTemplateKey } from '@prisma/client'
+
 import { appendClubAuditLog } from '@/lib/audit/append-club-audit-log'
 import { CLUB_AUDIT_ACTION } from '@/lib/audit/club-audit-actions'
 import { guardOwner, isAuthError, type OwnerGuardContext } from '@/lib/actions/guard'
 import { prisma } from '@/lib/db/prisma'
 import { CLUB_EMAIL_DEFAULT_BODIES } from '@/lib/email-templates/default-bodies'
-import { validateEmailTemplate } from '@/lib/email-templates/email-template-policy'
+import { isStoredEmailTemplateBody } from '@/lib/email-templates/email-block-types'
+import {
+  getEmailTemplateEntry,
+  sampleVarsFromCatalog,
+} from '@/lib/email-templates/email-template-catalog'
+import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
+import { loadPublicClubBranding } from '@/lib/public/load-club-branding'
 import { saveClubEmailTemplateFormSchema } from '@/lib/forms/club-email-template-schema'
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
@@ -35,8 +43,6 @@ export async function saveClubEmailTemplate(
   }
 
   const { key, subject, body } = parsed.data
-  const policyErr = validateEmailTemplate(key, subject, body)
-  if (policyErr) return fieldError({ body: policyErr })
 
   try {
     await prisma.clubEmailTemplate.upsert({
@@ -57,6 +63,7 @@ export async function saveClubEmailTemplate(
   })
 
   revalidatePath('/admin/settings/templates/email')
+  revalidatePath(`/admin/settings/templates/email/${key}/edit`)
   return ok({ saved: true })
 }
 
@@ -98,5 +105,62 @@ export async function resetClubEmailTemplate(
   })
 
   revalidatePath('/admin/settings/templates/email')
+  revalidatePath(`/admin/settings/templates/email/${key}/edit`)
   return ok({ saved: true })
+}
+
+export async function previewClubEmailTemplate(input: {
+  key: EmailTemplateKey
+  subject: string
+  body: string
+}): Promise<ActionResult<{ html: string; text: string }>> {
+  try {
+    await guardOwner()
+  } catch (e) {
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
+  }
+
+  const parsed = saveClubEmailTemplateFormSchema.safeParse({
+    key: input.key,
+    subject: input.subject,
+    body: input.body,
+  })
+  if (!parsed.success) {
+    return fieldError(zodToFieldErrors(parsed.error))
+  }
+
+  let stored: ReturnType<typeof JSON.parse>
+  try {
+    stored = JSON.parse(parsed.data.body)
+  } catch {
+    return rootError('Format templat tidak valid.')
+  }
+  if (!isStoredEmailTemplateBody(stored)) {
+    return rootError('Format templat tidak valid.')
+  }
+
+  const entry = getEmailTemplateEntry(parsed.data.key)
+  const branding = await loadPublicClubBranding()
+  const vars = {
+    ...sampleVarsFromCatalog(entry),
+    club_name_nav: branding.clubNameNav,
+    ...(parsed.data.key === EmailTemplateKey.magic_link
+      ? { magic_link_url: entry.tokenMeta.magic_link_url?.sampleValue ?? 'https://example.com' }
+      : {}),
+  }
+
+  try {
+    const rendered = await renderEmailFromBlocks({
+      key: parsed.data.key,
+      subject: parsed.data.subject,
+      blocks: stored.blocks,
+      vars,
+      clubNameNav: branding.clubNameNav,
+      logoBlobUrl: branding.logoBlobUrl,
+    })
+    return ok({ html: rendered.html, text: rendered.text })
+  } catch {
+    return rootError('Pratinjau tidak dapat dibuat. Periksa placeholder dan format.')
+  }
 }

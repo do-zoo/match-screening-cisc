@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 import { AdminSettingsBreadcrumb } from '@/components/admin/admin-settings-breadcrumb'
 import { ClubAuditLogSection } from '@/components/admin/club-audit-log-table'

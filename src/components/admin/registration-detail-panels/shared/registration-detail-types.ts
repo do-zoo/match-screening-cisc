@@ -32,6 +32,7 @@ export type DetailRegistration = {
     id: string
     sortOrder: number
     holderName: string
+    holderWhatsapp: string | null
     holderEmail: string | null
     claimedMemberNumber: string | null
     memberValidation: MemberValidation

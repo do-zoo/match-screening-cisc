@@ -1,6 +1,5 @@
 'use client'
 
-import * as React from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -13,11 +12,12 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
+import { DataTableSortingProvider } from '@/components/ui/data-table-sorting-context'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DataTableSortingProvider } from '@/components/ui/data-table-sorting-context'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
@@ -129,93 +129,88 @@ export function DataTable<TData, TValue>({
 
   return (
     <DataTableSortingProvider enabled={enableSorting}>
-    <div className='space-y-3'>
-      {showFiltersBar && (
-        <div className='flex flex-wrap items-center gap-2'>
-          {enableGlobalFilter && (
-            <Input
-              placeholder={globalFilterPlaceholder}
-              value={globalFilter}
-              onChange={e => setGlobalFilter(e.target.value)}
-              className='max-w-xs'
-            />
-          )}
-          {filterSelectColumn && filterSelectOptions && (
-            <Select value={selectFilterValue} onValueChange={handleSelectFilterChange}>
-              <SelectTrigger className='w-44'>
-                <SelectValue placeholder={filterSelectAllLabel}>
-                  {v => {
-                    if (v == null || v === '' || v === '__all__') return filterSelectAllLabel
-                    return filterLabelByValue.get(String(v)) ?? String(v)
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='__all__'>{filterSelectAllLabel}</SelectItem>
-                {filterSelectOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
-
-      {frame === 'standalone' ? (
-        <div className='overflow-hidden rounded-md border'>{tableBlock}</div>
-      ) : (
-        tableBlock
-      )}
-
-      {enablePagination && (
-        <div className='flex flex-col gap-3 border-t bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between'>
-          <p className='text-xs text-muted-foreground tabular-nums'>
-            {table.getFilteredRowModel().rows.length === 0 ? (
-              'Tidak ada baris.'
-            ) : (
-              <>
-                Baris{' '}
-                {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
-                {Math.min(
-                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                  table.getFilteredRowModel().rows.length,
-                )}{' '}
-                · {table.getFilteredRowModel().rows.length} total
-              </>
+      <div className='space-y-3'>
+        {showFiltersBar && (
+          <div className='flex flex-wrap items-center gap-2'>
+            {enableGlobalFilter && (
+              <Input
+                placeholder={globalFilterPlaceholder}
+                value={globalFilter}
+                onChange={e => setGlobalFilter(e.target.value)}
+                className='max-w-xs'
+              />
             )}
-          </p>
-          <div className='flex items-center gap-1'>
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon-sm'
-              className='size-8'
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              aria-label='Halaman sebelumnya'
-            >
-              <ChevronLeft className='size-4' />
-            </Button>
-            <span className='min-w-18 rounded-md border bg-background/60 px-2 py-1 text-center text-xs tabular-nums text-muted-foreground'>
-              {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
-            </span>
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon-sm'
-              className='size-8'
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              aria-label='Halaman berikutnya'
-            >
-              <ChevronRight className='size-4' />
-            </Button>
+            {filterSelectColumn && filterSelectOptions && (
+              <Select value={selectFilterValue} onValueChange={handleSelectFilterChange}>
+                <SelectTrigger className='w-44'>
+                  <SelectValue placeholder={filterSelectAllLabel}>
+                    {v => {
+                      if (v == null || v === '' || v === '__all__') return filterSelectAllLabel
+                      return filterLabelByValue.get(String(v)) ?? String(v)
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='__all__'>{filterSelectAllLabel}</SelectItem>
+                  {filterSelectOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        {frame === 'standalone' ? <div className='overflow-hidden rounded-md border'>{tableBlock}</div> : tableBlock}
+
+        {enablePagination && (
+          <div className='flex flex-col gap-3 border-t bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between'>
+            <p className='text-xs text-muted-foreground tabular-nums'>
+              {table.getFilteredRowModel().rows.length === 0 ? (
+                'Tidak ada baris.'
+              ) : (
+                <>
+                  Baris {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
+                  {Math.min(
+                    (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                    table.getFilteredRowModel().rows.length,
+                  )}{' '}
+                  · {table.getFilteredRowModel().rows.length} total
+                </>
+              )}
+            </p>
+            <div className='flex items-center gap-1'>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon-sm'
+                className='size-8'
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                aria-label='Halaman sebelumnya'
+              >
+                <ChevronLeft className='size-4' />
+              </Button>
+              <span className='min-w-18 rounded-md border bg-background/60 px-2 py-1 text-center text-xs tabular-nums text-muted-foreground'>
+                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+              </span>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon-sm'
+                className='size-8'
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                aria-label='Halaman berikutnya'
+              >
+                <ChevronRight className='size-4' />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </DataTableSortingProvider>
   )
 }

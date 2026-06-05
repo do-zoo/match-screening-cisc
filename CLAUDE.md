@@ -95,7 +95,8 @@ An event registration system for a members-only social club (CISC). Members and 
   - `admin/settings/` — committee settings (Owner-only sub-pages: branding, committee, notifications, operations, security, **templates**)
   - `admin/settings/templates` — hub template pesan (Owner)
   - `admin/settings/templates/whatsapp` — indeks template WA (kartu/tabel) + `[key]/edit` editor Tiptap
-  - `admin/settings/templates/email` — template email (panel textarea)
+  - `admin/settings/templates/email` — indeks template email (tabel)
+ - `admin/settings/templates/email/[key]/edit` — editor blok + Tiptap paragraf + pratinjau React Email
   - `admin/account/` — personal account page (display name, 2FA)
 - `api/auth/[...all]` — Better Auth catch-all handler
 - `api/admin/events/[eventId]/title` — judul acara + `canManageEventSettings` untuk breadcrumb/sidebar
@@ -131,7 +132,7 @@ Key entities:
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
 - **`BoardPeriod`** / **`BoardRole`** / **`ManagementMember`** / **`BoardAssignment`** — kepengurusan (committee) structure; `recompute-directory-flags.ts` syncs `MasterMember.isManagementMember` from `BoardAssignment`
 - **`ClubWaTemplate`** — per-`WaTemplateKey` body overrides stored in DB; loaded by `lib/wa-templates/load-club-wa-templates.ts` and merged with hardcoded defaults in `lib/wa-templates/render-wa-from-db.ts`
-- **`ClubEmailTemplate`** — per-`EmailTemplateKey` (`invoice_underpayment`, `magic_link`) subject + body (plain text + `{placeholders}`); loaded by `lib/email-templates/load-club-email-templates.ts`; magic link sign-in memakai `render-magic-link-email.ts`
+- **`ClubEmailTemplate`** — per-`EmailTemplateKey` (`invoice`, `invoice_underpayment`, `registration_approved`, `magic_link`) subject + `body` (JSON `{"v":1,"blocks":[...]}` dengan paragraf Tiptap); loaded by `lib/email-templates/load-club-email-templates.ts`; render via `render-email-from-blocks.ts`
 - **`EmailDeliveryLog`** — append-only log pengiriman email transaksional (invoice blast / kirim tunggal); `templateKey`, `toEmail`, `success`, `actorAdminProfileId`
 - **`ClubBranding`** / **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton rows (always `singletonKey = "default"`); read via `lib/public/load-club-*.ts` helpers; mutations are Owner-only and append to `ClubAuditLog`
 - **`ClubAuditLog`** — append-only log of sensitive Owner-level mutations; written via `lib/audit/append-club-audit-log.ts` using action constants from `lib/audit/club-audit-actions.ts`
@@ -183,10 +184,18 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/wa-templates/messages.ts` — hardcoded WhatsApp message template functions (Indonesian); `lib/wa-templates/render-wa-from-db.ts` merges DB overrides (`ClubWaTemplate`) on top of these defaults before use
 - `lib/wa-templates/build-registration-notify.ts` — `buildRegistrationWaNotify` / `RegistrationNotifyKind` — preview + `wa.me` href untuk dialog admin pasca-keputusan verifikasi atau reminder operasi
 - `lib/email/normalize-email.ts` — `normalizeStoredEmail`, `optionalStoredEmail`, `requiredStoredEmail` (lowercase + trim)
-- `lib/email-templates/*` — placeholder policy, defaults, `render-invoice-email`, `render-magic-link-email`, `load-club-email-templates`
-- `lib/actions/admin-club-email-templates.ts` — save/reset template email (Owner + audit)
+- `lib/email-templates/email-template-catalog.ts` — metadata + default blok + token per `EmailTemplateKey`
+- `lib/email-templates/build-email-template-index-rows.ts` — `buildEmailTemplateIndexRows` untuk indeks admin template email
+- `lib/email-templates/email-doc-serializer.ts` — Tiptap JSON ↔ plain text; `email-doc-react.tsx` → React Email nodes
+- `lib/email-templates/render-email-from-blocks.ts` — HTML + text Resend dari susunan blok
+- `lib/email-templates/render-invoice-email.ts` / `render-registration-approved-email.ts` / `render-magic-link-email.ts` — wrapper runtime
+- `lib/email-templates/load-club-email-templates.ts` — parse/migrasi body legacy
+- `components/ui/email-paragraph-editor.tsx` — Tiptap paragraf template email
+- `lib/actions/admin-club-email-templates.ts` — save/reset/preview template email (Owner + audit)
 - `lib/email/invoice-email-eligibility.ts` — filter registrasi eligible blast invoice (unpaid adjustment + `contactEmail`)
-- `lib/email/send-invoice-email.ts` — kirim tunggal via Resend + `EmailDeliveryLog`; hormati `ClubNotificationPreferences.outboundMode`
+- `lib/email/send-invoice-email.ts` — kirim tagihan kekurangan tunggal via Resend + `EmailDeliveryLog`; hormati `ClubNotificationPreferences.outboundMode`
+- `lib/email/send-registration-approved-email.ts` — bukti pembayaran otomatis saat `approveRegistration` + kirim ulang manual; template `registration_approved`
+- `lib/actions/admin-registration-approved-email.ts` — `sendRegistrationApprovedEmailToRegistration`
 - `lib/actions/admin-invoice-email-blast.ts` — preview, blast batch, `sendInvoiceEmailToRegistration`
 - `lib/notifications/notification-outbound-mode.ts` — resolves `NotificationOutboundMode` (`off` / `log_only` / `live`) from `ClubNotificationPreferences` to a behaviour struct
 - `lib/public/club-operational-policy.ts` — `mergeGlobalRegistrationClosure` / `effectiveMaintenanceBanner` — merges per-event and global registration closure settings for the public registration page

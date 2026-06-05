@@ -26,6 +26,10 @@ vi.mock('@/lib/permissions/guards', () => ({
   canVerifyEvent: vi.fn(() => true),
 }))
 
+vi.mock('@/lib/email/send-registration-approved-email', () => ({
+  sendRegistrationApprovedEmailForRegistration: vi.fn().mockResolvedValue({ ok: true }),
+}))
+
 import { prisma } from '@/lib/db/prisma'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { requireAdminSession } from '@/lib/auth/session'
@@ -38,7 +42,7 @@ describe('approveRegistration', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(requireAdminSession).mockResolvedValue({ user: { id: 'user-1' } } as never)
-    vi.mocked(getAdminContext).mockResolvedValue({ role: 'Admin' } as never)
+    vi.mocked(getAdminContext).mockResolvedValue({ role: 'Admin', profileId: 'profile-1' } as never)
     mockUpdate.mockResolvedValue({ id: 'reg-1' } as never)
   })
 

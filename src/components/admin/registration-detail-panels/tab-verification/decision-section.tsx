@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { RegistrationStatus } from '@prisma/client'
 
 import { RegistrationActions } from '@/components/admin/registration-actions'
 import { RegistrationNotifyDialog } from '@/components/admin/registration-notify-dialog'
+import { SendPaymentProofEmailButton } from '@/components/admin/send-payment-proof-email-button'
 import { RegistrationStatusBadge } from '@/components/admin/registration-status-badge'
 import { Button } from '@/components/ui/button'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
@@ -68,17 +69,29 @@ function snapshotFromRegistration(registration: DetailRegistration): DecisionSna
   }
 }
 
+function registrationSnapshotKey(registration: DetailRegistration): string {
+  return [
+    registration.id,
+    registration.status,
+    registration.rejectionReason ?? '',
+    registration.paymentIssueReason ?? '',
+  ].join(':')
+}
+
 export function DecisionSection({ eventId, registration, waBodies }: Props) {
   const router = useRouter()
+  const snapshotKey = registrationSnapshotKey(registration)
+  const [syncedSnapshotKey, setSyncedSnapshotKey] = useState(snapshotKey)
   const [showActions, setShowActions] = useState(() => needsActionPanel(registration.status))
   const [decision, setDecision] = useState<DecisionSnapshot>(() => snapshotFromRegistration(registration))
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifyPayload, setNotifyPayload] = useState<RegistrationNotifyPayload | null>(null)
 
-  useEffect(() => {
+  if (snapshotKey !== syncedSnapshotKey) {
+    setSyncedSnapshotKey(snapshotKey)
     setDecision(snapshotFromRegistration(registration))
     setShowActions(needsActionPanel(registration.status))
-  }, [registration.id, registration.status, registration.rejectionReason, registration.paymentIssueReason])
+  }
 
   const contact = resolveDetailRegistrationContact(registration)
   const notifyInput = notifyInputFromDetailRegistration(registration, contact, {
@@ -147,8 +160,11 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
               </Button>
               {showResend && resendKind ? (
                 <Button type='button' variant='outline' size='sm' onClick={() => openNotify(resendKind)}>
-                  Kirim ulang notifikasi
+                  Kirim ulang notifikasi WA
                 </Button>
+              ) : null}
+              {decision.status === RegistrationStatus.approved && contact.email ? (
+                <SendPaymentProofEmailButton eventId={eventId} registrationId={registration.id} />
               ) : null}
             </div>
           </div>

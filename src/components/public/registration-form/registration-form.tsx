@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FormProvider, useFieldArray, useForm, type Resolver } from 'react-hook-form'
+import { FormProvider, useFieldArray, useForm, useWatch, type Resolver } from 'react-hook-form'
 
 import { submitRegistration } from '@/lib/actions/submit-registration'
 import { toastActionErr } from '@/lib/client/cud-notify'
@@ -67,9 +67,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     }
   }, [])
 
-  const selectedCategoryId = form.watch('ticketCategoryId')
-  const ticketQty = form.watch('ticketQty')
-  const holders = form.watch('holders')
+  const selectedCategoryId = useWatch({ control: form.control, name: 'ticketCategoryId' })
+  const ticketQty = useWatch({ control: form.control, name: 'ticketQty' })
+  const holders = useWatch({ control: form.control, name: 'holders' }) ?? []
 
   const selectedCategory = useMemo(
     () => event.ticketCategories?.find(c => c.id === selectedCategoryId),

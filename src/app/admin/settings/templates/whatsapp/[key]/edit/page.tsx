@@ -30,8 +30,8 @@ export default async function WhatsappTemplateEditPage({ params }: { params: Pro
   const isCustomized = dbRow !== null
 
   return (
-    <div className='space-y-6'>
-      <div>
+    <div className='mx-auto max-w-6xl space-y-6 pb-6'>
+      <header>
         <AdminSettingsBreadcrumb
           crumbs={[
             { label: 'Pengaturan', href: '/admin/settings' },
@@ -42,7 +42,7 @@ export default async function WhatsappTemplateEditPage({ params }: { params: Pro
         />
         <h1 className='text-2xl font-semibold tracking-tight'>{catalogEntry.labelId}</h1>
         <p className='text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed'>{catalogEntry.descriptionId}</p>
-      </div>
+      </header>
 
       <WaTemplateEditForm
         key={displayBody}

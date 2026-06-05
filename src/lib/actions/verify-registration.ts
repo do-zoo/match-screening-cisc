@@ -7,13 +7,21 @@ import { requireAdminSession } from '@/lib/auth/session'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { canVerifyEvent } from '@/lib/permissions/guards'
 import { eventRegistrationDetailPath, eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
+import { sendRegistrationApprovedEmailForRegistration } from '@/lib/email/send-registration-approved-email'
+import type { SendRegistrationApprovedEmailResult } from '@/lib/email/send-registration-approved-email'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+
+type ApproveRegistrationData = {
+  ok: true
+  paymentProofEmail: SendRegistrationApprovedEmailResult | null
+}
 
 async function guard(eventId: string) {
   const session = await requireAdminSession()
   const ctx = await getAdminContext(session.user.id)
   if (!ctx) throw new Error('NO_PROFILE')
   if (!canVerifyEvent(ctx, eventId)) throw new Error('FORBIDDEN')
+  return { authUserId: session.user.id, profileId: ctx.profileId }
 }
 
 /** Initial review and "Ubah keputusan" — all registration statuses except none. */
@@ -30,9 +38,10 @@ const VERIFY_FROM_STATUSES: RegistrationStatus[] = [
 export async function approveRegistration(
   eventId: string,
   registrationId: string,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<ApproveRegistrationData>> {
+  let actor: Awaited<ReturnType<typeof guard>>
   try {
-    await guard(eventId)
+    actor = await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
@@ -70,7 +79,20 @@ export async function approveRegistration(
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  let paymentProofEmail: SendRegistrationApprovedEmailResult | null = null
+  try {
+    paymentProofEmail = await sendRegistrationApprovedEmailForRegistration({
+      registrationId,
+      eventId,
+      actorAuthUserId: actor.authUserId,
+      actorProfileId: actor.profileId,
+    })
+  } catch {
+    paymentProofEmail = { ok: false, error: 'Gagal mengirim bukti pembayaran via email.' }
+  }
+
+  return ok({ ok: true, paymentProofEmail })
 }
 
 export async function rejectRegistration(

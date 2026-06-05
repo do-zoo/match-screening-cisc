@@ -56,7 +56,21 @@ export function RegistrationActions({ eventId, registrationId, onSuccess, onNoti
         toastActionErr(result)
         setApproveError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
-        toastCudSuccess('update', 'Pendaftaran disetujui.')
+        const email = result.data.paymentProofEmail
+        if (email?.ok) {
+          if (email.dryRun) {
+            toastCudSuccess('update', 'Pendaftaran disetujui. Bukti pembayaran tercatat (mode uji).')
+          } else if (email.skipped === 'no_email') {
+            toastCudSuccess('update', 'Pendaftaran disetujui. Email kontak kosong — bukti tidak dikirim.')
+          } else if (!email.skipped) {
+            toastCudSuccess('update', 'Pendaftaran disetujui. Bukti pembayaran dikirim via email.')
+          } else {
+            toastCudSuccess('update', 'Pendaftaran disetujui.')
+          }
+        } else {
+          toastCudSuccess('update', 'Pendaftaran disetujui.')
+          if (email && !email.ok) toastActionErr({ ok: false, rootError: email.error })
+        }
         onSuccess?.({
           status: RegistrationStatus.approved,
           rejectionReason: null,

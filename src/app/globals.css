@@ -184,6 +184,64 @@
     @apply select-none;
   }
 
+  .email-placeholder-chip {
+    @apply inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-xs font-medium leading-none align-baseline;
+  }
+
+  .email-placeholder-chip--required {
+    @apply border-primary/40 bg-primary/10 text-primary;
+  }
+
+  .email-placeholder-chip--optional {
+    @apply border-border bg-muted text-muted-foreground;
+  }
+
+  .email-placeholder-chip--invalid {
+    @apply border-destructive/50 bg-destructive/10 text-destructive;
+  }
+
+  .email-template-tiptap .email-placeholder-chip {
+    @apply select-none;
+  }
+
+  .email-template-tiptap,
+  .wa-template-tiptap {
+    @apply text-sm leading-relaxed;
+  }
+
+  .email-template-tiptap p + p,
+  .wa-template-tiptap p + p {
+    @apply mt-2;
+  }
+
+  .email-template-tiptap ul,
+  .email-template-tiptap ol,
+  .wa-template-tiptap ul,
+  .wa-template-tiptap ol {
+    @apply my-2 ml-5;
+  }
+
+  .email-template-tiptap ul {
+    @apply list-disc;
+  }
+
+  .email-template-tiptap ol {
+    @apply list-decimal;
+  }
+
+  .wa-template-tiptap ul {
+    @apply list-disc;
+  }
+
+  .wa-template-tiptap ol {
+    @apply list-decimal;
+  }
+
+  .email-template-tiptap blockquote,
+  .wa-template-tiptap blockquote {
+    @apply border-muted-foreground/30 text-muted-foreground my-2 border-l-2 pl-3 italic;
+  }
+
   .cn-toast {
     @apply gap-3 border font-sans text-sm shadow-md;
   }

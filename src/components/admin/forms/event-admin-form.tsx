@@ -2,27 +2,29 @@
 
 import * as React from 'react'
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form'
 
-import type { MemberAccessMode } from '@prisma/client'
 import { abandonDraftEventDescriptionImages } from '@/lib/actions/abandon-draft-event-description-images'
 import { createAdminEvent, updateAdminEvent } from '@/lib/actions/admin-events'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
+import type { EventIntegritySnapshot } from '@/lib/events/event-edit-guards'
+import { findLockedViolations } from '@/lib/events/event-edit-guards'
 import {
   adminEventUpsertSchema,
   type AdminEventUpsertInput,
   type LinkedVenueMenuItemDraft,
 } from '@/lib/forms/admin-event-form-schema'
-import { findLockedViolations } from '@/lib/events/event-edit-guards'
-import type { EventIntegritySnapshot } from '@/lib/events/event-edit-guards'
+import type { MemberAccessMode } from '@prisma/client'
 
+import { TicketCategoriesPanel } from '@/components/admin/event-editor/ticket-categories-panel'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
 import {
   Dialog,
   DialogContent,
@@ -31,20 +33,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { EntityCombobox } from '@/components/ui/entity-combobox'
+import { FieldGroup } from '@/components/ui/field'
+import { FileField } from '@/components/ui/file-field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
-import { formatIdr } from '@/lib/utils/format-idr'
-import { Textarea } from '@/components/ui/textarea'
-import { TicketCategoriesPanel } from '@/components/admin/event-editor/ticket-categories-panel'
-import type { EventTicketCategoryRow } from '@/lib/tickets/get-event-ticket-categories'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DateTimePicker } from '@/components/ui/datetime-picker'
-import { EntityCombobox } from '@/components/ui/entity-combobox'
-import { FileField } from '@/components/ui/file-field'
-import { FieldGroup } from '@/components/ui/field'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import type { EventTicketCategoryRow } from '@/lib/tickets/get-event-ticket-categories'
+import { cn } from '@/lib/utils'
+import { formatIdr } from '@/lib/utils/format-idr'
 
 const SENSITIVE_ACK_MESSAGE = 'Centang pengakuan untuk mengubah PIC utama atau rekening pembayaran.'
 
@@ -137,6 +137,9 @@ export function EventAdminForm(props: EventAdminFormProps) {
       control: form.control,
       name: 'helperAdminProfileIds',
     }) ?? []
+  const multiCategoryPurchase = useWatch({ control: form.control, name: 'multiCategoryPurchase' }) ?? false
+  const requireAllHolderData = useWatch({ control: form.control, name: 'requireAllHolderData' }) ?? true
+  const memberAccessMode = (useWatch({ control: form.control, name: 'memberAccessMode' }) ?? 'open') as MemberAccessMode
 
   const bankChoices = useMemo(() => {
     return props.banksByPic[picId] ?? []
@@ -237,52 +240,59 @@ export function EventAdminForm(props: EventAdminFormProps) {
       setRootMessage(null)
       startTransition(async () => {
         try {
-        const fd = new FormData()
-        const payload: AdminEventUpsertInput = {
-          ...form.getValues(),
-          acknowledgeSensitiveChanges: withAck,
-        }
-        fd.set('payload', JSON.stringify(payload))
-        if (coverFile && coverFile.size > 0) {
-          fd.set('cover', coverFile)
-        }
-        if (props.mode === 'create' && props.descriptionAssetContext) {
-          fd.set('descriptionClientEventId', props.descriptionAssetContext.eventId)
-          fd.set('descriptionAssetToken', props.descriptionAssetContext.assetToken)
-        }
+          const fd = new FormData()
+          const payload: AdminEventUpsertInput = {
+            ...form.getValues(),
+            acknowledgeSensitiveChanges: withAck,
+          }
+          fd.set('payload', JSON.stringify(payload))
+          if (coverFile && coverFile.size > 0) {
+            fd.set('cover', coverFile)
+          }
+          if (props.mode === 'create' && props.descriptionAssetContext) {
+            fd.set('descriptionClientEventId', props.descriptionAssetContext.eventId)
+            fd.set('descriptionAssetToken', props.descriptionAssetContext.assetToken)
+          }
 
-        const result =
-          props.mode === 'create'
-            ? await createAdminEvent(undefined, fd)
-            : await updateAdminEvent(props.eventId ?? '', undefined, fd)
+          const result =
+            props.mode === 'create'
+              ? await createAdminEvent(undefined, fd)
+              : await updateAdminEvent(props.eventId ?? '', undefined, fd)
 
-        if (props.mode === 'edit' && !result.ok && result.rootError === SENSITIVE_ACK_MESSAGE && !withAck) {
-          setPendingAcknowledge(true)
-          return
-        }
+          if (props.mode === 'edit' && !result.ok && result.rootError === SENSITIVE_ACK_MESSAGE && !withAck) {
+            setPendingAcknowledge(true)
+            return
+          }
 
-        if (!result.ok) {
-          toastActionErr(result)
-          if (result.rootError) setRootMessage(result.rootError)
-          else if (result.fieldErrors && Object.keys(result.fieldErrors).length)
-            setRootMessage(Object.values(result.fieldErrors).join(' '))
-          return
-        }
+          if (!result.ok) {
+            toastActionErr(result)
+            if (result.rootError) setRootMessage(result.rootError)
+            else if (result.fieldErrors && Object.keys(result.fieldErrors).length)
+              setRootMessage(Object.values(result.fieldErrors).join(' '))
+            return
+          }
 
-        if (props.mode === 'create') {
-          createSavedRef.current = true
-          toastCudSuccess('create', 'Acara berhasil dibuat.')
-          router.push(`/admin/events/${result.data.eventId}/edit`)
-        } else {
-          toastCudSuccess('update', 'Acara berhasil diperbarui.')
-          router.refresh()
-        }
+          if (props.mode === 'create') {
+            createSavedRef.current = true
+            toastCudSuccess('create', 'Acara berhasil dibuat.')
+            router.push(`/admin/events/${result.data.eventId}/edit`)
+          } else {
+            toastCudSuccess('update', 'Acara berhasil diperbarui.')
+            router.refresh()
+          }
         } finally {
           submitInFlightRef.current = false
         }
       })
     },
     [coverFile, form, props.eventId, props.mode, props.descriptionAssetContext, router],
+  )
+
+  const handleSaveFormSubmit = useCallback(
+    (e: React.SubmitEvent<HTMLFormElement>) => {
+      void form.handleSubmit(() => submitPayload(false))(e)
+    },
+    [form, submitPayload],
   )
 
   // ─── Shared section JSX (evaluated at render time, not sub-components) ───
@@ -548,7 +558,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
       <div className='flex items-center gap-2'>
         <Checkbox
           id='multiCategoryPurchase'
-          checked={form.watch('multiCategoryPurchase') ?? false}
+          checked={multiCategoryPurchase}
           onCheckedChange={v => form.setValue('multiCategoryPurchase', Boolean(v))}
         />
         <label htmlFor='multiCategoryPurchase' className='text-sm'>
@@ -564,7 +574,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
       <div className='flex items-center gap-2'>
         <Checkbox
           id='requireAllHolderData'
-          checked={form.watch('requireAllHolderData') ?? true}
+          checked={requireAllHolderData}
           onCheckedChange={v => form.setValue('requireAllHolderData', Boolean(v))}
           disabled={registrationCount > 0}
         />
@@ -573,7 +583,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         </label>
       </div>
       {registrationCount > 0 && <Muted>Tidak dapat diubah setelah ada pendaftar.</Muted>}
-      {!(form.watch('requireAllHolderData') ?? true) && registrationCount === 0 && (
+      {!requireAllHolderData && registrationCount === 0 && (
         <Muted>
           Jika dinonaktifkan, hanya data pemesan utama yang dikumpulkan. Tiket tambahan mengikuti status keanggotaan
           pemesan utama.
@@ -581,8 +591,6 @@ export function EventAdminForm(props: EventAdminFormProps) {
       )}
     </section>
   )
-
-  const memberAccessMode = (form.watch('memberAccessMode') ?? 'open') as MemberAccessMode
 
   const sectionMemberAccess = (
     <section className='space-y-3'>
@@ -699,7 +707,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
   // ─── Edit mode: Tabs layout ───────────────────────────────────────────────
 
   const saveEventFormProps = {
-    onSubmit: form.handleSubmit(() => submitPayload(false)),
+    onSubmit: handleSaveFormSubmit,
     className: 'space-y-8' as const,
   }
 
@@ -849,7 +857,7 @@ export function EventAdminForm(props: EventAdminFormProps) {
         ))}
       </nav>
 
-      <form onSubmit={form.handleSubmit(() => submitPayload(false))}>
+      <form onSubmit={handleSaveFormSubmit}>
         {errorAlert}
 
         {/* Step 0: Info Dasar */}
@@ -976,7 +984,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className='flex gap-4 px-4 py-2.5'>
       <span className='text-muted-foreground w-36 shrink-0 text-xs'>{label}</span>
-      <span className='min-w-0 break-words text-sm'>{value}</span>
+      <span className='min-w-0 wrap-break-word text-sm'>{value}</span>
     </div>
   )
 }

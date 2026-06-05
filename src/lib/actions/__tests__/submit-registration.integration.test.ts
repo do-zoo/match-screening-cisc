@@ -2,13 +2,30 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const txRegistrationCreate = vi.fn()
 const txRegistrationCount = vi.fn()
+const txRegistrationTicketCreateMany = vi.fn()
+
+function mockRegistrationCreateReturn(args: {
+  data: { holders?: { create: Array<{ sortOrder: number }> } }
+}) {
+  const holderCreates = args.data.holders?.create ?? []
+  return {
+    id: 'reg-1',
+    holders: holderCreates.map((h, i) => ({
+      id: `holder-${i + 1}`,
+      sortOrder: h.sortOrder ?? i + 1,
+    })),
+  }
+}
 
 vi.mock('@/lib/db/prisma', () => ({
   prisma: {
     event: { findUnique: vi.fn() },
     registration: { count: vi.fn() },
     $transaction: vi.fn(async (cb: (tx: unknown) => Promise<unknown>) =>
-      cb({ registration: { count: txRegistrationCount, create: txRegistrationCreate } }),
+      cb({
+        registration: { count: txRegistrationCount, create: txRegistrationCreate },
+        registrationTicket: { createMany: txRegistrationTicketCreateMany },
+      }),
     ),
   },
 }))
@@ -58,9 +75,13 @@ describe('submitRegistration (integrasi ringan / tanpa DB nyata)', () => {
     vi.mocked(prisma.registration.count).mockReset()
     txRegistrationCreate.mockReset()
     txRegistrationCount.mockReset()
+    txRegistrationTicketCreateMany.mockReset()
     vi.mocked(prisma.registration.count).mockResolvedValue(0)
     txRegistrationCount.mockResolvedValue(0)
-    txRegistrationCreate.mockResolvedValue({ id: 'reg-1' })
+    txRegistrationCreate.mockImplementation(async (args: unknown) =>
+      mockRegistrationCreateReturn(args as Parameters<typeof mockRegistrationCreateReturn>[0]),
+    )
+    txRegistrationTicketCreateMany.mockResolvedValue({ count: 0 })
   })
 
   it('mengembalikan error jika holders JSON tidak valid', async () => {
@@ -96,9 +117,13 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
     vi.mocked(prisma.registration.count).mockReset()
     txRegistrationCreate.mockReset()
     txRegistrationCount.mockReset()
+    txRegistrationTicketCreateMany.mockReset()
     vi.mocked(prisma.registration.count).mockResolvedValue(0)
     txRegistrationCount.mockResolvedValue(0)
-    txRegistrationCreate.mockResolvedValue({ id: 'reg-1' })
+    txRegistrationCreate.mockImplementation(async (args: unknown) =>
+      mockRegistrationCreateReturn(args as Parameters<typeof mockRegistrationCreateReturn>[0]),
+    )
+    txRegistrationTicketCreateMany.mockResolvedValue({ count: 0 })
     vi.mocked(prisma.event.findUnique).mockResolvedValue({
       ...openEvent,
       requireAllHolderData: false,
@@ -127,13 +152,18 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
     const createCall = txRegistrationCreate.mock.calls[0]![0] as {
       data: {
         holderDataMode: string
-        holders: { create: Array<{ holderName: string; assignedTickets: { create: unknown[] } }> }
+        holders: { create: Array<{ holderName: string }> }
       }
     }
     expect(createCall.data.holderDataMode).toBe('primary_only')
     expect(createCall.data.holders.create).toHaveLength(1)
     expect(createCall.data.holders.create[0]!.holderName).toBe('Pemesan Utama')
-    expect(createCall.data.holders.create[0]!.assignedTickets.create).toHaveLength(3)
+
+    const ticketBatch = txRegistrationTicketCreateMany.mock.calls[0]![0] as {
+      data: Array<{ sortOrder: number; assignedHolderId: string }>
+    }
+    expect(ticketBatch.data).toHaveLength(3)
+    expect(ticketBatch.data.every(t => t.assignedHolderId === 'holder-1')).toBe(true)
   })
 
   it('menolak jika dikirim lebih dari 1 holder saat primary-only mode', async () => {
@@ -161,12 +191,13 @@ describe('submitRegistration — memberAccessMode', () => {
     vi.mocked(resolveMasterMemberRegistrationLookup).mockReset()
     txRegistrationCreate.mockReset()
     txRegistrationCount.mockReset()
+    txRegistrationTicketCreateMany.mockReset()
     vi.mocked(prisma.registration.count).mockResolvedValue(0)
     txRegistrationCount.mockResolvedValue(0)
-    txRegistrationCreate.mockResolvedValue({
-      id: 'reg-1',
-      holders: [{ id: 'h-1', sortOrder: 1 }],
-    })
+    txRegistrationCreate.mockImplementation(async (args: unknown) =>
+      mockRegistrationCreateReturn(args as Parameters<typeof mockRegistrationCreateReturn>[0]),
+    )
+    txRegistrationTicketCreateMany.mockResolvedValue({ count: 0 })
     vi.mocked(lookupMemberForRegistration).mockResolvedValue({
       status: 'valid',
       fullName: 'Member Satu',

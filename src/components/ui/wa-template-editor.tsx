@@ -238,8 +238,8 @@ export function WaTemplateEditor({
   })
 
   return (
-    <div className={cn('rounded-md border border-input bg-background shadow-xs', disabled && 'opacity-50')}>
-      <div className='flex flex-wrap gap-0.5 border-b border-input p-1.5'>
+    <div className={cn('overflow-hidden rounded-xl border border-input bg-card shadow-xs', disabled && 'opacity-50')}>
+      <div className='bg-muted/30 flex flex-wrap gap-0.5 border-b border-input p-1.5'>
         <ToolbarButton
           title='Tebal'
           active={editor?.isActive('bold')}

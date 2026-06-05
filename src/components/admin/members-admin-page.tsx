@@ -11,11 +11,7 @@ import { MemberDeleteDialog } from '@/components/admin/member-delete-dialog'
 import { MemberFormDialog } from '@/components/admin/member-form-dialog'
 import { MembersAdminTable } from '@/components/admin/members-admin-table'
 import { MembersAdminToolbar } from '@/components/admin/members-admin-toolbar'
-import {
-  adminMembersListPreservedQuery,
-  buildAdminMembersListUrl,
-  type MembersActivityFilter,
-} from '@/lib/admin/admin-members-list-url'
+import { adminMembersListPreservedQuery, type MembersActivityFilter } from '@/lib/admin/admin-members-list-url'
 import type { AdminMasterMemberRowVm } from '@/lib/members/query-admin-master-members'
 
 type Props = {
