@@ -40,6 +40,7 @@ pnpm auth:migrate:prod            # Same, production profile (.env.prod)
 pnpm bootstrap:admin ...        # default development profile / .env.local
 pnpm bootstrap:admin:prod ...    # production profile / .env.prod
 pnpm normalize:member-numbers    # dry-run uppercase nomor member lama; `-- --apply` untuk menulis
+pnpm db:seed                     # muat snapshot lokal dari `prisma/seed-data/*.json` (gitignored — data nyata, tidak di repo)
 
 # Equivalent without helpers (MATCH_DB_PROFILE optional; omit = development):
 # MATCH_DB_PROFILE=development pnpm prisma migrate dev
