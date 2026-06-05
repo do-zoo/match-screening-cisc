@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
+import { del } from '@vercel/blob'
 import { z } from 'zod'
 
 import { guardOwnerOrAdmin, isAuthError } from '@/lib/actions/guard'
@@ -21,6 +22,7 @@ import { zodToFieldErrors } from '@/lib/forms/zod'
 import { deleteAllBlobsWithPrefix } from '@/lib/uploads/delete-blobs-by-prefix'
 import { isUploadError } from '@/lib/uploads/errors'
 import { deleteVenueMenuImage, uploadVenueMenuImage } from '@/lib/uploads/upload-venue-menu-image'
+import { partitionVenueLinkedEvents } from '@/lib/venues/venue-delete-eligibility'
 import { venueMenuItemIdsFrozenByExistingRegistrations } from '@/lib/venues/venue-menu-frozen-item-ids'
 
 function parsePayloadField(input: unknown): unknown {
@@ -358,17 +360,45 @@ export async function deleteVenue(
 
   const venue = await prisma.venue.findUnique({
     where: { id },
-    select: {
-      id: true,
-      name: true,
-      _count: { select: { events: true } },
-    },
+    select: { id: true, name: true },
   })
 
   if (!venue) return rootError('Venue tidak ditemukan.')
 
-  if (venue._count.events > 0) {
-    return rootError(`Venue tidak bisa dihapus karena digunakan oleh ${venue._count.events} acara.`)
+  const linkedEvents = await prisma.event.findMany({
+    where: { venueId: id },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      coverBlobUrl: true,
+      _count: { select: { registrations: true } },
+    },
+  })
+
+  const { blocking, draftsToRemove } = partitionVenueLinkedEvents(
+    linkedEvents.map(e => ({
+      id: e.id,
+      title: e.title,
+      status: e.status,
+      registrationCount: e._count.registrations,
+    })),
+  )
+
+  if (blocking.length > 0) {
+    const n = blocking.length
+    return rootError(
+      n === 1
+        ? 'Venue tidak bisa dihapus karena masih dipakai 1 acara aktif, selesai, atau draf yang punya registrasi.'
+        : `Venue tidak bisa dihapus karena masih dipakai ${n} acara aktif, selesai, atau draf yang punya registrasi.`,
+    )
+  }
+
+  for (const draft of draftsToRemove) {
+    const row = linkedEvents.find(e => e.id === draft.id)
+    if (!row) continue
+    await del(row.coverBlobUrl).catch(() => undefined)
+    await prisma.event.delete({ where: { id: draft.id } })
   }
 
   await deleteAllBlobsWithPrefix(`venues/${id}/menu/`).catch(() => undefined)
@@ -381,6 +411,9 @@ export async function deleteVenue(
 
   revalidatePath('/admin/venues')
   revalidatePath(`/admin/venues/${id}/edit`)
+  revalidatePath('/admin/events')
+  revalidatePath('/')
+  revalidatePath('/events')
 
   redirect(`/admin/venues?tab=all&flash=${encodeURIComponent(ADMIN_VENUES_DELETE_SUCCESS_FLASH)}`)
 }

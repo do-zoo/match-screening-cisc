@@ -31,7 +31,15 @@ export default async function AdminVenueEditBasicsPage({ params }: { params: Pro
       address: true,
       mapUrl: true,
       updatedAt: true,
-      _count: { select: { events: true } },
+      events: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          _count: { select: { registrations: true } },
+        },
+        orderBy: { title: 'asc' },
+      },
     },
   })
 
@@ -52,7 +60,16 @@ export default async function AdminVenueEditBasicsPage({ params }: { params: Pro
         initialMapUrl={venue.mapUrl}
       />
 
-      <VenueDeletePanel venueId={venue.id} venueName={venue.name} eventCount={venue._count.events} />
+      <VenueDeletePanel
+        venueId={venue.id}
+        venueName={venue.name}
+        linkedEvents={venue.events.map(e => ({
+          id: e.id,
+          title: e.title,
+          status: e.status,
+          registrationCount: e._count.registrations,
+        }))}
+      />
     </main>
   )
 }
