@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildEventRegistrantsListUrl,
+  eventRegistrantsListPreservedQuery,
   parseEventRegistrantsTab,
   registrationListWhere,
 } from '@/lib/admin/event-registrants-list-url'
@@ -45,7 +46,7 @@ describe('event-registrants-list-url', () => {
       q: 'foo',
       page: 2,
     })
-    expect(url).toContain('tab=pending_review')
+    expect(url).not.toContain('tab=')
     expect(url).toContain('view=tabel')
     expect(url).toContain('q=foo')
     expect(url).toContain('page=2')
@@ -56,5 +57,15 @@ describe('event-registrants-list-url', () => {
     expect(w).toEqual({
       AND: [{ eventId }, { status: { in: ['cancelled', 'refunded'] } }],
     })
+  })
+
+  it('eventRegistrantsListPreservedQuery omits default pending_review tab', () => {
+    expect(
+      eventRegistrantsListPreservedQuery({
+        tab: 'pending_review',
+        view: 'cards',
+        q: '',
+      }),
+    ).toEqual({})
   })
 })

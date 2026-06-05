@@ -27,7 +27,7 @@ const TABS = new Set<EventRegistrantsTab>([
 export function parseEventRegistrantsTab(raw: string | string[] | undefined): EventRegistrantsTab {
   const v = Array.isArray(raw) ? raw[0] : raw
   if (v && TABS.has(v as EventRegistrantsTab)) return v as EventRegistrantsTab
-  return 'all'
+  return 'pending_review'
 }
 
 export function parseEventRegistrantsSearchQuery(raw: string | string[] | undefined): string {
@@ -83,7 +83,7 @@ export function buildEventRegistrantsListUrl(
 ): string {
   const pathname = eventRegistrantsListPath(eventId)
   const entries: Record<string, string | undefined> = {}
-  if (opts.tab !== 'all') entries.tab = opts.tab
+  if (opts.tab !== 'pending_review') entries.tab = opts.tab
   if (opts.view === 'table') entries.view = 'tabel'
   const qq = opts.q?.trim()
   if (qq) entries.q = qq
@@ -100,7 +100,7 @@ export function eventRegistrantsListPreservedQuery(opts: {
   q: string
 }): Record<string, string | undefined> {
   return {
-    ...(opts.tab !== 'all' ? { tab: opts.tab } : {}),
+    ...(opts.tab !== 'pending_review' ? { tab: opts.tab } : {}),
     ...(opts.view === 'table' ? { view: 'tabel' } : {}),
     ...(opts.q.trim() ? { q: opts.q.trim() } : {}),
   }
