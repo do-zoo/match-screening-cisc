@@ -2,7 +2,7 @@
 title: Integrasi email penuh — template, action, paritas WA
 date: 2026-06-05
 project: match-screening
-status: draft-pending-user-review
+status: approved
 supersedes-partially:
   - docs/superpowers/specs/2026-06-06-email-templates-and-blast-design.md (scope v1)
   - docs/superpowers/specs/2026-06-05-event-verification-comms-design.md (non-goal receipt email)
