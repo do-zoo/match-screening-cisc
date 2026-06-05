@@ -13,6 +13,11 @@ import 'dotenv/config'
 
 import { prisma } from '@/lib/db/prisma'
 import { loadSeedJson, reviveDates } from './seed-data/load-seed-json'
+import {
+  normalizeClubAuditLogMetadata,
+  normalizeRegistrationSnapshotRow,
+  rowHasLegacySeedId,
+} from './seed-data/normalize-registration-snapshot-ids'
 
 /** Snapshot JSON → input Prisma upsert (bentuk dicek di runtime, bukan compile time). */
 const seedData = (row: Record<string, unknown>) => row as never
@@ -291,34 +296,50 @@ async function main() {
       console.log(`  eventPicHelper: ${helperCount}`)
     }
 
-    await seedRows('registration', loadSeedJson('registration'), row =>
-      prisma.registration.upsert({
-        where: { id: row.id as string },
-        create: seedData(row),
-        update: seedData(row),
-      }),
-    )
+    const hasLegacySeedIds =
+      loadSeedJson('registration').some(rowHasLegacySeedId) ||
+      loadSeedJson('registrationHolder').some(rowHasLegacySeedId) ||
+      loadSeedJson('registrationTicket').some(rowHasLegacySeedId)
 
-    await seedRows('registrationHolder', loadSeedJson('registrationHolder'), row =>
-      prisma.registrationHolder.upsert({
-        where: { id: row.id as string },
-        create: seedData(row),
-        update: seedData(row),
-      }),
-    )
+    const legacyRegRemap = hasLegacySeedIds ? new Map<string, string>() : null
 
-    await seedRows('registrationTicket', loadSeedJson('registrationTicket'), row =>
-      prisma.registrationTicket.upsert({
+    await seedRows('registration', loadSeedJson('registration'), row => {
+      const normalized = legacyRegRemap
+        ? normalizeRegistrationSnapshotRow(row, 'registration', legacyRegRemap)
+        : row
+      return prisma.registration.upsert({
+        where: { id: normalized.id as string },
+        create: seedData(normalized),
+        update: seedData(normalized),
+      })
+    })
+
+    await seedRows('registrationHolder', loadSeedJson('registrationHolder'), row => {
+      const normalized = legacyRegRemap
+        ? normalizeRegistrationSnapshotRow(row, 'registrationHolder', legacyRegRemap)
+        : row
+      return prisma.registrationHolder.upsert({
+        where: { id: normalized.id as string },
+        create: seedData(normalized),
+        update: seedData(normalized),
+      })
+    })
+
+    await seedRows('registrationTicket', loadSeedJson('registrationTicket'), row => {
+      const normalized = legacyRegRemap
+        ? normalizeRegistrationSnapshotRow(row, 'registrationTicket', legacyRegRemap)
+        : row
+      return prisma.registrationTicket.upsert({
         where: {
           registrationId_sortOrder: {
-            registrationId: row.registrationId as string,
-            sortOrder: row.sortOrder as number,
+            registrationId: normalized.registrationId as string,
+            sortOrder: normalized.sortOrder as number,
           },
         },
-        create: seedData(row),
-        update: seedData(row),
-      }),
-    )
+        create: seedData(normalized),
+        update: seedData(normalized),
+      })
+    })
 
     await seedRows('invoiceAdjustment', loadSeedJson('invoiceAdjustment'), row =>
       prisma.invoiceAdjustment.upsert({
@@ -358,12 +379,16 @@ async function main() {
       }),
     )
 
-    await seedRowsWithAdminRemap('clubAuditLog', loadSeedJson('clubAuditLog'), adminRemap, row =>
-      prisma.clubAuditLog.upsert({
-        where: { id: row.id as string },
-        create: seedData(row),
-        update: seedData(row),
-      }),
+    await seedRowsWithAdminRemap(
+      'clubAuditLog',
+      loadSeedJson('clubAuditLog'),
+      adminRemap,
+      raw =>
+        prisma.clubAuditLog.upsert({
+          where: { id: raw.id as string },
+          create: seedData(normalizeClubAuditLogMetadata(raw)),
+          update: seedData(normalizeClubAuditLogMetadata(raw)),
+        }),
     )
   }
 
