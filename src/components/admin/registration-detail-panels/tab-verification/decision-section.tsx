@@ -198,10 +198,6 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
           open={notifyOpen}
           onOpenChange={setNotifyOpen}
           wa={notifyPayload}
-          eventId={eventId}
-          registrationId={registration.id}
-          kind={notifyKind}
-          contactEmail={contact.email}
         />
       ) : null}
     </div>
