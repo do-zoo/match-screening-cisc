@@ -17,4 +17,5 @@ export const clubNotificationPreferencesSaveSchema = z.object({
   emailAutoOnPaymentIssue: z.preprocess(formBoolean, z.boolean()),
   emailAutoOnCancel: z.preprocess(formBoolean, z.boolean()),
   emailAutoOnRefund: z.preprocess(formBoolean, z.boolean()),
+  emailAttachInvoicePdf: z.preprocess(formBoolean, z.boolean()),
 })

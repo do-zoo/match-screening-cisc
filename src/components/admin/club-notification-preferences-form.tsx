@@ -110,6 +110,7 @@ export function ClubNotificationPreferencesForm(props: {
     emailAutoOnPaymentIssue: boolean
     emailAutoOnCancel: boolean
     emailAutoOnRefund: boolean
+    emailAttachInvoicePdf: boolean
   }
 }) {
   const [state, dispatch, pending] = useActionState(
@@ -225,6 +226,14 @@ export function ClubNotificationPreferencesForm(props: {
             label='Notifikasi refund'
             description='Template refunded — setelah pengembalian dana.'
             initialChecked={props.initialEmailAuto.emailAutoOnRefund}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAttachInvoicePdf'
+            name='emailAttachInvoicePdf'
+            label='Lampirkan PDF tagihan pada email invoice'
+            description='Berlaku untuk email tagihan pendaftaran dan kekurangan bayar (kirim manual, blast, dan otomatis).'
+            initialChecked={props.initialEmailAuto.emailAttachInvoicePdf}
             pending={pending}
           />
         </div>

@@ -545,6 +545,7 @@ model ClubNotificationPreferences {
   emailAutoOnPaymentIssue  Boolean                  @default(false)
   emailAutoOnCancel        Boolean                  @default(false)
   emailAutoOnRefund        Boolean                  @default(false)
+  emailAttachInvoicePdf    Boolean                  @default(true)
   updatedAt                DateTime                 @updatedAt
 }
 

@@ -34,6 +34,7 @@ export default async function NotificationsSettingsPage() {
           emailAutoOnPaymentIssue: row?.emailAutoOnPaymentIssue ?? false,
           emailAutoOnCancel: row?.emailAutoOnCancel ?? false,
           emailAutoOnRefund: row?.emailAutoOnRefund ?? false,
+          emailAttachInvoicePdf: row?.emailAttachInvoicePdf ?? true,
         }}
       />
     </div>

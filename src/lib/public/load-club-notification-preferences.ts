@@ -15,6 +15,7 @@ export type ClubNotificationPrefsVm = {
   emailAutoOnPaymentIssue: boolean
   emailAutoOnCancel: boolean
   emailAutoOnRefund: boolean
+  emailAttachInvoicePdf: boolean
 }
 
 export const loadClubNotificationPreferences = cache(async (): Promise<ClubNotificationPrefsVm> => {
@@ -30,5 +31,6 @@ export const loadClubNotificationPreferences = cache(async (): Promise<ClubNotif
     emailAutoOnPaymentIssue: row?.emailAutoOnPaymentIssue ?? false,
     emailAutoOnCancel: row?.emailAutoOnCancel ?? false,
     emailAutoOnRefund: row?.emailAutoOnRefund ?? false,
+    emailAttachInvoicePdf: row?.emailAttachInvoicePdf ?? true,
   }
 })

@@ -32,6 +32,7 @@ export async function saveClubNotificationPreferences(
     emailAutoOnPaymentIssue: formData.get('emailAutoOnPaymentIssue'),
     emailAutoOnCancel: formData.get('emailAutoOnCancel'),
     emailAutoOnRefund: formData.get('emailAutoOnRefund'),
+    emailAttachInvoicePdf: formData.get('emailAttachInvoicePdf'),
   })
 
   if (!parsed.success) return fieldError(zodToFieldErrors(parsed.error))
@@ -49,6 +50,7 @@ export async function saveClubNotificationPreferences(
         emailAutoOnPaymentIssue: parsed.data.emailAutoOnPaymentIssue,
         emailAutoOnCancel: parsed.data.emailAutoOnCancel,
         emailAutoOnRefund: parsed.data.emailAutoOnRefund,
+        emailAttachInvoicePdf: parsed.data.emailAttachInvoicePdf,
       },
       update: {
         outboundMode: parsed.data.outboundMode,
@@ -59,6 +61,7 @@ export async function saveClubNotificationPreferences(
         emailAutoOnPaymentIssue: parsed.data.emailAutoOnPaymentIssue,
         emailAutoOnCancel: parsed.data.emailAutoOnCancel,
         emailAutoOnRefund: parsed.data.emailAutoOnRefund,
+        emailAttachInvoicePdf: parsed.data.emailAttachInvoicePdf,
       },
     })
   } catch {
@@ -80,6 +83,7 @@ export async function saveClubNotificationPreferences(
       emailAutoOnPaymentIssue: parsed.data.emailAutoOnPaymentIssue,
       emailAutoOnCancel: parsed.data.emailAutoOnCancel,
       emailAutoOnRefund: parsed.data.emailAutoOnRefund,
+      emailAttachInvoicePdf: parsed.data.emailAttachInvoicePdf,
     },
   })
 

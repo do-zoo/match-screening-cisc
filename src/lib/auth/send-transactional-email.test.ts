@@ -44,6 +44,25 @@ describe('sendTransactionalEmail', () => {
     )
   })
 
+  it('forwards attachments to resend', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    vi.stubEnv('AUTH_TRANSACTIONAL_FROM', 'App <noreply@app.com>')
+    mockSend.mockResolvedValue({ data: { id: 'att' }, error: null })
+    const buf = Buffer.from('%PDF-1.4 fake')
+    const { sendTransactionalEmail } = await import('@/lib/auth/send-transactional-email')
+    await sendTransactionalEmail({
+      to: 'user@example.com',
+      subject: 'Tagihan',
+      text: 'Lihat lampiran',
+      attachments: [{ filename: 'tagihan.pdf', content: buf }],
+    })
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [expect.objectContaining({ filename: 'tagihan.pdf', content: buf })],
+      }),
+    )
+  })
+
   it('calls resend.emails.send without html when not provided', async () => {
     vi.stubEnv('RESEND_API_KEY', 're_test')
     vi.stubEnv('AUTH_TRANSACTIONAL_FROM', 'App <noreply@app.com>')

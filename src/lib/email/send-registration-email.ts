@@ -6,6 +6,7 @@ import {
 } from '@prisma/client'
 
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
+import { tryBuildInvoiceEmailAttachment } from '@/lib/invoices/try-build-invoice-email-attachment'
 import { isTransactionalEmailConfigured } from '@/lib/auth/transactional-email-config'
 import { prisma } from '@/lib/db/prisma'
 import { canSendRegistrationEmail } from '@/lib/email/registration-email-eligibility'
@@ -66,7 +67,7 @@ async function loadRegistrationForEmail(registrationId: string, eventId: string)
         },
         orderBy: { createdAt: 'desc' },
         take: 1,
-        select: { amount: true },
+        select: { id: true, amount: true },
       },
       event: {
         select: {
@@ -256,8 +257,25 @@ export async function sendRegistrationEmailByKey(opts: {
 
   const toEmail = reg.contactEmail!.trim()
 
+  let attachments: Array<{ filename: string; content: Buffer }> | undefined
+
+  if (
+    prefs.emailAttachInvoicePdf &&
+    (opts.templateKey === EmailTemplateKey.invoice ||
+      opts.templateKey === EmailTemplateKey.invoice_underpayment)
+  ) {
+    const unpaidAdj = reg.adjustments[0]
+    const attachment = await tryBuildInvoiceEmailAttachment({
+      eventId: opts.eventId,
+      registrationId: reg.id,
+      templateKey: opts.templateKey,
+      unpaidAdjustmentId: unpaidAdj?.id ?? null,
+    })
+    if (attachment) attachments = [attachment]
+  }
+
   try {
-    await sendTransactionalEmail({ to: toEmail, subject, text, html })
+    await sendTransactionalEmail({ to: toEmail, subject, text, html, attachments })
     await prisma.emailDeliveryLog.create({
       data: {
         eventId: opts.eventId,

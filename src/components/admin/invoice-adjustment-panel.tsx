@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { FileField } from '@/components/ui/file-field'
 import { IdrAmountInput } from '@/components/ui/idr-amount-input'
 import { formatIdr } from '@/lib/utils/format-idr'
+import { RegistrationInvoicePdfButton } from '@/components/admin/registration-invoice-pdf-button'
 import { SendInvoiceEmailButton } from '@/components/admin/send-invoice-email-button'
+import { buildRegistrationInvoicePdfUrl } from '@/lib/invoices/build-registration-invoice-pdf-url'
 import { createInvoiceAdjustment, markAdjustmentPaid, markAdjustmentUnpaid } from '@/lib/actions/invoice-adjustment'
 import { uploadAdjustmentProof } from '@/lib/actions/upload-adjustment-proof'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
@@ -159,16 +161,37 @@ export function InvoiceAdjustmentPanel({
                       })}
                     </p>
                   </div>
-                  <span
-                    className={cn(
-                      'shrink-0 rounded-md px-2 py-0.5 text-xs font-medium',
-                      isPaid
-                        ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
-                        : 'bg-amber-500/15 text-amber-900 dark:text-amber-100',
-                    )}
-                  >
-                    {isPaid ? 'Lunas' : 'Belum lunas'}
-                  </span>
+                  <div className='flex shrink-0 flex-wrap items-center justify-end gap-2'>
+                    <RegistrationInvoicePdfButton
+                      label='Tagihan'
+                      dialogTitle='Pratinjau tagihan penyesuaian'
+                      previewUrl={buildRegistrationInvoicePdfUrl({
+                        eventId,
+                        registrationId,
+                        kind: 'adjustment',
+                        adjustmentId: adj.id,
+                        disposition: 'inline',
+                      })}
+                      downloadUrl={buildRegistrationInvoicePdfUrl({
+                        eventId,
+                        registrationId,
+                        kind: 'adjustment',
+                        adjustmentId: adj.id,
+                        disposition: 'attachment',
+                      })}
+                      variant='ghost'
+                    />
+                    <span
+                      className={cn(
+                        'rounded-md px-2 py-0.5 text-xs font-medium',
+                        isPaid
+                          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-amber-500/15 text-amber-900 dark:text-amber-100',
+                      )}
+                    >
+                      {isPaid ? 'Lunas' : 'Belum lunas'}
+                    </span>
+                  </div>
                 </div>
 
                 {adj.uploads.length > 0 ? (
