@@ -71,6 +71,7 @@ export default async function AdminEventRegistrantsDetailPage({
       contactEmail: true,
       computedTotalAtSubmit: true,
       ticketQty: true,
+      holderDataMode: true,
       ticketCategoryId: true,
       ticketCategory: {
         select: {
@@ -90,7 +91,15 @@ export default async function AdminEventRegistrantsDetailPage({
           claimedMemberNumber: true,
           memberValidation: true,
           memberType: true,
+        },
+      },
+      tickets: {
+        orderBy: { sortOrder: 'asc' as const },
+        select: {
+          id: true,
+          sortOrder: true,
           ticketPriceApplied: true,
+          assignedHolderId: true,
           mandatoryMenuItem: { select: { name: true } },
         },
       },
@@ -171,8 +180,13 @@ export default async function AdminEventRegistrantsDetailPage({
       claimedMemberNumber: h.claimedMemberNumber,
       memberValidation: h.memberValidation,
       memberType: h.memberType,
-      ticketPriceApplied: h.ticketPriceApplied,
-      menuItemName: h.mandatoryMenuItem?.name ?? null,
+    })),
+    tickets: registration.tickets.map(t => ({
+      id: t.id,
+      sortOrder: t.sortOrder,
+      ticketPriceApplied: t.ticketPriceApplied,
+      menuItemName: t.mandatoryMenuItem?.name ?? null,
+      assignedHolderId: t.assignedHolderId,
     })),
     event: {
       id: prismaEvent.id,

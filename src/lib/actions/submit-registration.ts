@@ -1,6 +1,6 @@
 'use server'
 
-import { MemberType, RegistrationStatus } from '@prisma/client'
+import { HolderDataMode, MemberType, RegistrationStatus } from '@prisma/client'
 import { lookupMemberForRegistration } from '@/lib/actions/lookup-member-for-registration'
 import { assertHolderEligibleForMemberAccessMode } from '@/lib/events/member-access-mode'
 import { optionalStoredEmail, requiredStoredEmail } from '@/lib/email/normalize-email'
@@ -202,7 +202,11 @@ export async function submitRegistration(
     })),
   })
 
-  // 7. Create Registration + RegistrationHolder[] in a transaction
+  const holderDataMode: HolderDataMode = event.requireAllHolderData
+    ? HolderDataMode.all_holders
+    : HolderDataMode.primary_only
+
+  // 7. Create Registration + holders + tickets in a transaction
   let reg: { id: string; holders: { id: string; sortOrder: number }[] }
   try {
     reg = await prisma.$transaction(async tx => {
@@ -213,28 +217,74 @@ export async function submitRegistration(
       const contactWhatsapp = mergedHolders[0]!.holderWhatsapp ?? ''
       const contactEmail = requiredStoredEmail((mergedHolders[0]!.holderEmail ?? '').trim())
 
+      const ticketCreates = mergedHolders.map((h, i) => ({
+        sortOrder: i + 1,
+        ticketPriceApplied: pricing.lines[i]!.ticketPrice,
+        mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
+        mandatoryMenuPriceApplied: null,
+      }))
+
+      if (event.requireAllHolderData) {
+        return tx.registration.create({
+          data: {
+            eventId: event.id,
+            ticketCategoryId: input.ticketCategoryId,
+            ticketQty: input.ticketQty,
+            holderDataMode,
+            contactName,
+            contactWhatsapp,
+            contactEmail,
+            computedTotalAtSubmit: pricing.grandTotal,
+            status: RegistrationStatus.submitted,
+            holders: {
+              create: mergedHolders.map((h, i) => ({
+                sortOrder: i + 1,
+                holderName: h.holderName,
+                holderWhatsapp: h.holderWhatsapp?.trim() || null,
+                holderEmail: optionalStoredEmail(h.holderEmail),
+                claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
+                memberType: h.memberType ? (h.memberType as MemberType) : null,
+                assignedTickets: {
+                  create: [ticketCreates[i]!],
+                },
+              })),
+            },
+          },
+          include: {
+            holders: {
+              select: { id: true, sortOrder: true },
+              orderBy: { sortOrder: 'asc' as const },
+            },
+          },
+        })
+      }
+
+      const primary = mergedHolders[0]!
       return tx.registration.create({
         data: {
           eventId: event.id,
           ticketCategoryId: input.ticketCategoryId,
           ticketQty: input.ticketQty,
+          holderDataMode,
           contactName,
           contactWhatsapp,
           contactEmail,
           computedTotalAtSubmit: pricing.grandTotal,
           status: RegistrationStatus.submitted,
           holders: {
-            create: mergedHolders.map((h, i) => ({
-              sortOrder: i + 1,
-              holderName: h.holderName,
-              holderWhatsapp: h.holderWhatsapp?.trim() || null,
-              holderEmail: optionalStoredEmail(h.holderEmail),
-              claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
-              memberType: h.memberType ? (h.memberType as MemberType) : null,
-              ticketPriceApplied: pricing.lines[i]!.ticketPrice,
-              mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
-              mandatoryMenuPriceApplied: null,
-            })),
+            create: [
+              {
+                sortOrder: 1,
+                holderName: primary.holderName,
+                holderWhatsapp: primary.holderWhatsapp?.trim() || null,
+                holderEmail: optionalStoredEmail(primary.holderEmail),
+                claimedMemberNumber: primary.claimedMemberNumber?.trim() || null,
+                memberType: primary.memberType ? (primary.memberType as MemberType) : null,
+                assignedTickets: {
+                  create: ticketCreates,
+                },
+              },
+            ],
           },
         },
         include: {

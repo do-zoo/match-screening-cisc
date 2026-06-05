@@ -105,7 +105,7 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
     } as never)
   })
 
-  it('menerima 1 holder untuk ticketQty=3 dan membuat 3 holder rows di DB', async () => {
+  it('menerima 1 holder untuk ticketQty=3 dan membuat 1 holder + 3 tiket di DB', async () => {
     const fd = new FormData()
     fd.set('ticketCategoryId', 'cat-1')
     fd.set('ticketQty', '3')
@@ -125,13 +125,15 @@ describe('submitRegistration — requireAllHolderData = false (primary-only mode
     expect(r.ok).toBe(true)
 
     const createCall = txRegistrationCreate.mock.calls[0]![0] as {
-      data: { holders: { create: unknown[] } }
+      data: {
+        holderDataMode: string
+        holders: { create: Array<{ holderName: string; assignedTickets: { create: unknown[] } }> }
+      }
     }
-    expect(createCall.data.holders.create).toHaveLength(3)
-    const rows = createCall.data.holders.create as Array<{ holderName: string }>
-    expect(rows[0]!.holderName).toBe('Pemesan Utama')
-    expect(rows[1]!.holderName).toBe('Pemesan Utama')
-    expect(rows[2]!.holderName).toBe('Pemesan Utama')
+    expect(createCall.data.holderDataMode).toBe('primary_only')
+    expect(createCall.data.holders.create).toHaveLength(1)
+    expect(createCall.data.holders.create[0]!.holderName).toBe('Pemesan Utama')
+    expect(createCall.data.holders.create[0]!.assignedTickets.create).toHaveLength(3)
   })
 
   it('menolak jika dikirim lebih dari 1 holder saat primary-only mode', async () => {

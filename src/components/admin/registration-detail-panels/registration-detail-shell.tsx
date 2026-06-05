@@ -6,6 +6,7 @@ import { OperationsTab } from '@/components/admin/registration-detail-panels/tab
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import type { RegistrationDetailTab } from '@/lib/admin/event-registration-detail-tab'
 import type { TicketContextVm } from '@/lib/registrations/admin-ticket-context'
+import { resolveDetailRegistrationContact } from '@/lib/registrations/registration-primary-contact'
 import type { ClubWaBodies } from '@/lib/wa-templates/render-wa-from-db'
 
 type Props = {
@@ -25,11 +26,13 @@ export function RegistrationDetailShell({
   waBodies,
   showOperasiBadge,
 }: Props) {
+  const contact = resolveDetailRegistrationContact(registration)
+
   return (
     <div className='flex flex-col gap-4'>
       <RegistrationDetailHeader
-        contactName={registration.contactName}
-        contactWhatsapp={registration.contactWhatsapp}
+        contactName={contact.name}
+        contactWhatsapp={contact.whatsapp}
         computedTotalAtSubmit={registration.computedTotalAtSubmit}
         createdAt={registration.createdAt}
         status={registration.status}

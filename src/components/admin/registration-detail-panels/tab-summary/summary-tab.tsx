@@ -1,11 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DetailSectionShell } from '@/components/admin/registration-detail-panels/detail-section-shell'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
-import { formatCurrencyIdr } from '@/components/admin/registration-detail-panels/shared/format'
 import { IdentitySection } from '@/components/admin/registration-detail-panels/tab-summary/identity-section'
 import { HoldersSection } from '@/components/admin/registration-detail-panels/tab-summary/holders-section'
 import { PriceSnapshotSection } from '@/components/admin/registration-detail-panels/tab-summary/price-snapshot-section'
 import { EventContextSection } from '@/components/admin/registration-detail-panels/tab-summary/event-context-section'
+import { registrantsSectionBadge } from '@/lib/registrations/holder-data-mode'
 import { Badge } from '@/components/ui/badge'
 
 type Props = {
@@ -26,7 +26,7 @@ export function SummaryTab({ eventId, registration }: Props) {
         <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_min(18rem,34%)] lg:items-start lg:gap-5'>
           <DetailSectionShell
             title='Identitas pendaftar'
-            description='Kontak utama dan email untuk notifikasi.'
+            description='Kontak pemesan (holder #1), disinkronkan dengan transaksi registrasi.'
           >
             <IdentitySection eventId={eventId} registration={registration} />
           </DetailSectionShell>
@@ -34,12 +34,6 @@ export function SummaryTab({ eventId, registration }: Props) {
           <DetailSectionShell
             title='Total dibayar'
             description='Snapshot saat formulir dikirim.'
-            variant='muted'
-            headerEnd={
-              <Badge variant='outline' className='shrink-0 font-mono tabular-nums'>
-                {formatCurrencyIdr(registration.computedTotalAtSubmit)}
-              </Badge>
-            }
           >
             <PriceSnapshotSection registration={registration} compact />
           </DetailSectionShell>
@@ -50,7 +44,11 @@ export function SummaryTab({ eventId, registration }: Props) {
           description={`${registration.ticketCategory.name} · ${registration.ticketQty} tiket`}
           headerEnd={
             <Badge variant='outline' className='shrink-0 tabular-nums'>
-              {registration.holders.length} pemegang
+              {registrantsSectionBadge(
+                registration.holderDataMode,
+                registration.holders.length,
+                registration.ticketQty,
+              )}
             </Badge>
           }
         >

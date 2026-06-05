@@ -6,8 +6,6 @@ export type RegistrationHolderContext = {
   holderName: string
   claimedMemberNumber: string | null
   memberValidation: MemberValidation
-  ticketPriceApplied: number
-  menuItemName: string | null
 }
 
 export type TicketConflictRowVm = {

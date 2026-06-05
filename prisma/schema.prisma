@@ -48,6 +48,12 @@ enum MemberAccessMode {
   cisc_members
 }
 
+/// Snapshot saat submit: apakah setiap tiket punya data peserta sendiri atau mengikuti pemesan utama.
+enum HolderDataMode {
+  all_holders
+  primary_only
+}
+
 enum InvoiceAdjustmentType {
   underpayment
   other_adjustment
@@ -239,28 +245,43 @@ model EventTicketCategory {
 }
 
 model RegistrationHolder {
-  id                        String           @id @default(cuid())
-  registrationId            String
-  registration              Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  sortOrder                 Int
-  holderName                String
-  holderWhatsapp            String?
-  holderEmail               String?
-  claimedMemberNumber       String?
-  memberValidation          MemberValidation @default(unknown)
-  memberId                  String?
-  member                    MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  ticketPriceApplied        Int
-  mandatoryMenuItemId       String?
-  mandatoryMenuItem         VenueMenuItem? @relation("RegistrationHolderMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
-  mandatoryMenuPriceApplied Int?
-  memberType                MemberType?
-  uploads                   Upload[]
+  id                  String           @id @default(cuid())
+  registrationId      String
+  registration        Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sortOrder           Int
+  holderName          String
+  holderWhatsapp      String?
+  holderEmail         String?
+  claimedMemberNumber String?
+  memberValidation    MemberValidation @default(unknown)
+  memberId            String?
+  member              MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberType          MemberType?
+  uploads             Upload[]
+  assignedTickets     RegistrationTicket[]
 
   @@index([registrationId])
 }
 
-/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `RegistrationHolder.mandatoryMenuItem`.
+/// Satu baris per tiket dalam transaksi; identitas peserta lewat `assignedHolder`.
+model RegistrationTicket {
+  id                        String             @id @default(cuid())
+  registrationId            String
+  registration              Registration       @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sortOrder                 Int
+  ticketPriceApplied        Int
+  mandatoryMenuItemId       String?
+  mandatoryMenuItem         VenueMenuItem?     @relation("RegistrationTicketMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
+  mandatoryMenuPriceApplied Int?
+  assignedHolderId          String
+  assignedHolder            RegistrationHolder @relation(fields: [assignedHolderId], references: [id], onDelete: Restrict)
+
+  @@unique([registrationId, sortOrder])
+  @@index([registrationId])
+  @@index([assignedHolderId])
+}
+
+/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `RegistrationTicket.mandatoryMenuItem`.
 model VenueMenuItem {
   id            String   @id @default(cuid())
   venueId       String
@@ -275,8 +296,8 @@ model VenueMenuItem {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  eventVenueLinks                  EventVenueMenuItem[]
-  registrationHoldersMandatoryMenu RegistrationHolder[] @relation("RegistrationHolderMandatoryMenu")
+  eventVenueLinks                   EventVenueMenuItem[]
+  registrationTicketsMandatoryMenu RegistrationTicket[] @relation("RegistrationTicketMandatoryMenu")
 
   @@index([venueId])
 }
@@ -363,8 +384,10 @@ model Registration {
 
   ticketCategoryId String
   ticketCategory   EventTicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Restrict)
-  /// Total tiket dalam transaksi ini; jumlah RegistrationHolder rows harus sama.
+  /// Total tiket dalam transaksi ini; jumlah `RegistrationTicket` rows harus sama.
   ticketQty        Int                 @default(1)
+  /// Snapshot mode data peserta saat submit (dari `Event.requireAllHolderData`).
+  holderDataMode   HolderDataMode      @default(all_holders)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -389,6 +412,7 @@ model Registration {
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
   holders     RegistrationHolder[]
+  tickets     RegistrationTicket[]
 
   @@index([eventId, createdAt])
   @@index([status])

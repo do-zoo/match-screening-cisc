@@ -18,6 +18,7 @@ describe('buildMasterMembersExportCsv', () => {
       },
     ])
     expect(csv.startsWith('\ufeff')).toBe(true)
+    expect(csv).toContain('id')
     expect(csv).toContain('member_number')
     expect(csv).toContain('M-01')
     expect(csv).toContain('true')

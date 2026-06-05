@@ -1,4 +1,5 @@
 import type { MemberType, MemberValidation } from '@prisma/client'
+import { HolderDataMode } from '@prisma/client'
 
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { formatCurrencyIdr } from '@/components/admin/registration-detail-panels/shared/format'
@@ -20,10 +21,8 @@ const VALIDATION_BADGE: Record<MemberValidation, string> = {
   valid:
     'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-50',
   invalid: 'border-red-200 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-50',
-  overridden:
-    'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-50',
-  unknown:
-    'border-zinc-200 bg-zinc-50 text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
+  overridden: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-50',
+  unknown: 'border-zinc-200 bg-zinc-50 text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
 }
 
 function memberTypeLabel(t: MemberType | null): string {
@@ -32,19 +31,41 @@ function memberTypeLabel(t: MemberType | null): string {
   return 'Non-member'
 }
 
-const MEMBER_TYPE_BADGE: Record<string, string> = {
+const MEMBER_TYPE_BADGE: Record<MemberType | 'non-member', string> = {
   tangsel:
-    'border-primary/30 bg-primary/10 text-primary-foreground dark:text-primary-foreground',
-  regional: 'border-violet-500/30 bg-violet-500/10 text-violet-950 dark:text-violet-100',
-  'non-member': 'border-border bg-muted/40 text-muted-foreground',
+    'border-primary-200 bg-primary-50 text-primary-950 dark:border-primary-900 dark:bg-primary-950/40 dark:text-primary-50',
+  regional:
+    'border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-50',
+  'non-member':
+    'border-zinc-200 bg-zinc-50 text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
+}
+
+function ticketsForHolder(registration: DetailRegistration, holderId: string) {
+  return registration.tickets.filter(t => t.assignedHolderId === holderId)
+}
+
+function ticketPriceLabel(registration: DetailRegistration, holderId: string): string {
+  const assigned = ticketsForHolder(registration, holderId)
+  if (assigned.length === 0) return '—'
+  if (assigned.length === 1) return formatCurrencyIdr(assigned[0]!.ticketPriceApplied)
+  const total = assigned.reduce((s, t) => s + t.ticketPriceApplied, 0)
+  return `${assigned.length} tiket · ${formatCurrencyIdr(total)}`
 }
 
 export function HoldersSection({ registration }: Props) {
-  const { holders } = registration
+  const { holders, holderDataMode } = registration
+  const primaryOnlyMulti = holderDataMode === HolderDataMode.primary_only && registration.ticketQty > 1
 
   return (
     <div className='grid gap-4'>
-      {/* Mobile: kartu per pemegang */}
+      {primaryOnlyMulti ? (
+        <p className='text-xs leading-relaxed text-muted-foreground'>
+          Mode pemesan utama: data di bawah adalah pemesan; tiket #
+          {registration.tickets.map(t => t.sortOrder).join(', #')} mengacu pada orang yang sama (lihat rincian harga di
+          Total dibayar).
+        </p>
+      ) : null}
+
       <ul className='grid gap-3 md:hidden'>
         {holders.map(h => {
           const typeKey = h.memberType ?? 'non-member'
@@ -55,7 +76,7 @@ export function HoldersSection({ registration }: Props) {
                   <p className='font-medium'>
                     #{h.sortOrder} · {h.holderName}
                   </p>
-                  <p className='mt-0.5 font-mono text-sm tabular-nums'>{formatCurrencyIdr(h.ticketPriceApplied)}</p>
+                  <p className='mt-0.5 font-mono text-sm tabular-nums'>{ticketPriceLabel(registration, h.id)}</p>
                 </div>
                 <Badge variant='outline' className={cn('shrink-0 text-xs', VALIDATION_BADGE[h.memberValidation])}>
                   {memberValidationLabel(h.memberValidation)}
@@ -74,19 +95,12 @@ export function HoldersSection({ registration }: Props) {
                   <dt className='text-muted-foreground'>No. member</dt>
                   <dd className='font-mono text-xs'>{h.claimedMemberNumber ?? '—'}</dd>
                 </div>
-                {h.menuItemName ? (
-                  <div className='flex justify-between gap-2'>
-                    <dt className='text-muted-foreground'>Menu</dt>
-                    <dd className='text-right'>{h.menuItemName}</dd>
-                  </div>
-                ) : null}
               </dl>
             </li>
           )
         })}
       </ul>
 
-      {/* Desktop: tabel */}
       <div className='hidden overflow-x-auto rounded-lg border md:block'>
         <table className='w-full text-sm'>
           <thead>
@@ -96,8 +110,7 @@ export function HoldersSection({ registration }: Props) {
               <th className='px-3 py-2.5 text-left text-xs font-medium text-muted-foreground'>Tipe</th>
               <th className='px-3 py-2.5 text-left text-xs font-medium text-muted-foreground'>No. member</th>
               <th className='px-3 py-2.5 text-left text-xs font-medium text-muted-foreground'>Status</th>
-              <th className='px-3 py-2.5 text-left text-xs font-medium text-muted-foreground'>Menu</th>
-              <th className='px-3 py-2.5 text-right text-xs font-medium text-muted-foreground'>Harga</th>
+              <th className='px-3 py-2.5 text-right text-xs font-medium text-muted-foreground'>Tiket / harga</th>
             </tr>
           </thead>
           <tbody>
@@ -118,8 +131,9 @@ export function HoldersSection({ registration }: Props) {
                       {memberValidationLabel(h.memberValidation)}
                     </Badge>
                   </td>
-                  <td className='px-3 py-2.5 text-muted-foreground'>{h.menuItemName ?? '—'}</td>
-                  <td className='px-3 py-2.5 text-right font-mono tabular-nums'>{formatCurrencyIdr(h.ticketPriceApplied)}</td>
+                  <td className='px-3 py-2.5 text-right font-mono tabular-nums'>
+                    {ticketPriceLabel(registration, h.id)}
+                  </td>
                 </tr>
               )
             })}

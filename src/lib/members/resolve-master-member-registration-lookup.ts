@@ -16,9 +16,12 @@ const ACTIVE_STATUSES: RegistrationStatus[] = [
 export async function resolveMasterMemberRegistrationLookup(
   memberNumber: string,
   eventId: string,
+  options?: { excludeRegistrationId?: string },
 ): Promise<MasterMemberRegistrationLookup> {
   const trimmed = memberNumber.trim()
   if (!trimmed) return { status: 'not_found' }
+
+  const excludeRegistrationId = options?.excludeRegistrationId?.trim()
 
   const [member, duplicate] = await Promise.all([
     prisma.masterMember.findUnique({
@@ -30,6 +33,7 @@ export async function resolveMasterMemberRegistrationLookup(
         claimedMemberNumber: trimmed,
         registration: {
           eventId,
+          ...(excludeRegistrationId ? { id: { not: excludeRegistrationId } } : {}),
           status: { in: ACTIVE_STATUSES },
         },
       },

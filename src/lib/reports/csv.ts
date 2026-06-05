@@ -8,7 +8,7 @@ function escapeCsv(v: string): string {
   return v
 }
 
-/** CSV UTF-8: satu baris per `Registration`, kolom holder dinamis sesuai ticketQty maksimal. */
+/** CSV UTF-8: satu baris per `Registration`, kolom tiket dinamis sesuai ticketQty maksimal. */
 export async function generateRegistrationsCsv(eventId: string): Promise<string> {
   const rows = await prisma.registration.findMany({
     where: { eventId },
@@ -19,6 +19,7 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       contactName: true,
       contactWhatsapp: true,
       ticketQty: true,
+      holderDataMode: true,
       ticketCategory: { select: { name: true } },
       status: true,
       attendanceStatus: true,
@@ -26,10 +27,19 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       holders: {
         orderBy: { sortOrder: 'asc' },
         select: {
+          id: true,
           holderName: true,
           claimedMemberNumber: true,
           memberValidation: true,
+        },
+      },
+      tickets: {
+        orderBy: { sortOrder: 'asc' },
+        select: {
+          id: true,
+          sortOrder: true,
           ticketPriceApplied: true,
+          assignedHolderId: true,
         },
       },
       adjustments: {
@@ -38,11 +48,18 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
     },
   })
 
-  const maxHolders = rows.reduce((max, r) => Math.max(max, r.holders.length), 0)
+  const maxTickets = rows.reduce((max, r) => Math.max(max, r.tickets.length), 0)
 
-  const holderHeaders: string[] = []
-  for (let n = 1; n <= maxHolders; n++) {
-    holderHeaders.push(`Holder ${n} Nama`, `Holder ${n} Member`, `Holder ${n} Status Member`, `Holder ${n} Harga (IDR)`)
+  const ticketHeaders: string[] = []
+  for (let n = 1; n <= maxTickets; n++) {
+    ticketHeaders.push(
+      `Tiket ${n} ID`,
+      `Tiket ${n} Holder ID`,
+      `Tiket ${n} Nama`,
+      `Tiket ${n} Member`,
+      `Tiket ${n} Status Member`,
+      `Tiket ${n} Harga (IDR)`,
+    )
   }
 
   const headers = [
@@ -50,25 +67,35 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
     'Tanggal daftar',
     'Kategori Tiket',
     'Jumlah Tiket',
+    'Mode data peserta',
     'Nama Kontak',
     'No. WA Kontak',
     'Status',
     'Kehadiran',
     'Total (IDR)',
     'Penyesuaian (IDR)',
-    ...holderHeaders,
+    ...ticketHeaders,
   ]
 
   const body = rows.map(r => {
     const adjustmentTotal = r.adjustments.reduce((s, a) => s + a.amount, 0)
+    const holderById = Object.fromEntries(r.holders.map(h => [h.id, h]))
 
-    const holderCols: string[] = []
-    for (let n = 0; n < maxHolders; n++) {
-      const h = r.holders[n]
-      if (h) {
-        holderCols.push(h.holderName, h.claimedMemberNumber ?? '', h.memberValidation, formatIdr(h.ticketPriceApplied))
+    const ticketCols: string[] = []
+    for (let n = 0; n < maxTickets; n++) {
+      const t = r.tickets[n]
+      if (t) {
+        const h = holderById[t.assignedHolderId]
+        ticketCols.push(
+          t.id,
+          t.assignedHolderId,
+          h?.holderName ?? '',
+          h?.claimedMemberNumber ?? '',
+          h?.memberValidation ?? '',
+          formatIdr(t.ticketPriceApplied),
+        )
       } else {
-        holderCols.push('', '', '', '')
+        ticketCols.push('', '', '', '', '', '')
       }
     }
 
@@ -77,13 +104,14 @@ export async function generateRegistrationsCsv(eventId: string): Promise<string>
       new Date(r.createdAt).toLocaleString('id-ID'),
       r.ticketCategory.name,
       String(r.ticketQty),
+      r.holderDataMode,
       r.contactName,
       r.contactWhatsapp,
       r.status,
       r.attendanceStatus,
       formatIdr(r.computedTotalAtSubmit),
       adjustmentTotal > 0 ? formatIdr(adjustmentTotal) : '',
-      ...holderCols,
+      ...ticketCols,
     ]
       .map(String)
       .map(escapeCsv)

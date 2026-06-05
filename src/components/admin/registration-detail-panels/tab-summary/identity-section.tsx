@@ -1,9 +1,13 @@
 import type { ReactNode } from 'react'
 import { MailIcon, PhoneIcon } from 'lucide-react'
 
+import { EditPrimaryRegistrantDialog } from '@/components/admin/edit-primary-registrant-dialog'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { registrationDetailDateFormatter } from '@/components/admin/registration-detail-panels/shared/format'
-import { RegistrationContactEmailForm } from '@/components/admin/registration-contact-email-form'
+import {
+  getPrimaryHolder,
+  resolveDetailRegistrationContact,
+} from '@/lib/registrations/registration-primary-contact'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -22,23 +26,32 @@ function DetailRow({ label, children, className }: { label: string; children: Re
 }
 
 export function IdentitySection({ eventId, registration }: Props) {
+  const contact = resolveDetailRegistrationContact(registration)
+  const primary = getPrimaryHolder(registration.holders)
+
   return (
     <div className='grid gap-4'>
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <p className='text-xs leading-relaxed text-muted-foreground'>
+          Kontak pemesan (holder #{primary?.sortOrder ?? 1}) — sama dengan kontak transaksi registrasi.
+        </p>
+        <EditPrimaryRegistrantDialog eventId={eventId} registration={registration} />
+      </div>
       <dl className='grid gap-3'>
         <DetailRow label='Nama'>
-          <span className='font-medium'>{registration.contactName}</span>
+          <span className='font-medium'>{contact.name}</span>
         </DetailRow>
         <DetailRow label='WhatsApp'>
           <span className='inline-flex items-center gap-1.5'>
             <PhoneIcon className='size-3.5 shrink-0 text-muted-foreground' aria-hidden />
-            {registration.contactWhatsapp}
+            {contact.whatsapp}
           </span>
         </DetailRow>
         <DetailRow label='Email'>
-          {registration.contactEmail ? (
+          {contact.email ? (
             <span className='inline-flex items-center gap-1.5 break-all'>
               <MailIcon className='size-3.5 shrink-0 text-muted-foreground' aria-hidden />
-              {registration.contactEmail}
+              {contact.email}
             </span>
           ) : (
             <Badge
@@ -60,8 +73,6 @@ export function IdentitySection({ eventId, registration }: Props) {
           </code>
         </DetailRow>
       </dl>
-
-      <RegistrationContactEmailForm eventId={eventId} registration={registration} />
     </div>
   )
 }

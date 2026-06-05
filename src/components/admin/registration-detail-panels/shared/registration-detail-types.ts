@@ -1,5 +1,6 @@
 import type {
   AttendanceStatus,
+  HolderDataMode,
   InvoiceAdjustmentStatus,
   InvoiceAdjustmentType,
   MemberType,
@@ -20,6 +21,7 @@ export type DetailRegistration = {
   rejectionReason: string | null
   paymentIssueReason: string | null
   ticketQty: number
+  holderDataMode: HolderDataMode
   ticketCategory: {
     id: string
     name: string
@@ -34,8 +36,13 @@ export type DetailRegistration = {
     claimedMemberNumber: string | null
     memberValidation: MemberValidation
     memberType: MemberType | null
+  }>
+  tickets: Array<{
+    id: string
+    sortOrder: number
     ticketPriceApplied: number
     menuItemName: string | null
+    assignedHolderId: string
   }>
   event: {
     id: string

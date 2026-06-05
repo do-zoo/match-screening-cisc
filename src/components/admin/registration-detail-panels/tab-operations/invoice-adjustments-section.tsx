@@ -1,4 +1,5 @@
 import { InvoiceAdjustmentPanel } from '@/components/admin/invoice-adjustment-panel'
+import { resolveDetailRegistrationContact } from '@/lib/registrations/registration-primary-contact'
 import type { DetailRegistration } from '@/components/admin/registration-detail-panels/shared/registration-detail-types'
 import { OperationSectionShell } from '@/components/admin/registration-detail-panels/tab-operations/operation-section-shell'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +11,7 @@ type Props = {
 }
 
 export function InvoiceAdjustmentsSection({ eventId, registration, onUnderpaymentEmailSent }: Props) {
+  const contact = resolveDetailRegistrationContact(registration)
   const unpaidCount = registration.adjustments.filter(a => a.status === 'unpaid').length
 
   return (
@@ -29,7 +31,7 @@ export function InvoiceAdjustmentsSection({ eventId, registration, onUnderpaymen
         eventId={eventId}
         registrationId={registration.id}
         adjustments={registration.adjustments}
-        contactEmail={registration.contactEmail}
+        contactEmail={contact.email}
         onUnderpaymentEmailSent={onUnderpaymentEmailSent}
       />
     </OperationSectionShell>

@@ -17,6 +17,7 @@ import {
   type RegistrationNotifyKind,
   type RegistrationNotifyPayload,
 } from '@/lib/wa-templates/build-registration-notify'
+import { resolveDetailRegistrationContact } from '@/lib/registrations/registration-primary-contact'
 import type { ClubWaBodies } from '@/lib/wa-templates/render-wa-from-db'
 
 type Props = {
@@ -78,9 +79,10 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
     setShowActions(needsActionPanel(registration.status))
   }, [registration.id, registration.status, registration.rejectionReason, registration.paymentIssueReason])
 
+  const contact = resolveDetailRegistrationContact(registration)
   const notifyInput = {
-    contactName: registration.contactName,
-    contactWhatsapp: registration.contactWhatsapp,
+    contactName: contact.name,
+    contactWhatsapp: contact.whatsapp,
     rejectionReason: decision.rejectionReason,
     paymentIssueReason: decision.paymentIssueReason,
     event: registration.event,
