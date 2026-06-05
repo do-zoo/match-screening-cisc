@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { RegistrationStatus } from '@prisma/client'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -15,6 +16,7 @@ type Props = {
   status: RegistrationStatus
   rejectionReason: string | null
   paymentIssueReason: string | null
+  invoicePdfAction?: ReactNode
 }
 
 export function RegistrationDetailHeader({
@@ -25,12 +27,16 @@ export function RegistrationDetailHeader({
   status,
   rejectionReason,
   paymentIssueReason,
+  invoicePdfAction,
 }: Props) {
   return (
     <header className='flex flex-col gap-3'>
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <h1 className='text-2xl font-semibold tracking-tight'>{contactName}</h1>
-        <RegistrationStatusBadge status={status} />
+        <div className='flex flex-wrap items-center gap-2'>
+          {invoicePdfAction}
+          <RegistrationStatusBadge status={status} />
+        </div>
       </div>
       <p className='text-sm text-muted-foreground'>{contactWhatsapp}</p>
       <p className='text-sm text-muted-foreground'>

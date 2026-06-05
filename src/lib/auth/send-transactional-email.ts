@@ -5,6 +5,7 @@ export type SendTransactionalEmailInput = {
   subject: string
   text: string
   html?: string
+  attachments?: Array<{ filename: string; content: Buffer }>
 }
 
 export async function sendTransactionalEmail(input: SendTransactionalEmailInput): Promise<void> {
@@ -21,6 +22,14 @@ export async function sendTransactionalEmail(input: SendTransactionalEmailInput)
     subject: input.subject,
     text: input.text,
     ...(input.html !== undefined ? { html: input.html } : {}),
+    ...(input.attachments?.length
+      ? {
+          attachments: input.attachments.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+          })),
+        }
+      : {}),
   })
 
   if (error) {

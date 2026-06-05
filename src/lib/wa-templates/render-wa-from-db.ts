@@ -1,6 +1,5 @@
-import type { WaTemplateKey } from '@prisma/client'
+import { WaTemplateKey } from '@prisma/client'
 
-import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 import type { RegistrationMessageCtx, UnderpaymentInvoiceCtx } from '@/lib/wa-templates/messages'
 import {
   templateApproved,
@@ -12,27 +11,49 @@ import {
   templateUnderpaymentInvoice,
 } from '@/lib/wa-templates/messages'
 import { applyWaPlaceholders } from '@/lib/wa-templates/wa-placeholder'
+import {
+  buildWaTemplateVars,
+  registrationNotifyToWaContext,
+  type WaTemplateRenderContext,
+} from '@/lib/wa-templates/wa-template-vars'
 
 export type ClubWaBodies = Partial<Record<WaTemplateKey, string | null>>
 
-function safeApply(body: string | null | undefined, vars: Record<string, string>, fallback: () => string): string {
+export { registrationNotifyToWaContext, type WaTemplateRenderContext }
+
+function safeApply(
+  key: WaTemplateKey,
+  body: string | null | undefined,
+  ctx: WaTemplateRenderContext,
+  fallback: () => string,
+): string {
   const t = typeof body === 'string' ? body.trim() : ''
   if (!t) return fallback()
   try {
-    return applyWaPlaceholders(t, vars)
+    return applyWaPlaceholders(t, buildWaTemplateVars(key, ctx))
   } catch {
     return fallback()
   }
 }
 
+export function renderWaMessageFromDb(
+  key: WaTemplateKey,
+  bodyFromDb: string | null | undefined,
+  ctx: WaTemplateRenderContext,
+  fallback: () => string,
+): string {
+  return safeApply(key, bodyFromDb, ctx, fallback)
+}
+
 export function renderReceiptMessage(bodyFromDb: string | null | undefined, ctx: RegistrationMessageCtx): string {
-  return safeApply(
+  return renderWaMessageFromDb(
+    WaTemplateKey.receipt,
     bodyFromDb,
     {
-      contact_name: ctx.contactName,
-      event_title: ctx.eventTitle,
-      registration_id: ctx.registrationId,
-      computed_total_idr: formatWaIdr(ctx.computedTotalIdr),
+      contactName: ctx.contactName,
+      eventTitle: ctx.eventTitle,
+      registrationId: ctx.registrationId,
+      computedTotalIdr: ctx.computedTotalIdr,
     },
     () => templateReceipt(ctx),
   )
@@ -40,61 +61,56 @@ export function renderReceiptMessage(bodyFromDb: string | null | undefined, ctx:
 
 export function renderApprovedMessage(
   bodyFromDb: string | null | undefined,
+  ctx: WaTemplateRenderContext,
+): string {
+  return renderWaMessageFromDb(WaTemplateKey.approved, bodyFromDb, ctx, () =>
+    templateApproved(ctx.eventTitle ?? '', ctx.venue ?? '', ctx.kickOffAtIso ?? ''),
+  )
+}
+
+/** @deprecated Prefer `renderApprovedMessage(body, ctx)` — kept for call sites migrating gradually. */
+export function renderApprovedMessageLegacy(
+  bodyFromDb: string | null | undefined,
   eventTitle: string,
   venue: string,
   startAtIso: string,
+  extra?: Omit<WaTemplateRenderContext, 'eventTitle' | 'venue' | 'kickOffAtIso'>,
 ): string {
-  const when = new Date(startAtIso).toLocaleString('id-ID', {
-    timeZone: 'Asia/Jakarta',
-    dateStyle: 'long',
-    timeStyle: 'short',
+  return renderApprovedMessage(bodyFromDb, {
+    ...extra,
+    eventTitle,
+    venue,
+    kickOffAtIso: startAtIso,
   })
-  return safeApply(
-    bodyFromDb,
-    {
-      event_title: eventTitle,
-      venue,
-      start_at_formatted: when,
-    },
-    () => templateApproved(eventTitle, venue, startAtIso),
+}
+
+export function renderRejectedMessage(
+  bodyFromDb: string | null | undefined,
+  ctx: WaTemplateRenderContext,
+): string {
+  return renderWaMessageFromDb(WaTemplateKey.rejected, bodyFromDb, ctx, () =>
+    templateRejected(ctx.reason ?? ''),
   )
 }
 
-export function renderRejectedMessage(bodyFromDb: string | null | undefined, reason: string): string {
-  return safeApply(bodyFromDb, { reason }, () => templateRejected(reason))
-}
-
-export function renderPaymentIssueMessage(bodyFromDb: string | null | undefined, reason: string): string {
-  return safeApply(bodyFromDb, { reason }, () => templatePaymentIssue(reason))
-}
-
-export function renderCancelledMessage(
+export function renderPaymentIssueMessage(
   bodyFromDb: string | null | undefined,
-  contactName: string,
-  eventTitle: string,
+  ctx: WaTemplateRenderContext,
 ): string {
-  return safeApply(
-    bodyFromDb,
-    {
-      contact_name: contactName,
-      event_title: eventTitle,
-    },
-    () => templateCancelled(contactName, eventTitle),
+  return renderWaMessageFromDb(WaTemplateKey.payment_issue, bodyFromDb, ctx, () =>
+    templatePaymentIssue(ctx.reason ?? ''),
   )
 }
 
-export function renderRefundedMessage(
-  bodyFromDb: string | null | undefined,
-  contactName: string,
-  eventTitle: string,
-): string {
-  return safeApply(
-    bodyFromDb,
-    {
-      contact_name: contactName,
-      event_title: eventTitle,
-    },
-    () => templateRefunded(contactName, eventTitle),
+export function renderCancelledMessage(bodyFromDb: string | null | undefined, ctx: WaTemplateRenderContext): string {
+  return renderWaMessageFromDb(WaTemplateKey.cancelled, bodyFromDb, ctx, () =>
+    templateCancelled(ctx.contactName ?? '', ctx.eventTitle ?? ''),
+  )
+}
+
+export function renderRefundedMessage(bodyFromDb: string | null | undefined, ctx: WaTemplateRenderContext): string {
+  return renderWaMessageFromDb(WaTemplateKey.refunded, bodyFromDb, ctx, () =>
+    templateRefunded(ctx.contactName ?? '', ctx.eventTitle ?? ''),
   )
 }
 
@@ -102,15 +118,16 @@ export function renderUnderpaymentInvoiceMessage(
   bodyFromDb: string | null | undefined,
   c: UnderpaymentInvoiceCtx,
 ): string {
-  return safeApply(
+  return renderWaMessageFromDb(
+    WaTemplateKey.underpayment_invoice,
     bodyFromDb,
     {
-      contact_name: c.contactName,
-      event_title: c.eventTitle,
-      adjustment_amount_idr: formatWaIdr(c.adjustmentAmountIdr),
-      bank_name: c.bankName,
-      account_number: c.accountNumber,
-      account_name: c.accountName,
+      contactName: c.contactName,
+      eventTitle: c.eventTitle,
+      adjustmentAmountIdr: c.adjustmentAmountIdr,
+      bankName: c.bankName,
+      accountNumber: c.accountNumber,
+      accountName: c.accountName,
     },
     () => templateUnderpaymentInvoice(c),
   )

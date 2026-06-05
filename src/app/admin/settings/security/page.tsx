@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { AdminSettingsBreadcrumb } from '@/components/admin/admin-settings-breadcrumb'
 import { ClubAuditLogSection } from '@/components/admin/club-audit-log-table'
 
 export const metadata: Metadata = { title: 'Keamanan' }
@@ -40,13 +41,7 @@ export default async function SecuritySettingsPage({
   return (
     <div className='space-y-10'>
       <div>
-        <p className='text-muted-foreground text-sm'>
-          <Link href='/admin/settings' className='underline underline-offset-4'>
-            Pengaturan
-          </Link>
-          {' / '}
-          <span>Keamanan</span>
-        </p>
+        <AdminSettingsBreadcrumb crumbs={[{ label: 'Pengaturan', href: '/admin/settings' }, { label: 'Keamanan' }]} />
         <h1 className='text-2xl font-semibold tracking-tight'>Keamanan</h1>
         <p className='text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed'>
           Ringkasan log audit untuk perubahan konfigurasi komite serta informasi faktor kedua (Better Auth).

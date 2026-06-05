@@ -45,3 +45,6 @@ next-env.d.ts
 
 
 backup*
+
+# Local DB seed snapshot — data member/registrasi nyata; jangan commit
+/prisma/seed-data/*.json

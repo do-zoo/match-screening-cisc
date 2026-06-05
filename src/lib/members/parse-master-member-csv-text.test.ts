@@ -27,6 +27,14 @@ describe('parseMasterMemberCsvText', () => {
     ).toThrow('Kolom CSV wajib tidak ada: "full_name".')
   })
 
+  it('accepts CSV without whatsapp column', () => {
+    const result = parseMasterMemberCsvText(
+      ['member_number,full_name,is_active,is_management_member', '001,Alice,true,false'].join('\n'),
+    )
+    expect(result.rows).toHaveLength(1)
+    expect(result.rows[0]?.cells.whatsapp).toBeUndefined()
+  })
+
   it('throws when there are no data rows after the header', () => {
     expect(() => parseMasterMemberCsvText('member_number,full_name,whatsapp,is_active,is_management_member\n')).toThrow(
       'Tidak ada baris data setelah header.',

@@ -68,11 +68,11 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
       where: { eventId, status: RegistrationStatus.approved },
       _sum: { computedTotalAtSubmit: true },
     }),
-    prisma.registrationHolder.aggregate({
+    prisma.registrationTicket.aggregate({
       where: { registration: { eventId, status: RegistrationStatus.approved } },
       _sum: { ticketPriceApplied: true },
     }),
-    prisma.registrationHolder.aggregate({
+    prisma.registrationTicket.aggregate({
       where: { registration: { eventId, status: RegistrationStatus.approved } },
       _sum: { mandatoryMenuPriceApplied: true },
     }),
@@ -89,7 +89,7 @@ export async function getEventReport(eventId: string): Promise<EventReport> {
       where: { eventId },
       _count: { id: true },
     }),
-    prisma.registrationHolder.groupBy({
+    prisma.registrationTicket.groupBy({
       by: ['mandatoryMenuItemId'],
       where: { registration: { eventId } },
       _count: { id: true },

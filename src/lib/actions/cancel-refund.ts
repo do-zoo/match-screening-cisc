@@ -1,11 +1,16 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { RegistrationStatus } from '@prisma/client'
+import { EmailTemplateKey, RegistrationStatus } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { guardEvent, isAuthError } from '@/lib/actions/guard'
 import { eventRegistrationDetailPath, eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
+import { maybeAutoSendRegistrationEmail, type SendRegistrationEmailResult } from '@/lib/email/send-registration-email'
+import { loadClubNotificationPreferences } from '@/lib/public/load-club-notification-preferences'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+import { requireAdminSession } from '@/lib/auth/session'
+
+type CancelRefundData = { ok: true; email: SendRegistrationEmailResult | null }
 
 const CANCEL_BLOCKED_FROM: RegistrationStatus[] = [
   RegistrationStatus.cancelled,
@@ -15,9 +20,13 @@ const CANCEL_BLOCKED_FROM: RegistrationStatus[] = [
 
 const REFUND_ALLOWED_FROM: RegistrationStatus[] = [RegistrationStatus.approved, RegistrationStatus.cancelled]
 
-export async function cancelRegistration(eventId: string, registrationId: string): Promise<ActionResult<{ ok: true }>> {
+export async function cancelRegistration(
+  eventId: string,
+  registrationId: string,
+): Promise<ActionResult<CancelRefundData>> {
+  let ctx
   try {
-    await guardEvent(eventId)
+    ctx = await guardEvent(eventId)
   } catch (e) {
     if (isAuthError(e)) return rootError('Tidak diizinkan.')
     throw e
@@ -42,12 +51,28 @@ export async function cancelRegistration(eventId: string, registrationId: string
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const session = await requireAdminSession()
+  const prefs = await loadClubNotificationPreferences()
+  const email = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.cancelled,
+    enabled: prefs.emailAutoOnCancel,
+    actorAuthUserId: session.user.id,
+    actorProfileId: ctx.profileId,
+  })
+
+  return ok({ ok: true, email })
 }
 
-export async function refundRegistration(eventId: string, registrationId: string): Promise<ActionResult<{ ok: true }>> {
+export async function refundRegistration(
+  eventId: string,
+  registrationId: string,
+): Promise<ActionResult<CancelRefundData>> {
+  let ctx
   try {
-    await guardEvent(eventId)
+    ctx = await guardEvent(eventId)
   } catch (e) {
     if (isAuthError(e)) return rootError('Tidak diizinkan.')
     throw e
@@ -72,5 +97,17 @@ export async function refundRegistration(eventId: string, registrationId: string
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const session = await requireAdminSession()
+  const prefs = await loadClubNotificationPreferences()
+  const email = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.refunded,
+    enabled: prefs.emailAutoOnRefund,
+    actorAuthUserId: session.user.id,
+    actorProfileId: ctx.profileId,
+  })
+
+  return ok({ ok: true, email })
 }

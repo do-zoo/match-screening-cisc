@@ -7,12 +7,31 @@ import { appendClubAuditLog } from '@/lib/audit/append-club-audit-log'
 import { CLUB_AUDIT_ACTION } from '@/lib/audit/club-audit-actions'
 import { guardOwner, isAuthError, type OwnerGuardContext } from '@/lib/actions/guard'
 import { prisma } from '@/lib/db/prisma'
-import { clubBrandingTextsSchema } from '@/lib/forms/club-branding-schema'
+import { optionalStoredEmail } from '@/lib/email/normalize-email'
+import {
+  clubBrandingTextsSchema,
+  socialLinksForDb,
+} from '@/lib/forms/club-branding-schema'
 import { ok, rootError, fieldError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
+import { MAX_CLUB_SOCIAL_LINKS } from '@/lib/branding/club-social-links-limit'
 import { CLUB_BRANDING_SINGLETON_KEY } from '@/lib/public/load-club-branding'
 import { isUploadError } from '@/lib/uploads/errors'
 import { uploadClubLogo } from '@/lib/uploads/upload-club-logo'
+
+function parseSocialLinksFromFormData(formData: FormData) {
+  const rows: { label: string; url: string }[] = []
+  for (let i = 0; i < MAX_CLUB_SOCIAL_LINKS; i++) {
+    const label = formData.get(`socialLabel${i}`)
+    const url = formData.get(`socialUrl${i}`)
+    if (label === null && url === null) break
+    rows.push({
+      label: typeof label === 'string' ? label : '',
+      url: typeof url === 'string' ? url : '',
+    })
+  }
+  return rows
+}
 
 export async function saveClubBranding(_prev: unknown, formData: FormData): Promise<ActionResult<{ saved: true }>> {
   let owner: OwnerGuardContext
@@ -25,15 +44,20 @@ export async function saveClubBranding(_prev: unknown, formData: FormData): Prom
 
   const parsedTexts = clubBrandingTextsSchema.safeParse({
     clubNameNav: formData.get('clubNameNav'),
-    footerPlainText:
-      typeof formData.get('footerPlainText') === 'string' ? (formData.get('footerPlainText') as string) : '',
+    contactEmail: formData.get('contactEmail'),
+    websiteUrl: formData.get('websiteUrl'),
+    locationText: formData.get('locationText'),
+    socialLinks: parseSocialLinksFromFormData(formData),
   })
 
   if (!parsedTexts.success) {
     return fieldError(zodToFieldErrors(parsedTexts.error))
   }
 
-  const footer = parsedTexts.data.footerPlainText === '' ? null : parsedTexts.data.footerPlainText
+  const contactEmail = optionalStoredEmail(parsedTexts.data.contactEmail)
+  const websiteUrl = parsedTexts.data.websiteUrl === '' ? null : parsedTexts.data.websiteUrl
+  const locationText = parsedTexts.data.locationText === '' ? null : parsedTexts.data.locationText
+  const socialLinks = socialLinksForDb(parsedTexts.data.socialLinks)
 
   const logo = formData.get('logo')
 
@@ -64,13 +88,19 @@ export async function saveClubBranding(_prev: unknown, formData: FormData): Prom
       create: {
         singletonKey: CLUB_BRANDING_SINGLETON_KEY,
         clubNameNav: parsedTexts.data.clubNameNav,
-        footerPlainText: footer,
+        contactEmail,
+        websiteUrl,
+        locationText,
+        socialLinks,
         logoBlobUrl: nextUrl,
         logoBlobPath: nextPath,
       },
       update: {
         clubNameNav: parsedTexts.data.clubNameNav,
-        footerPlainText: footer,
+        contactEmail,
+        websiteUrl,
+        locationText,
+        socialLinks,
         ...(logo instanceof File && logo.size > 0 ? { logoBlobUrl: nextUrl, logoBlobPath: nextPath } : {}),
       },
     })
@@ -89,8 +119,19 @@ export async function saveClubBranding(_prev: unknown, formData: FormData): Prom
   if (!existing || existing.clubNameNav !== parsedTexts.data.clubNameNav) {
     changedFields.push('clubNameNav')
   }
-  if ((existing?.footerPlainText ?? null) !== footer) {
-    changedFields.push('footerPlainText')
+  if ((existing?.contactEmail ?? null) !== contactEmail) {
+    changedFields.push('contactEmail')
+  }
+  if ((existing?.websiteUrl ?? null) !== websiteUrl) {
+    changedFields.push('websiteUrl')
+  }
+  if ((existing?.locationText ?? null) !== locationText) {
+    changedFields.push('locationText')
+  }
+  const prevSocial = JSON.stringify(existing?.socialLinks ?? [])
+  const nextSocial = JSON.stringify(socialLinks)
+  if (prevSocial !== nextSocial) {
+    changedFields.push('socialLinks')
   }
   if (logo instanceof File && logo.size > 0) {
     changedFields.push('logo')
@@ -106,6 +147,7 @@ export async function saveClubBranding(_prev: unknown, formData: FormData): Prom
   })
 
   revalidatePath('/admin/settings/branding')
+  revalidatePath('/admin/settings/templates/email')
   revalidatePath('/')
   revalidatePath('/events')
   return ok({ saved: true })

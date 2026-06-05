@@ -1,12 +1,20 @@
 import { z } from 'zod'
 
-const memberNumberSchema = z.string().trim().min(1, 'Nomor member wajib.')
+import { normalizeMemberNumber } from '@/lib/members/normalize-member-number'
+
+const memberNumberSchema = z
+  .string()
+  .trim()
+  .min(1, 'Nomor member wajib.')
+  .transform(normalizeMemberNumber)
 const nameSchema = z.string().trim().min(1, 'Nama wajib.')
+const optionalEmailField = z.union([z.string().trim().email('Format email tidak valid.'), z.literal('')]).optional()
 
 export const adminMasterMemberCreateSchema = z.object({
   memberNumber: memberNumberSchema,
   fullName: nameSchema,
   whatsapp: z.union([z.string().trim().max(64), z.literal('')]).optional(),
+  email: optionalEmailField,
   isActive: z.boolean(),
 })
 
@@ -14,6 +22,7 @@ export const adminMasterMemberUpdateSchema = z.object({
   id: z.string().min(1),
   fullName: nameSchema,
   whatsapp: z.union([z.string().trim().max(64), z.literal('')]).optional(),
+  email: optionalEmailField,
   isActive: z.boolean(),
 })
 

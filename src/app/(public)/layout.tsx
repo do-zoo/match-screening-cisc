@@ -22,7 +22,12 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         </div>
       ) : null}
       <div className='flex flex-1 flex-col'>{children}</div>
-      <PublicFooter footerPlainText={branding.footerPlainText} />
+      <PublicFooter
+        contactEmail={branding.contactEmail}
+        websiteUrl={branding.websiteUrl}
+        locationText={branding.locationText}
+        socialLinks={branding.socialLinks}
+      />
     </div>
   )
 }

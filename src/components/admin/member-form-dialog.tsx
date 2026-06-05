@@ -27,6 +27,7 @@ type MemberFormValues = {
   memberNumber: string
   fullName: string
   whatsapp?: string
+  email?: string
   isActive: boolean
 }
 
@@ -48,6 +49,7 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
       memberNumber: member?.memberNumber ?? '',
       fullName: member?.fullName ?? '',
       whatsapp: member?.whatsapp ?? '',
+      email: member?.email ?? '',
       isActive: member?.isActive ?? true,
     }),
     [member],
@@ -76,12 +78,14 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
               memberNumber: values.memberNumber,
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? '',
+              email: values.email ?? '',
               isActive: values.isActive,
             }
           : {
               id: member?.id ?? values.id ?? '',
               fullName: values.fullName,
               whatsapp: values.whatsapp ?? '',
+              email: values.email ?? '',
               isActive: values.isActive,
             }
 
@@ -142,7 +146,10 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
               id='member-number'
               disabled={mode === 'edit' || isPending}
               aria-invalid={Boolean(form.formState.errors.memberNumber)}
-              {...form.register('memberNumber')}
+              className='font-mono uppercase'
+              {...form.register('memberNumber', {
+                setValueAs: value => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+              })}
             />
           </Field>
 
@@ -155,13 +162,28 @@ export function MemberFormDialog({ mode, open, onOpenChange, member, onSaved }: 
             />
           </Field>
 
-          <Field label='WhatsApp' htmlFor='member-whatsapp' error={form.formState.errors.whatsapp?.message}>
+          <Field
+            label='WhatsApp (opsional)'
+            htmlFor='member-whatsapp'
+            error={form.formState.errors.whatsapp?.message}
+          >
             <Input
               id='member-whatsapp'
               disabled={isPending}
               placeholder='6281234567890'
               aria-invalid={Boolean(form.formState.errors.whatsapp)}
               {...form.register('whatsapp')}
+            />
+          </Field>
+
+          <Field label='Email (opsional)' htmlFor='member-email' error={form.formState.errors.email?.message}>
+            <Input
+              id='member-email'
+              type='email'
+              disabled={isPending}
+              placeholder='nama@contoh.com'
+              aria-invalid={Boolean(form.formState.errors.email)}
+              {...form.register('email')}
             />
           </Field>
 

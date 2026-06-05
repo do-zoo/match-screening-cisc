@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { VenueDeletePanel } from '@/components/admin/venue-delete-panel'
 import { VenueBasicsForm } from '@/components/admin/venues/venue-basics-form'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { requireAdminSession } from '@/lib/auth/session'
@@ -30,6 +31,15 @@ export default async function AdminVenueEditBasicsPage({ params }: { params: Pro
       address: true,
       mapUrl: true,
       updatedAt: true,
+      events: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          _count: { select: { registrations: true } },
+        },
+        orderBy: { title: 'asc' },
+      },
     },
   })
 
@@ -48,6 +58,17 @@ export default async function AdminVenueEditBasicsPage({ params }: { params: Pro
         initialName={venue.name}
         initialAddress={venue.address}
         initialMapUrl={venue.mapUrl}
+      />
+
+      <VenueDeletePanel
+        venueId={venue.id}
+        venueName={venue.name}
+        linkedEvents={venue.events.map(e => ({
+          id: e.id,
+          title: e.title,
+          status: e.status,
+          registrationCount: e._count.registrations,
+        }))}
       />
     </main>
   )

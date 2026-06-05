@@ -33,6 +33,38 @@ const nextConfig: NextConfig = {
         destination: '/admin/events/:eventId/registrants/:registrationId',
         permanent: true,
       },
+      {
+        source: '/admin/settings/templates',
+        has: [{ type: 'query', key: 'tab', value: 'wa' }],
+        destination: '/admin/settings/templates/whatsapp',
+        permanent: true,
+      },
+      {
+        source: '/admin/settings/templates',
+        has: [{ type: 'query', key: 'tab', value: 'email' }],
+        destination: '/admin/settings/templates/email',
+        permanent: true,
+      },
+      {
+        source: '/admin/settings/whatsapp-templates',
+        destination: '/admin/settings/templates/whatsapp',
+        permanent: true,
+      },
+      {
+        source: '/admin/settings/whatsapp-templates/:path*',
+        destination: '/admin/settings/templates/whatsapp/:path*',
+        permanent: true,
+      },
+      {
+        source: '/admin/settings/email-templates',
+        destination: '/admin/settings/templates/email',
+        permanent: true,
+      },
+      {
+        source: '/admin/settings/email-templates/:path*',
+        destination: '/admin/settings/templates/email/:path*',
+        permanent: true,
+      },
     ]
   },
   images: {

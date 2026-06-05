@@ -9,6 +9,7 @@ import type { NotificationOutboundMode } from '@prisma/client'
 import { saveClubNotificationPreferences } from '@/lib/actions/admin-club-notification-preferences'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -23,6 +24,53 @@ const OUTBOUND_MODE_OPTIONS: Array<{
   { value: 'log_only', label: 'Log saja — catat di konsol (disarankan dev)' },
   { value: 'live', label: 'Live — log + jalur penyedia (wire-up terpisah)' },
 ]
+
+function EmailAutoToggle(props: {
+  id: string
+  name: string
+  label: string
+  description: string
+  initialChecked: boolean
+  pending: boolean
+}) {
+  const [checked, setChecked] = useState(props.initialChecked)
+
+  return (
+    <div className='flex items-start gap-3'>
+      <Checkbox
+        id={props.id}
+        checked={checked}
+        onCheckedChange={v => setChecked(v === true)}
+        disabled={props.pending}
+        className='mt-0.5'
+      />
+      <input type='hidden' name={props.name} value={checked ? 'true' : 'false'} />
+      <div className='space-y-1'>
+        <Label htmlFor={props.id} className='font-medium'>
+          {props.label}
+        </Label>
+        <p className='text-muted-foreground text-xs leading-relaxed'>{props.description}</p>
+      </div>
+    </div>
+  )
+}
+
+function OutboundLabelField(props: { initialLabel: string; pending: boolean }) {
+  const [label, setLabel] = useState(props.initialLabel)
+
+  return (
+    <Input
+      id='outboundLabel'
+      name='outboundLabel'
+      placeholder='Mis. Email komite'
+      value={label}
+      onChange={e => setLabel(e.target.value)}
+      disabled={props.pending}
+      maxLength={120}
+      autoComplete='off'
+    />
+  )
+}
 
 function OutboundModeSelectField(props: { initialMode: NotificationOutboundMode; pending: boolean }) {
   const [mode, setMode] = useState(props.initialMode)
@@ -55,6 +103,15 @@ function OutboundModeSelectField(props: { initialMode: NotificationOutboundMode;
 export function ClubNotificationPreferencesForm(props: {
   initialMode: NotificationOutboundMode
   initialLabel: string
+  initialEmailAuto: {
+    emailAutoOnSubmitReceipt: boolean
+    emailAutoOnApprove: boolean
+    emailAutoOnReject: boolean
+    emailAutoOnPaymentIssue: boolean
+    emailAutoOnCancel: boolean
+    emailAutoOnRefund: boolean
+    emailAttachInvoicePdf: boolean
+  }
 }) {
   const [state, dispatch, pending] = useActionState(
     saveClubNotificationPreferences,
@@ -112,16 +169,75 @@ export function ClubNotificationPreferencesForm(props: {
         </div>
         <div className='space-y-2'>
           <Label htmlFor='outboundLabel'>Label internal (opsional)</Label>
-          <Input
-            id='outboundLabel'
-            name='outboundLabel'
-            placeholder='Mis. Email komite'
-            defaultValue={props.initialLabel}
-            disabled={pending}
-            maxLength={120}
-            autoComplete='off'
+          <OutboundLabelField key={props.initialLabel} initialLabel={props.initialLabel} pending={pending} />
+        </div>
+
+        <div className='space-y-4 border-t pt-5'>
+          <div>
+            <h2 className='text-sm font-semibold'>Email otomatis ke pendaftar</h2>
+            <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+              Hanya mengirim lewat Resend bila mode saluran di atas adalah <span className='font-mono'>live</span> dan
+              alamat email kontak registrasi terisi. Gagal kirim tidak membatalkan perubahan status di admin.
+            </p>
+          </div>
+          <EmailAutoToggle
+            id='emailAutoOnSubmitReceipt'
+            name='emailAutoOnSubmitReceipt'
+            label='Penerimaan pendaftaran setelah submit'
+            description='Template receipt — dikirim segera setelah form publik berhasil.'
+            initialChecked={props.initialEmailAuto.emailAutoOnSubmitReceipt}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAutoOnApprove'
+            name='emailAutoOnApprove'
+            label='Bukti pembayaran setelah disetujui'
+            description='Template registration_approved — perilaku bawaan saat ini.'
+            initialChecked={props.initialEmailAuto.emailAutoOnApprove}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAutoOnReject'
+            name='emailAutoOnReject'
+            label='Notifikasi penolakan'
+            description='Template rejected — setelah registrasi ditolak.'
+            initialChecked={props.initialEmailAuto.emailAutoOnReject}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAutoOnPaymentIssue'
+            name='emailAutoOnPaymentIssue'
+            label='Notifikasi masalah pembayaran'
+            description='Template payment_issue — setelah status payment issue.'
+            initialChecked={props.initialEmailAuto.emailAutoOnPaymentIssue}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAutoOnCancel'
+            name='emailAutoOnCancel'
+            label='Notifikasi pembatalan'
+            description='Template cancelled — setelah registrasi dibatalkan.'
+            initialChecked={props.initialEmailAuto.emailAutoOnCancel}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAutoOnRefund'
+            name='emailAutoOnRefund'
+            label='Notifikasi refund'
+            description='Template refunded — setelah pengembalian dana.'
+            initialChecked={props.initialEmailAuto.emailAutoOnRefund}
+            pending={pending}
+          />
+          <EmailAutoToggle
+            id='emailAttachInvoicePdf'
+            name='emailAttachInvoicePdf'
+            label='Lampirkan PDF pada email tagihan & bukti'
+            description='Berlaku untuk tagihan pendaftaran, kekurangan bayar, bukti penerimaan (receipt), dan bukti pembayaran disetujui — kirim manual, blast, dan otomatis.'
+            initialChecked={props.initialEmailAuto.emailAttachInvoicePdf}
+            pending={pending}
           />
         </div>
+
         <Button type='submit' disabled={pending}>
           {pending ? (
             <>

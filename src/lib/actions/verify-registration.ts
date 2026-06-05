@@ -7,26 +7,50 @@ import { requireAdminSession } from '@/lib/auth/session'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { canVerifyEvent } from '@/lib/permissions/guards'
 import { eventRegistrationDetailPath, eventRegistrantsListPath } from '@/lib/admin/event-registrants-paths'
+import { EmailTemplateKey } from '@prisma/client'
+import {
+  maybeAutoSendRegistrationEmail,
+  type SendRegistrationEmailResult,
+} from '@/lib/email/send-registration-email'
+import { loadClubNotificationPreferences } from '@/lib/public/load-club-notification-preferences'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
+
+type VerifyActionData = {
+  ok: true
+  email: SendRegistrationEmailResult | null
+}
+
+type ApproveRegistrationData = {
+  ok: true
+  paymentProofEmail: SendRegistrationEmailResult | null
+}
 
 async function guard(eventId: string) {
   const session = await requireAdminSession()
   const ctx = await getAdminContext(session.user.id)
   if (!ctx) throw new Error('NO_PROFILE')
   if (!canVerifyEvent(ctx, eventId)) throw new Error('FORBIDDEN')
+  return { authUserId: session.user.id, profileId: ctx.profileId }
 }
 
-const ALLOWED_TRANSITION_STATUSES: RegistrationStatus[] = [
+/** Initial review and "Ubah keputusan" — all registration statuses except none. */
+const VERIFY_FROM_STATUSES: RegistrationStatus[] = [
   RegistrationStatus.submitted,
   RegistrationStatus.pending_review,
+  RegistrationStatus.approved,
+  RegistrationStatus.rejected,
+  RegistrationStatus.payment_issue,
+  RegistrationStatus.cancelled,
+  RegistrationStatus.refunded,
 ]
 
 export async function approveRegistration(
   eventId: string,
   registrationId: string,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<ApproveRegistrationData>> {
+  let actor: Awaited<ReturnType<typeof guard>>
   try {
-    await guard(eventId)
+    actor = await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
@@ -42,7 +66,7 @@ export async function approveRegistration(
     select: { status: true, eventId: true },
   })
   if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
-  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+  if (!VERIFY_FROM_STATUSES.includes(existing.status)) {
     return rootError('Status tidak valid untuk aksi ini.')
   }
 
@@ -64,16 +88,28 @@ export async function approveRegistration(
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const prefs = await loadClubNotificationPreferences()
+  const paymentProofEmail = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.registration_approved,
+    enabled: prefs.emailAutoOnApprove,
+    actorAuthUserId: actor.authUserId,
+    actorProfileId: actor.profileId,
+  })
+
+  return ok({ ok: true, paymentProofEmail })
 }
 
 export async function rejectRegistration(
   eventId: string,
   registrationId: string,
   reason: string,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<VerifyActionData>> {
+  let actor: Awaited<ReturnType<typeof guard>>
   try {
-    await guard(eventId)
+    actor = await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
@@ -92,7 +128,7 @@ export async function rejectRegistration(
     select: { status: true, eventId: true },
   })
   if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
-  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+  if (!VERIFY_FROM_STATUSES.includes(existing.status)) {
     return rootError('Status tidak valid untuk aksi ini.')
   }
 
@@ -107,16 +143,28 @@ export async function rejectRegistration(
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const prefs = await loadClubNotificationPreferences()
+  const email = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.rejected,
+    enabled: prefs.emailAutoOnReject,
+    actorAuthUserId: actor.authUserId,
+    actorProfileId: actor.profileId,
+  })
+
+  return ok({ ok: true, email })
 }
 
 export async function markPaymentIssue(
   eventId: string,
   registrationId: string,
   reason: string,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<VerifyActionData>> {
+  let actor: Awaited<ReturnType<typeof guard>>
   try {
-    await guard(eventId)
+    actor = await guard(eventId)
   } catch (e) {
     if (
       e instanceof Error &&
@@ -135,7 +183,7 @@ export async function markPaymentIssue(
     select: { status: true, eventId: true },
   })
   if (!existing || existing.eventId !== eventId) return rootError('Pendaftaran tidak ditemukan.')
-  if (!ALLOWED_TRANSITION_STATUSES.includes(existing.status)) {
+  if (!VERIFY_FROM_STATUSES.includes(existing.status)) {
     return rootError('Status tidak valid untuk aksi ini.')
   }
 
@@ -150,5 +198,16 @@ export async function markPaymentIssue(
 
   revalidatePath(eventRegistrantsListPath(eventId))
   revalidatePath(eventRegistrationDetailPath(eventId, registrationId))
-  return ok({ ok: true })
+
+  const prefs = await loadClubNotificationPreferences()
+  const email = await maybeAutoSendRegistrationEmail({
+    registrationId,
+    eventId,
+    templateKey: EmailTemplateKey.payment_issue,
+    enabled: prefs.emailAutoOnPaymentIssue,
+    actorAuthUserId: actor.authUserId,
+    actorProfileId: actor.profileId,
+  })
+
+  return ok({ ok: true, email })
 }

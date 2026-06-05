@@ -1,41 +1,82 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { RegistrationStatus } from '@prisma/client'
+import { AlertCircleIcon, CheckIcon, XIcon } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { approveRegistration, rejectRegistration, markPaymentIssue } from '@/lib/actions/verify-registration'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
+import type { RegistrationNotifyInput, RegistrationNotifyKind } from '@/lib/wa-templates/build-registration-notify'
+import { cn } from '@/lib/utils'
 
 type Props = {
   eventId: string
   registrationId: string
+  onSuccess?: (result: {
+    status: RegistrationStatus
+    rejectionReason?: string | null
+    paymentIssueReason?: string | null
+  }) => void
+  onNotify?: (
+    kind: RegistrationNotifyKind,
+    overrides?: Partial<Pick<RegistrationNotifyInput, 'rejectionReason' | 'paymentIssueReason'>>,
+  ) => void
 }
 
-export function RegistrationActions({ eventId, registrationId }: Props) {
-  const [isPending, startTransition] = useTransition()
+type ActivePanel = 'reject' | 'payment' | null
 
-  // Reject panel state
-  const [rejectOpen, setRejectOpen] = useState(false)
+export function RegistrationActions({ eventId, registrationId, onSuccess, onNotify }: Props) {
+  const [isPending, startTransition] = useTransition()
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null)
+
   const [rejectReason, setRejectReason] = useState('')
   const [rejectError, setRejectError] = useState<string | null>(null)
 
-  // Payment issue panel state
-  const [paymentOpen, setPaymentOpen] = useState(false)
   const [paymentReason, setPaymentReason] = useState('')
   const [paymentError, setPaymentError] = useState<string | null>(null)
 
-  // Approve error state
   const [approveError, setApproveError] = useState<string | null>(null)
+
+  function closePanels() {
+    setActivePanel(null)
+    setRejectReason('')
+    setPaymentReason('')
+    setRejectError(null)
+    setPaymentError(null)
+  }
 
   function handleApprove() {
     setApproveError(null)
+    closePanels()
     startTransition(async () => {
       const result = await approveRegistration(eventId, registrationId)
       if (!result.ok) {
         toastActionErr(result)
         setApproveError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
-        toastCudSuccess('update', 'Pendaftaran disetujui.')
+        const email = result.data.paymentProofEmail
+        if (email?.ok) {
+          if (email.dryRun) {
+            toastCudSuccess('update', 'Pendaftaran disetujui. Bukti pembayaran tercatat (mode uji).')
+          } else if (email.skipped === 'no_email') {
+            toastCudSuccess('update', 'Pendaftaran disetujui. Email kontak kosong — bukti tidak dikirim.')
+          } else if (!email.skipped) {
+            toastCudSuccess('update', 'Pendaftaran disetujui. Bukti pembayaran dikirim via email.')
+          } else {
+            toastCudSuccess('update', 'Pendaftaran disetujui.')
+          }
+        } else {
+          toastCudSuccess('update', 'Pendaftaran disetujui.')
+          if (email && !email.ok) toastActionErr({ ok: false, rootError: email.error })
+        }
+        onSuccess?.({
+          status: RegistrationStatus.approved,
+          rejectionReason: null,
+          paymentIssueReason: null,
+        })
+        onNotify?.('approved')
       }
     })
   }
@@ -49,8 +90,14 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
         setRejectError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
         toastCudSuccess('update', 'Pendaftaran ditolak.')
-        setRejectOpen(false)
-        setRejectReason('')
+        closePanels()
+        const trimmed = rejectReason.trim()
+        onSuccess?.({
+          status: RegistrationStatus.rejected,
+          rejectionReason: trimmed,
+          paymentIssueReason: null,
+        })
+        onNotify?.('rejected', { rejectionReason: trimmed })
       }
     })
   }
@@ -64,111 +111,106 @@ export function RegistrationActions({ eventId, registrationId }: Props) {
         setPaymentError(result.rootError ?? 'Terjadi kesalahan.')
       } else {
         toastCudSuccess('update', 'Status pembayaran diperbarui.')
-        setPaymentOpen(false)
-        setPaymentReason('')
+        closePanels()
+        const trimmed = paymentReason.trim()
+        onSuccess?.({
+          status: RegistrationStatus.payment_issue,
+          rejectionReason: null,
+          paymentIssueReason: trimmed,
+        })
+        onNotify?.('payment_issue', { paymentIssueReason: trimmed })
       }
     })
   }
 
+  const showActionRow = activePanel === null
+
   return (
-    <div className='mt-4 flex flex-col gap-3'>
-      {/* Approve */}
-      <div className='flex flex-col gap-1'>
-        <Button variant='default' className='w-full sm:w-auto' disabled={isPending} onClick={handleApprove}>
-          Approve
-        </Button>
-        {approveError && <p className='text-sm text-destructive'>{approveError}</p>}
-      </div>
-
-      {/* Reject */}
-      <div className='flex flex-col gap-2'>
-        {!rejectOpen ? (
+    <div className='grid gap-3'>
+      {showActionRow ? (
+        <div className='grid gap-2'>
           <Button
-            variant='destructive'
-            className='w-full sm:w-auto'
+            variant='default'
+            className='w-full justify-center gap-2'
             disabled={isPending}
-            onClick={() => {
-              setRejectOpen(true)
-              setPaymentOpen(false)
-            }}
+            onClick={handleApprove}
           >
-            Reject
+            <CheckIcon className='size-4' aria-hidden />
+            Setujui
           </Button>
-        ) : (
-          <div className='flex flex-col gap-2 rounded-lg border p-3'>
-            <p className='text-sm font-medium'>Alasan penolakan</p>
-            <Textarea
-              placeholder='Tuliskan alasan penolakan...'
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              rows={3}
+          <div className='grid grid-cols-2 gap-2'>
+            <Button
+              variant='destructive'
+              className='justify-center gap-1.5'
               disabled={isPending}
-            />
-            {rejectError && <p className='text-sm text-destructive'>{rejectError}</p>}
-            <div className='flex gap-2'>
-              <Button variant='destructive' disabled={isPending} onClick={handleReject}>
-                Konfirmasi Tolak
-              </Button>
-              <Button
-                variant='outline'
-                disabled={isPending}
-                onClick={() => {
-                  setRejectOpen(false)
-                  setRejectReason('')
-                  setRejectError(null)
-                }}
-              >
-                Batal
-              </Button>
-            </div>
+              onClick={() => setActivePanel('reject')}
+            >
+              <XIcon className='size-4' aria-hidden />
+              Tolak
+            </Button>
+            <Button
+              variant='outline'
+              className={cn(
+                'justify-center gap-1.5 border-amber-500/40 text-amber-950 hover:bg-amber-500/10',
+                'dark:border-amber-500/30 dark:text-amber-100 dark:hover:bg-amber-500/10',
+              )}
+              disabled={isPending}
+              onClick={() => setActivePanel('payment')}
+            >
+              <AlertCircleIcon className='size-4' aria-hidden />
+              Kendala bayar
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
 
-      {/* Payment Issue */}
-      <div className='flex flex-col gap-2'>
-        {!paymentOpen ? (
-          <Button
-            variant='outline'
-            className='w-full sm:w-auto'
+      {approveError ? <p className='text-sm text-destructive'>{approveError}</p> : null}
+
+      {activePanel === 'reject' ? (
+        <div className='grid gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3'>
+          <p className='text-sm font-medium'>Alasan penolakan</p>
+          <Textarea
+            placeholder='Tuliskan alasan penolakan...'
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            rows={3}
             disabled={isPending}
-            onClick={() => {
-              setPaymentOpen(true)
-              setRejectOpen(false)
-            }}
-          >
-            Payment issue
-          </Button>
-        ) : (
-          <div className='flex flex-col gap-2 rounded-lg border p-3'>
-            <p className='text-sm font-medium'>Alasan masalah pembayaran</p>
-            <Textarea
-              placeholder='Tuliskan masalah pembayaran...'
-              value={paymentReason}
-              onChange={e => setPaymentReason(e.target.value)}
-              rows={3}
-              disabled={isPending}
-            />
-            {paymentError && <p className='text-sm text-destructive'>{paymentError}</p>}
-            <div className='flex gap-2'>
-              <Button variant='default' disabled={isPending} onClick={handlePaymentIssue}>
-                Konfirmasi Masalah Pembayaran
-              </Button>
-              <Button
-                variant='outline'
-                disabled={isPending}
-                onClick={() => {
-                  setPaymentOpen(false)
-                  setPaymentReason('')
-                  setPaymentError(null)
-                }}
-              >
-                Batal
-              </Button>
-            </div>
+            autoFocus
+          />
+          {rejectError ? <p className='text-sm text-destructive'>{rejectError}</p> : null}
+          <div className='flex flex-wrap gap-2'>
+            <Button variant='destructive' size='sm' disabled={isPending} onClick={handleReject}>
+              Konfirmasi tolak
+            </Button>
+            <Button variant='outline' size='sm' disabled={isPending} onClick={closePanels}>
+              Batal
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
+
+      {activePanel === 'payment' ? (
+        <div className='grid gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3'>
+          <p className='text-sm font-medium'>Alasan kendala pembayaran</p>
+          <Textarea
+            placeholder='Tuliskan masalah pembayaran...'
+            value={paymentReason}
+            onChange={e => setPaymentReason(e.target.value)}
+            rows={3}
+            disabled={isPending}
+            autoFocus
+          />
+          {paymentError ? <p className='text-sm text-destructive'>{paymentError}</p> : null}
+          <div className='flex flex-wrap gap-2'>
+            <Button variant='default' size='sm' disabled={isPending} onClick={handlePaymentIssue}>
+              Konfirmasi kendala
+            </Button>
+            <Button variant='outline' size='sm' disabled={isPending} onClick={closePanels}>
+              Batal
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

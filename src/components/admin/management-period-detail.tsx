@@ -1,27 +1,19 @@
 'use client'
 
-import { LayoutListIcon, MoreVerticalIcon, NetworkIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { LayoutListIcon, NetworkIcon, PlusIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import { useState } from 'react'
 
 import { ManagementAssignmentFormDialog } from '@/components/admin/management-assignment-form-dialog'
+import { ManagementPeriodAssignmentsAdminTable } from '@/components/admin/management-period-assignments-admin-table'
+import { ManagementPeriodAssignmentsAdminToolbar } from '@/components/admin/management-period-assignments-admin-toolbar'
+import {
+  adminPeriodAssignmentsListPreservedQuery,
+  buildAdminPeriodAssignmentsListUrl,
+} from '@/lib/admin/admin-period-assignments-list-url'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { DataTable } from '@/components/ui/data-table'
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { TablePagination } from '@/components/ui/table-pagination'
 import type { PeriodTreeRow } from '@/lib/management/query-admin-period-tree'
 import type {
   AdminPeriodAssignmentRowVm,
@@ -31,32 +23,6 @@ import { cn } from '@/lib/utils'
 
 type MemberOption = { id: string; fullName: string; publicCode: string }
 type RoleOption = { id: string; title: string }
-
-const FILTER_OPTIONS: Array<{
-  value: PeriodAssignmentAdminFilter
-  label: string
-}> = [
-  { value: 'all', label: 'All (semua)' },
-  { value: 'linked', label: 'Terhubung' },
-  { value: 'unlinked', label: 'Belum taut' },
-]
-
-function buildPeriodAssignmentsHref(
-  periodId: string,
-  opts: {
-    filter: PeriodAssignmentAdminFilter
-    q: string
-    view: 'list' | 'tree'
-  },
-): string {
-  const qs = new URLSearchParams()
-  const qTrim = opts.q.trim()
-  if (qTrim) qs.set('q', qTrim.slice(0, 200))
-  if (opts.filter !== 'all') qs.set('filter', opts.filter)
-  if (opts.view === 'tree') qs.set('view', 'tree')
-  const s = qs.toString()
-  return s ? `/admin/management/${periodId}?${s}` : `/admin/management/${periodId}`
-}
 
 type Props = {
   period: { id: string; label: string; startsAt: Date; endsAt: Date }
@@ -101,96 +67,8 @@ export function ManagementPeriodDetail({
   const [editDialog, setEditDialog] = useState<EditDialogState>(null)
   const [treeAddRoleId, setTreeAddRoleId] = useState<string | undefined>(undefined)
 
-  const columns = useMemo<ColumnDef<AdminPeriodAssignmentRowVm>[]>(
-    () => [
-      {
-        accessorKey: 'boardRole.title',
-        id: 'roleTitle',
-        accessorFn: row => row.boardRole.title,
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Jabatan' className='text-muted-foreground' />
-        ),
-        cell: ({ row }) => <span className='font-medium'>{row.original.boardRole.title}</span>,
-      },
-      {
-        id: 'memberName',
-        accessorFn: row => row.managementMember.fullName,
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Nama Pengurus' className='text-muted-foreground' />
-        ),
-        cell: ({ row }) => (
-          <span>
-            {row.original.managementMember.fullName}
-            {row.original.managementMember.masterMemberId ? (
-              <span className='ml-2 text-xs text-green-600 dark:text-green-400'>· direktori</span>
-            ) : null}
-          </span>
-        ),
-      },
-      {
-        id: 'publicCode',
-        accessorFn: row => row.managementMember.publicCode,
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Kode Publik' className='text-muted-foreground' />
-        ),
-        cell: ({ row }) => (
-          <span className='font-mono text-muted-foreground'>{row.original.managementMember.publicCode}</span>
-        ),
-      },
-      {
-        id: 'actions',
-        enableSorting: false,
-        header: () => <span className='sr-only'>Aksi</span>,
-        cell: ({ row }) => (
-          <div className='text-right'>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label={`Aksi untuk ${row.original.managementMember.fullName}`}
-                render={<Button type='button' variant='ghost' size='icon-sm' />}
-              >
-                <MoreVerticalIcon />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuItem
-                  onClick={() =>
-                    setEditDialog({
-                      assignment: row.original,
-                      mode: 'edit',
-                    })
-                  }
-                >
-                  Ubah jabatan
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant='destructive'
-                  onClick={() =>
-                    setEditDialog({
-                      assignment: row.original,
-                      mode: 'delete',
-                    })
-                  }
-                >
-                  Hapus penugasan
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ),
-      },
-    ],
-    [],
-  )
-
-  const counts = tabCounts
   const pathname = `/admin/management/${period.id}`
-  const paginationPreserved =
-    filter === 'all' && searchQuery.trim() === ''
-      ? {}
-      : {
-          ...(filter !== 'all' ? { filter } : {}),
-          ...(searchQuery.trim() ? { q: searchQuery.trim() } : {}),
-        }
+  const paginationPreserved = adminPeriodAssignmentsListPreservedQuery({ filter, q: searchQuery, view })
 
   return (
     <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 md:p-6 px-4 md:px-6 pb-10 pt-6'>
@@ -215,14 +93,22 @@ export function ManagementPeriodDetail({
         <div className='flex flex-wrap items-center justify-end gap-2'>
           <div className='flex items-center gap-2'>
             <Link
-              href={`/admin/management/${period.id}`}
+              href={buildAdminPeriodAssignmentsListUrl(period.id, {
+                filter,
+                q: searchQuery.trim() || undefined,
+                view: 'list',
+              })}
               className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), view === 'list' && 'bg-muted')}
             >
               <LayoutListIcon data-icon='inline-start' />
               Daftar
             </Link>
             <Link
-              href={`/admin/management/${period.id}?view=tree`}
+              href={buildAdminPeriodAssignmentsListUrl(period.id, {
+                filter,
+                q: searchQuery.trim() || undefined,
+                view: 'tree',
+              })}
               className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), view === 'tree' && 'bg-muted')}
             >
               <NetworkIcon data-icon='inline-start' />
@@ -258,73 +144,21 @@ export function ManagementPeriodDetail({
             </p>
           ) : (
             <div className='flex flex-col gap-4'>
-              <form
-                method='get'
-                action={pathname}
-                className='flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between'
-              >
-                <input type='hidden' name='filter' value={filter} />
-                <div className='flex w-full flex-col gap-1 sm:w-auto sm:min-w-52'>
-                  <Label htmlFor='period-assignments-filter' className='text-muted-foreground'>
-                    Filter
-                  </Label>
-                  <Select
-                    value={filter}
-                    onValueChange={next => {
-                      if (next !== 'all' && next !== 'linked' && next !== 'unlinked') {
-                        return
-                      }
-                      router.push(
-                        buildPeriodAssignmentsHref(period.id, {
-                          filter: next,
-                          q: searchQuery,
-                          view,
-                        }),
-                      )
-                    }}
-                  >
-                    <SelectTrigger id='period-assignments-filter' size='sm' className='w-full'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FILTER_OPTIONS.map(f => (
-                        <SelectItem key={f.value} value={f.value}>
-                          {f.label} ({counts[f.value]})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className='flex w-full flex-col gap-2 sm:min-w-0 sm:max-w-lg sm:flex-1 sm:flex-row sm:items-center'>
-                  <Input
-                    name='q'
-                    defaultValue={searchQuery}
-                    placeholder='Cari jabatan, nama, atau kode publik'
-                    className='sm:min-w-0 sm:flex-1'
-                    aria-label='Cari penugasan'
-                  />
-                  <Button type='submit' variant='secondary' className='shrink-0'>
-                    <SearchIcon data-icon='inline-start' />
-                    Cari
-                  </Button>
-                </div>
-              </form>
-
-              <div className='overflow-hidden rounded-lg border'>
-                <DataTable
-                  columns={columns}
-                  data={assignments}
-                  enableSorting={false}
-                  emptyMessage='Tidak ada penugasan yang cocok dengan filter atau kata kunci.'
-                />
-                <TablePagination
-                  pathname={pathname}
-                  preservedQuery={paginationPreserved}
-                  currentPage={pagination.page}
-                  pageSize={pagination.pageSize}
-                  totalItems={pagination.totalItems}
-                />
-              </div>
+              <ManagementPeriodAssignmentsAdminToolbar
+                periodId={period.id}
+                filter={filter}
+                searchQuery={searchQuery}
+                view={view}
+                tabCounts={tabCounts}
+              />
+              <ManagementPeriodAssignmentsAdminTable
+                rows={assignments}
+                pathname={pathname}
+                preservedQuery={paginationPreserved}
+                pagination={pagination}
+                onEdit={assignment => setEditDialog({ assignment, mode: 'edit' })}
+                onDelete={assignment => setEditDialog({ assignment, mode: 'delete' })}
+              />
             </div>
           )}
         </>

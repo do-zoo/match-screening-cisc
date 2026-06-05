@@ -6,7 +6,8 @@ export function formatCurrencyIdr(n: number): string {
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(n)
-  return formatted.replace(/\s+/g, '')
+  const compact = formatted.replace(/\s+/g, '')
+  return compact.startsWith('Rp') ? `Rp ${compact.slice(2)}` : compact
 }
 
 export function formatUploadPurpose(purpose: UploadPurpose): string {

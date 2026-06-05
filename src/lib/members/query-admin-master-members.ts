@@ -7,8 +7,10 @@ export type AdminMasterMemberRowVm = {
   memberNumber: string
   fullName: string
   whatsapp: string | null
+  email: string | null
   isActive: boolean
   isManagementMember: boolean
+  createdAt: string
   updatedAt: string
 }
 
@@ -36,6 +38,7 @@ export function masterMemberAdminWhere(opts: {
                 mode: 'insensitive',
               },
             },
+            { email: { contains: search, mode: 'insensitive' } },
           ],
         }
 
@@ -54,6 +57,7 @@ function masterMemberSearchOnlyWhere(q?: string): Prisma.MasterMemberWhereInput 
       { memberNumber: { contains: search, mode: 'insensitive' } },
       { fullName: { contains: search, mode: 'insensitive' } },
       { whatsapp: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
     ],
   }
 }
@@ -63,8 +67,10 @@ function mapMasterMemberRow(row: {
   memberNumber: string
   fullName: string
   whatsapp: string | null
+  email: string | null
   isActive: boolean
   isManagementMember: boolean
+  createdAt: Date
   updatedAt: Date
 }): AdminMasterMemberRowVm {
   return {
@@ -72,8 +78,10 @@ function mapMasterMemberRow(row: {
     memberNumber: row.memberNumber,
     fullName: row.fullName,
     whatsapp: row.whatsapp,
+    email: row.email,
     isActive: row.isActive,
     isManagementMember: row.isManagementMember,
+    createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
 }

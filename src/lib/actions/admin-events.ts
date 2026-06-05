@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { AdminRole } from '@prisma/client'
+import { AdminRole, MemberAccessMode } from '@prisma/client'
 import { del } from '@vercel/blob'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -243,6 +243,7 @@ export async function createAdminEvent(_prev: unknown, formData: FormData): Prom
           status: data.status,
           multiCategoryPurchase: data.multiCategoryPurchase ?? false,
           requireAllHolderData: data.requireAllHolderData ?? true,
+          memberAccessMode: data.memberAccessMode ?? MemberAccessMode.open,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },
@@ -468,6 +469,7 @@ export async function updateAdminEvent(
           status: data.status,
           multiCategoryPurchase: data.multiCategoryPurchase,
           requireAllHolderData: data.requireAllHolderData,
+          memberAccessMode: data.memberAccessMode ?? MemberAccessMode.open,
           picAdminProfileId: data.picAdminProfileId,
           bankAccountId: data.bankAccountId,
         },

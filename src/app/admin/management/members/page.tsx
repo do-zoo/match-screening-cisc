@@ -6,26 +6,15 @@ import { requireAdminSession } from '@/lib/auth/session'
 export const metadata: Metadata = { title: 'Anggota Pengurus' }
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
+import { parseAdminManagementMembersListSearchParams } from '@/lib/admin/admin-management-members-list-url'
 import {
   countManagementMembersByTabForAdmin,
   countManagementMembersForAdmin,
   listManagementMembersForAdmin,
-  type ManagementMemberAdminFilter,
 } from '@/lib/management/query-admin-management-members'
-import { ADMIN_TABLE_PAGE_SIZE, parseAdminTablePage, resolveClampedPage } from '@/lib/table/admin-pagination'
+import { ADMIN_TABLE_PAGE_SIZE, resolveClampedPage } from '@/lib/table/admin-pagination'
 import { prisma } from '@/lib/db/prisma'
 import { ManagementMembersPage } from '@/components/admin/management-members-page'
-
-function firstString(param: string | string[] | undefined): string | undefined {
-  if (param === undefined) return undefined
-  if (Array.isArray(param)) return param[0]
-  return param
-}
-
-function parseFilter(v: string | undefined): ManagementMemberAdminFilter {
-  if (v === 'linked' || v === 'unlinked') return v
-  return 'all'
-}
 
 export default async function AdminManagementMembersPage({
   searchParams,
@@ -40,11 +29,8 @@ export default async function AdminManagementMembersPage({
   }
 
   const sp = (await searchParams) ?? {}
-  const filter = parseFilter(firstString(sp.filter))
-  const qRaw = firstString(sp.q) ?? ''
-  const q = qRaw.trim().slice(0, 200) || undefined
-
-  const requestedPage = parseAdminTablePage(sp.page)
+  const { filter, q: qParsed, page: requestedPage } = parseAdminManagementMembersListSearchParams(sp)
+  const q = qParsed || undefined
 
   const totalItems = await countManagementMembersForAdmin({ filter, q })
   const page = resolveClampedPage(requestedPage, totalItems, ADMIN_TABLE_PAGE_SIZE)
@@ -77,7 +63,7 @@ export default async function AdminManagementMembersPage({
         totalItems,
       }}
       filter={filter}
-      searchQuery={q ?? ''}
+      searchQuery={qParsed}
       tabCounts={tabCounts}
     />
   )

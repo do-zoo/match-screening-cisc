@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/db/prisma'
 
+import { normalizeMemberNumber } from './normalize-member-number'
+
 /**
  * Active directory row for a member number, or null if unknown/inactive.
  * Used by registration submit and public partner-eligibility lookup.
@@ -13,14 +15,14 @@ export type ActiveMasterMemberRow = {
 }
 
 export async function getActiveMasterMemberByMemberNumber(memberNumber: string): Promise<ActiveMasterMemberRow | null> {
-  const trimmed = memberNumber.trim()
-  if (!trimmed) return null
+  const normalized = normalizeMemberNumber(memberNumber)
+  if (!normalized) return null
 
   return prisma.masterMember.findFirst({
     where: {
       isActive: true,
       memberNumber: {
-        equals: trimmed,
+        equals: normalized,
         mode: 'insensitive',
       },
     },

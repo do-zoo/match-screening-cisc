@@ -1,5 +1,6 @@
 'use server'
 
+import { MemberAccessMode } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { guardOwnerOrAdmin, isAuthError } from '@/lib/actions/guard'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
@@ -18,6 +19,17 @@ export async function createTicketCategory(
   const parsed = ticketCategorySchema.safeParse(input)
   if (!parsed.success) return rootError('Data kategori tidak valid.')
 
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { memberAccessMode: true },
+  })
+  if (!event) return rootError('Acara tidak ditemukan.')
+
+  const prices =
+    event.memberAccessMode !== MemberAccessMode.open
+      ? { regularPrice: parsed.data.memberPrice, memberPrice: parsed.data.memberPrice }
+      : { regularPrice: parsed.data.regularPrice, memberPrice: parsed.data.memberPrice }
+
   const maxSort = await prisma.eventTicketCategory.aggregate({
     where: { eventId },
     _max: { sortOrder: true },
@@ -25,7 +37,7 @@ export async function createTicketCategory(
   const sortOrder = (maxSort._max.sortOrder ?? 0) + 1
 
   const category = await prisma.eventTicketCategory.create({
-    data: { eventId, ...parsed.data, capacity: parsed.data.capacity ?? null, sortOrder },
+    data: { eventId, ...parsed.data, ...prices, capacity: parsed.data.capacity ?? null, sortOrder },
     select: { id: true },
   })
   return ok(category)
@@ -44,11 +56,22 @@ export async function updateTicketCategory(
   const parsed = ticketCategorySchema.safeParse(input)
   if (!parsed.success) return rootError('Data kategori tidak valid.')
 
+  const existingCategory = await prisma.eventTicketCategory.findUnique({
+    where: { id: categoryId },
+    select: { event: { select: { memberAccessMode: true } } },
+  })
+  if (!existingCategory) return rootError('Kategori tidak ditemukan.')
+
   const hasRegistrations = (await prisma.registration.count({ where: { ticketCategoryId: categoryId } })) > 0
+
+  const memberOnly = existingCategory.event.memberAccessMode !== MemberAccessMode.open
+  const syncedPrices = memberOnly
+    ? { regularPrice: parsed.data.memberPrice, memberPrice: parsed.data.memberPrice }
+    : { regularPrice: parsed.data.regularPrice, memberPrice: parsed.data.memberPrice }
 
   const data = hasRegistrations
     ? { name: parsed.data.name, maxQtyPerPerson: parsed.data.maxQtyPerPerson, capacity: parsed.data.capacity }
-    : parsed.data
+    : { ...parsed.data, ...syncedPrices }
 
   await prisma.eventTicketCategory.update({ where: { id: categoryId }, data })
   return ok(undefined)

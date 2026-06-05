@@ -2,20 +2,21 @@
 
 import { useRouter } from 'next/navigation'
 
+import { AdminFilterSelect } from '@/components/admin/admin-filter-select'
 import { AdminListToolbar } from '@/components/admin/admin-list-toolbar'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { InvoiceEmailBlastDialog } from '@/components/admin/invoice-email-blast-dialog'
+import { RegistrationInvoiceEmailBlastDialog } from '@/components/admin/registration-invoice-blast-dialog'
 import { buildEventRegistrantsListUrl, type EventRegistrantsTab } from '@/lib/admin/event-registrants-list-url'
 import type { EventsIndexViewMode } from '@/lib/admin/events-index-view'
 
-const tabOptions: { tab: EventRegistrantsTab; label: string }[] = [
-  { tab: 'all', label: 'Semua status' },
-  { tab: 'pending_review', label: 'Menunggu tinjauan' },
-  { tab: 'submitted', label: 'Terkirim' },
-  { tab: 'payment_issue', label: 'Masalah pembayaran' },
-  { tab: 'approved', label: 'Disetujui' },
-  { tab: 'rejected', label: 'Ditolak' },
-  { tab: 'closed', label: 'Dibatalkan / refund' },
+const tabOptions = [
+  { value: 'all' as const, label: 'Semua status' },
+  { value: 'pending_review' as const, label: 'Menunggu tinjauan' },
+  { value: 'submitted' as const, label: 'Terkirim' },
+  { value: 'payment_issue' as const, label: 'Masalah pembayaran' },
+  { value: 'approved' as const, label: 'Disetujui' },
+  { value: 'rejected' as const, label: 'Ditolak' },
+  { value: 'closed' as const, label: 'Dibatalkan / refund' },
 ]
 
 export function AdminEventRegistrantsToolbar({
@@ -62,36 +63,29 @@ export function AdminEventRegistrantsToolbar({
         }),
       }}
       filterSlot={
-        <>
-          <Label htmlFor='admin-event-registrants-tab' className='text-muted-foreground text-xs'>
-            Status pendaftaran
-          </Label>
-          <Select
-            value={tab}
-            onValueChange={v => {
-              if (!v) return
-              router.push(
-                buildEventRegistrantsListUrl(eventId, {
-                  tab: v as EventRegistrantsTab,
-                  view: viewMode,
-                  q: searchQuery.trim() || undefined,
-                  page: 1,
-                }),
-              )
-            }}
-          >
-            <SelectTrigger id='admin-event-registrants-tab' size='sm' className='w-full min-w-0 sm:w-56'>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {tabOptions.map(({ tab: key, label }) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
+        <AdminFilterSelect
+          id='admin-event-registrants-tab'
+          fieldLabel='Status pendaftaran'
+          value={tab}
+          options={tabOptions}
+          placeholder='Pilih status'
+          onValueChange={v => {
+            router.push(
+              buildEventRegistrantsListUrl(eventId, {
+                tab: v as EventRegistrantsTab,
+                view: viewMode,
+                q: searchQuery.trim() || undefined,
+                page: 1,
+              }),
+            )
+          }}
+        />
+      }
+      endSlot={
+        <div className='flex flex-wrap items-center gap-2'>
+          <RegistrationInvoiceEmailBlastDialog eventId={eventId} tab={tab} searchQuery={searchQuery} />
+          <InvoiceEmailBlastDialog eventId={eventId} tab={tab} searchQuery={searchQuery} />
+        </div>
       }
     />
   )

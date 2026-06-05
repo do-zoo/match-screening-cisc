@@ -1,6 +1,6 @@
 import { twoFactor } from 'better-auth/plugins'
 
-import { renderOtpEmail } from '@/lib/auth/emails/render-emails'
+import { resolveOtpEmailContent } from '@/lib/email-templates/render-auth-template-email'
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
 import { isTransactionalEmailConfigured } from '@/lib/auth/transactional-email-config'
 
@@ -34,11 +34,11 @@ export function buildTwoFactorPluginOptions() {
       allowedAttempts: 5,
       storeOTP: 'encrypted' as const,
       sendOTP: async ({ user, otp }: { user: { email: string }; otp: string }) => {
-        const html = await renderOtpEmail(otp)
+        const { subject, text, html } = await resolveOtpEmailContent(otp)
         await sendTransactionalEmail({
           to: user.email,
-          subject: 'Kode verifikasi Match Screening',
-          text: `Kode verifikasi Anda: ${otp}\n\nKode berlaku singkat. Jika Anda tidak meminta kode ini, abaikan email ini.`,
+          subject,
+          text,
           html,
         })
       },

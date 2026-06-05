@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { ChevronDown, ChevronUp, Loader2, PencilLine, ShieldCheck, Utensils, XCircle } from 'lucide-react'
 
@@ -14,10 +14,12 @@ import { Label } from '@/components/ui/label'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
+import type { MemberAccessMode } from '@prisma/client'
 import type { SerializedEventMenuItem } from '@/components/public/event-serialization'
-import { phoneValueToStoredString, stringToPhoneValue, whatsappDigitsOnly } from '@/lib/forms/phone-value-string'
+import { allowedMemberTypesForMode } from '@/lib/events/member-access-mode'
+import { phoneValueToStoredString, stringToPhoneValue } from '@/lib/forms/phone-value-string'
 import type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
-import { contactInitials, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
+import { contactInitials, maskDisplayEmail, maskDisplayName, maskDisplayWhatsapp } from './mask-contact-display'
 import {
   useHolderMemberValidation,
   validationToPricing,
@@ -32,6 +34,7 @@ type Props = {
   menuItems?: SerializedEventMenuItem[]
   menuRequired: boolean
   eventId: string
+  memberAccessMode?: MemberAccessMode
   showFileRequired?: boolean
   onValidationChange: (index: number, pricingValidation: 'valid' | 'invalid' | 'unknown') => void
   onMemberCardFileChange: (index: number, file: File | undefined) => void
@@ -62,16 +65,48 @@ function WhatsAppField({ index }: { index: number }) {
   )
 }
 
+function HolderEmailField({ index, isPrimary }: { index: number; isPrimary: boolean }) {
+  const form = useFormContext<SubmitRegistrationInput>()
+  return (
+    <Controller
+      control={form.control}
+      name={`holders.${index}.holderEmail`}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={`holder-${index}-email`}>
+            {isPrimary ? 'Email kontak' : 'Email (opsional)'}
+          </FieldLabel>
+          <Input
+            id={`holder-${index}-email`}
+            type='email'
+            name={field.name}
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            aria-invalid={fieldState.invalid}
+            placeholder='nama@contoh.com'
+            autoComplete='email'
+          />
+          {fieldState.error && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+}
+
 function MemberProfileCard({
+  isPrimary,
   fullName,
-  whatsapp,
+  whatsappDisplay,
+  emailDisplay,
   onReset,
 }: {
+  isPrimary: boolean
   fullName: string
-  whatsapp: string | null
+  whatsappDisplay: string | null
+  emailDisplay: string | null
   onReset: () => void
 }) {
-  const hasWhatsapp = !!whatsapp && whatsappDigitsOnly(whatsapp).length >= 8
   return (
     <div className='space-y-2'>
       <div className='relative overflow-hidden rounded-2xl ring-1 ring-primary/20 shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300'>
@@ -97,7 +132,15 @@ function MemberProfileCard({
               <div>
                 <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>WhatsApp</p>
                 <p className='font-mono text-sm text-muted-foreground' aria-hidden>
-                  {hasWhatsapp ? maskDisplayWhatsapp(whatsapp!) : '—'}
+                  {whatsappDisplay ?? '—'}
+                </p>
+              </div>
+              <div>
+                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                  {isPrimary ? 'Email kontak' : 'Email'}
+                </p>
+                <p className='font-mono text-sm text-muted-foreground' aria-hidden>
+                  {emailDisplay ?? '—'}
                 </p>
               </div>
             </div>
@@ -107,8 +150,36 @@ function MemberProfileCard({
 
       <Button type='button' variant='outline' size='sm' className='gap-2' onClick={onReset}>
         <PencilLine className='size-4' aria-hidden />
-        Ganti nomor member
+        Ubah kontak
       </Button>
+    </div>
+  )
+}
+
+function TangselMemberContactEditForm({ index, isPrimary, memberNumber }: { index: number; isPrimary: boolean; memberNumber: string }) {
+  const form = useFormContext<SubmitRegistrationInput>()
+
+  return (
+    <div className='space-y-3'>
+      <Field>
+        <FieldLabel htmlFor={`holder-${index}-member-readonly`}>Nomor Member CISC Tangsel</FieldLabel>
+        <Input id={`holder-${index}-member-readonly`} value={memberNumber} readOnly disabled />
+      </Field>
+
+      <Controller
+        control={form.control}
+        name={`holders.${index}.holderName`}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={`holder-${index}-edit-name`}>Nama Lengkap</FieldLabel>
+            <Input id={`holder-${index}-edit-name`} placeholder='Nama sesuai identitas' {...field} />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      <WhatsAppField index={index} />
+      <HolderEmailField index={index} isPrimary={isPrimary} />
     </div>
   )
 }
@@ -224,27 +295,54 @@ export function HolderCard({
   menuItems,
   menuRequired,
   eventId,
+  memberAccessMode = 'open',
   showFileRequired = false,
   onValidationChange,
   onMemberCardFileChange,
 }: Props) {
   const [expanded, setExpanded] = useState(isPrimary)
-  const [memberType, setMemberType] = useState<MemberType>('non')
+  const [memberType, setMemberType] = useState<MemberType>(() =>
+    memberAccessMode === 'tangsel_only' ? 'tangsel' : 'non',
+  )
+  const [isEditingTangselMember, setIsEditingTangselMember] = useState(false)
+  const tangselEditSnapshotRef = useRef<{
+    claimedMemberNumber: string
+    holderName: string
+    holderWhatsapp: string
+    holderEmail: string
+  } | null>(null)
   const form = useFormContext<SubmitRegistrationInput>()
   const { setValue } = form
 
   const holderName = form.watch(`holders.${index}.holderName`)
+  const holderWhatsapp = form.watch(`holders.${index}.holderWhatsapp`)
+  const holderEmail = form.watch(`holders.${index}.holderEmail`)
   const memberNumber = form.watch(`holders.${index}.claimedMemberNumber`)
+
+  const allowedTypes = allowedMemberTypesForMode(memberAccessMode)
+  const showNonMember = allowedTypes === 'all'
+  const showTangsel = allowedTypes === 'all' || allowedTypes.includes('tangsel')
+  const showRegional = allowedTypes === 'all' || allowedTypes.includes('regional')
+  const visibleTypeCount = [showNonMember, showTangsel, showRegional].filter(Boolean).length
+
+  useEffect(() => {
+    if (memberAccessMode !== 'tangsel_only') return
+    queueMicrotask(() => {
+      setMemberType('tangsel')
+      setValue(`holders.${index}.memberType`, 'tangsel')
+    })
+  }, [memberAccessMode, index, setValue])
 
   const validationResult = useHolderMemberValidation(memberType === 'tangsel' ? memberNumber : undefined, eventId)
 
-  // Auto-fill name and WhatsApp from directory when Tangsel member is verified.
+  // Auto-fill name from directory when Tangsel member is verified (WA/email merged on submit).
   useEffect(() => {
-    if (memberType === 'tangsel' && validationResult.status === 'valid') {
-      setValue(`holders.${index}.holderName`, validationResult.fullName, { shouldValidate: true })
-      setValue(`holders.${index}.holderWhatsapp`, validationResult.whatsapp ?? '', { shouldValidate: false })
-    }
-  }, [memberType, validationResult, index, setValue])
+    if (memberType !== 'tangsel' || validationResult.status !== 'valid' || isEditingTangselMember) return
+    const { fullName } = validationResult
+    queueMicrotask(() => {
+      setValue(`holders.${index}.holderName`, fullName, { shouldValidate: true })
+    })
+  }, [memberType, validationResult, index, setValue, isEditingTangselMember])
 
   // Notify parent of pricing-relevant validation.
   useEffect(() => {
@@ -260,12 +358,15 @@ export function HolderCard({
   function handleMemberToggle(value: string) {
     const next = value as MemberType
     setMemberType(next)
+    setIsEditingTangselMember(false)
+    tangselEditSnapshotRef.current = null
     setValue(`holders.${index}.memberType`, next === 'non' ? undefined : (next as 'tangsel' | 'regional'))
     if (next !== 'tangsel') {
       setValue(`holders.${index}.claimedMemberNumber`, '')
       if (next !== 'regional') {
         setValue(`holders.${index}.holderName`, '')
         setValue(`holders.${index}.holderWhatsapp`, '')
+        setValue(`holders.${index}.holderEmail`, '')
       }
     }
     if (next !== 'regional') {
@@ -273,17 +374,73 @@ export function HolderCard({
     }
   }
 
-  function handleResetMemberNumber() {
-    setValue(`holders.${index}.claimedMemberNumber`, '')
-    setValue(`holders.${index}.holderName`, '')
-    setValue(`holders.${index}.holderWhatsapp`, '')
+  function handleEditMember() {
+    tangselEditSnapshotRef.current = {
+      claimedMemberNumber: memberNumber ?? '',
+      holderName: holderName ?? '',
+      holderWhatsapp: form.getValues(`holders.${index}.holderWhatsapp`) ?? '',
+      holderEmail: holderEmail ?? '',
+    }
+    setIsEditingTangselMember(true)
+  }
+
+  function handleCancelEditMember() {
+    const snapshot = tangselEditSnapshotRef.current
+    if (snapshot) {
+      setValue(`holders.${index}.claimedMemberNumber`, snapshot.claimedMemberNumber)
+      setValue(`holders.${index}.holderName`, snapshot.holderName)
+      setValue(`holders.${index}.holderWhatsapp`, snapshot.holderWhatsapp)
+      setValue(`holders.${index}.holderEmail`, snapshot.holderEmail)
+    }
+    tangselEditSnapshotRef.current = null
+    setIsEditingTangselMember(false)
+  }
+
+  function handleFinishEditMember() {
+    if (validationResult.status !== 'valid') return
+    tangselEditSnapshotRef.current = null
+    setIsEditingTangselMember(false)
+    void form.trigger([
+      `holders.${index}.holderName`,
+      `holders.${index}.holderWhatsapp`,
+      `holders.${index}.holderEmail`,
+    ])
   }
 
   // Whether verified Tangsel member is missing WhatsApp in the directory
   const memberVerifiedNoWa =
     memberType === 'tangsel' &&
     validationResult.status === 'valid' &&
-    whatsappDigitsOnly(validationResult.whatsapp ?? '').length < 8
+    !isEditingTangselMember &&
+    validationResult.whatsapp === null &&
+    !holderWhatsapp?.trim()
+
+  const memberVerifiedNoEmail =
+    memberType === 'tangsel' &&
+    validationResult.status === 'valid' &&
+    !isEditingTangselMember &&
+    validationResult.email === null &&
+    !holderEmail?.trim()
+
+  const profileWhatsappDisplay =
+    holderWhatsapp?.trim() ?
+      maskDisplayWhatsapp(holderWhatsapp)
+    : validationResult.status === 'valid' ?
+      validationResult.whatsapp
+    : null
+
+  const profileEmailDisplay =
+    holderEmail?.trim() ?
+      maskDisplayEmail(holderEmail)
+    : validationResult.status === 'valid' ?
+      validationResult.email
+    : null
+
+  const showTangselProfile =
+    memberType === 'tangsel' && validationResult.status === 'valid' && !isEditingTangselMember
+  const showTangselMemberLookup =
+    memberType === 'tangsel' && validationResult.status !== 'valid' && !isEditingTangselMember
+  const showTangselMemberEdit = memberType === 'tangsel' && isEditingTangselMember
 
   const summaryName = holderName || (memberNumber ? `Member ${memberNumber}` : 'Belum diisi')
 
@@ -311,45 +468,68 @@ export function HolderCard({
           {/* Member type radio group */}
           <Field>
             <FieldLabel>Status keanggotaan</FieldLabel>
-            <RadioGroup className='grid grid-cols-3 gap-2' value={memberType} onValueChange={handleMemberToggle}>
-              <Label
-                htmlFor={`holder-${index}-type-non`}
-                className={cn(
-                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
-                )}
-              >
-                <RadioGroupItem value='non' id={`holder-${index}-type-non`} />
-                <span>Non-Member</span>
-              </Label>
-              <Label
-                htmlFor={`holder-${index}-type-tangsel`}
-                className={cn(
-                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
-                )}
-              >
-                <RadioGroupItem value='tangsel' id={`holder-${index}-type-tangsel`} />
-                <span>Member CISC Regional Tangsel</span>
-              </Label>
-              <Label
-                htmlFor={`holder-${index}-type-regional`}
-                className={cn(
-                  'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
-                )}
-              >
-                <RadioGroupItem value='regional' id={`holder-${index}-type-regional`} />
-                <span>Member CISC Regional Lainnya</span>
-              </Label>
+            <RadioGroup
+              className={cn(
+                'grid gap-2',
+                visibleTypeCount === 1 ? 'grid-cols-1' : visibleTypeCount === 2 ? 'grid-cols-2' : 'grid-cols-3',
+              )}
+              value={memberType}
+              onValueChange={handleMemberToggle}
+            >
+              {showNonMember ? (
+                <Label
+                  htmlFor={`holder-${index}-type-non`}
+                  className={cn(
+                    'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                  )}
+                >
+                  <RadioGroupItem value='non' id={`holder-${index}-type-non`} />
+                  <span>Non-Member</span>
+                </Label>
+              ) : null}
+              {showTangsel ? (
+                <Label
+                  htmlFor={`holder-${index}-type-tangsel`}
+                  className={cn(
+                    'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                  )}
+                >
+                  <RadioGroupItem value='tangsel' id={`holder-${index}-type-tangsel`} />
+                  <span>Member CISC Regional Tangsel</span>
+                </Label>
+              ) : null}
+              {showRegional ? (
+                <Label
+                  htmlFor={`holder-${index}-type-regional`}
+                  className={cn(
+                    'flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm has-data-checked:border-primary has-data-checked:bg-primary/5',
+                  )}
+                >
+                  <RadioGroupItem value='regional' id={`holder-${index}-type-regional`} />
+                  <span>Member CISC Regional Lainnya</span>
+                </Label>
+              ) : null}
             </RadioGroup>
           </Field>
 
           {/* Tangsel member path */}
-          {memberType === 'tangsel' && validationResult.status === 'valid' && (
+          {showTangselProfile && (
             <>
               <MemberProfileCard
-                fullName={validationResult.fullName}
-                whatsapp={validationResult.whatsapp}
-                onReset={handleResetMemberNumber}
+                isPrimary={isPrimary}
+                fullName={holderName || validationResult.fullName}
+                whatsappDisplay={profileWhatsappDisplay}
+                emailDisplay={profileEmailDisplay}
+                onReset={handleEditMember}
               />
+              {memberVerifiedNoEmail && (
+                <>
+                  <Alert className='text-sm'>
+                    Email kontak belum terdaftar di direktori. Isi email di bawah agar panitia bisa mengirim konfirmasi.
+                  </Alert>
+                  <HolderEmailField index={index} isPrimary={isPrimary} />
+                </>
+              )}
               {memberVerifiedNoWa && (
                 <>
                   <Alert variant='destructive' className='text-sm'>
@@ -361,14 +541,32 @@ export function HolderCard({
               )}
             </>
           )}
-          {memberType === 'tangsel' && validationResult.status !== 'valid' && (
+          {showTangselMemberLookup && (
             <>
               <MemberNumberInput index={index} result={validationResult} />
-              {form.formState.errors.holders?.[index]?.holderName && (
+              {form.formState.errors.holders?.[index]?.holderName ? (
                 <p className='text-sm text-destructive'>
                   Masukkan nomor member CISC Tangsel yang valid untuk melanjutkan.
                 </p>
-              )}
+              ) : null}
+            </>
+          )}
+          {showTangselMemberEdit && (
+            <>
+              <p className='text-sm text-muted-foreground'>Ubah nama, nomor WhatsApp, atau email kontak.</p>
+              <TangselMemberContactEditForm
+                index={index}
+                isPrimary={isPrimary}
+                memberNumber={memberNumber ?? ''}
+              />
+              <div className='flex flex-wrap gap-2'>
+                <Button type='button' variant='outline' size='sm' onClick={handleCancelEditMember}>
+                  Batal
+                </Button>
+                <Button type='button' size='sm' onClick={handleFinishEditMember}>
+                  Selesai
+                </Button>
+              </div>
             </>
           )}
 
@@ -398,6 +596,8 @@ export function HolderCard({
               <WhatsAppField index={index} />
             </>
           )}
+
+          {memberType !== 'tangsel' && <HolderEmailField index={index} isPrimary={isPrimary} />}
 
           {/* Menu selection */}
           {menuRequired && menuItems && menuItems.length > 0 && (

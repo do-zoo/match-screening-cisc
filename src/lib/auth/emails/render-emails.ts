@@ -5,7 +5,8 @@ import { AdminInviteEmail } from './admin-invite-email'
 import { MagicLinkEmail } from './magic-link-email'
 import { OtpEmail } from './otp-email'
 
-export const renderMagicLinkEmail = (url: string): Promise<string> => render(createElement(MagicLinkEmail, { url }))
+export const renderMagicLinkEmail = (url: string, introText?: string): Promise<string> =>
+  render(createElement(MagicLinkEmail, { url, introText }))
 
 export const renderOtpEmail = (otp: string): Promise<string> => render(createElement(OtpEmail, { otp }))
 

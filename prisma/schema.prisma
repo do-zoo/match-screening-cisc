@@ -42,6 +42,18 @@ enum MemberType {
   regional
 }
 
+enum MemberAccessMode {
+  open
+  tangsel_only
+  cisc_members
+}
+
+/// Snapshot saat submit: apakah setiap tiket punya data peserta sendiri atau mengikuti pemesan utama.
+enum HolderDataMode {
+  all_holders
+  primary_only
+}
+
 enum InvoiceAdjustmentType {
   underpayment
   other_adjustment
@@ -86,6 +98,20 @@ enum WaTemplateKey {
   underpayment_invoice
 }
 
+enum EmailTemplateKey {
+  invoice
+  invoice_underpayment
+  registration_approved
+  receipt
+  rejected
+  payment_issue
+  cancelled
+  refunded
+  magic_link
+  admin_invite
+  otp
+}
+
 enum NotificationOutboundMode {
   off
   log_only
@@ -99,6 +125,7 @@ model MasterMember {
   memberNumber       String  @unique
   fullName           String
   whatsapp           String?
+  email              String?
   isActive           Boolean @default(true)
   isManagementMember Boolean @default(false)
 
@@ -227,27 +254,43 @@ model EventTicketCategory {
 }
 
 model RegistrationHolder {
-  id                        String           @id @default(cuid())
-  registrationId            String
-  registration              Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  sortOrder                 Int
-  holderName                String
-  holderWhatsapp            String?
-  claimedMemberNumber       String?
-  memberValidation          MemberValidation @default(unknown)
-  memberId                  String?
-  member                    MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  ticketPriceApplied        Int
-  mandatoryMenuItemId       String?
-  mandatoryMenuItem         VenueMenuItem? @relation("RegistrationHolderMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
-  mandatoryMenuPriceApplied Int?
-  memberType                MemberType?
-  uploads                   Upload[]
+  id                  String           @id @default(cuid())
+  registrationId      String
+  registration        Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sortOrder           Int
+  holderName          String
+  holderWhatsapp      String?
+  holderEmail         String?
+  claimedMemberNumber String?
+  memberValidation    MemberValidation @default(unknown)
+  memberId            String?
+  member              MasterMember?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberType          MemberType?
+  uploads             Upload[]
+  assignedTickets     RegistrationTicket[]
 
   @@index([registrationId])
 }
 
-/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `RegistrationHolder.mandatoryMenuItem`.
+/// Satu baris per tiket dalam transaksi; identitas peserta lewat `assignedHolder`.
+model RegistrationTicket {
+  id                        String             @id @default(cuid())
+  registrationId            String
+  registration              Registration       @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sortOrder                 Int
+  ticketPriceApplied        Int
+  mandatoryMenuItemId       String?
+  mandatoryMenuItem         VenueMenuItem?     @relation("RegistrationTicketMandatoryMenu", fields: [mandatoryMenuItemId], references: [id], onDelete: Restrict)
+  mandatoryMenuPriceApplied Int?
+  assignedHolderId          String
+  assignedHolder            RegistrationHolder @relation(fields: [assignedHolderId], references: [id], onDelete: Restrict)
+
+  @@unique([registrationId, sortOrder])
+  @@index([registrationId])
+  @@index([assignedHolderId])
+}
+
+/// Baris menu kanonik per venue; dipakai acara lewat `EventVenueMenuItem` dan `RegistrationTicket.mandatoryMenuItem`.
 model VenueMenuItem {
   id            String   @id @default(cuid())
   venueId       String
@@ -262,8 +305,8 @@ model VenueMenuItem {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  eventVenueLinks                  EventVenueMenuItem[]
-  registrationHoldersMandatoryMenu RegistrationHolder[] @relation("RegistrationHolderMandatoryMenu")
+  eventVenueLinks                   EventVenueMenuItem[]
+  registrationTicketsMandatoryMenu RegistrationTicket[] @relation("RegistrationTicketMandatoryMenu")
 
   @@index([venueId])
 }
@@ -304,6 +347,7 @@ model Event {
   status                   EventStatus @default(draft)
   multiCategoryPurchase    Boolean     @default(false)
   requireAllHolderData     Boolean     @default(true)
+  memberAccessMode         MemberAccessMode @default(open)
 
   // NEW: Mandatory menu (JSON array of VenueMenuItem IDs)
   mandatoryMenuItemIds String[] @default([])
@@ -349,14 +393,17 @@ model Registration {
 
   ticketCategoryId String
   ticketCategory   EventTicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Restrict)
-  /// Total tiket dalam transaksi ini; jumlah RegistrationHolder rows harus sama.
+  /// Total tiket dalam transaksi ini; jumlah `RegistrationTicket` rows harus sama.
   ticketQty        Int                 @default(1)
+  /// Snapshot mode data peserta saat submit (dari `Event.requireAllHolderData`).
+  holderDataMode   HolderDataMode      @default(all_holders)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   contactName     String
   contactWhatsapp String
+  contactEmail    String?
 
   claimedMemberNumber String?
   memberValidation    MemberValidation @default(unknown)
@@ -374,6 +421,7 @@ model Registration {
   uploads     Upload[]
   adjustments InvoiceAdjustment[]
   holders     RegistrationHolder[]
+  tickets     RegistrationTicket[]
 
   @@index([eventId, createdAt])
   @@index([status])
@@ -441,13 +489,39 @@ model ClubWaTemplate {
   updatedAt DateTime      @updatedAt
 }
 
+model ClubEmailTemplate {
+  key       EmailTemplateKey @id
+  subject   String
+  body      String           @db.Text
+  updatedAt DateTime         @updatedAt
+}
+
+model EmailDeliveryLog {
+  id                  String           @id @default(cuid())
+  eventId             String
+  registrationId      String
+  templateKey         EmailTemplateKey
+  toEmail             String
+  success             Boolean
+  errorMessage        String?          @db.VarChar(500)
+  actorAdminProfileId String?
+  actorAuthUserId     String
+  createdAt           DateTime         @default(now())
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([registrationId])
+}
+
 model ClubBranding {
-  singletonKey    String   @id @default("default")
-  clubNameNav     String   @default("CISC Nobar")
-  footerPlainText String?
-  logoBlobUrl     String?
-  logoBlobPath    String?
-  updatedAt       DateTime @updatedAt
+  singletonKey  String   @id @default("default")
+  clubNameNav   String   @default("CISC Nobar")
+  contactEmail  String?
+  websiteUrl    String?
+  locationText  String?  @db.VarChar(200)
+  socialLinks   Json?
+  logoBlobUrl   String?
+  logoBlobPath  String?
+  updatedAt     DateTime @updatedAt
 }
 
 /// Operational toggles untuk seluruh situs publik singleton — loader `loadClubOperationalSettings`.
@@ -462,10 +536,17 @@ model ClubOperationalSettings {
 
 /// Preferensi saluran keluar — mode terpisah dari pemasangan provider (lihat `log-outbound-stub`).
 model ClubNotificationPreferences {
-  singletonKey  String                   @id @default("default")
-  outboundMode  NotificationOutboundMode @default(log_only)
-  outboundLabel String?                  @db.VarChar(120)
-  updatedAt     DateTime                 @updatedAt
+  singletonKey             String                   @id @default("default")
+  outboundMode             NotificationOutboundMode @default(log_only)
+  outboundLabel            String?                  @db.VarChar(120)
+  emailAutoOnSubmitReceipt Boolean                  @default(false)
+  emailAutoOnApprove       Boolean                  @default(true)
+  emailAutoOnReject        Boolean                  @default(false)
+  emailAutoOnPaymentIssue  Boolean                  @default(false)
+  emailAutoOnCancel        Boolean                  @default(false)
+  emailAutoOnRefund        Boolean                  @default(false)
+  emailAttachInvoicePdf    Boolean                  @default(true)
+  updatedAt                DateTime                 @updatedAt
 }
 
 /// Log audit append-only untuk mutasi konfigurasi sensitif (Owner).

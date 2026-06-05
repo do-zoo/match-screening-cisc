@@ -5,6 +5,7 @@ import type { CommitteeAdminDirectoryVm } from './load-committee-admin-directory
 export function buildCommitteeAdminDirectoryExportCsv(directory: CommitteeAdminDirectoryVm): string {
   const records = directory.rows.map(r => ({
     admin_profile_id: r.adminProfileId,
+    auth_user_id: r.authUserId,
     email: r.email,
     display_name: r.displayName,
     role: r.role,
@@ -20,6 +21,7 @@ export function buildCommitteeAdminDirectoryExportCsv(directory: CommitteeAdminD
     Papa.unparse(records, {
       columns: [
         'admin_profile_id',
+        'auth_user_id',
         'email',
         'display_name',
         'role',

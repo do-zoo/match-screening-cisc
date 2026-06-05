@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FormProvider, useFieldArray, useForm, type Resolver } from 'react-hook-form'
+import { FormProvider, useFieldArray, useForm, useWatch, type Resolver } from 'react-hook-form'
 
 import { submitRegistration } from '@/lib/actions/submit-registration'
 import { toastActionErr } from '@/lib/client/cud-notify'
@@ -26,7 +26,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     defaultValues: {
       ticketCategoryId: event.ticketCategories?.[0]?.id ?? '',
       ticketQty: 1,
-      holders: [{ holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' }],
+      holders: [
+        { holderName: '', holderWhatsapp: '', holderEmail: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      ],
     },
   })
 
@@ -65,9 +67,9 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     }
   }, [])
 
-  const selectedCategoryId = form.watch('ticketCategoryId')
-  const ticketQty = form.watch('ticketQty')
-  const holders = form.watch('holders')
+  const selectedCategoryId = useWatch({ control: form.control, name: 'ticketCategoryId' })
+  const ticketQty = useWatch({ control: form.control, name: 'ticketQty' })
+  const holders = useWatch({ control: form.control, name: 'holders' }) ?? []
 
   const selectedCategory = useMemo(
     () => event.ticketCategories?.find(c => c.id === selectedCategoryId),
@@ -78,7 +80,14 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     ? holders
     : Array.from(
         { length: ticketQty },
-        () => holders[0] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+        () =>
+          holders[0] ?? {
+            holderName: '',
+            holderWhatsapp: '',
+            holderEmail: '',
+            claimedMemberNumber: '',
+            mandatoryMenuItemId: '',
+          },
       )
   const pricingValidations = event.requireAllHolderData
     ? holderValidations
@@ -88,6 +97,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
     category: selectedCategory,
     holders: pricingHolders,
     holderValidations: pricingValidations,
+    forceMemberPricing: event.memberAccessMode !== 'open',
   })
 
   function handleQtyChange(qty: number) {
@@ -97,7 +107,13 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
       const next = Array.from(
         { length: qty },
         (_, i) =>
-          current[i] ?? { holderName: '', holderWhatsapp: '', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+          current[i] ?? {
+            holderName: '',
+            holderWhatsapp: '',
+            holderEmail: '',
+            claimedMemberNumber: '',
+            mandatoryMenuItemId: '',
+          },
       )
       replace(next)
       setHolderValidations(prev => Array.from({ length: qty }, (_, i) => prev[i] ?? 'unknown'))
@@ -187,6 +203,7 @@ export function RegistrationForm({ event }: RegistrationFormProps) {
               selectedCategory={selectedCategory}
               pricing={pricing}
               holders={holders}
+              ticketQty={ticketQty}
               onBack={() => setStep(1)}
               isSubmitting={form.formState.isSubmitting}
             />

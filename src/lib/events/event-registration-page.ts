@@ -111,6 +111,7 @@ export const getSerializedEventForPublicRegistration = cache(
         event.mandatoryMenuItemIds.includes(row.id),
       ),
       requireAllHolderData: event.requireAllHolderData,
+      memberAccessMode: event.memberAccessMode,
     }
   },
 )

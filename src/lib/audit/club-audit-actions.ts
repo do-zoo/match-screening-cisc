@@ -2,6 +2,8 @@ export const CLUB_AUDIT_ACTION = {
   COMMITTEE_PRICING_SAVED: 'committee_pricing.saved',
   CLUB_WA_TEMPLATE_SAVED: 'club_wa_template.saved',
   CLUB_WA_TEMPLATE_RESET: 'club_wa_template.reset',
+  CLUB_EMAIL_TEMPLATE_SAVED: 'club.email_template.saved',
+  CLUB_EMAIL_TEMPLATE_RESET: 'club.email_template.reset',
   CLUB_OPERATIONAL_SAVED: 'club_operational.saved',
   CLUB_BRANDING_SAVED: 'club_branding.saved',
   NOTIFICATION_PREFS_SAVED: 'notification_preferences.saved',

@@ -1,19 +1,22 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 
+import type { MemberAccessMode } from '@prisma/client'
 import {
   createTicketCategory,
   deleteTicketCategory,
   toggleTicketCategoryActive,
   updateTicketCategory,
 } from '@/lib/actions/admin-ticket-categories'
+import { isMemberOnlyAccessMode } from '@/lib/events/member-access-mode'
 import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
 import { ticketCategorySchema, type TicketCategoryInput } from '@/lib/forms/ticket-category-schema'
 import type { EventTicketCategoryRow } from '@/lib/tickets/get-event-ticket-categories'
 import { formatIdr } from '@/lib/utils/format-idr'
+import { cn } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -23,16 +26,22 @@ import { Label } from '@/components/ui/label'
 
 type DialogState = { type: 'closed' } | { type: 'create' } | { type: 'edit'; category: EventTicketCategoryRow }
 
+const TICKET_CATEGORY_DIALOG_FORM_ID = 'ticket-category-dialog-form'
+
 export function TicketCategoriesPanel({
   eventId,
   categories: initialCategories,
+  memberAccessMode = 'open',
 }: {
   eventId: string
   categories: EventTicketCategoryRow[]
+  memberAccessMode?: MemberAccessMode
 }) {
+  const memberOnly = isMemberOnlyAccessMode(memberAccessMode)
   const [categories, setCategories] = useState<EventTicketCategoryRow[]>(initialCategories)
   const [dialog, setDialog] = useState<DialogState>({ type: 'closed' })
   const [pending, startTransition] = useTransition()
+  const submitInFlightRef = useRef(false)
 
   const isOpen = dialog.type !== 'closed'
   const mode = dialog.type === 'edit' ? 'edit' : 'create'
@@ -78,49 +87,56 @@ export function TicketCategoriesPanel({
   }
 
   function handleSubmit(values: TicketCategoryInput) {
+    if (submitInFlightRef.current) return
+    submitInFlightRef.current = true
+    const payload = memberOnly ? { ...values, regularPrice: values.memberPrice } : values
     startTransition(async () => {
-      if (mode === 'create') {
-        const res = await createTicketCategory(eventId, values)
-        if (!res.ok) {
-          toastActionErr(res, 'Gagal menambah kategori.')
-          return
+      try {
+        if (mode === 'create') {
+          const res = await createTicketCategory(eventId, payload)
+          if (!res.ok) {
+            toastActionErr(res, 'Gagal menambah kategori.')
+            return
+          }
+          const newRow: EventTicketCategoryRow = {
+            id: res.data.id,
+            name: payload.name,
+            regularPrice: payload.regularPrice,
+            memberPrice: payload.memberPrice,
+            maxQtyPerPerson: values.maxQtyPerPerson,
+            sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
+            isActive: true,
+            registrationCount: 0,
+            capacity: values.capacity,
+          }
+          setCategories(prev => [...prev, newRow])
+          toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
+          closeDialog()
+        } else if (editingCategory) {
+          const res = await updateTicketCategory(editingCategory.id, payload)
+          if (!res.ok) {
+            toastActionErr(res, 'Gagal memperbarui kategori.')
+            return
+          }
+          setCategories(prev =>
+            prev.map(c =>
+              c.id === editingCategory.id
+                ? {
+                    ...c,
+                    name: payload.name,
+                    regularPrice: priceLocked ? c.regularPrice : payload.regularPrice,
+                    memberPrice: priceLocked ? c.memberPrice : payload.memberPrice,
+                    maxQtyPerPerson: payload.maxQtyPerPerson,
+                    capacity: payload.capacity,
+                  }
+                : c,
+            ),
+          )
+          toastCudSuccess('update', 'Kategori berhasil diperbarui.')
+          closeDialog()
         }
-        const newRow: EventTicketCategoryRow = {
-          id: res.data.id,
-          name: values.name,
-          regularPrice: values.regularPrice,
-          memberPrice: values.memberPrice,
-          maxQtyPerPerson: values.maxQtyPerPerson,
-          sortOrder: Math.max(...categories.map(c => c.sortOrder), 0) + 1,
-          isActive: true,
-          registrationCount: 0,
-          capacity: values.capacity,
-        }
-        setCategories(prev => [...prev, newRow])
-        toastCudSuccess('create', 'Kategori berhasil ditambahkan.')
-        closeDialog()
-      } else if (editingCategory) {
-        const res = await updateTicketCategory(editingCategory.id, values)
-        if (!res.ok) {
-          toastActionErr(res, 'Gagal memperbarui kategori.')
-          return
-        }
-        setCategories(prev =>
-          prev.map(c =>
-            c.id === editingCategory.id
-              ? {
-                  ...c,
-                  name: values.name,
-                  regularPrice: priceLocked ? c.regularPrice : values.regularPrice,
-                  memberPrice: priceLocked ? c.memberPrice : values.memberPrice,
-                  maxQtyPerPerson: values.maxQtyPerPerson,
-                  capacity: values.capacity,
-                }
-              : c,
-          ),
-        )
-        toastCudSuccess('update', 'Kategori berhasil diperbarui.')
-        closeDialog()
+      } finally {
+        submitInFlightRef.current = false
       }
     })
   }
@@ -171,8 +187,10 @@ export function TicketCategoriesPanel({
             <thead className='bg-muted/50'>
               <tr>
                 <th className='px-3 py-2 text-left font-medium'>Nama</th>
-                <th className='px-3 py-2 text-right font-medium'>Harga Reguler</th>
-                <th className='px-3 py-2 text-right font-medium'>Harga Member</th>
+                {!memberOnly ? <th className='px-3 py-2 text-right font-medium'>Harga Reguler</th> : null}
+                <th className='px-3 py-2 text-right font-medium'>
+                  {memberOnly ? 'Harga Member' : 'Harga Member'}
+                </th>
                 <th className='px-3 py-2 text-right font-medium'>Maks/Orang</th>
                 <th className='px-3 py-2 text-right font-medium'>Registrasi</th>
                 <th className='px-3 py-2 text-right font-medium'>Kapasitas</th>
@@ -186,7 +204,9 @@ export function TicketCategoriesPanel({
                     <span>{cat.name}</span>
                     {!cat.isActive ? <span className='text-muted-foreground ml-1.5 text-xs'>(nonaktif)</span> : null}
                   </td>
-                  <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.regularPrice)}</td>
+                  {!memberOnly ? (
+                    <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.regularPrice)}</td>
+                  ) : null}
                   <td className='px-3 py-2 text-right font-mono'>{formatIdr(cat.memberPrice)}</td>
                   <td className='px-3 py-2 text-right'>{cat.maxQtyPerPerson ?? '—'}</td>
                   <td className='px-3 py-2 text-right'>{cat.registrationCount}</td>
@@ -232,7 +252,14 @@ export function TicketCategoriesPanel({
             <DialogTitle>{mode === 'create' ? 'Tambah Kategori' : 'Edit Kategori'}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+          <form
+            id={TICKET_CATEGORY_DIALOG_FORM_ID}
+            onSubmit={e => {
+              e.stopPropagation()
+              void form.handleSubmit(handleSubmit)(e)
+            }}
+            className='space-y-4'
+          >
             <div className='flex flex-col gap-1'>
               <Label htmlFor='tc-name'>Nama kategori</Label>
               <Input
@@ -246,25 +273,27 @@ export function TicketCategoriesPanel({
               ) : null}
             </div>
 
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='flex flex-col gap-1'>
-                <Label htmlFor='tc-regular-price'>Harga Reguler</Label>
-                <Controller
-                  control={form.control}
-                  name='regularPrice'
-                  render={({ field }) => (
-                    <IdrAmountInput
-                      id='tc-regular-price'
-                      disabled={pending || priceLocked}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    />
-                  )}
-                />
-                {form.formState.errors.regularPrice ? (
-                  <p className='text-destructive text-xs'>{form.formState.errors.regularPrice.message}</p>
-                ) : null}
-              </div>
+            <div className={cn('grid gap-3', memberOnly ? 'grid-cols-1' : 'grid-cols-2')}>
+              {!memberOnly ? (
+                <div className='flex flex-col gap-1'>
+                  <Label htmlFor='tc-regular-price'>Harga Reguler</Label>
+                  <Controller
+                    control={form.control}
+                    name='regularPrice'
+                    render={({ field }) => (
+                      <IdrAmountInput
+                        id='tc-regular-price'
+                        disabled={pending || priceLocked}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      />
+                    )}
+                  />
+                  {form.formState.errors.regularPrice ? (
+                    <p className='text-destructive text-xs'>{form.formState.errors.regularPrice.message}</p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className='flex flex-col gap-1'>
                 <Label htmlFor='tc-member-price'>Harga Member</Label>
@@ -353,7 +382,11 @@ export function TicketCategoriesPanel({
               <Button type='button' variant='outline' onClick={closeDialog} disabled={pending}>
                 Batal
               </Button>
-              <Button type='submit' disabled={pending}>
+              <Button
+                type='button'
+                disabled={pending}
+                onClick={() => void form.handleSubmit(handleSubmit)()}
+              >
                 {pending ? 'Menyimpan…' : mode === 'create' ? 'Tambah' : 'Simpan'}
               </Button>
             </DialogFooter>

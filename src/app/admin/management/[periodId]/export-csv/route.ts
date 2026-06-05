@@ -34,7 +34,20 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ per
 
   const rows = await listPeriodRolesAsTree(periodId)
 
-  const header = ['Jabatan', 'Jabatan Induk', 'Kapasitas', 'Nama Pengurus', 'Kode Publik', 'Terhubung ke Direktori']
+  const header = [
+    'ID Periode',
+    'ID Jabatan',
+    'ID Jabatan Induk',
+    'ID Penugasan',
+    'ID Pengurus',
+    'ID Direktori',
+    'Jabatan',
+    'Jabatan Induk',
+    'Kapasitas',
+    'Nama Pengurus',
+    'Kode Publik',
+    'Terhubung ke Direktori',
+  ]
 
   const titleById = new Map(rows.map(r => [r.roleId, r.roleTitle]))
 
@@ -43,12 +56,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ per
   for (const row of rows) {
     const parentTitle = row.parentRoleId ? (titleById.get(row.parentRoleId) ?? '') : ''
     const kapasitas = row.roleIsUnique ? '1 orang' : 'Banyak'
+    const baseIds = [periodId, row.roleId, row.parentRoleId ?? '']
     if (row.assignees.length === 0) {
-      lines.push([row.roleTitle, parentTitle, kapasitas, '', '', ''].map(escCsv).join(','))
+      lines.push([...baseIds, '', '', '', row.roleTitle, parentTitle, kapasitas, '', '', ''].map(escCsv).join(','))
     } else {
       for (const a of row.assignees) {
         lines.push(
-          [row.roleTitle, parentTitle, kapasitas, a.fullName, a.publicCode, a.masterMemberId ? 'Ya' : 'Tidak']
+          [
+            ...baseIds,
+            a.assignmentId,
+            a.memberId,
+            a.masterMemberId ?? '',
+            row.roleTitle,
+            parentTitle,
+            kapasitas,
+            a.fullName,
+            a.publicCode,
+            a.masterMemberId ? 'Ya' : 'Tidak',
+          ]
             .map(escCsv)
             .join(','),
         )

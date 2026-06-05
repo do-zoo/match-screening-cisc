@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/db/prisma'
+import type { MemberAccessMode } from '@prisma/client'
+import { MEMBER_ACCESS_MODE_BADGE } from '@/lib/events/member-access-mode'
 
 export type BadgeStatus = 'open' | 'closing_soon' | 'full' | 'closed'
 
@@ -47,6 +49,8 @@ export type PublicActiveEventRow = {
   lowestMemberPrice: number | null
   closeRegistrationAtIso: string
   badgeStatus: BadgeStatus
+  memberAccessMode: MemberAccessMode
+  memberAccessBadge: string | null
 }
 
 export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
@@ -64,6 +68,7 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
       openRegistrationAt: true,
       closeRegistrationAt: true,
       registrationManualClosed: true,
+      memberAccessMode: true,
       ticketCategories: {
         where: { isActive: true },
         select: {
@@ -106,6 +111,8 @@ export async function getPublicActiveEvents(): Promise<PublicActiveEventRow[]> {
         allCategoriesFull,
         now,
       }),
+      memberAccessMode: e.memberAccessMode,
+      memberAccessBadge: MEMBER_ACCESS_MODE_BADGE[e.memberAccessMode],
     }
   })
 }

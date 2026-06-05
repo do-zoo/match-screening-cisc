@@ -1,5 +1,6 @@
 import type {
   AttendanceStatus,
+  HolderDataMode,
   InvoiceAdjustmentStatus,
   InvoiceAdjustmentType,
   MemberType,
@@ -13,12 +14,14 @@ export type DetailRegistration = {
   createdAt: Date
   contactName: string
   contactWhatsapp: string
+  contactEmail: string | null
   computedTotalAtSubmit: number
   status: RegistrationStatus
   attendanceStatus: AttendanceStatus
   rejectionReason: string | null
   paymentIssueReason: string | null
   ticketQty: number
+  holderDataMode: HolderDataMode
   ticketCategory: {
     id: string
     name: string
@@ -29,16 +32,25 @@ export type DetailRegistration = {
     id: string
     sortOrder: number
     holderName: string
+    holderWhatsapp: string | null
+    holderEmail: string | null
     claimedMemberNumber: string | null
     memberValidation: MemberValidation
     memberType: MemberType | null
+  }>
+  tickets: Array<{
+    id: string
+    sortOrder: number
     ticketPriceApplied: number
     menuItemName: string | null
+    assignedHolderId: string
   }>
   event: {
+    id: string
     title: string
     venueName: string
     kickOffAt: Date
+    openGateAt: Date | null
     menuItems: Array<{ id: string; name: string; price: number }>
     bankAccount: { bankName: string; accountNumber: string; accountName: string } | null
   }

@@ -27,6 +27,7 @@ describe('masterMemberCsvPatchToCreateData', () => {
       memberNumber: 'MN-01',
       fullName: 'X',
       whatsapp: null,
+      email: null,
       isActive: true,
     })
   })

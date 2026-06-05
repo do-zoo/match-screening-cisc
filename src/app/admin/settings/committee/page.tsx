@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { AdminSettingsBreadcrumb } from '@/components/admin/admin-settings-breadcrumb'
 import { CommitteeAdminSettingsPanel } from '@/components/admin/committee-admin-settings-panel'
 import { loadCommitteeAdminDirectory } from '@/lib/admin/load-committee-admin-directory'
 import { loadPendingAdminInvitationsForCommittee } from '@/lib/admin/load-pending-admin-invitations'
@@ -17,13 +18,9 @@ export default async function CommitteeSettingsPage() {
     <div className='space-y-8'>
       <div className='space-y-4'>
         <div>
-          <p className='text-muted-foreground text-sm'>
-            <Link href='/admin/settings' className='underline underline-offset-4'>
-              Pengaturan
-            </Link>
-            {' / '}
-            <span>Komite & admin</span>
-          </p>
+          <AdminSettingsBreadcrumb
+            crumbs={[{ label: 'Pengaturan', href: '/admin/settings' }, { label: 'Komite & admin' }]}
+          />
           <h1 className='text-2xl font-semibold tracking-tight'>Komite & admin aplikasi</h1>
         </div>
         <p className='text-muted-foreground max-w-2xl text-sm leading-relaxed'>

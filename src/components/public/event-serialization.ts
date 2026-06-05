@@ -1,3 +1,5 @@
+import type { MemberAccessMode } from '@prisma/client'
+
 export type SerializedEventMenuItem = {
   id: string
   name: string
@@ -49,4 +51,5 @@ export type SerializedEventForRegistration = {
   mandatoryMenuItems: SerializedEventMenuItem[]
   /** Jika false, form publik hanya tampilkan 1 holder card (pemesan utama). */
   requireAllHolderData: boolean
+  memberAccessMode: MemberAccessMode
 }

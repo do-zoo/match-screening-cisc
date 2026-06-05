@@ -162,13 +162,7 @@ export default async function AdminEventsIndexPage({
 
         <AdminEventsPendingReviewAlert pendingReviewRecapTotal={pendingReviewRecapTotal} />
 
-        {totalItems === 0 ? (
-          <p className='text-sm text-muted-foreground'>
-            Belum ada acara untuk filter ini. Mulai dengan membuat acara baru untuk membuka pendaftaran dan daftar
-            peserta untuk verifikasi.
-          </p>
-        ) : (
-          <AdminEventsTable
+        <AdminEventsTable
             pathname='/admin/events'
             preservedQuery={{
               view: 'tabel',
@@ -182,7 +176,6 @@ export default async function AdminEventsIndexPage({
               totalItems,
             }}
           />
-        )}
       </main>
     )
   }

@@ -1,9 +1,18 @@
 'use server'
 
-import { MemberType, RegistrationStatus } from '@prisma/client'
+import { HolderDataMode, MemberType, RegistrationStatus } from '@prisma/client'
+import { lookupMemberForRegistration } from '@/lib/actions/lookup-member-for-registration'
+import { assertHolderEligibleForMemberAccessMode } from '@/lib/events/member-access-mode'
+import { optionalStoredEmail, requiredStoredEmail } from '@/lib/email/normalize-email'
 import { prisma } from '@/lib/db/prisma'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
-import { submitRegistrationSchema } from '@/lib/forms/submit-registration-schema'
+import {
+  isTangselDirectoryHolder,
+  submitRegistrationSchema,
+  whatsappPhoneSchema,
+} from '@/lib/forms/submit-registration-schema'
+import { mergeTangselHolderContact } from '@/lib/members/merge-tangsel-holder-contact'
+import { resolveMasterMemberRegistrationLookup } from '@/lib/members/resolve-master-member-registration-lookup'
 import { computeSubmitTotal } from '@/lib/pricing/compute-submit-total'
 import {
   assertRegistrationAcceptableOrThrowForTx,
@@ -18,6 +27,7 @@ import {
   mergeGlobalRegistrationClosure,
 } from '@/lib/public/club-operational-policy'
 import { loadClubOperationalSettings } from '@/lib/public/load-club-operational-settings'
+import { trySendReceiptEmailAfterSubmit } from '@/lib/email/send-registration-email'
 import { uploadImageForRegistration } from '@/lib/uploads/upload-image'
 
 export type { SubmitRegistrationInput } from '@/lib/forms/submit-registration-schema'
@@ -70,6 +80,7 @@ export async function submitRegistration(
         openRegistrationAt: true,
         closeRegistrationAt: true,
         requireAllHolderData: true,
+        memberAccessMode: true,
         ticketCategories: {
           where: { id: input.ticketCategoryId, isActive: true },
           select: {
@@ -132,6 +143,21 @@ export async function submitRegistration(
     }
   }
 
+  const holdersToValidate = event.requireAllHolderData ? input.holders : [input.holders[0]!]
+  for (const h of holdersToValidate) {
+    let tangselValid = false
+    if (
+      event.memberAccessMode === 'tangsel_only' &&
+      h.memberType === 'tangsel' &&
+      h.claimedMemberNumber?.trim()
+    ) {
+      const lookup = await lookupMemberForRegistration(h.claimedMemberNumber, eventId)
+      tangselValid = lookup.status === 'valid'
+    }
+    const eligibility = assertHolderEligibleForMemberAccessMode(h, event.memberAccessMode, tangselValid)
+    if (!eligibility.ok) return rootError(eligibility.message)
+  }
+
   const holdersForProcessing = event.requireAllHolderData
     ? input.holders
     : Array.from({ length: input.ticketQty }, (_, i) => {
@@ -142,9 +168,32 @@ export async function submitRegistration(
         return base
       })
 
+  const mergedHolders = [...holdersForProcessing]
+  for (let i = 0; i < mergedHolders.length; i++) {
+    const h = mergedHolders[i]!
+    if (!isTangselDirectoryHolder(h)) continue
+    const lookup = await resolveMasterMemberRegistrationLookup(h.claimedMemberNumber!, eventId)
+    if (lookup.status !== 'valid') {
+      return rootError('Nomor member CISC Tangsel tidak valid.')
+    }
+    mergedHolders[i] = mergeTangselHolderContact(h, lookup)
+  }
+
+  const primaryMerged = mergedHolders[0]
+  if (primaryMerged) {
+    const mergedEmail = (primaryMerged.holderEmail ?? '').trim()
+    if (!mergedEmail) {
+      return rootError('Email kontak wajib diisi')
+    }
+    const waResult = whatsappPhoneSchema.safeParse(primaryMerged.holderWhatsapp ?? '')
+    if (!waResult.success) {
+      return rootError(waResult.error.issues[0]?.message ?? 'Nomor WhatsApp tidak valid')
+    }
+  }
+
   // 6. Compute pricing (server always uses 'unknown' — admin verifies member status)
   const pricing = computeSubmitTotal({
-    holders: holdersForProcessing.map(h => ({
+    holders: mergedHolders.map(h => ({
       memberValidation: 'unknown' as const,
       category: {
         regularPrice: category.regularPrice,
@@ -154,37 +203,67 @@ export async function submitRegistration(
     })),
   })
 
-  // 7. Create Registration + RegistrationHolder[] in a transaction
+  const holderDataMode: HolderDataMode = event.requireAllHolderData
+    ? HolderDataMode.all_holders
+    : HolderDataMode.primary_only
+
+  // 7. Create Registration + holders + tickets in a transaction
   let reg: { id: string; holders: { id: string; sortOrder: number }[] }
   try {
     reg = await prisma.$transaction(async tx => {
       await assertRegistrationAcceptableOrThrowForTx(tx, event)
       await assertCategoryCapacityOrThrowForTx(tx, category)
 
-      const contactName = input.holders[0].holderName
-      const contactWhatsapp = input.holders[0].holderWhatsapp ?? ''
+      const contactName = mergedHolders[0]!.holderName
+      const contactWhatsapp = mergedHolders[0]!.holderWhatsapp ?? ''
+      const contactEmail = requiredStoredEmail((mergedHolders[0]!.holderEmail ?? '').trim())
 
-      return tx.registration.create({
+      const ticketCreates = mergedHolders.map((h, i) => ({
+        sortOrder: i + 1,
+        ticketPriceApplied: pricing.lines[i]!.ticketPrice,
+        mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
+        mandatoryMenuPriceApplied: null,
+      }))
+
+      const registrationBase = {
+        eventId: event.id,
+        ticketCategoryId: input.ticketCategoryId,
+        ticketQty: input.ticketQty,
+        holderDataMode,
+        contactName,
+        contactWhatsapp,
+        contactEmail,
+        computedTotalAtSubmit: pricing.grandTotal,
+        status: RegistrationStatus.submitted,
+      }
+
+      const holderRows = event.requireAllHolderData
+        ? mergedHolders.map((h, i) => ({
+            sortOrder: i + 1,
+            holderName: h.holderName,
+            holderWhatsapp: h.holderWhatsapp?.trim() || null,
+            holderEmail: optionalStoredEmail(h.holderEmail),
+            claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
+            memberType: h.memberType ? (h.memberType as MemberType) : null,
+          }))
+        : (() => {
+            const primary = mergedHolders[0]!
+            return [
+              {
+                sortOrder: 1,
+                holderName: primary.holderName,
+                holderWhatsapp: primary.holderWhatsapp?.trim() || null,
+                holderEmail: optionalStoredEmail(primary.holderEmail),
+                claimedMemberNumber: primary.claimedMemberNumber?.trim() || null,
+                memberType: primary.memberType ? (primary.memberType as MemberType) : null,
+              },
+            ]
+          })()
+
+      const reg = await tx.registration.create({
         data: {
-          eventId: event.id,
-          ticketCategoryId: input.ticketCategoryId,
-          ticketQty: input.ticketQty,
-          contactName,
-          contactWhatsapp,
-          computedTotalAtSubmit: pricing.grandTotal,
-          status: RegistrationStatus.submitted,
-          holders: {
-            create: holdersForProcessing.map((h, i) => ({
-              sortOrder: i + 1,
-              holderName: h.holderName,
-              holderWhatsapp: h.holderWhatsapp?.trim() || null,
-              claimedMemberNumber: h.claimedMemberNumber?.trim() || null,
-              memberType: h.memberType ? (h.memberType as MemberType) : null,
-              ticketPriceApplied: pricing.lines[i]!.ticketPrice,
-              mandatoryMenuItemId: h.mandatoryMenuItemId?.trim() || null,
-              mandatoryMenuPriceApplied: null,
-            })),
-          },
+          ...registrationBase,
+          holders: { create: holderRows },
         },
         include: {
           holders: {
@@ -193,6 +272,21 @@ export async function submitRegistration(
           },
         },
       })
+
+      const ticketRows = event.requireAllHolderData
+        ? reg.holders.map((holder, i) => ({
+            registrationId: reg.id,
+            assignedHolderId: holder.id,
+            ...ticketCreates[i]!,
+          }))
+        : ticketCreates.map(t => ({
+            registrationId: reg.id,
+            assignedHolderId: reg.holders[0]!.id,
+            ...t,
+          }))
+
+      await tx.registrationTicket.createMany({ data: ticketRows })
+      return reg
     })
   } catch (e) {
     if (e instanceof RegistrationNotAcceptableError) {
@@ -217,6 +311,10 @@ export async function submitRegistration(
       console.error(`[submitRegistration] Failed to upload member card photo for holder index ${inputIndex}:`, e)
     }
   }
+
+  void trySendReceiptEmailAfterSubmit({ registrationId: reg.id, eventId }).catch(e => {
+    console.error('[submitRegistration] receipt email failed', e)
+  })
 
   return ok({ registrationId: reg.id })
 }

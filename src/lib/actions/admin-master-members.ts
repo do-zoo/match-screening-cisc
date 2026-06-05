@@ -21,6 +21,7 @@ import {
   masterMemberCsvPatchToUpdateData,
 } from '@/lib/members/master-member-csv-prisma-data'
 import { assertCsvTextSingleLinePhysicalRecords } from '@/lib/members/master-member-csv-single-line-record'
+import { optionalStoredEmail } from '@/lib/email/normalize-email'
 import { parseMasterMemberCsvText } from '@/lib/members/parse-master-member-csv-text'
 import { prepareMasterMemberCsvRow } from '@/lib/members/prepare-master-member-csv-row'
 
@@ -198,13 +199,15 @@ export async function createMasterMember(_prev: unknown, formData: FormData): Pr
   if (!z.success) return { ok: false, fieldErrors: zodToFieldErrors(z.error) }
 
   const whatsappStored = z.data.whatsapp && z.data.whatsapp.trim().length > 0 ? z.data.whatsapp.trim() : null
+  const emailStored = optionalStoredEmail(z.data.email ?? null)
 
   try {
     const row = await prisma.masterMember.create({
       data: {
-        memberNumber: z.data.memberNumber.trim(),
+        memberNumber: z.data.memberNumber,
         fullName: z.data.fullName.trim(),
         whatsapp: whatsappStored,
+        email: emailStored,
         isActive: z.data.isActive,
       },
       select: { id: true },
@@ -242,12 +245,14 @@ export async function updateMasterMember(_prev: unknown, formData: FormData): Pr
   if (!z.success) return { ok: false, fieldErrors: zodToFieldErrors(z.error) }
 
   const whatsappStored = z.data.whatsapp && z.data.whatsapp.trim().length > 0 ? z.data.whatsapp.trim() : null
+  const emailStored = optionalStoredEmail(z.data.email ?? null)
 
   await prisma.masterMember.update({
     where: { id: z.data.id },
     data: {
       fullName: z.data.fullName.trim(),
       whatsapp: whatsappStored,
+      email: emailStored,
       isActive: z.data.isActive,
     },
     select: { id: true },

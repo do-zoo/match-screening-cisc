@@ -4,7 +4,7 @@ import { formatCurrencyIdr, formatUploadPurpose } from '@/components/admin/regis
 
 describe('registration detail presentation helpers', () => {
   test('formats submitted totals as Indonesian rupiah', () => {
-    expect(formatCurrencyIdr(150000)).toBe('Rp150.000')
+    expect(formatCurrencyIdr(150000)).toBe('Rp 150.000')
   })
 
   test('formats upload purposes for admins', () => {

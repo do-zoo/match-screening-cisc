@@ -29,7 +29,13 @@ function validPayload(overrides: Record<string, unknown> = {}): Record<string, u
     ticketCategoryId: 'cat-1',
     ticketQty: 1,
     holders: [
-      { holderName: 'Budi Santoso', holderWhatsapp: '08123456789', claimedMemberNumber: '', mandatoryMenuItemId: '' },
+      {
+        holderName: 'Budi Santoso',
+        holderWhatsapp: '08123456789',
+        holderEmail: 'budi@example.com',
+        claimedMemberNumber: '',
+        mandatoryMenuItemId: '',
+      },
     ],
     contactWhatsapp: '08123456789',
     ...overrides,
@@ -97,6 +103,17 @@ describe('holderSchema', () => {
     })
     expect(r.success).toBe(true)
   })
+
+  it('accepts tangsel with empty WA/email when member number present (merged on submit)', () => {
+    const r = holderSchema.safeParse({
+      holderName: 'Budi',
+      holderWhatsapp: '',
+      holderEmail: '',
+      memberType: 'tangsel',
+      claimedMemberNumber: 'CISC-001',
+    })
+    expect(r.success).toBe(true)
+  })
 })
 
 describe('submitRegistrationSchema', () => {
@@ -134,7 +151,12 @@ describe('submitRegistrationSchema', () => {
       validPayload({
         ticketQty: 2,
         holders: [
-          { holderName: 'Budi', holderWhatsapp: '08123456789', claimedMemberNumber: 'CISC-001' },
+          {
+            holderName: 'Budi',
+            holderWhatsapp: '08123456789',
+            holderEmail: 'budi@example.com',
+            claimedMemberNumber: 'CISC-001',
+          },
           { holderName: 'Rina', holderWhatsapp: '08198765432' },
         ],
       }),
@@ -146,7 +168,10 @@ describe('submitRegistrationSchema', () => {
     const r = submitRegistrationSchema.safeParse(
       validPayload({
         ticketQty: 2,
-        holders: [{ holderName: 'Budi', holderWhatsapp: '08123456789' }, { holderName: 'Rina' }],
+        holders: [
+          { holderName: 'Budi', holderWhatsapp: '08123456789', holderEmail: 'budi@example.com' },
+          { holderName: 'Rina' },
+        ],
       }),
     )
     expect(r.success).toBe(false)
@@ -169,5 +194,22 @@ describe('submitRegistrationSchema', () => {
     if (!r.success) {
       expect(r.error.issues.some(i => i.path[0] === 'holders' && i.path[2] === 'holderWhatsapp')).toBe(true)
     }
+  })
+
+  it('accepts tangsel primary with empty email (merged on submit)', () => {
+    const r = submitRegistrationSchema.safeParse(
+      validPayload({
+        holders: [
+          {
+            holderName: 'Budi',
+            holderWhatsapp: '',
+            holderEmail: '',
+            memberType: 'tangsel',
+            claimedMemberNumber: 'CISC-001',
+          },
+        ],
+      }),
+    )
+    expect(r.success).toBe(true)
   })
 })

@@ -107,12 +107,7 @@ export default async function AdminVenuesPage({
 
         <AdminVenuesIndexToolbar key={`venues-idx-toolbar-${tab}-table`} tab={tab} viewMode='table' searchQuery={q} />
 
-        {totalItems === 0 ? (
-          <p className='text-muted-foreground text-sm'>
-            Belum ada venue untuk filter ini. Buat venue baru lewat tombol Venue baru.
-          </p>
-        ) : (
-          <AdminVenuesTable
+        <AdminVenuesTable
             pathname='/admin/venues'
             preservedQuery={{
               view: 'tabel',
@@ -126,7 +121,6 @@ export default async function AdminVenuesPage({
               totalItems,
             }}
           />
-        )}
       </main>
     )
   }

@@ -10,12 +10,15 @@ describe('buildMasterMembersExportCsv', () => {
         memberNumber: 'M-01',
         fullName: 'A',
         whatsapp: null,
+        email: null,
         isActive: true,
         isManagementMember: false,
+        createdAt: '',
         updatedAt: '',
       },
     ])
     expect(csv.startsWith('\ufeff')).toBe(true)
+    expect(csv).toContain('id')
     expect(csv).toContain('member_number')
     expect(csv).toContain('M-01')
     expect(csv).toContain('true')
@@ -29,8 +32,10 @@ describe('buildMasterMembersExportCsv', () => {
         memberNumber: 'X',
         fullName: 'Y',
         whatsapp: null,
+        email: null,
         isActive: false,
         isManagementMember: false,
+        createdAt: '',
         updatedAt: '',
       },
     ])

@@ -19,7 +19,7 @@ import {
 import { IdrAmountInput } from '@/components/ui/idr-amount-input'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AdminFilterSelect } from '@/components/admin/admin-filter-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TablePagination } from '@/components/ui/table-pagination'
 import { Textarea } from '@/components/ui/textarea'
@@ -342,34 +342,27 @@ export function AdminVenueMenuPanel({
             disabled: pending,
           }}
           filterSlot={
-            <>
-              <Label htmlFor='admin-venue-menu-filter' className='text-muted-foreground text-xs'>
-                Nama & harga
-              </Label>
-              <Select
-                value={listQuery.filter}
-                onValueChange={v => {
-                  if (!v) return
-                  router.push(
-                    buildAdminVenueMenuListUrl(venueId, {
-                      q: listQuery.q,
-                      view: listQuery.view,
-                      page: 1,
-                      filter: v as VenueMenuLockFilter,
-                    }),
-                  )
-                }}
-              >
-                <SelectTrigger id='admin-venue-menu-filter' size='sm' className='w-full min-w-0 sm:w-56'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='all'>Semua item</SelectItem>
-                  <SelectItem value='locked'>Terkunci (sudah dipakai)</SelectItem>
-                  <SelectItem value='unlocked'>Belum terkunci</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
+            <AdminFilterSelect
+              id='admin-venue-menu-filter'
+              fieldLabel='Nama & harga'
+              value={listQuery.filter}
+              options={[
+                { value: 'all', label: 'Semua item' },
+                { value: 'locked', label: 'Terkunci (sudah dipakai)' },
+                { value: 'unlocked', label: 'Belum terkunci' },
+              ]}
+              placeholder='Pilih filter'
+              onValueChange={v => {
+                router.push(
+                  buildAdminVenueMenuListUrl(venueId, {
+                    q: listQuery.q,
+                    view: listQuery.view,
+                    page: 1,
+                    filter: v as VenueMenuLockFilter,
+                  }),
+                )
+              }}
+            />
           }
         />
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 
+import { AdminSettingsBreadcrumb } from '@/components/admin/admin-settings-breadcrumb'
 import { ClubNotificationPreferencesForm } from '@/components/admin/club-notification-preferences-form'
 
 export const metadata: Metadata = { title: 'Notifikasi' }
@@ -15,13 +15,9 @@ export default async function NotificationsSettingsPage() {
   return (
     <div className='space-y-6'>
       <div>
-        <p className='text-muted-foreground text-sm'>
-          <Link href='/admin/settings' className='underline underline-offset-4'>
-            Pengaturan
-          </Link>
-          {' / '}
-          <span>Notifikasi</span>
-        </p>
+        <AdminSettingsBreadcrumb
+          crumbs={[{ label: 'Pengaturan', href: '/admin/settings' }, { label: 'Notifikasi' }]}
+        />
         <h1 className='text-2xl font-semibold tracking-tight'>Notifikasi</h1>
         <p className='text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed'>
           Preferensi saluran keluar untuk pekerjaan operasional mendatang. Pengiriman transaksional oleh Better Auth
@@ -31,6 +27,15 @@ export default async function NotificationsSettingsPage() {
       <ClubNotificationPreferencesForm
         initialMode={row?.outboundMode ?? 'log_only'}
         initialLabel={row?.outboundLabel ?? ''}
+        initialEmailAuto={{
+          emailAutoOnSubmitReceipt: row?.emailAutoOnSubmitReceipt ?? false,
+          emailAutoOnApprove: row?.emailAutoOnApprove ?? true,
+          emailAutoOnReject: row?.emailAutoOnReject ?? false,
+          emailAutoOnPaymentIssue: row?.emailAutoOnPaymentIssue ?? false,
+          emailAutoOnCancel: row?.emailAutoOnCancel ?? false,
+          emailAutoOnRefund: row?.emailAutoOnRefund ?? false,
+          emailAttachInvoicePdf: row?.emailAttachInvoicePdf ?? true,
+        }}
       />
     </div>
   )

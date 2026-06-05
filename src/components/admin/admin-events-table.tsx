@@ -34,7 +34,6 @@ export type AdminEventRow = {
 type Props = {
   events: AdminEventRow[]
   pathname: string
-  /** Query string keys to keep on pagination links (e.g. `view`). */
   preservedQuery?: Record<string, string | undefined>
   pagination: {
     page: number
@@ -54,23 +53,20 @@ export function AdminEventsTable({ events, pathname, preservedQuery, pagination 
   const columns = useMemo<ColumnDef<AdminEventRow>[]>(
     () => [
       {
-        accessorKey: 'title',
-        header: ({ column }) => <DataTableColumnHeader column={column} title='Judul' />,
-        cell: ({ row }) => (
-          <div className='max-w-[280px]'>
-            <Link
-              href={`/admin/events/${row.original.id}/edit`}
-              className='line-clamp-2 font-medium text-foreground hover:underline'
-            >
-              {row.original.title}
-            </Link>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'slug',
-        header: ({ column }) => <DataTableColumnHeader column={column} title='Slug' />,
-        cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.slug}</span>,
+        id: 'event',
+        accessorFn: row => row.title,
+        header: ({ column }) => <DataTableColumnHeader column={column} title='Acara' />,
+        cell: ({ row }) => {
+          const e = row.original
+          return (
+            <div className='min-w-40 max-w-[280px]'>
+              <Link href={`/admin/events/${e.id}/edit`} className='line-clamp-2 font-medium underline-offset-4 hover:underline'>
+                {e.title}
+              </Link>
+              <div className='font-mono text-xs text-muted-foreground'>{e.slug}</div>
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'status',
@@ -82,25 +78,33 @@ export function AdminEventsTable({ events, pathname, preservedQuery, pagination 
       },
       {
         accessorKey: 'startAtIso',
-        header: ({ column }) => <DataTableColumnHeader column={column} title='Tanggal mulai' />,
-        cell: ({ row }) => <span>{fmtDay.format(new Date(row.original.startAtIso))}</span>,
-        sortingFn: (a, b) => a.original.startAtIso.localeCompare(b.original.startAtIso),
+        header: ({ column }) => (
+          <span className='hidden md:inline'>
+            <DataTableColumnHeader column={column} title='Kick-off' />
+          </span>
+        ),
+        cell: ({ row }) => (
+          <span className='hidden text-muted-foreground text-sm whitespace-nowrap md:inline'>
+            {fmtDay.format(new Date(row.original.startAtIso))}
+          </span>
+        ),
       },
       {
         accessorKey: 'picFullName',
         header: ({ column }) => <DataTableColumnHeader column={column} title='PIC' />,
-        cell: ({ row }) => <span className='max-w-[220px] truncate block'>{row.original.picFullName ?? '-'}</span>,
-        sortingFn: (a, b) => (a.original.picFullName ?? '').localeCompare(b.original.picFullName ?? '', 'id'),
+        cell: ({ row }) => (
+          <span className='max-w-[180px] truncate text-sm'>{row.original.picFullName ?? '—'}</span>
+        ),
       },
       {
         accessorKey: 'registrationCount',
         header: ({ column }) => (
           <div className='text-right'>
-            <DataTableColumnHeader column={column} title='Registrasi' />
+            <DataTableColumnHeader column={column} title='Peserta' />
           </div>
         ),
         cell: ({ row }) => (
-          <div className='text-right tabular-nums'>{fmtNum.format(row.original.registrationCount)}</div>
+          <div className='text-right tabular-nums text-sm'>{fmtNum.format(row.original.registrationCount)}</div>
         ),
       },
       {
@@ -112,12 +116,18 @@ export function AdminEventsTable({ events, pathname, preservedQuery, pagination 
           </div>
         ),
         cell: ({ row }) => (
-          <div className='text-right'>
+          <div className='flex items-center justify-end gap-1'>
             <Link
               href={eventRegistrantsListPath(row.original.id)}
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               Peserta
+            </Link>
+            <Link
+              href={`/admin/events/${row.original.id}/edit`}
+              className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'hidden sm:inline-flex' })}
+            >
+              Edit
             </Link>
           </div>
         ),
@@ -126,9 +136,17 @@ export function AdminEventsTable({ events, pathname, preservedQuery, pagination 
     [],
   )
 
+  if (pagination.totalItems === 0) {
+    return (
+      <div className='rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground'>
+        Tidak ada acara untuk filter ini.
+      </div>
+    )
+  }
+
   return (
     <div className='overflow-hidden rounded-lg border'>
-      <DataTable columns={columns} data={events} enableSorting={false} />
+      <DataTable frame='embedded' columns={columns} data={events} enableSorting={false} />
       <TablePagination
         pathname={pathname}
         preservedQuery={preservedQuery}
