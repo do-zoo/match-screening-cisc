@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 
+import { AdminSettingsBreadcrumb } from '@/components/admin/admin-settings-breadcrumb'
 import { ClubOperationalSettingsForm } from '@/components/admin/club-operational-settings-form'
 
 export const metadata: Metadata = { title: 'Operasional' }
@@ -15,13 +15,9 @@ export default async function OperationsSettingsPage() {
   return (
     <div className='space-y-6'>
       <div>
-        <p className='text-muted-foreground text-sm'>
-          <Link href='/admin/settings' className='underline underline-offset-4'>
-            Pengaturan
-          </Link>
-          {' / '}
-          <span>Operasional</span>
-        </p>
+        <AdminSettingsBreadcrumb
+          crumbs={[{ label: 'Pengaturan', href: '/admin/settings' }, { label: 'Operasional' }]}
+        />
         <h1 className='text-2xl font-semibold tracking-tight'>Operasional</h1>
         <p className='text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed'>
           Penutupan pendaftaran di seluruh situs pengunjung dan banner teks untuk pengumuman singkat (misalnya

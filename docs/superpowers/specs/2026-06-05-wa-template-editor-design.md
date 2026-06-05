@@ -50,9 +50,10 @@ related:
 
 | Modul | Path |
 | ----- | ---- |
-| Template WhatsApp — indeks | `/admin/settings/whatsapp-templates` |
-| Template WhatsApp — edit | `/admin/settings/whatsapp-templates/[key]/edit` |
-| Template Email | `/admin/settings/email-templates` |
+| Template WhatsApp — indeks | `/admin/settings/templates/whatsapp` |
+| Template WhatsApp — edit | `/admin/settings/templates/whatsapp/[key]/edit` |
+| Template Email | `/admin/settings/templates/email` |
+| Hub template pesan | `/admin/settings/templates` |
 
 `[key]` = nilai string enum Prisma `WaTemplateKey`; nilai invalid → `notFound()`.
 

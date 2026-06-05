@@ -19,6 +19,7 @@ import {
 } from '@/lib/wa-templates/build-registration-notify'
 import { resolveDetailRegistrationContact } from '@/lib/registrations/registration-primary-contact'
 import type { ClubWaBodies } from '@/lib/wa-templates/render-wa-from-db'
+import { notifyInputFromDetailRegistration } from '@/lib/wa-templates/notify-input-from-detail-registration'
 
 type Props = {
   eventId: string
@@ -80,13 +81,10 @@ export function DecisionSection({ eventId, registration, waBodies }: Props) {
   }, [registration.id, registration.status, registration.rejectionReason, registration.paymentIssueReason])
 
   const contact = resolveDetailRegistrationContact(registration)
-  const notifyInput = {
-    contactName: contact.name,
-    contactWhatsapp: contact.whatsapp,
+  const notifyInput = notifyInputFromDetailRegistration(registration, contact, {
     rejectionReason: decision.rejectionReason,
     paymentIssueReason: decision.paymentIssueReason,
-    event: registration.event,
-  }
+  })
 
   function openNotify(
     kind: RegistrationNotifyKind,

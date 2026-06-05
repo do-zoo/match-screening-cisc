@@ -112,6 +112,7 @@ export default async function AdminEventRegistrantsDetailPage({
           id: true,
           title: true,
           kickOffAt: true,
+          openGateAt: true,
           venue: { select: { name: true } },
           eventVenueMenuItems: {
             include: { venueMenuItem: true },
@@ -193,6 +194,7 @@ export default async function AdminEventRegistrantsDetailPage({
       title: prismaEvent.title,
       venueName: prismaEvent.venue.name,
       kickOffAt: prismaEvent.kickOffAt,
+      openGateAt: prismaEvent.openGateAt,
       menuItems: flattenedMenuRowsFromEventVenueLinks(prismaEvent.eventVenueMenuItems),
       bankAccount: prismaEvent.bankAccount,
     },

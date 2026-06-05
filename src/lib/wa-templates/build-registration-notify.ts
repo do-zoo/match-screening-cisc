@@ -10,6 +10,7 @@ import {
   renderRefundedMessage,
   renderRejectedMessage,
 } from '@/lib/wa-templates/render-wa-from-db'
+import { registrationNotifyToWaContext } from '@/lib/wa-templates/wa-template-vars'
 
 export type RegistrationNotifyKind =
   | 'approved'
@@ -22,13 +23,19 @@ export type RegistrationNotifyKind =
 export type RegistrationNotifyInput = {
   contactName: string
   contactWhatsapp: string
+  registrationId: string
+  computedTotalIdr: number
+  ticketQty: number
+  ticketCategoryName: string
   rejectionReason: string | null
   paymentIssueReason: string | null
   event: {
     title: string
     venueName: string
     kickOffAt: Date
+    openGateAt: Date | null
   }
+  bank?: { bankName: string; accountNumber: string; accountName: string }
 }
 
 export type RegistrationNotifyPayload = {
@@ -62,14 +69,14 @@ export function buildRegistrationWaNotify(args: {
   const { kind, registration: r, waBodies: wb } = args
   let preview = ''
 
+  const waCtx = registrationNotifyToWaContext({
+    ...r,
+    adjustmentAmountIdr: args.adjustmentAmountIdr,
+  })
+
   switch (kind) {
     case 'approved':
-      preview = renderApprovedMessage(
-        wb[WaTemplateKey.approved] ?? null,
-        r.event.title,
-        r.event.venueName,
-        r.event.kickOffAt.toISOString(),
-      )
+      preview = renderApprovedMessage(wb[WaTemplateKey.approved] ?? null, waCtx)
       break
     case 'rejected':
       if (!r.rejectionReason?.trim()) {
@@ -81,7 +88,10 @@ export function buildRegistrationWaNotify(args: {
           disabledReasonId: 'Alasan penolakan belum diisi.',
         }
       }
-      preview = renderRejectedMessage(wb[WaTemplateKey.rejected] ?? null, r.rejectionReason)
+      preview = renderRejectedMessage(
+        wb[WaTemplateKey.rejected] ?? null,
+        registrationNotifyToWaContext(r, r.rejectionReason),
+      )
       break
     case 'payment_issue':
       if (!r.paymentIssueReason?.trim()) {
@@ -93,13 +103,16 @@ export function buildRegistrationWaNotify(args: {
           disabledReasonId: 'Alasan kendala pembayaran belum diisi.',
         }
       }
-      preview = renderPaymentIssueMessage(wb[WaTemplateKey.payment_issue] ?? null, r.paymentIssueReason)
+      preview = renderPaymentIssueMessage(
+        wb[WaTemplateKey.payment_issue] ?? null,
+        registrationNotifyToWaContext(r, r.paymentIssueReason),
+      )
       break
     case 'cancelled':
-      preview = renderCancelledMessage(wb[WaTemplateKey.cancelled] ?? null, r.contactName, r.event.title)
+      preview = renderCancelledMessage(wb[WaTemplateKey.cancelled] ?? null, waCtx)
       break
     case 'refunded':
-      preview = renderRefundedMessage(wb[WaTemplateKey.refunded] ?? null, r.contactName, r.event.title)
+      preview = renderRefundedMessage(wb[WaTemplateKey.refunded] ?? null, waCtx)
       break
     case 'underpayment_email_reminder':
       preview = templateEmailInvoiceReminder({

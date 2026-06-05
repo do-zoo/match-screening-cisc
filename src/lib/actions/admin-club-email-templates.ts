@@ -56,7 +56,7 @@ export async function saveClubEmailTemplate(
     targetId: key,
   })
 
-  revalidatePath('/admin/settings/templates')
+  revalidatePath('/admin/settings/templates/email')
   return ok({ saved: true })
 }
 
@@ -97,6 +97,6 @@ export async function resetClubEmailTemplate(
     targetId: key,
   })
 
-  revalidatePath('/admin/settings/templates')
+  revalidatePath('/admin/settings/templates/email')
   return ok({ saved: true })
 }

@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db/prisma'
 import { saveClubWaTemplateFormSchema } from '@/lib/forms/club-wa-template-schema'
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
-import { CLUB_WA_DEFAULT_BODIES } from '@/lib/wa-templates/db-default-template-bodies'
+import { getWaTemplateEntry } from '@/lib/wa-templates/wa-template-catalog'
 import { validateWaTemplateBody } from '@/lib/wa-templates/wa-template-policy'
 
 export async function saveClubWaTemplateBody(
@@ -56,7 +56,9 @@ export async function saveClubWaTemplateBody(
     metadata: { key },
   })
 
-  revalidatePath('/admin/settings/templates')
+  const keyStr = String(key)
+  revalidatePath('/admin/settings/templates/whatsapp')
+  revalidatePath(`/admin/settings/templates/whatsapp/${keyStr}/edit`)
   return ok({ saved: true })
 }
 
@@ -75,7 +77,7 @@ export async function resetClubWaTemplateBody(
   const parsedKey = saveClubWaTemplateFormSchema.shape.key.safeParse(formData.get('key'))
   if (!parsedKey.success) return fieldError({ body: 'Jenis templat tidak valid.' })
 
-  const body = CLUB_WA_DEFAULT_BODIES[parsedKey.data]
+  const body = getWaTemplateEntry(parsedKey.data).defaultBody
 
   try {
     await prisma.clubWaTemplate.upsert({
@@ -96,6 +98,8 @@ export async function resetClubWaTemplateBody(
     metadata: { key: parsedKey.data },
   })
 
-  revalidatePath('/admin/settings/templates')
+  const keyStr = String(parsedKey.data)
+  revalidatePath('/admin/settings/templates/whatsapp')
+  revalidatePath(`/admin/settings/templates/whatsapp/${keyStr}/edit`)
   return ok({ saved: true })
 }

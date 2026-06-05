@@ -49,6 +49,7 @@ export type DetailRegistration = {
     title: string
     venueName: string
     kickOffAt: Date
+    openGateAt: Date | null
     menuItems: Array<{ id: string; name: string; price: number }>
     bankAccount: { bankName: string; accountNumber: string; accountName: string } | null
   }

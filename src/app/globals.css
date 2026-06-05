@@ -164,6 +164,26 @@
 }
 
 @layer components {
+  .wa-placeholder-chip {
+    @apply inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-xs font-medium leading-none align-baseline;
+  }
+
+  .wa-placeholder-chip--required {
+    @apply border-primary/40 bg-primary/10 text-primary;
+  }
+
+  .wa-placeholder-chip--optional {
+    @apply border-border bg-muted text-muted-foreground;
+  }
+
+  .wa-placeholder-chip--invalid {
+    @apply border-destructive/50 bg-destructive/10 text-destructive;
+  }
+
+  .wa-template-tiptap .wa-placeholder-chip {
+    @apply select-none;
+  }
+
   .cn-toast {
     @apply gap-3 border font-sans text-sm shadow-md;
   }

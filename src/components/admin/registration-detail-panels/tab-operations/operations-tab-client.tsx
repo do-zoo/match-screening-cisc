@@ -15,6 +15,7 @@ import {
 } from '@/lib/wa-templates/build-registration-notify'
 import { resolveDetailRegistrationContact } from '@/lib/registrations/registration-primary-contact'
 import type { ClubWaBodies } from '@/lib/wa-templates/render-wa-from-db'
+import { notifyInputFromDetailRegistration } from '@/lib/wa-templates/notify-input-from-detail-registration'
 
 type Props = {
   eventId: string
@@ -27,13 +28,7 @@ export function OperationsTabClient({ eventId, registration, waBodies }: Props) 
   const [notifyPayload, setNotifyPayload] = useState<RegistrationNotifyPayload | null>(null)
 
   const contact = resolveDetailRegistrationContact(registration)
-  const notifyInput = {
-    contactName: contact.name,
-    contactWhatsapp: contact.whatsapp,
-    rejectionReason: registration.rejectionReason,
-    paymentIssueReason: registration.paymentIssueReason,
-    event: registration.event,
-  }
+  const notifyInput = notifyInputFromDetailRegistration(registration, contact)
 
   function openNotify(kind: RegistrationNotifyKind, adjustmentAmountIdr?: number) {
     setNotifyPayload(

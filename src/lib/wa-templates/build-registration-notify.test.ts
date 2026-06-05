@@ -5,12 +5,17 @@ import { buildRegistrationWaNotify } from '@/lib/wa-templates/build-registration
 const baseReg = {
   contactName: 'Budi',
   contactWhatsapp: '081234567890',
+  registrationId: 'reg_test_1',
+  computedTotalIdr: 200_000,
+  ticketQty: 1,
+  ticketCategoryName: 'Reguler',
   rejectionReason: 'Bukti tidak jelas',
   paymentIssueReason: 'Nominal kurang',
   event: {
     title: 'Chelsea vs Milan',
     venueName: 'GBK',
     kickOffAt: new Date('2026-08-08T19:00:00+07:00'),
+    openGateAt: null as Date | null,
   },
 }
 
@@ -25,6 +30,18 @@ describe('buildRegistrationWaNotify', () => {
     expect(r.preview.length).toBeGreaterThan(10)
     expect(r.canOpen).toBe(true)
     expect(r.href).toMatch(/^https:\/\/wa\.me\/62/)
+  })
+
+  it('approved — optional registration_id in custom body', () => {
+    const r = buildRegistrationWaNotify({
+      kind: 'approved',
+      registration: baseReg,
+      waBodies: {
+        approved:
+          'OK *{event_title}* {venue} {start_at_formatted}\nID: {registration_id}',
+      },
+    })
+    expect(r.preview).toContain('reg_test_1')
   })
 
   it('rejected — butuh alasan', () => {
