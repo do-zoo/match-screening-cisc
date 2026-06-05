@@ -11,6 +11,9 @@ import 'dotenv/config'
 import { prisma } from '@/lib/db/prisma'
 import { loadSeedJson, reviveDates } from './seed-data/load-seed-json'
 
+/** Snapshot JSON → input Prisma upsert (bentuk dicek di runtime, bukan compile time). */
+const seedData = (row: Record<string, unknown>) => row as never
+
 async function seedRows<T extends Record<string, unknown>>(
   label: string,
   rows: T[],
@@ -30,152 +33,152 @@ async function main() {
   await seedRows('user', loadSeedJson('user'), row =>
     prisma.user.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('account', loadSeedJson('account'), row =>
     prisma.account.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('twoFactor', loadSeedJson('twoFactor'), row =>
     prisma.twoFactor.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('masterMember', loadSeedJson('masterMember'), row =>
     prisma.masterMember.upsert({
       where: { memberNumber: row.memberNumber as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('boardPeriod', loadSeedJson('boardPeriod'), row =>
     prisma.boardPeriod.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('boardRole', loadSeedJson('boardRole'), row =>
     prisma.boardRole.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('managementMember', loadSeedJson('managementMember'), row =>
     prisma.managementMember.upsert({
       where: { publicCode: row.publicCode as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('boardAssignment', loadSeedJson('boardAssignment'), row =>
     prisma.boardAssignment.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('adminProfile', loadSeedJson('adminProfile'), row =>
     prisma.adminProfile.upsert({
       where: { authUserId: row.authUserId as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('picBankAccount', loadSeedJson('picBankAccount'), row =>
     prisma.picBankAccount.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('venue', loadSeedJson('venue'), row =>
     prisma.venue.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('venueMenuItem', loadSeedJson('venueMenuItem'), row =>
     prisma.venueMenuItem.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('clubBranding', loadSeedJson('clubBranding'), row =>
     prisma.clubBranding.upsert({
       where: { singletonKey: row.singletonKey as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('clubOperationalSettings', loadSeedJson('clubOperationalSettings'), row =>
     prisma.clubOperationalSettings.upsert({
       where: { singletonKey: row.singletonKey as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('clubNotificationPreferences', loadSeedJson('clubNotificationPreferences'), row =>
     prisma.clubNotificationPreferences.upsert({
       where: { singletonKey: row.singletonKey as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('clubWaTemplate', loadSeedJson('clubWaTemplate'), row =>
     prisma.clubWaTemplate.upsert({
       where: { key: row.key as never },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('clubEmailTemplate', loadSeedJson('clubEmailTemplate'), row =>
     prisma.clubEmailTemplate.upsert({
       where: { key: row.key as never },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('event', loadSeedJson('event'), row =>
     prisma.event.upsert({
       where: { slug: row.slug as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('eventTicketCategory', loadSeedJson('eventTicketCategory'), row =>
     prisma.eventTicketCategory.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
@@ -187,8 +190,8 @@ async function main() {
           venueMenuItemId: row.venueMenuItemId as string,
         },
       },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
@@ -200,24 +203,24 @@ async function main() {
           adminProfileId: row.adminProfileId as string,
         },
       },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('registration', loadSeedJson('registration'), row =>
     prisma.registration.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('registrationHolder', loadSeedJson('registrationHolder'), row =>
     prisma.registrationHolder.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
@@ -229,56 +232,56 @@ async function main() {
           sortOrder: row.sortOrder as number,
         },
       },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('invoiceAdjustment', loadSeedJson('invoiceAdjustment'), row =>
     prisma.invoiceAdjustment.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('upload', loadSeedJson('upload'), row =>
     prisma.upload.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('eventSettlementArtifact', loadSeedJson('eventSettlementArtifact'), row =>
     prisma.eventSettlementArtifact.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('adminInvitation', loadSeedJson('adminInvitation'), row =>
     prisma.adminInvitation.upsert({
       where: { tokenHash: row.tokenHash as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('emailDeliveryLog', loadSeedJson('emailDeliveryLog'), row =>
     prisma.emailDeliveryLog.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
   await seedRows('clubAuditLog', loadSeedJson('clubAuditLog'), row =>
     prisma.clubAuditLog.upsert({
       where: { id: row.id as string },
-      create: row,
-      update: row,
+      create: seedData(row),
+      update: seedData(row),
     }),
   )
 
