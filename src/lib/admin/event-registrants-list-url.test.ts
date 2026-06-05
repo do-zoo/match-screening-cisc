@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildEventRegistrantsListUrl,
+  eventRegistrantsListPreservedQuery,
   parseEventRegistrantsTab,
   registrationListWhere,
 } from '@/lib/admin/event-registrants-list-url'
@@ -9,9 +10,9 @@ import {
 describe('event-registrants-list-url', () => {
   const eventId = 'evt_1'
 
-  it('parseEventRegistrantsTab defaults unknown to all', () => {
-    expect(parseEventRegistrantsTab(undefined)).toBe('all')
-    expect(parseEventRegistrantsTab('bogus')).toBe('all')
+  it('parseEventRegistrantsTab defaults unknown to pending_review', () => {
+    expect(parseEventRegistrantsTab(undefined)).toBe('pending_review')
+    expect(parseEventRegistrantsTab('bogus')).toBe('pending_review')
   })
 
   it('parseEventRegistrantsTab accepts known tabs', () => {
@@ -19,14 +20,23 @@ describe('event-registrants-list-url', () => {
     expect(parseEventRegistrantsTab('closed')).toBe('closed')
   })
 
-  it('buildEventRegistrantsListUrl omits default tab and cards view', () => {
+  it('buildEventRegistrantsListUrl omits default pending_review tab and cards view', () => {
     expect(
       buildEventRegistrantsListUrl(eventId, {
-        tab: 'all',
+        tab: 'pending_review',
         view: 'cards',
         q: undefined,
       }),
     ).toBe(`/admin/events/${eventId}/registrants`)
+  })
+
+  it('buildEventRegistrantsListUrl keeps non-default tab=all in query string', () => {
+    const url = buildEventRegistrantsListUrl(eventId, {
+      tab: 'all',
+      view: 'cards',
+      q: undefined,
+    })
+    expect(url).toContain('tab=all')
   })
 
   it('buildEventRegistrantsListUrl encodes tab, view, q, page', () => {
@@ -36,7 +46,7 @@ describe('event-registrants-list-url', () => {
       q: 'foo',
       page: 2,
     })
-    expect(url).toContain('tab=pending_review')
+    expect(url).not.toContain('tab=')
     expect(url).toContain('view=tabel')
     expect(url).toContain('q=foo')
     expect(url).toContain('page=2')
@@ -47,5 +57,15 @@ describe('event-registrants-list-url', () => {
     expect(w).toEqual({
       AND: [{ eventId }, { status: { in: ['cancelled', 'refunded'] } }],
     })
+  })
+
+  it('eventRegistrantsListPreservedQuery omits default pending_review tab', () => {
+    expect(
+      eventRegistrantsListPreservedQuery({
+        tab: 'pending_review',
+        view: 'cards',
+        q: '',
+      }),
+    ).toEqual({})
   })
 })
