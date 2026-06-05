@@ -2,15 +2,12 @@ import type { EmailTemplateKey } from '@prisma/client'
 
 import { isStoredEmailTemplateBody } from '@/lib/email-templates/email-block-types'
 import { EMAIL_PLACEHOLDER_TOKEN } from '@/lib/email-templates/email-placeholder'
-import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
+import { EMAIL_TEMPLATE_KEYS_ORDERED, getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
 import { validateEmailTemplateBlocks } from '@/lib/email-templates/email-template-editor-validation'
 import { parseStoredEmailBody } from '@/lib/email-templates/parse-stored-email-body'
 
 export const REQUIRED_EMAIL_TOKENS: Record<EmailTemplateKey, readonly string[]> = Object.fromEntries(
-  (Object.values(EmailTemplateKey).filter(v => typeof v === 'string') as EmailTemplateKey[]).map(key => [
-    key,
-    getEmailTemplateEntry(key).requiredTokens,
-  ]),
+  EMAIL_TEMPLATE_KEYS_ORDERED.map(key => [key, getEmailTemplateEntry(key).requiredTokens]),
 ) as Record<EmailTemplateKey, readonly string[]>
 
 function collectPlaceholderNames(text: string): string[] {

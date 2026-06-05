@@ -1,4 +1,4 @@
-import { Button, Column, Hr, Row, Section, Text } from 'react-email'
+import { Button, Column, Hr, Section, Text } from 'react-email'
 import { EmailTemplateKey } from '@prisma/client'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
@@ -21,6 +21,7 @@ import {
   eventSchedulePartsToPlainLines,
   renderEventScheduleBlock,
 } from '@/lib/email-templates/emails/club-email-event-schedule'
+import { emailRow } from '@/lib/email-templates/emails/email-row'
 import {
   EVENT_SUMMARY_CARD_TITLE,
   ORDER_SUMMARY_CARD_TITLE,
@@ -192,8 +193,7 @@ function renderBankDetailsCard(vars: Record<string, string>): ReactNode {
       'Instruksi transfer',
     ),
     ...rows.map((row, index) =>
-      createElement(
-        Row,
+      emailRow(
         { key: `bank-${index}`, style: { marginBottom: index < rows.length - 1 ? '10px' : 0 } },
         createElement(
           Column,

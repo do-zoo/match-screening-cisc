@@ -1,6 +1,5 @@
 import type { EmailTemplateKey } from '@prisma/client'
 import { render } from 'react-email'
-import { createElement } from 'react'
 
 import type { EmailBlock } from '@/lib/email-templates/email-block-types'
 import { blocksToPlainText, renderEmailBlocks } from '@/lib/email-templates/emails/club-email-blocks'
@@ -37,21 +36,19 @@ export async function renderEmailFromBlocks(opts: {
   const subject = applyEmailPlaceholders(opts.subject.trim(), vars)
   const text = blocksToPlainText({ templateKey: opts.key, blocks, vars, contact })
   const html = await render(
-    createElement(
-      ClubEmailLayout,
-      {
-        preview: subject.slice(0, 80),
-        clubNameNav,
-        logoBlobUrl: opts.logoBlobUrl,
-        contact,
-        appOrigin: process.env.BETTER_AUTH_URL ?? null,
-      },
-      renderEmailBlocks({
+    <ClubEmailLayout
+      preview={subject.slice(0, 80)}
+      clubNameNav={clubNameNav}
+      logoBlobUrl={opts.logoBlobUrl}
+      contact={contact}
+      appOrigin={process.env.BETTER_AUTH_URL ?? null}
+    >
+      {renderEmailBlocks({
         templateKey: opts.key,
         blocks,
         vars,
-      }),
-    ),
+      })}
+    </ClubEmailLayout>,
   )
 
   return { subject, text, html }

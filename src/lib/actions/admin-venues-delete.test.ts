@@ -22,7 +22,6 @@ vi.mock('@/lib/actions/guard', () => ({
     profileId: 'actor_prof',
     role: 'Admin',
     helperEventIds: [],
-    authUserId: 'actor_user',
   }),
   isAuthError: vi.fn().mockReturnValue(false),
 }))
@@ -57,7 +56,6 @@ describe('deleteVenue', () => {
       profileId: 'actor_prof',
       role: 'Admin',
       helperEventIds: [],
-      authUserId: 'actor_user',
     })
     vi.mocked(isAuthError).mockReturnValue(false)
     deleteAllBlobsWithPrefix.mockResolvedValue(2)

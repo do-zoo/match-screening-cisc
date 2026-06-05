@@ -1,4 +1,4 @@
-import { Column, Hr, Img, Link, Row, Section, Text } from 'react-email'
+import { Column, Hr, Img, Link, Section, Text } from 'react-email'
 import { createElement, type ReactNode } from 'react'
 
 import { hasAnyClubContact } from '@/lib/branding/club-social-links'
@@ -10,6 +10,7 @@ import {
   websiteLinkLabel,
 } from '@/lib/branding/resolve-contact-display-label'
 import { EMAIL_DESIGN_TOKENS as T } from '@/lib/email-templates/email-design-tokens'
+import { emailRow } from '@/lib/email-templates/emails/email-row'
 import type { ClubEmailContactProps } from '@/lib/email-templates/emails/club-email-plain-contact'
 
 const columnLabel = {
@@ -144,7 +145,7 @@ export function ClubEmailContactFooter(
       },
     },
     hasContact && cols.length > 0 ?
-      createElement(Row, { style: { marginBottom: '24px' } }, ...cols)
+      emailRow({ style: { marginBottom: '24px' } }, ...cols)
     : null,
     createElement(Hr, { style: { borderColor: T.footerBorder, margin: '0 0 20px' } }),
     createElement(

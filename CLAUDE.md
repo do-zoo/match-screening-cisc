@@ -135,7 +135,7 @@ Key entities:
 - **`AdminInvitation`** — Owner-issued onboarding invite (`emailNormalized`, `role`, hashed token); consumed when the recipient completes `signUpEmail` and gets an `AdminProfile`. Existing app users without an admin profile cannot be onboarded via invite (different email or operator tooling).
 - **`BoardPeriod`** / **`BoardRole`** / **`ManagementMember`** / **`BoardAssignment`** — kepengurusan (committee) structure; `recompute-directory-flags.ts` syncs `MasterMember.isManagementMember` from `BoardAssignment`
 - **`ClubWaTemplate`** — per-`WaTemplateKey` body overrides stored in DB; loaded by `lib/wa-templates/load-club-wa-templates.ts` and merged with hardcoded defaults in `lib/wa-templates/render-wa-from-db.ts`
-- **`ClubEmailTemplate`** — per-`EmailTemplateKey` (`invoice`, `invoice_underpayment`, `registration_approved`, `receipt`, `rejected`, `payment_issue`, `cancelled`, `refunded`, `magic_link`, `admin_invite`, `otp`) subject + `body` (JSON `{"v":1,"blocks":[...]}` dengan paragraf Tiptap); loaded by `lib/email-templates/load-club-email-templates.ts`; render via `render-email-from-blocks.ts`
+- **`ClubEmailTemplate`** — per-`EmailTemplateKey` (`invoice`, `invoice_underpayment`, `registration_approved`, `receipt`, `rejected`, `payment_issue`, `cancelled`, `refunded`, `magic_link`, `admin_invite`, `otp`) subject + `body` (JSON `{"v":1,"blocks":[...]}` dengan paragraf Tiptap); loaded by `lib/email-templates/load-club-email-templates.ts`; render via `render-email-from-blocks.tsx`
 - **`EmailDeliveryLog`** — append-only log pengiriman email transaksional (invoice blast / kirim tunggal); `templateKey`, `toEmail`, `success`, `actorAdminProfileId`
 - **`ClubBranding`** — `clubNameNav`, logo, `contactEmail`, `websiteUrl`, `locationText`, `socialLinks` (JSON max 10); footer publik + shell email transaksional; mutations Owner-only + audit
 - **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton (`singletonKey = "default"`); prefs: `outboundMode` + auto-email (`emailAutoOnApprove` … `emailAutoOnRefund`, default hanya approve) + `emailAttachInvoicePdf` (default `true`, lampiran PDF tagihan/bukti pada email `invoice`, `invoice_underpayment`, `receipt`, `registration_approved`); read via `lib/public/load-club-*.ts`; mutations Owner-only + audit
@@ -193,7 +193,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/email-templates/registration-email-url-vars.ts` — `buildRegistrationEmailUrlVars` untuk placeholder URL publik acara/konfirmasi saat render email registrasi
 - `lib/email-templates/build-email-template-index-rows.ts` — `buildEmailTemplateIndexRows` untuk indeks admin template email
 - `lib/email-templates/email-doc-serializer.ts` — Tiptap JSON ↔ plain text; `email-doc-react.tsx` → React Email nodes
-- `lib/email-templates/render-email-from-blocks.ts` — HTML + text Resend dari susunan blok
+- `lib/email-templates/render-email-from-blocks.tsx` — HTML + text Resend dari susunan blok
 - `lib/email-templates/email-design-tokens.ts` — hex token layout email (selaras theme light)
 - `lib/email-templates/emails/club-email-layout.tsx` — header band + footer kontak global dari branding (`appOrigin` untuk ikon PNG)
 - `lib/email-templates/emails/club-email-contact-footer.tsx` — footer 3 kolom email dengan `<Img>` ikon kontak

@@ -12,7 +12,9 @@ export async function renderRegistrationInvoicePdf(vm: RegistrationInvoicePdfVm)
   contentType: 'application/pdf'
 }> {
   const logoSrc = await resolveInvoicePdfLogoSrc(vm.logoBlobUrl)
-  const buffer = await renderToBuffer(createElement(RegistrationInvoicePdfDocument, { vm, logoSrc }))
+  const buffer = await renderToBuffer(
+    createElement(RegistrationInvoicePdfDocument, { vm, logoSrc }) as Parameters<typeof renderToBuffer>[0],
+  )
   const filename = buildInvoicePdfFilename({
     kind: vm.kind,
     eventSlug: vm.eventSlug,

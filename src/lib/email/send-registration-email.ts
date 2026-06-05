@@ -298,7 +298,7 @@ export async function sendRegistrationEmailByKey(opts: {
         success: false,
         errorMessage: message.slice(0, 500),
         actorAuthUserId: opts.actorAuthUserId,
-        actorProfileId: opts.actorProfileId,
+        actorAdminProfileId: opts.actorProfileId,
       },
     })
     return { ok: false, error: message }

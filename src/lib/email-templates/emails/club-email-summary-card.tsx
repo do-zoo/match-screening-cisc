@@ -1,8 +1,9 @@
-import { Column, Link, Row, Section, Text } from 'react-email'
+import { Column, Link, Section, Text } from 'react-email'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
 
 import { EMAIL_DESIGN_TOKENS as T } from '@/lib/email-templates/email-design-tokens'
+import { emailRow } from '@/lib/email-templates/emails/email-row'
 
 export type EmailSummaryDataRow = {
   label: string
@@ -53,8 +54,7 @@ function isSecondaryTotalRow(label: string): boolean {
 
 function renderMetaRow(row: EmailSummaryDataRow, key: string, options?: { mutedValue?: boolean }): ReactNode {
   const idRow = isRegistrationIdRow(row.label)
-  return createElement(
-    Row,
+  return emailRow(
     { key, style: { marginBottom: '10px' } },
     createElement(
       Column,
@@ -295,8 +295,7 @@ function renderDetailTableHeader(options: {
     showHolderColumn,
     showMenuColumn,
   })
-  return createElement(
-    Row,
+  return emailRow(
     {
       key: 'detail-head',
       style: {
@@ -345,8 +344,7 @@ function renderDetailTableRow(
   })
   const zebra = index % 2 === 1 ? { backgroundColor: '#f8fafc' } : undefined
 
-  return createElement(
-    Row,
+  return emailRow(
     {
       key: `detail-row-${line.sortOrder}`,
       style: {
@@ -495,8 +493,7 @@ function renderTotalBand(row: EmailSummaryDataRow, variant: 'default' | 'success
         boxSizing: 'border-box' as const,
       },
     },
-    createElement(
-      Row,
+    emailRow(
       { style: detailTableRowLayout },
       createElement(
         Column,

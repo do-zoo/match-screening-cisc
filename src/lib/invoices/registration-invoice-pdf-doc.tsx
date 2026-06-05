@@ -357,6 +357,7 @@ function InvoicePdfHeader({
       <View style={styles.headerRow}>
         {logoSrc ? (
           <View style={styles.logoWrap}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- logo alt text not needed */}
             <Image src={logoSrc} style={styles.logo} />
           </View>
         ) : null}
@@ -390,9 +391,7 @@ function InvoicePdfFooter({ vm }: { vm: RegistrationInvoicePdfVm }) {
         </Text>
         <Text
           style={styles.footerPageNumber}
-          render={({ pageNumber, totalPages }) =>
-            totalPages > 1 ? `Halaman ${pageNumber} dari ${totalPages}` : ''
-          }
+          render={({ pageNumber, totalPages }) => (totalPages > 1 ? `Halaman ${pageNumber} dari ${totalPages}` : '')}
         />
       </View>
     </View>
@@ -434,9 +433,7 @@ export function RegistrationInvoicePdfDocument({
               <InfoField label='Nama kontak' value={vm.contactName} />
               <InfoField label='Tanggal terbit' value={formatPdfDate(vm.issuedAt)} />
               <InfoField label='ID pendaftaran' value={vm.registrationId} mono />
-              {vm.adjustmentId ? (
-                <InfoField label='ID penyesuaian' value={vm.adjustmentId} mono />
-              ) : null}
+              {vm.adjustmentId ? <InfoField label='ID penyesuaian' value={vm.adjustmentId} mono /> : null}
               <InfoField label='Venue' value={vm.venueName} />
               <InfoField label='Kick-off' value={formatPdfDate(vm.kickOffAt)} />
             </View>
@@ -451,7 +448,7 @@ export function RegistrationInvoicePdfDocument({
             {vm.lineItems.map((item, index) => (
               <View
                 key={`${item.label}-${index}`}
-                style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : undefined]}
+                style={[styles.tableRow, ...(index % 2 === 1 ? [styles.tableRowAlt] : [])]}
               >
                 <View style={styles.colItem}>
                   <Text style={styles.lineLabel}>{item.label}</Text>
@@ -472,9 +469,7 @@ export function RegistrationInvoicePdfDocument({
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalRowLabel}>Jumlah penyesuaian</Text>
-                  <Text style={styles.totalRowValue}>
-                    {formatCurrencyIdr(vm.adjustmentAmountIdr ?? 0)}
-                  </Text>
+                  <Text style={styles.totalRowValue}>{formatCurrencyIdr(vm.adjustmentAmountIdr ?? 0)}</Text>
                 </View>
               </>
             ) : null}
