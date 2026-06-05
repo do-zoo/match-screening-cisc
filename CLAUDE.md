@@ -37,10 +37,10 @@ pnpm db:migrate:deploy:prod       # prisma migrate deploy against URLs in .env.p
 pnpm db:studio:dev               # prisma studio (dev)
 pnpm auth:migrate                 # Better Auth CLI migrate (.env.local overlay)
 pnpm auth:migrate:prod            # Same, production profile (.env.prod)
-pnpm bootstrap:admin ...        # default development profile / .env.local
+pnpm bootstrap:admin ...        # default development profile / .env.local — satu-satunya cara membuat akun Better Auth + AdminProfile
 pnpm bootstrap:admin:prod ...    # production profile / .env.prod
 pnpm normalize:member-numbers    # dry-run uppercase nomor member lama; `-- --apply` untuk menulis
-pnpm db:seed                     # muat snapshot lokal dari `prisma/seed-data/*.json` (gitignored — data nyata, tidak di repo)
+pnpm db:seed                     # muat snapshot lokal dari `prisma/seed-data/*.json` (gitignored); jalankan setelah `bootstrap:admin` — admin tidak di-seed, ID profil snapshot dipetakan ke admin bootstrap
 
 # Equivalent without helpers (MATCH_DB_PROFILE optional; omit = development):
 # MATCH_DB_PROFILE=development pnpm prisma migrate dev
