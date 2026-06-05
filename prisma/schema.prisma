@@ -102,7 +102,14 @@ enum EmailTemplateKey {
   invoice
   invoice_underpayment
   registration_approved
+  receipt
+  rejected
+  payment_issue
+  cancelled
+  refunded
   magic_link
+  admin_invite
+  otp
 }
 
 enum NotificationOutboundMode {
@@ -529,10 +536,16 @@ model ClubOperationalSettings {
 
 /// Preferensi saluran keluar — mode terpisah dari pemasangan provider (lihat `log-outbound-stub`).
 model ClubNotificationPreferences {
-  singletonKey  String                   @id @default("default")
-  outboundMode  NotificationOutboundMode @default(log_only)
-  outboundLabel String?                  @db.VarChar(120)
-  updatedAt     DateTime                 @updatedAt
+  singletonKey             String                   @id @default("default")
+  outboundMode             NotificationOutboundMode @default(log_only)
+  outboundLabel            String?                  @db.VarChar(120)
+  emailAutoOnSubmitReceipt Boolean                  @default(false)
+  emailAutoOnApprove       Boolean                  @default(true)
+  emailAutoOnReject        Boolean                  @default(false)
+  emailAutoOnPaymentIssue  Boolean                  @default(false)
+  emailAutoOnCancel        Boolean                  @default(false)
+  emailAutoOnRefund        Boolean                  @default(false)
+  updatedAt                DateTime                 @updatedAt
 }
 
 /// Log audit append-only untuk mutasi konfigurasi sensitif (Owner).
