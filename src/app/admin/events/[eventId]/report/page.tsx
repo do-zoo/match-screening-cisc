@@ -1,6 +1,11 @@
+import {
+  EventReportAttendancePanel,
+  EventReportFinancePanel,
+  EventReportMenuPanel,
+  EventReportParticipantsPanel,
+} from '@/components/admin/event-report-panels'
 import { EventSettlementProofsPanel } from '@/components/admin/event-settlement-proofs-panel'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { buttonVariants } from '@/components/ui/button'
 import { getAdminContext } from '@/lib/auth/admin-context'
 import { requireAdminSession } from '@/lib/auth/session'
 import { prisma } from '@/lib/db/prisma'
@@ -8,7 +13,7 @@ import { canVerifyEvent } from '@/lib/permissions/guards'
 import { hasOperationalOwnerParity } from '@/lib/permissions/roles'
 import { getEventReport } from '@/lib/reports/queries'
 import { getSettlementExpectedAmounts } from '@/lib/reports/settlement-expected-amounts'
-import { formatIdr } from '@/lib/utils/format-idr'
+import { cn } from '@/lib/utils'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -86,54 +91,16 @@ export default async function EventReportPage({ params }: { params: Promise<{ ev
           <h1 className='text-2xl font-semibold tracking-tight'>Laporan acara</h1>
           <p className='text-sm text-muted-foreground'>{event.title}</p>
         </div>
-        <div className='flex gap-3'>
-          <Link
-            href={`/admin/events/${eventId}/report/export`}
-            className='inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent/60 transition-colors'
-          >
-            Unduh CSV
-          </Link>
-        </div>
+        <Link
+          href={`/admin/events/${eventId}/report/export`}
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
+        >
+          Unduh CSV
+        </Link>
       </header>
 
-      {/* Participants */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Peserta</CardTitle>
-          <CardDescription>Total: {report.participant.total} pendaftaran</CardDescription>
-        </CardHeader>
-        <CardContent className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-          <Stat label='Member' value={report.participant.memberCount} />
-          <Stat label='Non-member' value={report.participant.nonMemberCount} />
-          <Stat label='Total Pemegang Tiket' value={report.participant.holderCount} />
-          {Object.entries(report.participant.byStatus).map(([status, count]) => (
-            <Stat key={status} label={status.replace(/_/g, ' ')} value={count} />
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Finance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Keuangan</CardTitle>
-          <CardDescription>
-            Tiga angka pertama hanya menjumlahkan pendaftaran yang sudah <strong>disetujui</strong>.{' '}
-            <strong>Total Uang Masuk</strong> mengikuti total tercatat saat submit per pendaftaran (data lama bisa
-            berupa tiket ditambah menu; pendaftaran baru: nominal tiket sudah termasuk menu wajib).{' '}
-            <strong>Total Penjualan Menu</strong> adalah agregat harga acuan menu untuk alokasi ke venue, bukan tambahan
-            di atas tiket untuk model inklusif. <strong>Revenue Tiket</strong> menjumlahkan kolom harga tiket tercatat
-            per baris (bisa sama dengan total uang masuk bila semua snapshot inklusif).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'>
-          <Stat label='Total Uang Masuk' value={formatIdr(report.finance.baselineTotal)} />
-          <Stat label='Total Penjualan Menu' value={formatIdr(report.finance.menuVenuePayoutApproved)} />
-          <Stat label='Revenue Tiket' value={formatIdr(report.finance.ticketRevenueApproved)} />
-          <Stat label='Penyesuaian Invoice — sudah lunas' value={formatIdr(report.finance.adjustmentsPaidTotal)} />
-          <Stat label='Penyesuaian Invoice — belum lunas' value={formatIdr(report.finance.adjustmentsUnpaidTotal)} />
-          <Stat label='Pengembalian Dana' value={`${report.finance.refundCount} pendaftaran`} />
-        </CardContent>
-      </Card>
+      <EventReportParticipantsPanel participant={report.participant} />
+      <EventReportFinancePanel finance={report.finance} />
 
       <EventSettlementProofsPanel
         eventId={eventId}
@@ -143,45 +110,8 @@ export default async function EventReportPage({ params }: { params: Promise<{ ev
         artifacts={settlementRows}
       />
 
-      {/* Menu wajib */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Menu wajib</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='flex flex-wrap gap-2'>
-            {report.menu.byItem.length === 0 && (
-              <p className='text-sm text-muted-foreground'>Belum ada data menu per pendaftaran.</p>
-            )}
-            {report.menu.byItem.map(item => (
-              <Badge key={item.name} variant='secondary'>
-                {item.name}: {item.count}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Attendance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Kehadiran</CardTitle>
-        </CardHeader>
-        <CardContent className='grid gap-4 sm:grid-cols-3'>
-          <Stat label='Hadir' value={report.attendance.attended} />
-          <Stat label='Tidak hadir' value={report.attendance.noShow} />
-          <Stat label='Belum dicatat' value={report.attendance.unknown} />
-        </CardContent>
-      </Card>
+      <EventReportMenuPanel menu={report.menu} />
+      <EventReportAttendancePanel attendance={report.attendance} />
     </main>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className='flex flex-col gap-1 rounded-lg border p-3'>
-      <div className='text-xs text-muted-foreground capitalize'>{label}</div>
-      <div className='text-xl font-semibold font-mono tabular-nums'>{value}</div>
-    </div>
   )
 }
