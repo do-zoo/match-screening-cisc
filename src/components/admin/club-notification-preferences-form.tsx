@@ -55,6 +55,23 @@ function EmailAutoToggle(props: {
   )
 }
 
+function OutboundLabelField(props: { initialLabel: string; pending: boolean }) {
+  const [label, setLabel] = useState(props.initialLabel)
+
+  return (
+    <Input
+      id='outboundLabel'
+      name='outboundLabel'
+      placeholder='Mis. Email komite'
+      value={label}
+      onChange={e => setLabel(e.target.value)}
+      disabled={props.pending}
+      maxLength={120}
+      autoComplete='off'
+    />
+  )
+}
+
 function OutboundModeSelectField(props: { initialMode: NotificationOutboundMode; pending: boolean }) {
   const [mode, setMode] = useState(props.initialMode)
 
@@ -151,15 +168,7 @@ export function ClubNotificationPreferencesForm(props: {
         </div>
         <div className='space-y-2'>
           <Label htmlFor='outboundLabel'>Label internal (opsional)</Label>
-          <Input
-            id='outboundLabel'
-            name='outboundLabel'
-            placeholder='Mis. Email komite'
-            defaultValue={props.initialLabel}
-            disabled={pending}
-            maxLength={120}
-            autoComplete='off'
-          />
+          <OutboundLabelField key={props.initialLabel} initialLabel={props.initialLabel} pending={pending} />
         </div>
 
         <div className='space-y-4 border-t pt-5'>
