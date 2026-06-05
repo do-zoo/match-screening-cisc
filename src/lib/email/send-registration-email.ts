@@ -6,7 +6,10 @@ import {
 } from '@prisma/client'
 
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
-import { tryBuildInvoiceEmailAttachment } from '@/lib/invoices/try-build-invoice-email-attachment'
+import {
+  REGISTRATION_EMAIL_PDF_ATTACHMENT_KEYS,
+  tryBuildInvoiceEmailAttachment,
+} from '@/lib/invoices/try-build-invoice-email-attachment'
 import { isTransactionalEmailConfigured } from '@/lib/auth/transactional-email-config'
 import { prisma } from '@/lib/db/prisma'
 import { canSendRegistrationEmail } from '@/lib/email/registration-email-eligibility'
@@ -259,11 +262,7 @@ export async function sendRegistrationEmailByKey(opts: {
 
   let attachments: Array<{ filename: string; content: Buffer }> | undefined
 
-  if (
-    prefs.emailAttachInvoicePdf &&
-    (opts.templateKey === EmailTemplateKey.invoice ||
-      opts.templateKey === EmailTemplateKey.invoice_underpayment)
-  ) {
+  if (prefs.emailAttachInvoicePdf && REGISTRATION_EMAIL_PDF_ATTACHMENT_KEYS.has(opts.templateKey)) {
     const unpaidAdj = reg.adjustments[0]
     const attachment = await tryBuildInvoiceEmailAttachment({
       eventId: opts.eventId,

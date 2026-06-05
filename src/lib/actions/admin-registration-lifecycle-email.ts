@@ -3,13 +3,8 @@
 import { EmailTemplateKey } from '@prisma/client'
 
 import { guardEvent, isAuthError } from '@/lib/actions/guard'
-import {
-  previewRegistrationEmailContent,
-  sendRegistrationEmailByKey,
-  type SendRegistrationEmailResult,
-} from '@/lib/email/send-registration-email'
+import { previewRegistrationEmailContent } from '@/lib/email/send-registration-email'
 import { ok, rootError, type ActionResult } from '@/lib/forms/action-result'
-import { requireAdminSession } from '@/lib/auth/session'
 import type { RegistrationNotifyKind } from '@/lib/wa-templates/build-registration-notify'
 
 const KIND_TO_KEY: Record<RegistrationNotifyKind, EmailTemplateKey | null> = {
@@ -47,33 +42,4 @@ export async function previewRegistrationCommsEmail(
     subject: preview.subject,
     textPreview: preview.text.slice(0, 600),
   })
-}
-
-export async function sendRegistrationCommsEmail(
-  eventId: string,
-  registrationId: string,
-  kind: RegistrationNotifyKind,
-): Promise<ActionResult<SendRegistrationEmailResult | null>> {
-  let ctx
-  try {
-    ctx = await guardEvent(eventId)
-  } catch (e) {
-    if (isAuthError(e)) return rootError('Tidak diizinkan.')
-    throw e
-  }
-
-  const key = KIND_TO_KEY[kind]
-  if (!key) return ok(null)
-
-  const session = await requireAdminSession()
-  const result = await sendRegistrationEmailByKey({
-    registrationId,
-    eventId,
-    templateKey: key,
-    actorAuthUserId: session.user.id,
-    actorProfileId: ctx.profileId,
-  })
-
-  if (!result.ok) return rootError(result.error)
-  return ok(result)
 }

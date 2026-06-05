@@ -13,11 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  previewRegistrationCommsEmail,
-  sendRegistrationCommsEmail,
-} from '@/lib/actions/admin-registration-lifecycle-email'
-import { toastActionErr, toastCudSuccess } from '@/lib/client/cud-notify'
+import { previewRegistrationCommsEmail } from '@/lib/actions/admin-registration-lifecycle-email'
 import type { RegistrationNotifyKind, RegistrationNotifyPayload } from '@/lib/wa-templates/build-registration-notify'
 
 type Props = {
@@ -42,9 +38,8 @@ export function RegistrationCommsDialog({
   const [emailPreview, setEmailPreview] = useState<{ subject: string; textPreview: string } | null>(null)
   const [emailLoadError, setEmailLoadError] = useState<string | null>(null)
   const [previewPending, startPreview] = useTransition()
-  const [sendPending, startSend] = useTransition()
 
-  const canSendEmail = kind !== 'underpayment_email_reminder' && !!contactEmail?.trim()
+  const showEmailPreview = kind !== 'underpayment_email_reminder' && !!contactEmail?.trim()
 
   function handleOpenChange(next: boolean) {
     if (!next) {
@@ -55,7 +50,7 @@ export function RegistrationCommsDialog({
   }
 
   useEffect(() => {
-    if (!open || !canSendEmail) return
+    if (!open || !showEmailPreview) return
     startPreview(async () => {
       setEmailLoadError(null)
       const res = await previewRegistrationCommsEmail(eventId, registrationId, kind)
@@ -66,7 +61,7 @@ export function RegistrationCommsDialog({
       }
       setEmailPreview(res.data)
     })
-  }, [open, canSendEmail, eventId, registrationId, kind])
+  }, [open, showEmailPreview, eventId, registrationId, kind])
 
   if (!wa) return null
 
@@ -76,8 +71,8 @@ export function RegistrationCommsDialog({
         <DialogHeader>
           <DialogTitle>{wa.titleId}</DialogTitle>
           <DialogDescription>
-            Notifikasi ke pendaftar via WhatsApp dan/atau email. Pesan WA dapat diedit di aplikasi WhatsApp setelah
-            dibuka.
+            Kirim notifikasi ke pendaftar via WhatsApp. Email transaksional dikirim otomatis saat keputusan disimpan
+            (sesuai pengaturan komite). Pesan WA dapat diedit di aplikasi WhatsApp setelah dibuka.
           </DialogDescription>
         </DialogHeader>
 
@@ -89,9 +84,9 @@ export function RegistrationCommsDialog({
             </pre>
           </div>
 
-          {canSendEmail ? (
+          {showEmailPreview ? (
             <div>
-              <p className='text-muted-foreground mb-1 text-xs font-medium uppercase tracking-wide'>Email</p>
+              <p className='text-muted-foreground mb-1 text-xs font-medium uppercase tracking-wide'>Email (otomatis)</p>
               {previewPending ? (
                 <p className='text-muted-foreground flex items-center gap-2 text-sm'>
                   <Loader2 className='size-4 animate-spin' aria-hidden />
@@ -101,20 +96,23 @@ export function RegistrationCommsDialog({
                 <p className='text-muted-foreground text-sm'>{emailLoadError}</p>
               ) : emailPreview ? (
                 <div className='space-y-2 rounded-md border bg-muted/20 p-3 text-sm'>
+                  <p className='text-muted-foreground text-xs'>
+                    Isi berikut dikirim otomatis ke {contactEmail?.trim()}.
+                  </p>
                   <p className='font-medium'>{emailPreview.subject}</p>
                   <pre className='text-muted-foreground max-h-32 overflow-y-auto text-xs whitespace-pre-wrap'>
                     {emailPreview.textPreview}
                   </pre>
                 </div>
               ) : (
-                <p className='text-muted-foreground text-sm'>Pratinjau email tidak tersedia.</p>
+                <p className='text-muted-foreground text-sm'>Pratinjau email tidak tersedia untuk registrasi ini.</p>
               )}
             </div>
           ) : (
             <p className='text-muted-foreground text-sm'>
               {kind === 'underpayment_email_reminder'
                 ? 'Email tagihan sudah dikirim dari panel penyesuaian. Gunakan WhatsApp sebagai pengingat.'
-                : 'Email kontak kosong — tidak dapat mengirim email.'}
+                : 'Email kontak kosong — tidak ada email otomatis.'}
             </p>
           )}
         </div>
@@ -127,35 +125,6 @@ export function RegistrationCommsDialog({
           <Button type='button' variant='outline' onClick={() => handleOpenChange(false)}>
             Lewati
           </Button>
-          {canSendEmail ? (
-            <Button
-              type='button'
-              variant='secondary'
-              disabled={sendPending || previewPending}
-              onClick={() => {
-                startSend(async () => {
-                  const res = await sendRegistrationCommsEmail(eventId, registrationId, kind)
-                  if (!res.ok) {
-                    toastActionErr(res)
-                    return
-                  }
-                  if (res.data?.ok) {
-                    toastCudSuccess('update', res.data.dryRun ? 'Email dicatat (mode log).' : 'Email terkirim.')
-                  }
-                  handleOpenChange(false)
-                })
-              }}
-            >
-              {sendPending ? (
-                <>
-                  <Loader2 className='mr-2 size-4 animate-spin' aria-hidden />
-                  Mengirim…
-                </>
-              ) : (
-                'Kirim email'
-              )}
-            </Button>
-          ) : null}
           {wa.canOpen ? (
             <a
               target='_blank'

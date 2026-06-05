@@ -11,6 +11,7 @@ vi.mock('@/lib/db/prisma', () => ({
 vi.mock('@/lib/public/load-club-branding', () => ({
   loadPublicClubBranding: vi.fn().mockResolvedValue({
     clubNameNav: 'CISC',
+    logoBlobUrl: 'https://example.test/logo.webp',
     contactEmail: 'info@cisc.test',
     websiteUrl: null,
     locationText: null,
@@ -73,6 +74,7 @@ describe('loadRegistrationInvoicePdfData', () => {
       expect(res.data.paymentStatus).toBe('paid')
       expect(res.data.registrationTotalIdr).toBe(500_000)
       expect(res.data.bank).toBeNull()
+      expect(res.data.logoBlobUrl).toBe('https://example.test/logo.webp')
     }
   })
 })

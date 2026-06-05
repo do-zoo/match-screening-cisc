@@ -2,6 +2,20 @@ import { EmailTemplateKey } from '@prisma/client'
 
 import { loadRegistrationInvoicePdfData } from './registration-invoice-pdf-data'
 import { renderRegistrationInvoicePdf } from './render-registration-invoice-pdf'
+import type { InvoicePdfKind } from './registration-invoice-pdf-types'
+
+/** Template registrasi yang melampirkan PDF tagihan/bukti (satu generator `registration` | `adjustment`). */
+export const REGISTRATION_EMAIL_PDF_ATTACHMENT_KEYS: ReadonlySet<EmailTemplateKey> = new Set([
+  EmailTemplateKey.invoice,
+  EmailTemplateKey.invoice_underpayment,
+  EmailTemplateKey.receipt,
+  EmailTemplateKey.registration_approved,
+])
+
+function pdfKindForEmailTemplate(templateKey: EmailTemplateKey): InvoicePdfKind | null {
+  if (!REGISTRATION_EMAIL_PDF_ATTACHMENT_KEYS.has(templateKey)) return null
+  return templateKey === EmailTemplateKey.invoice_underpayment ? 'adjustment' : 'registration'
+}
 
 export async function tryBuildInvoiceEmailAttachment(input: {
   eventId: string
@@ -9,14 +23,8 @@ export async function tryBuildInvoiceEmailAttachment(input: {
   templateKey: EmailTemplateKey
   unpaidAdjustmentId?: string | null
 }): Promise<{ filename: string; content: Buffer } | null> {
-  if (
-    input.templateKey !== EmailTemplateKey.invoice &&
-    input.templateKey !== EmailTemplateKey.invoice_underpayment
-  ) {
-    return null
-  }
-
-  const kind = input.templateKey === EmailTemplateKey.invoice ? 'registration' : 'adjustment'
+  const kind = pdfKindForEmailTemplate(input.templateKey)
+  if (!kind) return null
 
   try {
     const loaded = await loadRegistrationInvoicePdfData({

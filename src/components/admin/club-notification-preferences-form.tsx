@@ -231,8 +231,8 @@ export function ClubNotificationPreferencesForm(props: {
           <EmailAutoToggle
             id='emailAttachInvoicePdf'
             name='emailAttachInvoicePdf'
-            label='Lampirkan PDF tagihan pada email invoice'
-            description='Berlaku untuk email tagihan pendaftaran dan kekurangan bayar (kirim manual, blast, dan otomatis).'
+            label='Lampirkan PDF pada email tagihan & bukti'
+            description='Berlaku untuk tagihan pendaftaran, kekurangan bayar, bukti penerimaan (receipt), dan bukti pembayaran disetujui — kirim manual, blast, dan otomatis.'
             initialChecked={props.initialEmailAuto.emailAttachInvoicePdf}
             pending={pending}
           />

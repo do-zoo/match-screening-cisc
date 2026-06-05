@@ -8,6 +8,7 @@ const sampleVm: RegistrationInvoicePdfVm = {
   paymentStatus: 'awaiting_payment',
   issuedAt: new Date('2026-06-05T08:00:00Z'),
   clubNameNav: 'CISC',
+  logoBlobUrl: null,
   committeeContactEmail: 'info@cisc.test',
   registrationId: 'reg12345678',
   adjustmentId: null,

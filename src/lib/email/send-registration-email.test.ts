@@ -25,9 +25,13 @@ vi.mock('@/lib/auth/send-transactional-email', () => ({
   sendTransactionalEmail: (...args: unknown[]) => mockSendTransactional(...args),
 }))
 
-vi.mock('@/lib/invoices/try-build-invoice-email-attachment', () => ({
-  tryBuildInvoiceEmailAttachment: (...args: unknown[]) => mockTryBuild(...args),
-}))
+vi.mock('@/lib/invoices/try-build-invoice-email-attachment', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/invoices/try-build-invoice-email-attachment')>()
+  return {
+    ...actual,
+    tryBuildInvoiceEmailAttachment: (...args: unknown[]) => mockTryBuild(...args),
+  }
+})
 
 vi.mock('@/lib/email-templates/load-club-email-templates', () => ({
   loadClubEmailTemplates: vi.fn().mockResolvedValue({}),
@@ -40,6 +44,22 @@ vi.mock('@/lib/email-templates/render-invoice-email', () => ({
     html: '<p>Silakan transfer</p>',
   }),
   renderInvoiceUnderpaymentEmail: vi.fn(),
+}))
+
+vi.mock('@/lib/email-templates/render-registration-approved-email', () => ({
+  renderRegistrationApprovedEmail: vi.fn().mockResolvedValue({
+    subject: 'Pembayaran disetujui',
+    text: 'Terima kasih',
+    html: '<p>Terima kasih</p>',
+  }),
+}))
+
+vi.mock('@/lib/email-templates/render-lifecycle-email', () => ({
+  renderLifecycleEmail: vi.fn().mockResolvedValue({
+    subject: 'Bukti penerimaan',
+    text: 'Pendaftaran diterima',
+    html: '<p>Pendaftaran diterima</p>',
+  }),
 }))
 
 function baseRegistration() {
@@ -143,6 +163,70 @@ describe('sendRegistrationEmailByKey invoice attachments', () => {
     expect(mockTryBuild).not.toHaveBeenCalled()
     expect(mockSendTransactional).toHaveBeenCalledWith(
       expect.not.objectContaining({ attachments: expect.anything() }),
+    )
+  })
+
+  it('passes attachments for receipt when emailAttachInvoicePdf is on', async () => {
+    mockPrefsFind.mockResolvedValue({
+      outboundMode: 'live',
+      emailAttachInvoicePdf: true,
+    })
+
+    const { sendRegistrationEmailByKey } = await import('@/lib/email/send-registration-email')
+
+    const result = await sendRegistrationEmailByKey({
+      registrationId: 'reg-1',
+      eventId: 'event-1',
+      templateKey: EmailTemplateKey.receipt,
+      actorAuthUserId: 'user-1',
+      actorProfileId: 'profile-1',
+    })
+
+    expect(result).toEqual({ ok: true })
+    expect(mockTryBuild).toHaveBeenCalledWith({
+      eventId: 'event-1',
+      registrationId: 'reg-1',
+      templateKey: EmailTemplateKey.receipt,
+      unpaidAdjustmentId: null,
+    })
+    expect(mockSendTransactional).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [expect.objectContaining({ filename: 'tagihan-acara-test-reg-1.pdf' })],
+      }),
+    )
+  })
+
+  it('passes attachments for registration_approved when emailAttachInvoicePdf is on', async () => {
+    mockPrefsFind.mockResolvedValue({
+      outboundMode: 'live',
+      emailAttachInvoicePdf: true,
+    })
+    mockFindFirst.mockResolvedValue({
+      ...baseRegistration(),
+      status: RegistrationStatus.approved,
+    })
+
+    const { sendRegistrationEmailByKey } = await import('@/lib/email/send-registration-email')
+
+    const result = await sendRegistrationEmailByKey({
+      registrationId: 'reg-1',
+      eventId: 'event-1',
+      templateKey: EmailTemplateKey.registration_approved,
+      actorAuthUserId: 'user-1',
+      actorProfileId: 'profile-1',
+    })
+
+    expect(result).toEqual({ ok: true })
+    expect(mockTryBuild).toHaveBeenCalledWith({
+      eventId: 'event-1',
+      registrationId: 'reg-1',
+      templateKey: EmailTemplateKey.registration_approved,
+      unpaidAdjustmentId: null,
+    })
+    expect(mockSendTransactional).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [expect.objectContaining({ filename: 'tagihan-acara-test-reg-1.pdf' })],
+      }),
     )
   })
 })

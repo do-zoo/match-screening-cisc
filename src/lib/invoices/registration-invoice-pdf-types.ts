@@ -7,6 +7,7 @@ export type RegistrationInvoicePdfVm = {
   paymentStatus: InvoicePdfPaymentStatus
   issuedAt: Date
   clubNameNav: string
+  logoBlobUrl: string | null
   committeeContactEmail: string | null
   registrationId: string
   adjustmentId: string | null
