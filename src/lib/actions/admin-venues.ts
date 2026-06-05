@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { guardOwnerOrAdmin, isAuthError } from '@/lib/actions/guard'
+import { ADMIN_VENUES_DELETE_SUCCESS_FLASH } from '@/lib/admin/admin-venues-delete-flash'
 import { prisma } from '@/lib/db/prisma'
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import {
@@ -17,6 +18,7 @@ import {
   type VenueCatalogUiPayload,
 } from '@/lib/forms/venue-catalog-form-schema'
 import { zodToFieldErrors } from '@/lib/forms/zod'
+import { deleteAllBlobsWithPrefix } from '@/lib/uploads/delete-blobs-by-prefix'
 import { isUploadError } from '@/lib/uploads/errors'
 import { deleteVenueMenuImage, uploadVenueMenuImage } from '@/lib/uploads/upload-venue-menu-image'
 import { venueMenuItemIdsFrozenByExistingRegistrations } from '@/lib/venues/venue-menu-frozen-item-ids'
@@ -334,4 +336,51 @@ export async function saveVenueCatalog(
   const { name, address, items } = parsed.data
 
   return persistVenueMenuItems(venueId, items, formData, { name, address })
+}
+
+export async function deleteVenue(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ deleted: true }>> {
+  try {
+    await guardOwnerOrAdmin()
+  } catch (e) {
+    if (isAuthError(e)) return rootError('Tidak diizinkan.')
+    throw e
+  }
+
+  const venueId = formData.get('venueId')
+  if (!venueId || typeof venueId !== 'string' || venueId.trim() === '') {
+    return rootError('ID venue tidak valid.')
+  }
+
+  const id = venueId.trim()
+
+  const venue = await prisma.venue.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { events: true } },
+    },
+  })
+
+  if (!venue) return rootError('Venue tidak ditemukan.')
+
+  if (venue._count.events > 0) {
+    return rootError(`Venue tidak bisa dihapus karena digunakan oleh ${venue._count.events} acara.`)
+  }
+
+  await deleteAllBlobsWithPrefix(`venues/${id}/menu/`).catch(() => undefined)
+
+  try {
+    await prisma.venue.delete({ where: { id: venue.id } })
+  } catch {
+    return rootError('Gagal menghapus venue. Coba lagi atau periksa apakah venue baru dipakai acara.')
+  }
+
+  revalidatePath('/admin/venues')
+  revalidatePath(`/admin/venues/${id}/edit`)
+
+  redirect(`/admin/venues?tab=all&flash=${encodeURIComponent(ADMIN_VENUES_DELETE_SUCCESS_FLASH)}`)
 }
