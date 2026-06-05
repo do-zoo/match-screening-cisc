@@ -1,4 +1,4 @@
-import { Button, Img, Section, Text } from 'react-email'
+import { Button, Section, Text } from 'react-email'
 import { EmailTemplateKey } from '@prisma/client'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
@@ -6,6 +6,11 @@ import { createElement } from 'react'
 import type { EmailBlock } from '@/lib/email-templates/email-block-types'
 import { emailDocToPlainText } from '@/lib/email-templates/email-doc-serializer'
 import { emailDocToReactNodes } from '@/lib/email-templates/email-doc-react'
+import { EMAIL_DESIGN_TOKENS as T } from '@/lib/email-templates/email-design-tokens'
+import {
+  formatContactPlainLines,
+  type ClubEmailContactProps,
+} from '@/lib/email-templates/emails/club-email-plain-contact'
 import { applyEmailPlaceholders } from '@/lib/email-templates/email-placeholder'
 
 const BODY_X = '32px'
@@ -45,50 +50,13 @@ export function renderEmailBlocks(props: {
   templateKey: EmailTemplateKey
   blocks: EmailBlock[]
   vars: Record<string, string>
-  clubNameNav: string
-  logoBlobUrl?: string | null
 }): ReactNode[] {
-  const { templateKey, blocks, vars, clubNameNav, logoBlobUrl } = props
+  const { templateKey, blocks, vars } = props
   const nodes: ReactNode[] = []
 
   for (const block of blocks) {
     switch (block.type) {
       case 'branding_header':
-        nodes.push(
-          createElement(
-            Section,
-            {
-              key: block.id,
-              style: {
-                padding: '28px 32px 20px',
-                borderBottom: '1px solid #e4e4e7',
-                backgroundColor: '#fafafa',
-              },
-            },
-            logoBlobUrl
-              ? createElement(Img, {
-                  src: logoBlobUrl,
-                  alt: vars.club_name_nav ?? clubNameNav,
-                  height: 36,
-                  style: { display: 'block', margin: '0 0 12px', maxHeight: '36px', width: 'auto' },
-                })
-              : null,
-            createElement(
-              Text,
-              {
-                style: {
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  margin: 0,
-                  color: '#18181b',
-                  letterSpacing: '-0.01em',
-                  lineHeight: '1.3',
-                },
-              },
-              vars.club_name_nav ?? clubNameNav,
-            ),
-          ),
-        )
         break
       case 'paragraph':
         nodes.push(
@@ -111,8 +79,8 @@ export function renderEmailBlocks(props: {
               Section,
               {
                 style: {
-                  backgroundColor: '#f4f4f5',
-                  border: '1px solid #e4e4e7',
+                  backgroundColor: T.surfaceMuted,
+                  border: `1px solid ${T.surfaceMutedBorder}`,
                   borderRadius: '8px',
                   padding: '16px 18px',
                 },
@@ -121,7 +89,7 @@ export function renderEmailBlocks(props: {
                 Text,
                 {
                   style: {
-                    color: '#3f3f46',
+                    color: T.textMuted,
                     fontSize: '14px',
                     lineHeight: '1.6',
                     margin: 0,
@@ -146,8 +114,8 @@ export function renderEmailBlocks(props: {
               Section,
               {
                 style: {
-                  backgroundColor: '#ecfdf5',
-                  border: '1px solid #a7f3d0',
+                  backgroundColor: T.surfaceSuccessBg,
+                  border: `1px solid ${T.surfaceSuccessBorder}`,
                   borderRadius: '8px',
                   padding: '16px 18px',
                 },
@@ -156,7 +124,7 @@ export function renderEmailBlocks(props: {
                 Text,
                 {
                   style: {
-                    color: '#14532d',
+                    color: T.surfaceSuccessText,
                     fontSize: '14px',
                     lineHeight: '1.75',
                     margin: 0,
@@ -188,7 +156,7 @@ export function renderEmailBlocks(props: {
               Section,
               {
                 style: {
-                  borderLeft: '3px solid #18181b',
+                  borderLeft: `3px solid ${T.primary}`,
                   paddingLeft: '16px',
                 },
               },
@@ -196,7 +164,7 @@ export function renderEmailBlocks(props: {
                 Text,
                 {
                   style: {
-                    color: '#3f3f46',
+                    color: T.textMuted,
                     fontSize: '14px',
                     lineHeight: '1.75',
                     margin: 0,
@@ -220,8 +188,8 @@ export function renderEmailBlocks(props: {
               {
                 href: vars.magic_link_url ?? '#',
                 style: {
-                  backgroundColor: '#18181b',
-                  color: '#ffffff',
+                  backgroundColor: T.primary,
+                  color: T.primaryForeground,
                   padding: '14px 28px',
                   borderRadius: '8px',
                   textDecoration: 'none',
@@ -242,17 +210,15 @@ export function renderEmailBlocks(props: {
             {
               key: block.id,
               style: {
-                padding: '24px 32px 28px',
-                marginTop: '8px',
-                borderTop: '1px solid #e4e4e7',
-                backgroundColor: '#fafafa',
+                padding: '20px 32px 28px',
+                borderTop: `1px solid ${T.cardBorder}`,
               },
             },
             createElement(
               Text,
               {
                 style: {
-                  color: '#71717a',
+                  color: T.textMuted,
                   fontSize: '12px',
                   lineHeight: '1.6',
                   margin: 0,
@@ -276,15 +242,14 @@ export function blocksToPlainText(props: {
   templateKey: EmailTemplateKey
   blocks: EmailBlock[]
   vars: Record<string, string>
-  clubNameNav: string
+  contact: ClubEmailContactProps
 }): string {
   const lines: string[] = []
-  const { templateKey, blocks, vars, clubNameNav } = props
+  const { templateKey, blocks, vars, contact } = props
 
   for (const block of blocks) {
     switch (block.type) {
       case 'branding_header':
-        lines.push(vars.club_name_nav ?? clubNameNav, '')
         break
       case 'paragraph':
         lines.push(emailDocToPlainText(block.doc, vars), '')
@@ -308,10 +273,20 @@ export function blocksToPlainText(props: {
         lines.push(`${block.label}: ${vars.magic_link_url ?? ''}`, '')
         break
       case 'footer_disclaimer':
-        lines.push(applyEmailPlaceholders(block.text, vars), '')
         break
       default:
         break
+    }
+  }
+
+  const contactLines = formatContactPlainLines(contact)
+  if (contactLines.length > 0) {
+    lines.push('---', ...contactLines, '')
+  }
+
+  for (const block of blocks) {
+    if (block.type === 'footer_disclaimer') {
+      lines.push(applyEmailPlaceholders(block.text, vars), '')
     }
   }
 

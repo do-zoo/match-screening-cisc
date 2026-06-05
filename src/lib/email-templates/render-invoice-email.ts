@@ -5,7 +5,7 @@ import type { EmailBlock } from '@/lib/email-templates/email-block-types'
 import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
 import { parseStoredEmailBody } from '@/lib/email-templates/parse-stored-email-body'
 import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
-import { loadPublicClubBranding } from '@/lib/public/load-club-branding'
+import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 export type InvoiceEmailCtx = {
@@ -78,6 +78,7 @@ async function renderInvoiceTemplateEmail(
     vars: { ...vars, club_name_nav: branding.clubNameNav },
     clubNameNav: branding.clubNameNav,
     logoBlobUrl: branding.logoBlobUrl,
+    contact: pickClubEmailContact(branding),
   }
 
   try {

@@ -15,7 +15,7 @@ import {
   sampleVarsFromCatalog,
 } from '@/lib/email-templates/email-template-catalog'
 import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
-import { loadPublicClubBranding } from '@/lib/public/load-club-branding'
+import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
 import { saveClubEmailTemplateFormSchema } from '@/lib/forms/club-email-template-schema'
 import { fieldError, ok, rootError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
@@ -158,6 +158,7 @@ export async function previewClubEmailTemplate(input: {
       vars,
       clubNameNav: branding.clubNameNav,
       logoBlobUrl: branding.logoBlobUrl,
+      contact: pickClubEmailContact(branding),
     })
     return ok({ html: rendered.html, text: rendered.text })
   } catch {

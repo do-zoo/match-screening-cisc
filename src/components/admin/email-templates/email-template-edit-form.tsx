@@ -38,7 +38,6 @@ import { analyzeEmailTemplateBlocks } from '@/lib/email-templates/email-template
 import { serializeStoredBody } from '@/lib/email-templates/parse-stored-email-body'
 
 const SYSTEM_BLOCK_LABELS: Record<string, string> = {
-  branding_header: 'Header branding',
   invoice_summary: 'Ringkasan tagihan',
   registration_receipt: 'Bukti pendaftaran',
   bank_details: 'Detail rekening',
@@ -47,7 +46,6 @@ const SYSTEM_BLOCK_LABELS: Record<string, string> = {
 }
 
 const SYSTEM_BLOCK_HINTS: Record<string, string> = {
-  branding_header: 'Logo dan nama klub dari Pengaturan → Branding.',
   invoice_summary: 'Ringkasan nominal diisi otomatis saat email dikirim.',
   registration_receipt:
     'Nomor pemesanan, total terverifikasi, dan detail acara diisi otomatis — ini bukti resmi pembayaran.',
@@ -163,6 +161,13 @@ export function EmailTemplateEditForm(props: {
               <Badge variant={isCustomized ? 'default' : 'secondary'}>{isCustomized ? 'Kustom' : 'Bawaan'}</Badge>
             </div>
             <p className='text-muted-foreground max-w-2xl text-sm leading-relaxed'>{catalogEntry.descriptionId}</p>
+            <p className='text-muted-foreground max-w-2xl text-xs leading-relaxed'>
+              Header logo/nama klub dan footer kontak diatur di{' '}
+              <a href='/admin/settings/branding' className='text-primary font-medium underline'>
+                Pengaturan → Branding
+              </a>
+              .
+            </p>
           </div>
           <EmailTemplateSaveActions
             templateKey={templateKey}

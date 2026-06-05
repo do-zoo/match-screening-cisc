@@ -134,7 +134,8 @@ Key entities:
 - **`ClubWaTemplate`** — per-`WaTemplateKey` body overrides stored in DB; loaded by `lib/wa-templates/load-club-wa-templates.ts` and merged with hardcoded defaults in `lib/wa-templates/render-wa-from-db.ts`
 - **`ClubEmailTemplate`** — per-`EmailTemplateKey` (`invoice`, `invoice_underpayment`, `registration_approved`, `magic_link`) subject + `body` (JSON `{"v":1,"blocks":[...]}` dengan paragraf Tiptap); loaded by `lib/email-templates/load-club-email-templates.ts`; render via `render-email-from-blocks.ts`
 - **`EmailDeliveryLog`** — append-only log pengiriman email transaksional (invoice blast / kirim tunggal); `templateKey`, `toEmail`, `success`, `actorAdminProfileId`
-- **`ClubBranding`** / **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton rows (always `singletonKey = "default"`); read via `lib/public/load-club-*.ts` helpers; mutations are Owner-only and append to `ClubAuditLog`
+- **`ClubBranding`** — `clubNameNav`, logo, `contactEmail`, `websiteUrl`, `locationText`, `socialLinks` (JSON max 3); footer publik + shell email transaksional; mutations Owner-only + audit
+- **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton rows (always `singletonKey = "default"`); read via `lib/public/load-club-*.ts` helpers; mutations are Owner-only and append to `ClubAuditLog`
 - **`ClubAuditLog`** — append-only log of sensitive Owner-level mutations; written via `lib/audit/append-club-audit-log.ts` using action constants from `lib/audit/club-audit-actions.ts`
 
 Better Auth manages its own tables (users, sessions) directly via `pg.Pool` — they are **not** in `prisma/schema.prisma`.
@@ -188,6 +189,10 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/email-templates/build-email-template-index-rows.ts` — `buildEmailTemplateIndexRows` untuk indeks admin template email
 - `lib/email-templates/email-doc-serializer.ts` — Tiptap JSON ↔ plain text; `email-doc-react.tsx` → React Email nodes
 - `lib/email-templates/render-email-from-blocks.ts` — HTML + text Resend dari susunan blok
+- `lib/email-templates/email-design-tokens.ts` — hex token layout email (selaras theme light)
+- `lib/email-templates/emails/club-email-layout.tsx` — header band + footer kontak global dari branding
+- `lib/branding/club-social-links.ts` — parse/validasi `socialLinks` JSON
+- `components/branding/club-contact-display.tsx` — footer kontak terstruktur (web)
 - `lib/email-templates/render-invoice-email.ts` / `render-registration-approved-email.ts` / `render-magic-link-email.ts` — wrapper runtime
 - `lib/email-templates/load-club-email-templates.ts` — parse/migrasi body legacy
 - `components/ui/email-paragraph-editor.tsx` — Tiptap paragraf template email

@@ -31,4 +31,23 @@ describe('renderEmailFromBlocks', () => {
     expect(html).toContain('BCA')
     expect(text).toContain('Budi')
   })
+
+  it('includes contact email in html when branding contact set', async () => {
+    const entry = getEmailTemplateEntry(EmailTemplateKey.magic_link)
+    const { html, text } = await renderEmailFromBlocks({
+      key: EmailTemplateKey.magic_link,
+      subject: entry.defaultSubject,
+      blocks: entry.defaultBlocks,
+      vars: sampleVarsFromCatalog(entry),
+      contact: {
+        contactEmail: 'komite@example.com',
+        websiteUrl: 'https://cisc.example',
+        locationText: 'Tangerang Selatan',
+        socialLinks: [{ label: 'Instagram', url: 'https://instagram.com/cisc' }],
+      },
+    })
+    expect(html).toContain('komite@example.com')
+    expect(html).toContain('Tangerang Selatan')
+    expect(text).toContain('komite@example.com')
+  })
 })

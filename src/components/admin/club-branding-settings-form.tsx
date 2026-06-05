@@ -4,6 +4,7 @@ import { useActionState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { saveClubBranding } from '@/lib/actions/admin-club-branding'
+import type { ClubSocialLink } from '@/lib/branding/club-social-links'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FileField } from '@/components/ui/file-field'
@@ -13,9 +14,14 @@ import { Textarea } from '@/components/ui/textarea'
 import type { ActionResult } from '@/lib/forms/action-result'
 import { toastCudSuccess } from '@/lib/client/cud-notify'
 
+const SOCIAL_SLOT_COUNT = 3
+
 export function ClubBrandingSettingsForm(props: {
   initialClubName: string
-  initialFooter: string
+  initialContactEmail: string
+  initialWebsiteUrl: string
+  initialLocationText: string
+  initialSocialLinks: ClubSocialLink[]
   logoUrl: string | null
 }) {
   const [state, dispatch, pending] = useActionState(saveClubBranding, null as ActionResult<{ saved: true }> | null)
@@ -25,6 +31,11 @@ export function ClubBrandingSettingsForm(props: {
       toastCudSuccess('update', 'Branding berhasil disimpan.')
     }
   }, [state])
+
+  const socialDefaults = Array.from({ length: SOCIAL_SLOT_COUNT }, (_, i) => ({
+    label: props.initialSocialLinks[i]?.label ?? '',
+    url: props.initialSocialLinks[i]?.url ?? '',
+  }))
 
   return (
     <div className='max-w-xl space-y-6'>
@@ -44,47 +55,102 @@ export function ClubBrandingSettingsForm(props: {
           </AlertDescription>
         </Alert>
       ) : null}
-      <form action={dispatch} className='space-y-5'>
-        <div className='space-y-2'>
-          <Label htmlFor='clubNameNav'>Nama di header publik</Label>
-          <Input
-            id='clubNameNav'
-            name='clubNameNav'
-            required
-            defaultValue={props.initialClubName}
-            disabled={pending}
-            autoComplete='off'
+      <form action={dispatch} className='space-y-8'>
+        <fieldset className='space-y-5' disabled={pending}>
+          <legend className='text-sm font-medium'>Identitas</legend>
+          <div className='space-y-2'>
+            <Label htmlFor='clubNameNav'>Nama di header publik</Label>
+            <Input
+              id='clubNameNav'
+              name='clubNameNav'
+              required
+              defaultValue={props.initialClubName}
+              autoComplete='off'
+            />
+          </div>
+          <FileField
+            id='logo'
+            name='logo'
+            label='Logo klub (opsional, gambar raster)'
+            description={
+              props.logoUrl
+                ? 'Unggah berkas baru untuk mengganti. Lewati jika hanya mengubah teks.'
+                : 'Format JPG, PNG, atau WebP.'
+            }
+            accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
+            existingPreviewUrl={props.logoUrl}
+            pickPrompt='Ketuk untuk memilih logo'
+            replacePrompt='Ganti logo'
           />
-        </div>
-        <div className='space-y-2'>
-          <Label htmlFor='footerPlainText'>Teks footer (opsional)</Label>
-          <Textarea
-            id='footerPlainText'
-            name='footerPlainText'
-            rows={3}
-            placeholder='Misalnya hak cipta singkat atau alamat kontak'
-            defaultValue={props.initialFooter}
-            disabled={pending}
-          />
-          <p className='text-muted-foreground text-xs'>
-            Ditampilkan sebagai teks polos di bawah halaman publik. Kosongkan untuk menyembunyikan footer.
+        </fieldset>
+
+        <fieldset className='space-y-5' disabled={pending}>
+          <legend className='text-sm font-medium'>Kontak & footer</legend>
+          <p className='text-muted-foreground text-xs leading-relaxed'>
+            Ditampilkan di footer situs publik dan di semua email transaksional. Semua field opsional; kosongkan
+            seluruhnya untuk menyembunyikan footer kontak.
           </p>
-        </div>
-        <FileField
-          id='logo'
-          name='logo'
-          label='Logo klub (opsional, gambar raster)'
-          description={
-            props.logoUrl
-              ? 'Unggah berkas baru untuk mengganti. Lewati jika hanya mengubah teks.'
-              : 'Format JPG, PNG, atau WebP.'
-          }
-          accept='image/jpeg,image/png,image/webp,image/heic,image/heif'
-          disabled={pending}
-          existingPreviewUrl={props.logoUrl}
-          pickPrompt='Ketuk untuk memilih logo'
-          replacePrompt='Ganti logo'
-        />
+          <div className='space-y-2'>
+            <Label htmlFor='contactEmail'>Email kontak</Label>
+            <Input
+              id='contactEmail'
+              name='contactEmail'
+              type='email'
+              autoComplete='email'
+              placeholder='komite@contoh.com'
+              defaultValue={props.initialContactEmail}
+            />
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='websiteUrl'>Website</Label>
+            <Input
+              id='websiteUrl'
+              name='websiteUrl'
+              type='url'
+              placeholder='https://…'
+              defaultValue={props.initialWebsiteUrl}
+            />
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='locationText'>Lokasi</Label>
+            <Textarea
+              id='locationText'
+              name='locationText'
+              rows={2}
+              maxLength={200}
+              placeholder='Misalnya Tangerang Selatan, Banten'
+              defaultValue={props.initialLocationText}
+            />
+          </div>
+          <div className='space-y-4'>
+            <p className='text-sm font-medium'>Sosial media (maks. 3)</p>
+            {socialDefaults.map((row, i) => (
+              <div key={i} className='grid gap-3 sm:grid-cols-2'>
+                <div className='space-y-2'>
+                  <Label htmlFor={`socialLabel${i}`}>Label {i + 1}</Label>
+                  <Input
+                    id={`socialLabel${i}`}
+                    name={`socialLabel${i}`}
+                    placeholder='Instagram'
+                    defaultValue={row.label}
+                    maxLength={40}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor={`socialUrl${i}`}>URL {i + 1}</Label>
+                  <Input
+                    id={`socialUrl${i}`}
+                    name={`socialUrl${i}`}
+                    type='url'
+                    placeholder='https://…'
+                    defaultValue={row.url}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </fieldset>
+
         <Button type='submit' disabled={pending}>
           {pending ? (
             <>

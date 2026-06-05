@@ -5,7 +5,7 @@ import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-cata
 import { parseStoredEmailBody } from '@/lib/email-templates/parse-stored-email-body'
 import { loadClubEmailTemplates } from '@/lib/email-templates/load-club-email-templates'
 import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
-import { loadPublicClubBranding } from '@/lib/public/load-club-branding'
+import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
 
 export async function resolveMagicLinkEmailContent(url: string): Promise<{
   subject: string
@@ -32,6 +32,7 @@ export async function resolveMagicLinkEmailContent(url: string): Promise<{
       vars,
       clubNameNav: branding.clubNameNav,
       logoBlobUrl: branding.logoBlobUrl,
+      contact: pickClubEmailContact(branding),
     })
   } catch {
     return await renderEmailFromBlocks({
@@ -41,6 +42,7 @@ export async function resolveMagicLinkEmailContent(url: string): Promise<{
       vars,
       clubNameNav: branding.clubNameNav,
       logoBlobUrl: branding.logoBlobUrl,
+      contact: pickClubEmailContact(branding),
     })
   }
 }

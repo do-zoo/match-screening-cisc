@@ -95,7 +95,6 @@ function paragraphBlock(text: string): EmailBlock {
 }
 
 const INVOICE_UNDERPAYMENT_DEFAULT_BLOCKS: EmailBlock[] = [
-  { type: 'branding_header', id: newBlockId() },
   paragraphBlock(
     ['Halo {contact_name},', '', 'Terdapat kekurangan pembayaran untuk {event_title} sebesar {adjustment_amount_idr}.'].join(
       '\n',
@@ -107,7 +106,6 @@ const INVOICE_UNDERPAYMENT_DEFAULT_BLOCKS: EmailBlock[] = [
 ]
 
 const REGISTRATION_INVOICE_DEFAULT_BLOCKS: EmailBlock[] = [
-  { type: 'branding_header', id: newBlockId() },
   paragraphBlock(
     [
       'Halo {contact_name},',
@@ -121,7 +119,6 @@ const REGISTRATION_INVOICE_DEFAULT_BLOCKS: EmailBlock[] = [
 ]
 
 const MAGIC_LINK_DEFAULT_BLOCKS: EmailBlock[] = [
-  { type: 'branding_header', id: newBlockId() },
   paragraphBlock(
     'Klik tombol di bawah untuk masuk ke halaman admin Match Screening. Link ini hanya berlaku sekali dan akan kedaluwarsa dalam 5 menit.',
   ),
@@ -134,7 +131,6 @@ const MAGIC_LINK_DEFAULT_BLOCKS: EmailBlock[] = [
 ]
 
 const REGISTRATION_APPROVED_DEFAULT_BLOCKS: EmailBlock[] = [
-  { type: 'branding_header', id: newBlockId() },
   paragraphBlock(
     [
       'Halo {contact_name},',
