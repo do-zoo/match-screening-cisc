@@ -5,6 +5,7 @@ import {
 } from '@prisma/client'
 
 import { prisma } from '@/lib/db/prisma'
+import { buildTicketLineItems } from '@/lib/email-templates/email-transaction-line-items'
 import { renderInvoiceUnderpaymentEmail } from '@/lib/email-templates/render-invoice-email'
 import { loadClubEmailTemplates } from '@/lib/email-templates/load-club-email-templates'
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
@@ -27,6 +28,18 @@ export async function sendInvoiceEmailForRegistration(opts: {
         id: true,
         contactName: true,
         contactEmail: true,
+        computedTotalAtSubmit: true,
+        ticketQty: true,
+        ticketCategory: { select: { name: true } },
+        tickets: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            sortOrder: true,
+            ticketPriceApplied: true,
+            assignedHolder: { select: { holderName: true } },
+            mandatoryMenuItem: { select: { name: true } },
+          },
+        },
         event: {
           select: {
             title: true,
@@ -54,16 +67,26 @@ export async function sendInvoiceEmailForRegistration(opts: {
   if (!adj) return { ok: false, error: 'Tidak ada tagihan kekurangan yang belum lunas.' }
 
   const bank = registration.event.bankAccount
+  const registrationTotal = registration.computedTotalAtSubmit
+  const shortfall = adj.amount
+  const inferredPaid =
+    shortfall < registrationTotal ? registrationTotal - shortfall : undefined
+
   const { subject, text, html } = await renderInvoiceUnderpaymentEmail(
     templates[EmailTemplateKey.invoice_underpayment] ?? null,
     {
       contactName: registration.contactName,
       eventTitle: registration.event.title,
-      adjustmentAmountIdr: adj.amount,
+      adjustmentAmountIdr: shortfall,
+      registrationTotalIdr: registrationTotal,
+      amountPaidIdr: inferredPaid,
       bankName: bank?.bankName ?? '',
       accountNumber: bank?.accountNumber ?? '',
       accountName: bank?.accountName ?? '',
       registrationId: registration.id,
+      ticketCategoryName: registration.ticketCategory.name,
+      ticketQty: registration.ticketQty,
+      ticketLineItems: buildTicketLineItems(registration.tickets),
     },
   )
 

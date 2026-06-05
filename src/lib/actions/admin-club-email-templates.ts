@@ -10,10 +10,8 @@ import { guardOwner, isAuthError, type OwnerGuardContext } from '@/lib/actions/g
 import { prisma } from '@/lib/db/prisma'
 import { CLUB_EMAIL_DEFAULT_BODIES } from '@/lib/email-templates/default-bodies'
 import { isStoredEmailTemplateBody } from '@/lib/email-templates/email-block-types'
-import {
-  getEmailTemplateEntry,
-  sampleVarsFromCatalog,
-} from '@/lib/email-templates/email-template-catalog'
+import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
+import { loadEmailTemplatePreviewVars } from '@/lib/email-templates/load-email-template-preview-vars'
 import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
 import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
 import { saveClubEmailTemplateFormSchema } from '@/lib/forms/club-email-template-schema'
@@ -113,7 +111,9 @@ export async function previewClubEmailTemplate(input: {
   key: EmailTemplateKey
   subject: string
   body: string
-}): Promise<ActionResult<{ html: string; text: string }>> {
+}): Promise<
+  ActionResult<{ html: string; text: string; dataSource: 'database' | 'sample' }>
+> {
   try {
     await guardOwner()
   } catch (e) {
@@ -142,12 +142,10 @@ export async function previewClubEmailTemplate(input: {
 
   const entry = getEmailTemplateEntry(parsed.data.key)
   const branding = await loadPublicClubBranding()
+  const { vars: previewVars, dataSource } = await loadEmailTemplatePreviewVars(parsed.data.key, entry)
   const vars = {
-    ...sampleVarsFromCatalog(entry),
+    ...previewVars,
     club_name_nav: branding.clubNameNav,
-    ...(parsed.data.key === EmailTemplateKey.magic_link
-      ? { magic_link_url: entry.tokenMeta.magic_link_url?.sampleValue ?? 'https://example.com' }
-      : {}),
   }
 
   try {
@@ -160,7 +158,7 @@ export async function previewClubEmailTemplate(input: {
       logoBlobUrl: branding.logoBlobUrl,
       contact: pickClubEmailContact(branding),
     })
-    return ok({ html: rendered.html, text: rendered.text })
+    return ok({ html: rendered.html, text: rendered.text, dataSource })
   } catch {
     return rootError('Pratinjau tidak dapat dibuat. Periksa placeholder dan format.')
   }

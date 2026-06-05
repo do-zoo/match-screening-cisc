@@ -195,6 +195,9 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `components/branding/club-contact-display.tsx` — footer kontak terstruktur (web)
 - `lib/email-templates/render-invoice-email.ts` / `render-registration-approved-email.ts` / `render-magic-link-email.ts` — wrapper runtime
 - `lib/email-templates/load-club-email-templates.ts` — parse/migrasi body legacy
+- `lib/email-templates/load-email-template-preview-vars.ts` — variabel pratinjau editor template email dari registrasi/acara terbaru di DB (fallback katalog)
+- `lib/email-templates/email-transaction-line-items.ts` — rincian per tiket (holder, menu, harga) untuk tabel ringkasan email via `transaction_line_items_json`
+- `lib/email-templates/load-registration-email-line-items.ts` — muat baris tiket registrasi untuk render email
 - `components/ui/email-paragraph-editor.tsx` — Tiptap paragraf template email
 - `lib/actions/admin-club-email-templates.ts` — save/reset/preview template email (Owner + audit)
 - `lib/email/invoice-email-eligibility.ts` — filter registrasi eligible blast invoice (unpaid adjustment + `contactEmail`)

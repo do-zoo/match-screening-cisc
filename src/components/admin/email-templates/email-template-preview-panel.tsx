@@ -7,11 +7,20 @@ import { cn } from '@/lib/utils'
 /** Lebar pratinjau ≈ lebar email klien umum (600px). */
 const EMAIL_PREVIEW_WIDTH_PX = 600
 
+const PREVIEW_SOURCE_HINT: Record<'database' | 'sample', string> = {
+  database: 'Variabel dari registrasi terbaru di database',
+  sample: 'Contoh nilai variabel dari katalog (belum ada data di DB)',
+}
+
 export function EmailTemplatePreviewPanel(props: {
   html: string | null
   pending?: boolean
   subject?: string
+  dataSource?: 'database' | 'sample' | null
 }) {
+  const sourceHint =
+    props.dataSource != null ? PREVIEW_SOURCE_HINT[props.dataSource] : 'Memuat sumber data pratinjau…'
+
   return (
     <section className='space-y-3'>
       <div className='flex flex-wrap items-baseline justify-between gap-2'>
@@ -19,7 +28,7 @@ export function EmailTemplatePreviewPanel(props: {
           <Eye className='text-muted-foreground size-4 shrink-0' aria-hidden />
           <h2 className='text-sm font-medium'>Pratinjau email</h2>
         </div>
-        <p className='text-muted-foreground text-xs'>Contoh nilai variabel dari katalog</p>
+        <p className='text-muted-foreground text-xs'>{sourceHint}</p>
       </div>
 
       {props.subject ? (

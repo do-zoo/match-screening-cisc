@@ -5,19 +5,86 @@ import {
   getEmailTemplateEntry,
   sampleVarsFromCatalog,
 } from '@/lib/email-templates/email-template-catalog'
+import { sampleTransactionLineItemsJson } from '@/lib/email-templates/email-transaction-line-items'
 import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
 
 describe('renderEmailFromBlocks', () => {
-  it('registration approved html contains registration id', async () => {
+  it('registration approved html contains registration id in summary table', async () => {
     const entry = getEmailTemplateEntry(EmailTemplateKey.registration_approved)
     const { html, text } = await renderEmailFromBlocks({
       key: EmailTemplateKey.registration_approved,
       subject: entry.defaultSubject,
       blocks: entry.defaultBlocks,
-      vars: sampleVarsFromCatalog(entry),
+      vars: {
+        ...sampleVarsFromCatalog(entry),
+        transaction_line_items_json: sampleTransactionLineItemsJson(),
+      },
     })
     expect(html).toContain('clxyz123abc')
+    expect(html).toContain('Nomor pemesanan')
+    expect(html).toContain('Total terverifikasi')
+    expect(text).toContain('Nomor pemesanan: clxyz123abc')
     expect(text).toContain('Rp850.000')
+  })
+
+  it('compact rincian (pemegang sama) html has padding on price column', async () => {
+    const entry = getEmailTemplateEntry(EmailTemplateKey.invoice)
+    const sameHolderItems = [
+      { sortOrder: 1, holderName: 'EDWAR', menuName: null, label: 'Tiket #1 · EDWAR', value: 'Rp2.000.000' },
+      { sortOrder: 2, holderName: 'EDWAR', menuName: null, label: 'Tiket #2 · EDWAR', value: 'Rp2.000.000' },
+      { sortOrder: 3, holderName: 'EDWAR', menuName: null, label: 'Tiket #3 · EDWAR', value: 'Rp2.000.000' },
+    ]
+    const { html } = await renderEmailFromBlocks({
+      key: EmailTemplateKey.invoice,
+      subject: entry.defaultSubject,
+      blocks: entry.defaultBlocks,
+      vars: {
+        ...sampleVarsFromCatalog(entry),
+        transaction_line_items_json: JSON.stringify(sameHolderItems),
+      },
+    })
+    expect(html).toContain('Pemegang tiket: EDWAR')
+    expect(html).not.toContain('pemegang berbeda per baris')
+    expect(html).toContain('max-width:100%')
+    expect(html).not.toMatch(/margin:0\s+16px/i)
+  })
+
+  it('rincian pemegang berbeda menampilkan kolom Pemegang tiket dan Menu', async () => {
+    const entry = getEmailTemplateEntry(EmailTemplateKey.invoice)
+    const { html } = await renderEmailFromBlocks({
+      key: EmailTemplateKey.invoice,
+      subject: entry.defaultSubject,
+      blocks: entry.defaultBlocks,
+      vars: {
+        ...sampleVarsFromCatalog(entry),
+        transaction_line_items_json: sampleTransactionLineItemsJson(),
+      },
+    })
+    expect(html).toContain('pemegang dan menu per baris')
+    expect(html).toContain('Budi Santoso')
+    expect(html).toContain('Siti Rahayu')
+    expect(html).toContain('Paket dinner')
+  })
+
+  it('invoice html renders ringkasan tagihan as label-value rows', async () => {
+    const entry = getEmailTemplateEntry(EmailTemplateKey.invoice)
+    const { html, text } = await renderEmailFromBlocks({
+      key: EmailTemplateKey.invoice,
+      subject: entry.defaultSubject,
+      blocks: entry.defaultBlocks,
+      vars: {
+        ...sampleVarsFromCatalog(entry),
+        transaction_line_items_json: sampleTransactionLineItemsJson(),
+      },
+    })
+    expect(html).toContain('Total tagihan')
+    expect(html).toContain('Rincian tiket')
+    expect(html).toContain('max-width:100%')
+    expect(html).toContain('Pemegang')
+    expect(html).toContain('Budi Santoso')
+    expect(html).toContain('Instruksi transfer')
+    expect(html).toContain('Rp850.000')
+    expect(text).toContain('Total tagihan: Rp850.000')
   })
 
   it('underpayment invoice html contains sample bank name', async () => {

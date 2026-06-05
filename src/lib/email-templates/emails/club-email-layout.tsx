@@ -17,31 +17,51 @@ function ClubEmailHeader(props: { clubNameNav: string; logoBlobUrl?: string | nu
   return (
     <Section
       style={{
-        padding: '28px 32px 20px',
-        borderBottom: `1px solid ${T.cardBorder}`,
-        backgroundColor: T.headerBand,
+        padding: '32px 24px',
+        textAlign: 'center' as const,
+        borderBottom: `1px solid ${T.headerBorder}`,
+        backgroundColor: T.headerGradientStart,
+        backgroundImage: `linear-gradient(to right, ${T.headerGradientStart}, ${T.headerGradientEnd})`,
       }}
     >
       {props.logoBlobUrl ? (
         <Img
           src={props.logoBlobUrl}
           alt={props.clubNameNav}
-          height={36}
-          style={{ display: 'block', margin: '0 0 12px', maxHeight: '36px', width: 'auto' }}
+          height={40}
+          style={{
+            display: 'block',
+            margin: '0 auto 16px',
+            maxHeight: '40px',
+            width: 'auto',
+          }}
         />
       ) : null}
       <Text
         style={{
-          fontSize: '18px',
-          fontWeight: 600,
-          margin: 0,
-          color: T.text,
-          letterSpacing: '-0.01em',
-          lineHeight: '1.3',
+          fontSize: '28px',
+          fontWeight: 700,
+          margin: '0 0 8px',
+          color: T.headerText,
+          letterSpacing: '-0.02em',
+          lineHeight: '1.2',
         }}
       >
         {props.clubNameNav}
       </Text>
+    </Section>
+  )
+}
+
+function ClubEmailBody(props: { children: ReactNode }) {
+  return (
+    <Section
+      style={{
+        padding: `${T.bodyPaddingY} ${T.bodyPaddingX}`,
+        backgroundColor: T.shellBg,
+      }}
+    >
+      {props.children}
     </Section>
   )
 }
@@ -63,23 +83,16 @@ export function ClubEmailLayout(props: ClubEmailLayoutProps) {
       >
         <Container
           style={{
+            width: '100%',
             maxWidth: '600px',
             margin: '0 auto',
-            padding: '32px 16px',
+            backgroundColor: T.shellBg,
+            color: T.shellText,
           }}
         >
-          <Section
-            style={{
-              backgroundColor: T.cardBg,
-              borderRadius: '12px',
-              border: `1px solid ${T.cardBorder}`,
-              overflow: 'hidden',
-            }}
-          >
-            <ClubEmailHeader clubNameNav={props.clubNameNav} logoBlobUrl={props.logoBlobUrl} />
-            {props.children}
-            <ClubEmailContactFooter {...props.contact} />
-          </Section>
+          <ClubEmailHeader clubNameNav={props.clubNameNav} logoBlobUrl={props.logoBlobUrl} />
+          <ClubEmailBody>{props.children}</ClubEmailBody>
+          <ClubEmailContactFooter {...props.contact} clubNameNav={props.clubNameNav} />
         </Container>
       </Body>
     </Html>

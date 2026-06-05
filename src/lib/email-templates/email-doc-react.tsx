@@ -3,6 +3,7 @@ import { Link, Text } from 'react-email'
 import type { ReactNode } from 'react'
 import { Fragment, createElement } from 'react'
 
+import { EMAIL_DESIGN_TOKENS as T } from '@/lib/email-templates/email-design-tokens'
 import { applyEmailPlaceholders } from '@/lib/email-templates/email-placeholder'
 import { emailDocToPlainText } from '@/lib/email-templates/email-doc-serializer'
 
@@ -16,7 +17,13 @@ export function emailDocToReactNodes(doc: JSONContent, vars: Record<string, stri
           Text,
           {
             key: out.length,
-            style: { color: '#374151', lineHeight: '1.6', margin: '0 0 16px', whiteSpace: 'pre-wrap' as const },
+            style: {
+              color: T.bodyText,
+              lineHeight: '1.65',
+              margin: '0 0 14px',
+              whiteSpace: 'pre-wrap' as const,
+              fontSize: '15px',
+            },
           },
           ...inlineNodesToReact(block.content ?? [], vars),
         ),
@@ -32,7 +39,7 @@ export function emailDocToReactNodes(doc: JSONContent, vars: Record<string, stri
         out.push(
           createElement(
             Text,
-            { key: out.length, style: { color: '#374151', lineHeight: '1.6', margin: '0 0 8px' } },
+            { key: out.length, style: { color: T.bodyText, lineHeight: '1.6', margin: '0 0 8px', fontSize: '16px' } },
             `• ${line}`,
           ),
         )
@@ -49,7 +56,7 @@ export function emailDocToReactNodes(doc: JSONContent, vars: Record<string, stri
         out.push(
           createElement(
             Text,
-            { key: out.length, style: { color: '#374151', lineHeight: '1.6', margin: '0 0 8px' } },
+            { key: out.length, style: { color: T.bodyText, lineHeight: '1.6', margin: '0 0 8px', fontSize: '16px' } },
             `${n}. ${line}`,
           ),
         )
@@ -74,7 +81,7 @@ function inlineNodesToReact(nodes: JSONContent[], vars: Record<string, string>):
       const linkMark = marks.find(m => m.type === 'link')
       let el: ReactNode = text
       if (linkMark && typeof linkMark.attrs?.href === 'string') {
-        el = createElement(Link, { href: linkMark.attrs.href, style: { color: '#2563eb' } }, text)
+        el = createElement(Link, { href: linkMark.attrs.href, style: { color: T.accentLight } }, text)
       }
       if (isBold) el = createElement('strong', { key: `b-${i}` }, el)
       if (isItalic) el = createElement('em', { key: `i-${i}` }, el)

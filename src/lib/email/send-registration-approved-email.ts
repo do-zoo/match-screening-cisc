@@ -1,6 +1,7 @@
 import { EmailTemplateKey, RegistrationStatus } from '@prisma/client'
 
 import { prisma } from '@/lib/db/prisma'
+import { buildTicketLineItems } from '@/lib/email-templates/email-transaction-line-items'
 import { renderRegistrationApprovedEmail } from '@/lib/email-templates/render-registration-approved-email'
 import { loadClubEmailTemplates } from '@/lib/email-templates/load-club-email-templates'
 import { sendTransactionalEmail } from '@/lib/auth/send-transactional-email'
@@ -29,6 +30,15 @@ export async function sendRegistrationApprovedEmailForRegistration(opts: {
         computedTotalAtSubmit: true,
         ticketQty: true,
         ticketCategory: { select: { name: true } },
+        tickets: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            sortOrder: true,
+            ticketPriceApplied: true,
+            assignedHolder: { select: { holderName: true } },
+            mandatoryMenuItem: { select: { name: true } },
+          },
+        },
         event: {
           select: {
             title: true,
@@ -61,6 +71,7 @@ export async function sendRegistrationApprovedEmailForRegistration(opts: {
       venue: registration.event.venue.name,
       kickOffAt: registration.event.kickOffAt,
       openGateAt: registration.event.openGateAt,
+      ticketLineItems: buildTicketLineItems(registration.tickets),
     },
   )
 

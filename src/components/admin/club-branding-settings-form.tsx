@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { saveClubBranding } from '@/lib/actions/admin-club-branding'
@@ -32,10 +32,20 @@ export function ClubBrandingSettingsForm(props: {
     }
   }, [state])
 
-  const socialDefaults = Array.from({ length: SOCIAL_SLOT_COUNT }, (_, i) => ({
-    label: props.initialSocialLinks[i]?.label ?? '',
-    url: props.initialSocialLinks[i]?.url ?? '',
-  }))
+  const [clubNameNav, setClubNameNav] = useState(props.initialClubName)
+  const [contactEmail, setContactEmail] = useState(props.initialContactEmail)
+  const [websiteUrl, setWebsiteUrl] = useState(props.initialWebsiteUrl)
+  const [locationText, setLocationText] = useState(props.initialLocationText)
+  const [socialSlots, setSocialSlots] = useState(() =>
+    Array.from({ length: SOCIAL_SLOT_COUNT }, (_, i) => ({
+      label: props.initialSocialLinks[i]?.label ?? '',
+      url: props.initialSocialLinks[i]?.url ?? '',
+    })),
+  )
+
+  function updateSocialSlot(index: number, field: 'label' | 'url', next: string) {
+    setSocialSlots(prev => prev.map((row, i) => (i === index ? { ...row, [field]: next } : row)))
+  }
 
   return (
     <div className='max-w-xl space-y-6'>
@@ -64,7 +74,8 @@ export function ClubBrandingSettingsForm(props: {
               id='clubNameNav'
               name='clubNameNav'
               required
-              defaultValue={props.initialClubName}
+              value={clubNameNav}
+              onChange={e => setClubNameNav(e.target.value)}
               autoComplete='off'
             />
           </div>
@@ -98,7 +109,8 @@ export function ClubBrandingSettingsForm(props: {
               type='email'
               autoComplete='email'
               placeholder='komite@contoh.com'
-              defaultValue={props.initialContactEmail}
+              value={contactEmail}
+              onChange={e => setContactEmail(e.target.value)}
             />
           </div>
           <div className='space-y-2'>
@@ -108,7 +120,8 @@ export function ClubBrandingSettingsForm(props: {
               name='websiteUrl'
               type='url'
               placeholder='https://…'
-              defaultValue={props.initialWebsiteUrl}
+              value={websiteUrl}
+              onChange={e => setWebsiteUrl(e.target.value)}
             />
           </div>
           <div className='space-y-2'>
@@ -119,12 +132,13 @@ export function ClubBrandingSettingsForm(props: {
               rows={2}
               maxLength={200}
               placeholder='Misalnya Tangerang Selatan, Banten'
-              defaultValue={props.initialLocationText}
+              value={locationText}
+              onChange={e => setLocationText(e.target.value)}
             />
           </div>
           <div className='space-y-4'>
             <p className='text-sm font-medium'>Sosial media (maks. 3)</p>
-            {socialDefaults.map((row, i) => (
+            {socialSlots.map((row, i) => (
               <div key={i} className='grid gap-3 sm:grid-cols-2'>
                 <div className='space-y-2'>
                   <Label htmlFor={`socialLabel${i}`}>Label {i + 1}</Label>
@@ -132,7 +146,8 @@ export function ClubBrandingSettingsForm(props: {
                     id={`socialLabel${i}`}
                     name={`socialLabel${i}`}
                     placeholder='Instagram'
-                    defaultValue={row.label}
+                    value={row.label}
+                    onChange={e => updateSocialSlot(i, 'label', e.target.value)}
                     maxLength={40}
                   />
                 </div>
@@ -143,7 +158,8 @@ export function ClubBrandingSettingsForm(props: {
                     name={`socialUrl${i}`}
                     type='url'
                     placeholder='https://…'
-                    defaultValue={row.url}
+                    value={row.url}
+                    onChange={e => updateSocialSlot(i, 'url', e.target.value)}
                   />
                 </div>
               </div>

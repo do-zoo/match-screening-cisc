@@ -5,6 +5,8 @@ import type { EmailBlock } from '@/lib/email-templates/email-block-types'
 import { getEmailTemplateEntry } from '@/lib/email-templates/email-template-catalog'
 import { parseStoredEmailBody } from '@/lib/email-templates/parse-stored-email-body'
 import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-blocks'
+import type { EmailTransactionLineItem } from '@/lib/email-templates/email-transaction-line-items'
+import { withTransactionLineItems } from '@/lib/email-templates/email-transaction-line-items'
 import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
@@ -18,6 +20,7 @@ export type RegistrationApprovedEmailCtx = {
   venue: string
   kickOffAt: Date
   openGateAt: Date | null
+  ticketLineItems?: EmailTransactionLineItem[]
 }
 
 function formatEmailDateTime(d: Date): string {
@@ -42,7 +45,7 @@ function varsFromCtx(ctx: RegistrationApprovedEmailCtx): Record<string, string> 
   if (ctx.openGateAt) {
     vars.open_gate_at_formatted = formatEmailDateTime(ctx.openGateAt)
   }
-  return vars
+  return withTransactionLineItems(vars, ctx.ticketLineItems ?? [])
 }
 
 export async function renderRegistrationApprovedEmail(

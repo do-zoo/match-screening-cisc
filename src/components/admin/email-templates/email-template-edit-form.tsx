@@ -67,6 +67,7 @@ export function EmailTemplateEditForm(props: {
   const [blocks, setBlocks] = useState(props.displayBlocks)
   const [focusedEditor, setFocusedEditor] = useState<Editor | null>(null)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [previewDataSource, setPreviewDataSource] = useState<'database' | 'sample' | null>(null)
   const [dragBlockId, setDragBlockId] = useState<string | null>(null)
   const [dropOverBlockId, setDropOverBlockId] = useState<string | null>(null)
   const [previewPending, startPreviewTransition] = useTransition()
@@ -99,8 +100,13 @@ export function EmailTemplateEditForm(props: {
     previewDebounceRef.current = setTimeout(() => {
       startPreviewTransition(async () => {
         const res = await previewClubEmailTemplate({ key: templateKey, subject, body: bodyJson })
-        if (res.ok) setPreviewHtml(res.data.html)
-        else setPreviewHtml(null)
+        if (res.ok) {
+          setPreviewHtml(res.data.html)
+          setPreviewDataSource(res.data.dataSource)
+        } else {
+          setPreviewHtml(null)
+          setPreviewDataSource(null)
+        }
       })
     }, 300)
   }, [templateKey, subject, bodyJson])
@@ -357,7 +363,12 @@ export function EmailTemplateEditForm(props: {
         </aside>
       </div>
 
-      <EmailTemplatePreviewPanel html={previewHtml} pending={previewPending} subject={subject} />
+      <EmailTemplatePreviewPanel
+        html={previewHtml}
+        pending={previewPending}
+        subject={subject}
+        dataSource={previewDataSource}
+      />
 
       <footer className='border-border flex flex-wrap items-center justify-between gap-4 border-t pt-6'>
         <p className='text-muted-foreground text-xs leading-relaxed'>
