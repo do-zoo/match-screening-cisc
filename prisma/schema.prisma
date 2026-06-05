@@ -506,12 +506,15 @@ model EmailDeliveryLog {
 }
 
 model ClubBranding {
-  singletonKey    String   @id @default("default")
-  clubNameNav     String   @default("CISC Nobar")
-  footerPlainText String?
-  logoBlobUrl     String?
-  logoBlobPath    String?
-  updatedAt       DateTime @updatedAt
+  singletonKey  String   @id @default("default")
+  clubNameNav   String   @default("CISC Nobar")
+  contactEmail  String?
+  websiteUrl    String?
+  locationText  String?  @db.VarChar(200)
+  socialLinks   Json?
+  logoBlobUrl   String?
+  logoBlobPath  String?
+  updatedAt     DateTime @updatedAt
 }
 
 /// Operational toggles untuk seluruh situs publik singleton — loader `loadClubOperationalSettings`.
