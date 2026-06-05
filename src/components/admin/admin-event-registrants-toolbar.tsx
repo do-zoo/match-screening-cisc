@@ -19,6 +19,8 @@ const tabOptions = [
   { value: 'closed' as const, label: 'Dibatalkan / refund' },
 ]
 
+const REGISTRANTS_SEARCH_DEBOUNCE_MS = 550
+
 export function AdminEventRegistrantsToolbar({
   eventId,
   tab,
@@ -38,6 +40,7 @@ export function AdminEventRegistrantsToolbar({
         inputId: 'admin-event-registrants-search',
         label: 'Cari peserta',
         placeholder: 'Nama, WhatsApp, atau nomor anggota…',
+        debounceMs: REGISTRANTS_SEARCH_DEBOUNCE_MS,
         value: searchQuery,
         getUrlForQuery: q =>
           buildEventRegistrantsListUrl(eventId, {
