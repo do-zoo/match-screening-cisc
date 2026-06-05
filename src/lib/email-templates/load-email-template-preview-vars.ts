@@ -17,6 +17,7 @@ import {
   withTransactionLineItems,
   type RegistrationTicketForEmailLineItem,
 } from '@/lib/email-templates/email-transaction-line-items'
+import { buildRegistrationEmailUrlVars } from '@/lib/email-templates/registration-email-url-vars'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 const previewTicketSelect = {
@@ -30,6 +31,21 @@ const previewTicketSelect = {
 }
 
 export type EmailTemplatePreviewDataSource = 'database' | 'sample'
+
+function withRegistrationUrlVars(
+  vars: Record<string, string>,
+  eventSlug?: string | null,
+  registrationId?: string,
+): Record<string, string> {
+  return {
+    ...vars,
+    ...buildRegistrationEmailUrlVars({
+      origin: process.env.BETTER_AUTH_URL,
+      eventSlug,
+      registrationId,
+    }),
+  }
+}
 
 function formatEmailDateTime(d: Date): string {
   return d.toLocaleString('id-ID', {
@@ -53,6 +69,7 @@ async function varsFromLatestRegistrationInvoice(): Promise<Record<string, strin
       event: {
         select: {
           title: true,
+          slug: true,
           bankAccount: { select: { bankName: true, accountNumber: true, accountName: true } },
         },
       },
@@ -73,7 +90,7 @@ async function varsFromLatestRegistrationInvoice(): Promise<Record<string, strin
     ticket_category_name: reg.ticketCategory.name,
   }
   return withTransactionLineItems(
-    vars,
+    withRegistrationUrlVars(vars, reg.event.slug, reg.id),
     buildTicketLineItems(reg.tickets as RegistrationTicketForEmailLineItem[]),
   )
 }
@@ -100,6 +117,7 @@ async function varsFromLatestUnderpaymentInvoice(): Promise<Record<string, strin
       event: {
         select: {
           title: true,
+          slug: true,
           bankAccount: { select: { bankName: true, accountNumber: true, accountName: true } },
         },
       },
@@ -136,7 +154,7 @@ async function varsFromLatestUnderpaymentInvoice(): Promise<Record<string, strin
     vars.amount_paid_idr = formatWaIdr(registrationTotal - shortfall)
   }
   return withTransactionLineItems(
-    vars,
+    withRegistrationUrlVars(vars, reg.event.slug, reg.id),
     buildTicketLineItems(reg.tickets as RegistrationTicketForEmailLineItem[]),
   )
 }
@@ -158,9 +176,9 @@ async function varsFromLatestApprovedRegistration(): Promise<Record<string, stri
       event: {
         select: {
           title: true,
+          slug: true,
           kickOffAt: true,
-          openGateAt: true,
-          venue: { select: { name: true } },
+          venue: { select: { name: true, address: true, mapUrl: true } },
         },
       },
     },
@@ -175,13 +193,14 @@ async function varsFromLatestApprovedRegistration(): Promise<Record<string, stri
     ticket_qty: String(reg.ticketQty),
     ticket_category_name: reg.ticketCategory.name,
     venue: reg.event.venue.name,
+    venue_address: reg.event.venue.address,
     start_at_formatted: formatEmailDateTime(reg.event.kickOffAt),
   }
-  if (reg.event.openGateAt) {
-    vars.open_gate_at_formatted = formatEmailDateTime(reg.event.openGateAt)
+  if (reg.event.venue.mapUrl?.trim()) {
+    vars.venue_map_url = reg.event.venue.mapUrl.trim()
   }
   return withTransactionLineItems(
-    vars,
+    withRegistrationUrlVars(vars, reg.event.slug, reg.id),
     buildTicketLineItems(reg.tickets as RegistrationTicketForEmailLineItem[]),
   )
 }
@@ -208,7 +227,7 @@ async function varsFromLatestRegistrationByStatus(
       ticketQty: true,
       ticketCategory: { select: { name: true } },
       tickets: previewTicketSelect,
-      event: { select: { title: true } },
+      event: { select: { title: true, slug: true } },
       rejectionReason: true,
       paymentIssueReason: true,
     },
@@ -231,7 +250,7 @@ async function varsFromLatestRegistrationByStatus(
     vars.reason = 'Contoh alasan untuk pratinjau template.'
   }
   return withTransactionLineItems(
-    vars,
+    withRegistrationUrlVars(vars, reg.event.slug, reg.id),
     buildTicketLineItems(reg.tickets as RegistrationTicketForEmailLineItem[]),
   )
 }

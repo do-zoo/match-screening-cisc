@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { MAX_CLUB_SOCIAL_LINKS } from '@/lib/branding/club-social-links-limit'
+
 const httpsOptional = z
   .string()
   .optional()
@@ -27,14 +29,11 @@ const socialLinkInputSchema = z
   .superRefine((row, ctx) => {
     const hasLabel = row.label.length > 0
     const hasUrl = row.url.length > 0
-    if (hasLabel !== hasUrl) {
+    if (hasLabel && !hasUrl) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Label dan URL sosial harus diisi berpasangan.',
+        message: 'URL wajib diisi bila label diisi.',
       })
-    }
-    if (hasLabel && row.label.length < 1) {
-      ctx.addIssue({ code: 'custom', message: 'Label sosial wajib diisi.' })
     }
   })
 
@@ -47,7 +46,7 @@ export const clubBrandingTextsSchema = z.object({
     .optional()
     .transform(v => (v ?? '').trim())
     .transform(v => (v === '' ? '' : v.slice(0, 200))),
-  socialLinks: z.array(socialLinkInputSchema).max(3),
+  socialLinks: z.array(socialLinkInputSchema).max(MAX_CLUB_SOCIAL_LINKS),
 })
 
 export type ClubBrandingTextsInput = z.infer<typeof clubBrandingTextsSchema>
@@ -56,6 +55,6 @@ export function socialLinksForDb(
   rows: ClubBrandingTextsInput['socialLinks'],
 ): { label: string; url: string }[] {
   return rows
-    .filter(r => r.label.trim() && r.url.trim())
+    .filter(r => r.url.trim())
     .map(r => ({ label: r.label.trim(), url: r.url.trim() }))
 }

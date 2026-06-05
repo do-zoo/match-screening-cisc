@@ -14,15 +14,17 @@ import {
 } from '@/lib/forms/club-branding-schema'
 import { ok, rootError, fieldError, type ActionResult } from '@/lib/forms/action-result'
 import { zodToFieldErrors } from '@/lib/forms/zod'
+import { MAX_CLUB_SOCIAL_LINKS } from '@/lib/branding/club-social-links-limit'
 import { CLUB_BRANDING_SINGLETON_KEY } from '@/lib/public/load-club-branding'
 import { isUploadError } from '@/lib/uploads/errors'
 import { uploadClubLogo } from '@/lib/uploads/upload-club-logo'
 
 function parseSocialLinksFromFormData(formData: FormData) {
   const rows: { label: string; url: string }[] = []
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < MAX_CLUB_SOCIAL_LINKS; i++) {
     const label = formData.get(`socialLabel${i}`)
     const url = formData.get(`socialUrl${i}`)
+    if (label === null && url === null) break
     rows.push({
       label: typeof label === 'string' ? label : '',
       url: typeof url === 'string' ? url : '',

@@ -8,10 +8,12 @@ export type StoredEmailTemplateBody = {
 export type EmailBlock =
   | { type: 'branding_header'; id: string }
   | { type: 'paragraph'; id: string; doc: JSONContent }
+  | { type: 'hr'; id: string }
   | { type: 'invoice_summary'; id: string }
-  | { type: 'registration_receipt'; id: string }
+  | { type: 'registration_receipt'; id: string } /** Ringkasan pesanan */
+  | { type: 'event_schedule'; id: string } /** Ringkasan acara */
   | { type: 'bank_details'; id: string }
-  | { type: 'cta_button'; id: string; label: string }
+  | { type: 'cta_button'; id: string; label: string; href?: string }
   | { type: 'footer_disclaimer'; id: string; text: string }
 
 export function newBlockId(): string {

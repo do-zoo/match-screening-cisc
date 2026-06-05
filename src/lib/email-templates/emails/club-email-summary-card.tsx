@@ -1,4 +1,4 @@
-import { Column, Row, Section, Text } from 'react-email'
+import { Column, Link, Row, Section, Text } from 'react-email'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
 
@@ -7,6 +7,8 @@ import { EMAIL_DESIGN_TOKENS as T } from '@/lib/email-templates/email-design-tok
 export type EmailSummaryDataRow = {
   label: string
   value: string
+  /** Jika diisi, nilai ditampilkan sebagai tautan (mis. alamat venue + map URL). */
+  href?: string
   note?: string
   /** Teks bantu di bawah label (mis. pita total kekurangan bayar). */
   hint?: string
@@ -20,6 +22,9 @@ export type TransactionSummaryParts = {
   detail: EmailSummaryDataRow[]
   footer: EmailSummaryDataRow[]
 }
+
+export const ORDER_SUMMARY_CARD_TITLE = 'Ringkasan pesanan'
+export const EVENT_SUMMARY_CARD_TITLE = 'Ringkasan acara'
 
 const cardOuter = {
   backgroundColor: T.cardBg,
@@ -86,7 +91,20 @@ function renderMetaRow(row: EmailSummaryDataRow, key: string, options?: { mutedV
             wordBreak: 'break-all' as const,
           },
         },
-        row.value,
+        row.href?.trim()
+          ? createElement(
+              Link,
+              {
+                href: row.href.trim(),
+                style: {
+                  color: T.accent,
+                  textDecoration: 'underline',
+                  fontWeight: 600,
+                },
+              },
+              row.value,
+            )
+          : row.value,
       ),
     ),
   )
@@ -592,11 +610,29 @@ function renderFooterSection(footer: EmailSummaryDataRow[], variant: 'default' |
   return nodes
 }
 
+function renderSummaryCardTitle(title: string): ReactNode {
+  return createElement(
+    Text,
+    {
+      style: {
+        margin: '0 0 16px',
+        color: T.bodyText,
+        fontSize: '14px',
+        fontWeight: 700,
+        lineHeight: '1.3',
+      },
+    },
+    title,
+  )
+}
+
 export function renderTransactionSummaryCard(
   parts: TransactionSummaryParts,
   variant: 'default' | 'success' = 'default',
+  options?: { title?: string },
 ): ReactNode {
   const outerStyle = variant === 'success' ? receiptSuccessOuter : cardOuter
+  const cardTitle = options?.title?.trim()
 
   return createElement(
     Section,
@@ -604,6 +640,7 @@ export function renderTransactionSummaryCard(
     createElement(
       Section,
       { style: { padding: '20px 24px 16px' } },
+      cardTitle ? renderSummaryCardTitle(cardTitle) : null,
       ...parts.meta.map((row, i) => renderMetaRow(row, `meta-${i}`)),
       renderDetailPanel(parts.detail),
     ),
@@ -614,7 +651,8 @@ export function renderTransactionSummaryCard(
 export function summaryPartsToPlainLines(parts: TransactionSummaryParts): string[] {
   const lines: string[] = []
   for (const row of parts.meta) {
-    lines.push(`${row.label}: ${row.value}`)
+    const href = row.href?.trim()
+    lines.push(href ? `${row.label}: ${row.value} (${href})` : `${row.label}: ${row.value}`)
   }
   if (parts.detail.length > 0) {
     lines.push('Rincian tiket')

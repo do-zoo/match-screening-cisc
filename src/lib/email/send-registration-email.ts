@@ -19,6 +19,7 @@ import { renderLifecycleEmail } from '@/lib/email-templates/render-lifecycle-ema
 import { renderRegistrationApprovedEmail } from '@/lib/email-templates/render-registration-approved-email'
 import { loadClubNotificationPreferences } from '@/lib/public/load-club-notification-preferences'
 import { resolveOutboundNotifyBehaviour } from '@/lib/notifications/notification-outbound-mode'
+import { buildRegistrationEmailUrlVars } from '@/lib/email-templates/registration-email-url-vars'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 export type SendRegistrationEmailResult =
@@ -70,9 +71,9 @@ async function loadRegistrationForEmail(registrationId: string, eventId: string)
       event: {
         select: {
           title: true,
+          slug: true,
           kickOffAt: true,
-          openGateAt: true,
-          venue: { select: { name: true } },
+          venue: { select: { name: true, address: true, mapUrl: true } },
           bankAccount: { select: { bankName: true, accountNumber: true, accountName: true } },
         },
       },
@@ -81,6 +82,14 @@ async function loadRegistrationForEmail(registrationId: string, eventId: string)
 }
 
 type LoadedRegistration = NonNullable<Awaited<ReturnType<typeof loadRegistrationForEmail>>>
+
+function registrationEmailUrlVars(reg: LoadedRegistration): Record<string, string> {
+  return buildRegistrationEmailUrlVars({
+    origin: process.env.BETTER_AUTH_URL,
+    eventSlug: reg.event.slug,
+    registrationId: reg.id,
+  })
+}
 
 function eligibilityInput(reg: LoadedRegistration) {
   return {
@@ -105,6 +114,7 @@ async function renderForKey(
       return renderRegistrationInvoiceEmail(fromDb ?? null, {
         contactName: reg.contactName,
         eventTitle: reg.event.title,
+        eventSlug: reg.event.slug,
         totalAmountIdr: reg.computedTotalAtSubmit,
         bankName: bank?.bankName ?? '',
         accountNumber: bank?.accountNumber ?? '',
@@ -123,6 +133,7 @@ async function renderForKey(
       return renderInvoiceUnderpaymentEmail(fromDb ?? null, {
         contactName: reg.contactName,
         eventTitle: reg.event.title,
+        eventSlug: reg.event.slug,
         adjustmentAmountIdr: shortfall,
         registrationTotalIdr: registrationTotal,
         amountPaidIdr: inferredPaid,
@@ -139,13 +150,15 @@ async function renderForKey(
       return renderRegistrationApprovedEmail(fromDb ?? null, {
         contactName: reg.contactName,
         eventTitle: reg.event.title,
+        eventSlug: reg.event.slug,
         registrationId: reg.id,
         computedTotalIdr: reg.computedTotalAtSubmit,
         ticketQty: reg.ticketQty,
         ticketCategoryName: reg.ticketCategory.name,
         venue: reg.event.venue.name,
+        venueAddress: reg.event.venue.address,
+        venueMapUrl: reg.event.venue.mapUrl,
         kickOffAt: reg.event.kickOffAt,
-        openGateAt: reg.event.openGateAt,
         ticketLineItems,
       })
     case EmailTemplateKey.receipt:
@@ -163,7 +176,10 @@ async function renderForKey(
       }
       if (reg.rejectionReason?.trim()) vars.reason = reg.rejectionReason.trim()
       if (reg.paymentIssueReason?.trim()) vars.reason = reg.paymentIssueReason.trim()
-      return renderLifecycleEmail(templateKey, fromDb ?? null, vars)
+      return renderLifecycleEmail(templateKey, fromDb ?? null, {
+        ...vars,
+        ...registrationEmailUrlVars(reg),
+      })
     }
     default:
       throw new Error(`Template tidak didukung: ${templateKey}`)

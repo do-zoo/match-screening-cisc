@@ -1,4 +1,4 @@
-import { Button, Column, Row, Section, Text } from 'react-email'
+import { Button, Column, Hr, Row, Section, Text } from 'react-email'
 import { EmailTemplateKey } from '@prisma/client'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
@@ -18,11 +18,63 @@ import {
 } from '@/lib/email-templates/email-transaction-line-items'
 import type { EmailSummaryDataRow, TransactionSummaryParts } from '@/lib/email-templates/emails/club-email-summary-card'
 import {
+  eventSchedulePartsToPlainLines,
+  renderEventScheduleBlock,
+} from '@/lib/email-templates/emails/club-email-event-schedule'
+import {
+  EVENT_SUMMARY_CARD_TITLE,
+  ORDER_SUMMARY_CARD_TITLE,
   renderTransactionSummaryCard,
   summaryPartsToPlainLines,
 } from '@/lib/email-templates/emails/club-email-summary-card'
 
-const blockSpacing = { margin: '0 0 24px' }
+const BLOCK_GAP_DEFAULT = '20px'
+const BLOCK_GAP_COMPACT = '10px'
+
+function sectionMarginBottom(index: number, blocks: EmailBlock[]): string {
+  const block = blocks[index]
+  const next = blocks[index + 1]
+  if (!block) return BLOCK_GAP_DEFAULT
+
+  if (block.type === 'paragraph' && next?.type === 'cta_button') return BLOCK_GAP_COMPACT
+  if (block.type === 'cta_button' && (next?.type === 'hr' || next?.type === 'footer_disclaimer')) {
+    return BLOCK_GAP_COMPACT
+  }
+  if (block.type === 'hr' && next?.type === 'footer_disclaimer') return BLOCK_GAP_COMPACT
+  if (block.type === 'footer_disclaimer') return '0'
+
+  if (
+    (block.type === 'registration_receipt' ||
+      block.type === 'event_schedule' ||
+      block.type === 'invoice_summary') &&
+    (next?.type === 'hr' || next?.type === 'paragraph')
+  ) {
+    return '16px'
+  }
+
+  return BLOCK_GAP_DEFAULT
+}
+
+function blockSectionStyle(index: number, blocks: EmailBlock[], extra?: Record<string, string | number>) {
+  return { margin: `0 0 ${sectionMarginBottom(index, blocks)}`, ...extra }
+}
+
+function resolveCtaHref(
+  block: Extract<EmailBlock, { type: 'cta_button' }>,
+  vars: Record<string, string>,
+): string {
+  const raw = block.href?.trim()
+  if (raw) {
+    return applyEmailPlaceholders(raw, vars)
+  }
+  return (
+    vars.invite_url ??
+    vars.magic_link_url ??
+    vars.event_page_url ??
+    vars.registration_page_url ??
+    '#'
+  )
+}
 
 function lineItemsFromVars(vars: Record<string, string>): EmailSummaryDataRow[] {
   return parseTransactionLineItems(vars[TRANSACTION_LINE_ITEMS_JSON_KEY]).map(item => ({
@@ -90,7 +142,6 @@ function buildRegistrationReceiptParts(vars: Record<string, string>): Transactio
       label: 'Nomor pemesanan',
       value: applyEmailPlaceholders('{registration_id}', vars),
     },
-    { label: 'Acara', value: applyEmailPlaceholders('{event_title}', vars) },
   ]
   if (vars.ticket_category_name?.trim()) {
     meta.push({ label: 'Kategori tiket', value: vars.ticket_category_name.trim() })
@@ -105,15 +156,6 @@ function buildRegistrationReceiptParts(vars: Record<string, string>): Transactio
       value: applyEmailPlaceholders('{computed_total_idr}', vars),
     },
   ]
-  if (vars.venue?.trim()) {
-    footer.push({ label: 'Venue', value: vars.venue.trim() })
-  }
-  if (vars.start_at_formatted?.trim()) {
-    footer.push({ label: 'Waktu acara', value: vars.start_at_formatted.trim() })
-  }
-  if (vars.open_gate_at_formatted?.trim()) {
-    footer.push({ label: 'Buka gate', value: vars.open_gate_at_formatted.trim() })
-  }
 
   return { meta, detail: lineItemsFromVars(vars), footer }
 }
@@ -203,7 +245,8 @@ export function renderEmailBlocks(props: {
   const { templateKey, blocks, vars } = props
   const nodes: ReactNode[] = []
 
-  for (const block of blocks) {
+  for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+    const block = blocks[blockIndex]!
     switch (block.type) {
       case 'branding_header':
         break
@@ -211,8 +254,28 @@ export function renderEmailBlocks(props: {
         nodes.push(
           createElement(
             Section,
-            { key: block.id, style: blockSpacing },
+            { key: block.id, style: blockSectionStyle(blockIndex, blocks) },
             ...emailDocToReactNodes(block.doc, vars),
+          ),
+        )
+        break
+      case 'hr':
+        nodes.push(
+          createElement(
+            Section,
+            {
+              key: block.id,
+              style: blockSectionStyle(blockIndex, blocks, { paddingTop: '2px', paddingBottom: '2px' }),
+            },
+            createElement(Hr, {
+              style: {
+                borderColor: T.disclaimerBorder,
+                borderTopWidth: '1px',
+                borderStyle: 'solid',
+                margin: '0',
+                width: '100%',
+              },
+            }),
           ),
         )
         break
@@ -220,7 +283,7 @@ export function renderEmailBlocks(props: {
         nodes.push(
           createElement(
             Section,
-            { key: block.id, style: blockSpacing },
+            { key: block.id, style: blockSectionStyle(blockIndex, blocks) },
             renderTransactionSummaryCard(buildInvoiceSummaryParts(templateKey, vars), 'default'),
           ),
         )
@@ -229,16 +292,25 @@ export function renderEmailBlocks(props: {
         nodes.push(
           createElement(
             Section,
-            { key: block.id, style: blockSpacing },
-            renderTransactionSummaryCard(buildRegistrationReceiptParts(vars), 'success'),
+            { key: block.id, style: blockSectionStyle(blockIndex, blocks) },
+            renderTransactionSummaryCard(buildRegistrationReceiptParts(vars), 'success', {
+              title: ORDER_SUMMARY_CARD_TITLE,
+            }),
           ),
         )
         break
+      case 'event_schedule': {
+        const schedule = renderEventScheduleBlock(vars)
+        if (schedule) {
+          nodes.push(createElement(Section, { key: block.id, style: blockSectionStyle(blockIndex, blocks) }, schedule))
+        }
+        break
+      }
       case 'bank_details':
         nodes.push(
           createElement(
             Section,
-            { key: block.id, style: blockSpacing },
+            { key: block.id, style: blockSectionStyle(blockIndex, blocks) },
             renderBankDetailsCard(vars),
           ),
         )
@@ -247,11 +319,11 @@ export function renderEmailBlocks(props: {
         nodes.push(
           createElement(
             Section,
-            { key: block.id, style: { ...blockSpacing, textAlign: 'center' as const } },
+            { key: block.id, style: blockSectionStyle(blockIndex, blocks, { textAlign: 'center' as const }) },
             createElement(
               Button,
               {
-                href: vars.invite_url ?? vars.magic_link_url ?? '#',
+                href: resolveCtaHref(block, vars),
                 style: {
                   backgroundColor: T.primary,
                   color: T.primaryForeground,
@@ -275,8 +347,8 @@ export function renderEmailBlocks(props: {
             {
               key: block.id,
               style: {
-                ...blockSpacing,
-                paddingTop: '8px',
+                ...blockSectionStyle(blockIndex, blocks),
+                paddingTop: blocks[blockIndex - 1]?.type === 'hr' ? '4px' : '8px',
                 borderTop: `1px solid ${T.disclaimerBorder}`,
               },
             },
@@ -320,12 +392,22 @@ export function blocksToPlainText(props: {
       case 'paragraph':
         lines.push(emailDocToPlainText(block.doc, vars), '')
         break
+      case 'hr':
+        lines.push('---', '')
+        break
       case 'invoice_summary':
         lines.push(...summaryPartsToPlainLines(buildInvoiceSummaryParts(templateKey, vars)), '')
         break
       case 'registration_receipt':
-        lines.push(...summaryPartsToPlainLines(buildRegistrationReceiptParts(vars)), '')
+        lines.push(ORDER_SUMMARY_CARD_TITLE, ...summaryPartsToPlainLines(buildRegistrationReceiptParts(vars)), '')
         break
+      case 'event_schedule': {
+        const scheduleLines = eventSchedulePartsToPlainLines(vars)
+        if (scheduleLines.length > 0) {
+          lines.push(EVENT_SUMMARY_CARD_TITLE, ...scheduleLines, '')
+        }
+        break
+      }
       case 'bank_details':
         lines.push(
           'Instruksi transfer',
@@ -336,7 +418,7 @@ export function blocksToPlainText(props: {
         )
         break
       case 'cta_button':
-        lines.push(`${block.label}: ${vars.invite_url ?? vars.magic_link_url ?? ''}`, '')
+        lines.push(`${block.label}: ${resolveCtaHref(block, vars)}`, '')
         break
       case 'footer_disclaimer':
         break

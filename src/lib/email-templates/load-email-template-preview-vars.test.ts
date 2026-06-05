@@ -46,7 +46,11 @@ describe('loadEmailTemplatePreviewVars', () => {
         title: 'Turnamen Internal',
         kickOffAt: kickOff,
         openGateAt: null,
-        venue: { name: 'Lapangan A' },
+        venue: {
+          name: 'Lapangan A',
+          address: 'Kompleks Olahraga, Tangerang Selatan',
+          mapUrl: 'https://maps.google.com/?q=lapangan-a',
+        },
       },
     })
 
@@ -60,6 +64,8 @@ describe('loadEmailTemplatePreviewVars', () => {
     expect(vars.registration_id).toBe('reg_real_1')
     expect(vars.contact_name).toBe('Ani Wijaya')
     expect(vars.computed_total_idr).toBe(formatWaIdr(900_000))
+    expect(vars.venue_address).toBe('Kompleks Olahraga, Tangerang Selatan')
+    expect(vars.venue_map_url).toBe('https://maps.google.com/?q=lapangan-a')
     expect(vars.transaction_line_items_json).toBeTruthy()
     expect(findFirstMock).toHaveBeenCalledWith(
       expect.objectContaining({

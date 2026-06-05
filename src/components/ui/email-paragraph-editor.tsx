@@ -5,7 +5,21 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
-import { Bold, Braces, Italic, Link2, List, ListOrdered, Redo2, Undo2 } from 'lucide-react'
+import TextAlign from '@tiptap/extension-text-align'
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Braces,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  Quote,
+  Redo2,
+  Undo2,
+} from 'lucide-react'
 import type { JSONContent } from '@tiptap/core'
 
 import { Button } from '@/components/ui/button'
@@ -69,13 +83,18 @@ export function EmailParagraphEditor({
         heading: false,
         codeBlock: false,
         code: false,
-        blockquote: false,
+        blockquote: {},
         horizontalRule: false,
         strike: false,
         link: false,
         underline: false,
         bulletList: {},
         orderedList: {},
+      }),
+      TextAlign.configure({
+        types: ['paragraph'],
+        alignments: ['left', 'center', 'right'],
+        defaultAlignment: 'left',
       }),
       Link.configure({
         openOnClick: false,
@@ -184,6 +203,41 @@ export function EmailParagraphEditor({
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
           <ListOrdered className='size-4' />
+        </ToolbarButton>
+        <ToolbarButton
+          title='Kutipan'
+          active={editor.isActive('blockquote')}
+          disabled={disabled}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        >
+          <Quote className='size-4' />
+        </ToolbarButton>
+        <ToolbarButton
+          title='Rata kiri'
+          active={
+            editor.isActive({ textAlign: 'left' }) ||
+            (!editor.isActive({ textAlign: 'center' }) && !editor.isActive({ textAlign: 'right' }))
+          }
+          disabled={disabled}
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        >
+          <AlignLeft className='size-4' />
+        </ToolbarButton>
+        <ToolbarButton
+          title='Rata tengah'
+          active={editor.isActive({ textAlign: 'center' })}
+          disabled={disabled}
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        >
+          <AlignCenter className='size-4' />
+        </ToolbarButton>
+        <ToolbarButton
+          title='Rata kanan'
+          active={editor.isActive({ textAlign: 'right' })}
+          disabled={disabled}
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        >
+          <AlignRight className='size-4' />
         </ToolbarButton>
         <Popover>
           <PopoverTrigger

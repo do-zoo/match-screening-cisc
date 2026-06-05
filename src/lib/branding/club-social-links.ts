@@ -1,9 +1,11 @@
 import { z } from 'zod'
 
+import { MAX_CLUB_SOCIAL_LINKS } from '@/lib/branding/club-social-links-limit'
+
 export type ClubSocialLink = { label: string; url: string }
 
 const linkSchema = z.object({
-  label: z.string().trim().min(1).max(40),
+  label: z.string().trim().max(40),
   url: z
     .string()
     .trim()
@@ -11,7 +13,7 @@ const linkSchema = z.object({
     .refine(u => u.startsWith('https://'), 'URL harus diawali https://'),
 })
 
-const arraySchema = z.array(linkSchema).max(3)
+const arraySchema = z.array(linkSchema).max(MAX_CLUB_SOCIAL_LINKS)
 
 export function parseClubSocialLinks(raw: unknown): ClubSocialLink[] {
   const parsed = arraySchema.safeParse(raw)

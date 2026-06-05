@@ -13,13 +13,21 @@ describe('parseClubSocialLinks', () => {
     ).toEqual([{ label: 'Instagram', url: 'https://instagram.com/cisc' }])
   })
 
-  it('rejects more than 3 links', () => {
+  it('parses up to max links', () => {
     const raw = [
       { label: 'A', url: 'https://a.com' },
       { label: 'B', url: 'https://b.com' },
       { label: 'C', url: 'https://c.com' },
       { label: 'D', url: 'https://d.com' },
     ]
+    expect(parseClubSocialLinks(raw)).toHaveLength(4)
+  })
+
+  it('rejects more than max links', () => {
+    const raw = Array.from({ length: 11 }, (_, i) => ({
+      label: `L${i}`,
+      url: `https://example${i}.com`,
+    }))
     expect(parseClubSocialLinks(raw)).toEqual([])
   })
 

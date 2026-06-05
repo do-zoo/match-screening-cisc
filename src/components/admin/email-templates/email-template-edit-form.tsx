@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import type { Editor } from '@tiptap/react'
-import type { EmailTemplateKey } from '@prisma/client'
+import { EmailTemplateKey } from '@prisma/client'
 import { ChevronDown, ChevronUp, GripVertical, Lock, Plus, X } from 'lucide-react'
 
 import { EmailParagraphEditor } from '@/components/ui/email-paragraph-editor'
@@ -13,8 +13,15 @@ import { EmailTemplateVariableSidebar } from '@/components/admin/email-templates
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import {
   previewClubEmailTemplate,
@@ -27,32 +34,21 @@ import type { EmailBlock } from '@/lib/email-templates/email-block-types'
 import type { EmailTemplateCatalogEntry } from '@/lib/email-templates/email-template-catalog'
 import { allowedTokensForKey } from '@/lib/email-templates/email-template-catalog'
 import {
-  addParagraphBlock,
+  addEmailBlock,
+  EMAIL_BLOCK_HINTS,
+  EMAIL_BLOCK_LABELS,
+  listEmailBlockAddOptions,
+} from '@/lib/email-templates/email-block-add-options'
+import {
   moveEmailBlock,
   reorderEmailBlocks,
+  removeEmailBlock,
   removeParagraphBlock,
   updateBlockField,
   updateParagraphDoc,
 } from '@/lib/email-templates/email-block-list-utils'
 import { analyzeEmailTemplateBlocks } from '@/lib/email-templates/email-template-editor-validation'
 import { serializeStoredBody } from '@/lib/email-templates/parse-stored-email-body'
-
-const SYSTEM_BLOCK_LABELS: Record<string, string> = {
-  invoice_summary: 'Ringkasan tagihan',
-  registration_receipt: 'Bukti pendaftaran',
-  bank_details: 'Detail rekening',
-  cta_button: 'Tombol CTA',
-  footer_disclaimer: 'Footer',
-}
-
-const SYSTEM_BLOCK_HINTS: Record<string, string> = {
-  invoice_summary: 'Ringkasan nominal diisi otomatis saat email dikirim.',
-  registration_receipt:
-    'Nomor pemesanan, total terverifikasi, dan detail acara diisi otomatis — ini bukti resmi pembayaran.',
-  bank_details: 'Detail rekening diisi otomatis dari data acara.',
-  cta_button: 'Anda dapat mengubah label tombol di bawah.',
-  footer_disclaimer: 'Teks disclaimer tampil di bagian bawah email.',
-}
 
 export function EmailTemplateEditForm(props: {
   templateKey: EmailTemplateKey
@@ -125,6 +121,12 @@ export function EmailTemplateEditForm(props: {
     blocks.some(b => b.type === 'paragraph')
 
   const combinedPending = savePending || resetPending
+
+  const blockAddOptions = useMemo(
+    () => listEmailBlockAddOptions(templateKey, blocks),
+    [templateKey, blocks],
+  )
+  const canAddAnyBlock = blockAddOptions.some(option => !option.alreadyAdded)
 
   const systemOnlyTokens = allowedTokensForKey(templateKey).filter(
     t => !catalogEntry.requiredTokens.includes(t) && !catalogEntry.optionalTokens.includes(t),
@@ -223,33 +225,55 @@ export function EmailTemplateEditForm(props: {
           <div className='space-y-4 p-5'>
             <div className='flex flex-wrap items-center justify-between gap-2'>
               <p className='text-muted-foreground text-sm'>Susunan blok</p>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                disabled={combinedPending}
-                onClick={() => setBlocks(addParagraphBlock(blocks))}
-              >
-                <Plus className='mr-1 size-4' aria-hidden />
-                Paragraf
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  disabled={combinedPending || !canAddAnyBlock}
+                  render={
+                    <Button type='button' variant='outline' size='sm' disabled={combinedPending || !canAddAnyBlock} />
+                  }
+                >
+                  <Plus className='mr-1 size-4' aria-hidden />
+                  Tambah blok
+                  <ChevronDown className='ml-1 size-4' aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-72'>
+                  {blockAddOptions.map(option => (
+                    <DropdownMenuItem
+                      key={option.type}
+                      disabled={option.alreadyAdded}
+                      onClick={() => setBlocks(addEmailBlock(blocks, templateKey, option.type))}
+                      className='items-start py-2'
+                    >
+                      <div className='min-w-0'>
+                        <p className='font-medium leading-snug'>{option.label}</p>
+                        <p className='text-muted-foreground text-xs leading-relaxed'>{option.hint}</p>
+                        {option.alreadyAdded ? (
+                          <p className='text-muted-foreground mt-0.5 text-[11px]'>Sudah ditambahkan</p>
+                        ) : null}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className='space-y-3'>
               {blocks.map((block, index) => {
-                const isSystem = block.type !== 'paragraph'
+                const isParagraph = block.type === 'paragraph'
+                const isHr = block.type === 'hr'
+                const isSystem = !isParagraph && !isHr
                 const label =
-                  block.type === 'paragraph'
+                  isParagraph
                     ? 'Paragraf'
-                    : (SYSTEM_BLOCK_LABELS[block.type] ?? block.type)
+                    : (EMAIL_BLOCK_LABELS[block.type as keyof typeof EMAIL_BLOCK_LABELS] ?? block.type)
 
                 return (
                   <div
                     key={block.id}
                     className={cn(
                       'rounded-lg transition-shadow',
-                      isSystem && 'bg-muted/40 px-3 py-2',
-                      !isSystem && 'space-y-2',
+                      (isSystem || isHr) && 'bg-muted/40 px-3 py-2',
+                      isParagraph && 'space-y-2',
                       dropOverBlockId === block.id &&
                         dragBlockId &&
                         dragBlockId !== block.id &&
@@ -272,10 +296,30 @@ export function EmailTemplateEditForm(props: {
                       setDropOverBlockId(null)
                     }}
                   >
-                    {isSystem ? (
+                    {isHr ? (
+                      <>
+                        <HrBlockHeader
+                          index={index}
+                          total={blocks.length}
+                          combinedPending={combinedPending}
+                          onDragStart={() => setDragBlockId(block.id)}
+                          onDragEnd={() => {
+                            setDragBlockId(null)
+                            setDropOverBlockId(null)
+                          }}
+                          onMoveUp={() => setBlocks(moveEmailBlock(blocks, block.id, -1))}
+                          onMoveDown={() => setBlocks(moveEmailBlock(blocks, block.id, 1))}
+                          onDelete={() => setBlocks(removeEmailBlock(blocks, block.id))}
+                        />
+                        <hr className='border-border mt-2' aria-hidden />
+                      </>
+                    ) : isSystem ? (
                       <SystemBlockRow
                         label={label}
-                        hint={SYSTEM_BLOCK_HINTS[block.type] ?? 'Diisi otomatis saat email dikirim.'}
+                        hint={
+                          EMAIL_BLOCK_HINTS[block.type as keyof typeof EMAIL_BLOCK_HINTS] ??
+                          'Diisi otomatis saat email dikirim.'
+                        }
                         index={index}
                         total={blocks.length}
                         combinedPending={combinedPending}
@@ -323,15 +367,27 @@ export function EmailTemplateEditForm(props: {
                           disabled={combinedPending}
                           onChange={e => setBlocks(updateBlockField(blocks, block.id, { label: e.target.value }))}
                         />
+                        <Label htmlFor={`cta-href-${block.id}`}>URL tombol</Label>
+                        <Input
+                          id={`cta-href-${block.id}`}
+                          value={block.href ?? ''}
+                          placeholder='{event_page_url}'
+                          disabled={combinedPending}
+                          onChange={e => setBlocks(updateBlockField(blocks, block.id, { href: e.target.value }))}
+                        />
+                        <p className='text-muted-foreground text-xs'>
+                          Gunakan placeholder seperti {'{event_page_url}'} atau URL lengkap https://…
+                        </p>
                       </div>
                     ) : null}
 
                     {block.type === 'footer_disclaimer' ? (
                       <div className='mt-2 space-y-2 border-t border-border/60 pt-3'>
                         <Label htmlFor={`footer-${block.id}`}>Teks footer</Label>
-                        <Input
+                        <Textarea
                           id={`footer-${block.id}`}
                           value={block.text}
+                          rows={3}
                           disabled={combinedPending}
                           onChange={e => setBlocks(updateBlockField(blocks, block.id, { text: e.target.value }))}
                         />
@@ -435,9 +491,47 @@ function BlockReorderControls(props: {
   )
 }
 
+function HrBlockHeader(props: {
+  index: number
+  total: number
+  combinedPending: boolean
+  onDragStart: () => void
+  onDragEnd: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className='flex items-center gap-2'>
+      <button
+        type='button'
+        className='text-muted-foreground hover:text-foreground shrink-0 cursor-grab active:cursor-grabbing disabled:cursor-not-allowed'
+        draggable={!props.combinedPending}
+        disabled={props.combinedPending}
+        title='Seret untuk mengubah urutan'
+        aria-label='Seret untuk mengubah urutan blok'
+        onDragStart={props.onDragStart}
+        onDragEnd={props.onDragEnd}
+      >
+        <GripVertical className='size-4' aria-hidden />
+      </button>
+      <span className='text-sm font-medium'>Garis pemisah</span>
+      <BlockReorderControls
+        index={props.index}
+        total={props.total}
+        combinedPending={props.combinedPending}
+        onMoveUp={props.onMoveUp}
+        onMoveDown={props.onMoveDown}
+        onDelete={props.onDelete}
+      />
+    </div>
+  )
+}
+
 function SystemBlockRow(props: {
   label: string
   hint: string
+  comingSoon?: boolean
   index: number
   total: number
   combinedPending: boolean
@@ -462,7 +556,14 @@ function SystemBlockRow(props: {
       </button>
       <Lock className='text-muted-foreground size-3.5 shrink-0' aria-hidden />
       <div className='min-w-0 flex-1'>
-        <p className='text-sm font-medium'>{props.label}</p>
+        <div className='flex flex-wrap items-center gap-2'>
+          <p className='text-sm font-medium'>{props.label}</p>
+          {props.comingSoon ? (
+            <Badge variant='outline' className='text-muted-foreground text-[10px] font-normal'>
+              Segera
+            </Badge>
+          ) : null}
+        </div>
         <p className='text-muted-foreground text-xs'>{props.hint}</p>
       </div>
       <BlockReorderControls

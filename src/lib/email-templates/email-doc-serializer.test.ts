@@ -18,4 +18,17 @@ describe('email-doc-serializer', () => {
     expect(emailDocToPlainText(doc, {})).toContain('Baris satu')
     expect(emailDocToPlainText(doc, {})).toContain('Baris dua')
   })
+
+  it('serializes blockquote with leading greater-than', () => {
+    const doc: import('@tiptap/core').JSONContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'blockquote',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Catatan penting' }] }],
+        },
+      ],
+    }
+    expect(emailDocToPlainText(doc, {})).toBe('> Catatan penting')
+  })
 })

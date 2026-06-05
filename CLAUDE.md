@@ -134,7 +134,7 @@ Key entities:
 - **`ClubWaTemplate`** — per-`WaTemplateKey` body overrides stored in DB; loaded by `lib/wa-templates/load-club-wa-templates.ts` and merged with hardcoded defaults in `lib/wa-templates/render-wa-from-db.ts`
 - **`ClubEmailTemplate`** — per-`EmailTemplateKey` (`invoice`, `invoice_underpayment`, `registration_approved`, `receipt`, `rejected`, `payment_issue`, `cancelled`, `refunded`, `magic_link`, `admin_invite`, `otp`) subject + `body` (JSON `{"v":1,"blocks":[...]}` dengan paragraf Tiptap); loaded by `lib/email-templates/load-club-email-templates.ts`; render via `render-email-from-blocks.ts`
 - **`EmailDeliveryLog`** — append-only log pengiriman email transaksional (invoice blast / kirim tunggal); `templateKey`, `toEmail`, `success`, `actorAdminProfileId`
-- **`ClubBranding`** — `clubNameNav`, logo, `contactEmail`, `websiteUrl`, `locationText`, `socialLinks` (JSON max 3); footer publik + shell email transaksional; mutations Owner-only + audit
+- **`ClubBranding`** — `clubNameNav`, logo, `contactEmail`, `websiteUrl`, `locationText`, `socialLinks` (JSON max 10); footer publik + shell email transaksional; mutations Owner-only + audit
 - **`ClubOperationalSettings`** / **`ClubNotificationPreferences`** — singleton (`singletonKey = "default"`); prefs: `outboundMode` + auto-email (`emailAutoOnApprove` … `emailAutoOnRefund`, default hanya approve); read via `lib/public/load-club-*.ts`; mutations Owner-only + audit
 - **`ClubAuditLog`** — append-only log of sensitive Owner-level mutations; written via `lib/audit/append-club-audit-log.ts` using action constants from `lib/audit/club-audit-actions.ts`
 
@@ -186,18 +186,23 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/wa-templates/build-registration-notify.ts` — `buildRegistrationWaNotify` / `RegistrationNotifyKind` — preview + `wa.me` href untuk dialog admin pasca-keputusan verifikasi atau reminder operasi
 - `lib/email/normalize-email.ts` — `normalizeStoredEmail`, `optionalStoredEmail`, `requiredStoredEmail` (lowercase + trim)
 - `lib/email-templates/email-template-catalog.ts` — metadata + default blok + token per `EmailTemplateKey`
+- `lib/email-templates/email-block-add-options.ts` — menu **Tambah blok** dinamis per template (`listEmailBlockAddOptions`, `addEmailBlock`); blok **Garis pemisah** (`hr`) dapat ditambahkan berkali-kali ke semua template; blok **Tombol** (`cta_button`) dapat ditambahkan ke semua template kecuali OTP, dengan `label` + `href` (placeholder `{event_page_url}`, `{registration_page_url}`, `{magic_link_url}`, `{invite_url}`, atau URL lengkap)
+- `lib/email-templates/registration-email-url-vars.ts` — `buildRegistrationEmailUrlVars` untuk placeholder URL publik acara/konfirmasi saat render email registrasi
 - `lib/email-templates/build-email-template-index-rows.ts` — `buildEmailTemplateIndexRows` untuk indeks admin template email
 - `lib/email-templates/email-doc-serializer.ts` — Tiptap JSON ↔ plain text; `email-doc-react.tsx` → React Email nodes
 - `lib/email-templates/render-email-from-blocks.ts` — HTML + text Resend dari susunan blok
 - `lib/email-templates/email-design-tokens.ts` — hex token layout email (selaras theme light)
 - `lib/email-templates/emails/club-email-layout.tsx` — header band + footer kontak global dari branding (`appOrigin` untuk ikon PNG)
 - `lib/email-templates/emails/club-email-contact-footer.tsx` — footer 3 kolom email dengan `<Img>` ikon kontak
-- `lib/branding/club-social-links.ts` — parse/validasi `socialLinks` JSON
+- `lib/email-templates/emails/club-email-event-schedule.ts` — blok `event_schedule` / kartu **Ringkasan acara** (`event_title`, venue, lokasi/alamat tautan bila `venue_map_url`, waktu acara); `registration_receipt` = kartu **Ringkasan pesanan** (tanpa duplikasi nama acara)
+- `lib/branding/club-social-links.ts` — parse/validasi `socialLinks` JSON (maks. `MAX_CLUB_SOCIAL_LINKS` = 10)
+- `lib/branding/club-social-links-limit.ts` — konstanta batas tautan sosial
 - `lib/branding/contact-platform.ts` — `detectContactPlatform`, `normalizeHostname` (ikon sosial dari URL)
 - `lib/branding/contact-icon-registry.ts` — map platform → PNG + label default (ID)
 - `lib/branding/resolve-contact-display-label.ts` — label tampilan sosial (admin → platform → hostname)
 - `lib/branding/branding-icon-url.ts` — `brandingIconPublicPath`, `brandingIconAbsoluteUrl` (email)
 - `public/branding-icons/*.png` — asset ikon kontak (~20×20; generator: `node scripts/generate-branding-icons.mjs`)
+- `components/admin/branding-contact-fields.tsx` — input group kontak branding + section UI
 - `components/branding/contact-icon-row.tsx` — baris ikon + teks (web)
 - `components/branding/club-contact-display.tsx` — footer kontak terstruktur (web, dengan ikon)
 - `lib/email-templates/render-invoice-email.ts` / `render-registration-approved-email.ts` / `render-magic-link-email.ts` — wrapper runtime
@@ -205,7 +210,7 @@ Registration status flows: `submitted → pending_review → approved / rejected
 - `lib/email-templates/load-email-template-preview-vars.ts` — variabel pratinjau editor template email dari registrasi/acara terbaru di DB (fallback katalog)
 - `lib/email-templates/email-transaction-line-items.ts` — rincian per tiket (holder, menu, harga) untuk tabel ringkasan email via `transaction_line_items_json`
 - `lib/email-templates/load-registration-email-line-items.ts` — muat baris tiket registrasi untuk render email
-- `components/ui/email-paragraph-editor.tsx` — Tiptap paragraf template email
+- `components/ui/email-paragraph-editor.tsx` — Tiptap paragraf template email (bold, italic, link, list, blockquote/kutipan)
 - `lib/actions/admin-club-email-templates.ts` — save/reset/preview template email (Owner + audit)
 - `lib/email/invoice-email-eligibility.ts` — filter registrasi eligible blast invoice (unpaid adjustment + `contactEmail`)
 - `lib/email/registration-email-eligibility.ts` — eligibility per `EmailTemplateKey` (email kontak, status, underpayment untuk blast/kirim)

@@ -20,11 +20,8 @@ const IMPLICIT_BLOCK_TOKENS: Partial<
     bank_details: ['bank_name', 'account_number', 'account_name'],
   },
   [EmailTemplateKey.registration_approved]: {
-    registration_receipt: [
-      'registration_id',
-      'event_title',
-      'computed_total_idr',
-    ],
+    registration_receipt: ['registration_id', 'computed_total_idr'],
+    event_schedule: ['event_title', 'venue', 'venue_address', 'venue_map_url', 'start_at_formatted'],
   },
 }
 
@@ -39,6 +36,9 @@ function tokensFromBlocks(key: EmailTemplateKey, subject: string, blocks: EmailB
   for (const block of blocks) {
     if (block.type === 'paragraph') {
       for (const t of collectTokensFromDoc(block.doc)) found.add(t)
+    }
+    if (block.type === 'cta_button' && block.href?.trim()) {
+      for (const t of collectPlaceholderNames(block.href)) found.add(t)
     }
     const implicit = IMPLICIT_BLOCK_TOKENS[key]?.[block.type]
     if (implicit) {
@@ -100,7 +100,7 @@ export function validateEmailTemplateBlocks(
     key === EmailTemplateKey.registration_approved &&
     !blocks.some(b => b.type === 'registration_receipt')
   ) {
-    return 'Template konfirmasi pembayaran harus memiliki blok bukti pendaftaran.'
+    return 'Template konfirmasi pembayaran harus memiliki blok ringkasan pesanan.'
   }
 
   const { missingRequired, invalidTokens } = analyzeEmailTemplateBlocks(key, subjectTrim, blocks)

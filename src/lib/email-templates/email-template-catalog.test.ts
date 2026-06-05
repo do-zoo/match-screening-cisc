@@ -19,9 +19,12 @@ describe('EMAIL_TEMPLATE_CATALOG', () => {
     expect(orders).toEqual([...orders].toSorted((a, b) => a - b))
   })
 
-  it('registration approved default has registration_receipt block', () => {
+  it('registration approved default has event_schedule before registration_receipt', () => {
     const entry = getEmailTemplateEntry(EmailTemplateKey.registration_approved)
-    expect(entry.defaultBlocks.some(b => b.type === 'registration_receipt')).toBe(true)
+    const scheduleIndex = entry.defaultBlocks.findIndex(b => b.type === 'event_schedule')
+    const receiptIndex = entry.defaultBlocks.findIndex(b => b.type === 'registration_receipt')
+    expect(scheduleIndex).toBeGreaterThanOrEqual(0)
+    expect(receiptIndex).toBeGreaterThan(scheduleIndex)
     expect(entry.requiredTokens).toContain('registration_id')
   })
 

@@ -1,25 +1,46 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 
 import {
-  BrandingFieldIconPreview,
-  socialIconHintFromUrl,
-} from '@/components/admin/branding-field-icon-preview'
+  BrandingContactIconAddon,
+  BrandingContactInputGroup,
+  BrandingContactLocationGroup,
+  BrandingContactSection,
+  BrandingSocialUrlHint,
+} from '@/components/admin/branding-contact-fields'
 import { saveClubBranding } from '@/lib/actions/admin-club-branding'
 import type { ClubSocialLink } from '@/lib/branding/club-social-links'
+import { MAX_CLUB_SOCIAL_LINKS } from '@/lib/branding/club-social-links-limit'
 import { detectContactPlatform } from '@/lib/branding/contact-platform'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FileField } from '@/components/ui/file-field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import type { ActionResult } from '@/lib/forms/action-result'
 import { toastCudSuccess } from '@/lib/client/cud-notify'
+import { cn } from '@/lib/utils'
 
-const SOCIAL_SLOT_COUNT = 3
+type SocialSlot = { id: string; label: string; url: string }
+
+function initialSocialSlots(links: ClubSocialLink[]): SocialSlot[] {
+  if (links.length === 0) {
+    return [{ id: 'social-0', label: '', url: '' }]
+  }
+  return links.map((link, i) => ({
+    id: `social-${i}`,
+    label: link.label,
+    url: link.url,
+  }))
+}
+
+function nextSocialId(ref: { current: number }) {
+  ref.current += 1
+  return `social-${ref.current}`
+}
 
 export function ClubBrandingSettingsForm(props: {
   initialClubName: string
@@ -29,6 +50,8 @@ export function ClubBrandingSettingsForm(props: {
   initialSocialLinks: ClubSocialLink[]
   logoUrl: string | null
 }) {
+  const formId = useId()
+  const socialIdRef = useRef(props.initialSocialLinks.length)
   const [state, dispatch, pending] = useActionState(saveClubBranding, null as ActionResult<{ saved: true }> | null)
 
   useEffect(() => {
@@ -41,19 +64,30 @@ export function ClubBrandingSettingsForm(props: {
   const [contactEmail, setContactEmail] = useState(props.initialContactEmail)
   const [websiteUrl, setWebsiteUrl] = useState(props.initialWebsiteUrl)
   const [locationText, setLocationText] = useState(props.initialLocationText)
-  const [socialSlots, setSocialSlots] = useState(() =>
-    Array.from({ length: SOCIAL_SLOT_COUNT }, (_, i) => ({
-      label: props.initialSocialLinks[i]?.label ?? '',
-      url: props.initialSocialLinks[i]?.url ?? '',
-    })),
-  )
+  const [socialSlots, setSocialSlots] = useState(() => initialSocialSlots(props.initialSocialLinks))
 
   function updateSocialSlot(index: number, field: 'label' | 'url', next: string) {
     setSocialSlots(prev => prev.map((row, i) => (i === index ? { ...row, [field]: next } : row)))
   }
 
+  function addSocialSlot() {
+    setSocialSlots(prev => {
+      if (prev.length >= MAX_CLUB_SOCIAL_LINKS) return prev
+      return [...prev, { id: nextSocialId(socialIdRef), label: '', url: '' }]
+    })
+  }
+
+  function removeSocialSlot(index: number) {
+    setSocialSlots(prev => {
+      if (prev.length <= 1) return [{ id: nextSocialId(socialIdRef), label: '', url: '' }]
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const canAddSocial = socialSlots.length < MAX_CLUB_SOCIAL_LINKS
+
   return (
-    <div className='max-w-xl space-y-6'>
+    <div className='max-w-2xl space-y-6'>
       {state?.ok === false && state.rootError ? (
         <Alert variant='destructive'>
           <AlertTitle>Gagal</AlertTitle>
@@ -74,9 +108,9 @@ export function ClubBrandingSettingsForm(props: {
         <fieldset className='space-y-5' disabled={pending}>
           <legend className='text-sm font-medium'>Identitas</legend>
           <div className='space-y-2'>
-            <Label htmlFor='clubNameNav'>Nama di header publik</Label>
+            <Label htmlFor={`${formId}-clubNameNav`}>Nama di header publik</Label>
             <Input
-              id='clubNameNav'
+              id={`${formId}-clubNameNav`}
               name='clubNameNav'
               required
               value={clubNameNav}
@@ -100,86 +134,119 @@ export function ClubBrandingSettingsForm(props: {
           />
         </fieldset>
 
-        <fieldset className='space-y-5' disabled={pending}>
+        <fieldset className='space-y-4' disabled={pending}>
           <legend className='text-sm font-medium'>Kontak & footer</legend>
-          <p className='text-muted-foreground text-xs leading-relaxed'>
-            Ditampilkan di footer situs publik dan di semua email transaksional. Semua field opsional; kosongkan
-            seluruhnya untuk menyembunyikan footer kontak.
-          </p>
-          <div className='space-y-2'>
-            <Label htmlFor='contactEmail'>Email kontak</Label>
-            <Input
-              id='contactEmail'
+
+          <BrandingContactSection
+            title='Kontak utama'
+            description='Ditampilkan di footer situs publik dan di semua email transaksional. Semua field opsional; kosongkan seluruhnya untuk menyembunyikan footer kontak.'
+          >
+            <BrandingContactInputGroup
+              id={`${formId}-contactEmail`}
               name='contactEmail'
+              label='Email kontak'
+              platform='email'
               type='email'
               autoComplete='email'
               placeholder='komite@contoh.com'
               value={contactEmail}
-              onChange={e => setContactEmail(e.target.value)}
+              onChange={setContactEmail}
             />
-            <BrandingFieldIconPreview platform='email' />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='websiteUrl'>Website</Label>
-            <Input
-              id='websiteUrl'
+            <BrandingContactInputGroup
+              id={`${formId}-websiteUrl`}
               name='websiteUrl'
+              label='Website'
+              platform='website'
               type='url'
               placeholder='https://…'
               value={websiteUrl}
-              onChange={e => setWebsiteUrl(e.target.value)}
+              onChange={setWebsiteUrl}
             />
-            <BrandingFieldIconPreview platform='website' />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='locationText'>Lokasi</Label>
-            <Textarea
-              id='locationText'
+            <BrandingContactLocationGroup
+              id={`${formId}-locationText`}
               name='locationText'
-              rows={2}
-              maxLength={200}
+              label='Lokasi'
               placeholder='Misalnya Tangerang Selatan, Banten'
               value={locationText}
-              onChange={e => setLocationText(e.target.value)}
+              onChange={setLocationText}
             />
-            <BrandingFieldIconPreview platform='location' />
-          </div>
-          <div className='space-y-4'>
-            <p className='text-sm font-medium'>Sosial media (maks. 3)</p>
-            {socialSlots.map((row, i) => (
-              <div key={i} className='grid gap-3 sm:grid-cols-2'>
-                <div className='space-y-2'>
-                  <Label htmlFor={`socialLabel${i}`}>Label {i + 1}</Label>
-                  <Input
-                    id={`socialLabel${i}`}
-                    name={`socialLabel${i}`}
-                    placeholder='Opsional — kosongkan untuk nama platform otomatis'
-                    value={row.label}
-                    onChange={e => updateSocialSlot(i, 'label', e.target.value)}
-                    maxLength={40}
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor={`socialUrl${i}`}>URL {i + 1}</Label>
-                  <Input
-                    id={`socialUrl${i}`}
-                    name={`socialUrl${i}`}
-                    type='url'
-                    placeholder='https://…'
-                    value={row.url}
-                    onChange={e => updateSocialSlot(i, 'url', e.target.value)}
-                  />
-                  <BrandingFieldIconPreview
-                    platform={detectContactPlatform(row.url)}
-                    hint={socialIconHintFromUrl(row.url)}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          </BrandingContactSection>
+
+          <BrandingContactSection
+            title='Sosial media'
+            description={`Tambahkan tautan profil atau kanal (maks. ${MAX_CLUB_SOCIAL_LINKS}). URL wajib https://. Label kosong → nama platform otomatis dari URL.`}
+          >
+            <ul className='space-y-3'>
+              {socialSlots.map((row, i) => {
+                const urlPlatform = detectContactPlatform(row.url)
+                return (
+                  <li
+                    key={row.id}
+                    className='border-border/60 bg-background/50 space-y-3 rounded-lg border p-3 sm:p-4'
+                  >
+                    <div className='flex items-center justify-between gap-2'>
+                      <span className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+                        Tautan {i + 1}
+                      </span>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon-sm'
+                        className='text-muted-foreground hover:text-destructive shrink-0'
+                        aria-label={`Hapus tautan ${i + 1}`}
+                        onClick={() => removeSocialSlot(i)}
+                      >
+                        <Trash2 className='size-4' aria-hidden />
+                      </Button>
+                    </div>
+                    <div className='space-y-1.5'>
+                      <Label htmlFor={`${formId}-socialLabel${i}`}>Label tampilan (opsional)</Label>
+                      <Input
+                        id={`${formId}-socialLabel${i}`}
+                        name={`socialLabel${i}`}
+                        placeholder='Kosongkan untuk nama platform otomatis'
+                        value={row.label}
+                        onChange={e => updateSocialSlot(i, 'label', e.target.value)}
+                        maxLength={40}
+                      />
+                    </div>
+                    <div className='space-y-1.5'>
+                      <Label htmlFor={`${formId}-socialUrl${i}`}>URL</Label>
+                      <InputGroup className='h-9'>
+                        <BrandingContactIconAddon platform={urlPlatform} />
+                        <InputGroupInput
+                          id={`${formId}-socialUrl${i}`}
+                          name={`socialUrl${i}`}
+                          type='url'
+                          placeholder='https://…'
+                          value={row.url}
+                          onChange={e => updateSocialSlot(i, 'url', e.target.value)}
+                        />
+                      </InputGroup>
+                      <BrandingSocialUrlHint url={row.url} />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              className='w-full sm:w-auto'
+              disabled={!canAddSocial}
+              onClick={addSocialSlot}
+            >
+              <Plus className='mr-2 size-4' aria-hidden />
+              Tambah tautan
+            </Button>
+            {!canAddSocial ? (
+              <p className='text-muted-foreground text-xs'>Maksimum {MAX_CLUB_SOCIAL_LINKS} tautan tercapai.</p>
+            ) : null}
+          </BrandingContactSection>
         </fieldset>
 
-        <Button type='submit' disabled={pending}>
+        <Button type='submit' disabled={pending} className={cn(pending && 'min-w-28')}>
           {pending ? (
             <>
               <Loader2 className='mr-2 h-4 w-4 animate-spin' aria-hidden />

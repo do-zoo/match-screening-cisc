@@ -8,18 +8,21 @@ import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-b
 import type { EmailTransactionLineItem } from '@/lib/email-templates/email-transaction-line-items'
 import { withTransactionLineItems } from '@/lib/email-templates/email-transaction-line-items'
 import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
+import { buildRegistrationEmailUrlVars } from '@/lib/email-templates/registration-email-url-vars'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 export type RegistrationApprovedEmailCtx = {
   contactName: string
   eventTitle: string
+  eventSlug: string
   registrationId: string
   computedTotalIdr: number
   ticketQty: number
   ticketCategoryName: string
   venue: string
+  venueAddress: string
+  venueMapUrl: string | null
   kickOffAt: Date
-  openGateAt: Date | null
   ticketLineItems?: EmailTransactionLineItem[]
 }
 
@@ -40,12 +43,23 @@ function varsFromCtx(ctx: RegistrationApprovedEmailCtx): Record<string, string> 
     ticket_qty: String(ctx.ticketQty),
     ticket_category_name: ctx.ticketCategoryName,
     venue: ctx.venue,
+    venue_address: ctx.venueAddress,
     start_at_formatted: formatEmailDateTime(ctx.kickOffAt),
   }
-  if (ctx.openGateAt) {
-    vars.open_gate_at_formatted = formatEmailDateTime(ctx.openGateAt)
+  if (ctx.venueMapUrl?.trim()) {
+    vars.venue_map_url = ctx.venueMapUrl.trim()
   }
-  return withTransactionLineItems(vars, ctx.ticketLineItems ?? [])
+  return withTransactionLineItems(
+    {
+      ...vars,
+      ...buildRegistrationEmailUrlVars({
+        origin: process.env.BETTER_AUTH_URL,
+        eventSlug: ctx.eventSlug,
+        registrationId: ctx.registrationId,
+      }),
+    },
+    ctx.ticketLineItems ?? [],
+  )
 }
 
 export async function renderRegistrationApprovedEmail(

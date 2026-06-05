@@ -56,4 +56,9 @@ export const EMAIL_DESIGN_TOKENS = {
 
   disclaimerText: '#94a3b8',
   disclaimerBorder: '#e2e8f0',
+
+  /** Kutipan (blockquote) di paragraf email */
+  blockquoteBg: '#eff6ff',
+  blockquoteBorder: '#1e3a8a',
+  blockquoteText: '#334155',
 } as const

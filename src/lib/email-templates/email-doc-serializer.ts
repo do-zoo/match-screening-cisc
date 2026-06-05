@@ -95,6 +95,14 @@ export function emailDocToPlainText(doc: JSONContent, vars: Record<string, strin
         n += 1
       }
     }
+    if (block.type === 'blockquote') {
+      for (const child of block.content ?? []) {
+        if (child.type === 'paragraph') {
+          const line = inlineNodesToPlain(child.content ?? [], vars)
+          parts.push(`> ${line}`)
+        }
+      }
+    }
   }
 
   return applyEmailPlaceholders(parts.join('\n'), vars)

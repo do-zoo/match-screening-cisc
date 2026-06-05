@@ -237,7 +237,18 @@
     @apply list-decimal;
   }
 
-  .email-template-tiptap blockquote,
+  .email-template-tiptap blockquote {
+    @apply border-primary/35 bg-primary/5 my-3 rounded-r-lg border-l-4 py-2.5 pl-4 pr-3 text-[15px] leading-relaxed text-foreground/90;
+  }
+
+  .email-template-tiptap blockquote p {
+    @apply my-0;
+  }
+
+  .email-template-tiptap blockquote p + p {
+    @apply mt-2;
+  }
+
   .wa-template-tiptap blockquote {
     @apply border-muted-foreground/30 text-muted-foreground my-2 border-l-2 pl-3 italic;
   }

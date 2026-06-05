@@ -1,8 +1,6 @@
 import type { JSONContent } from '@tiptap/core'
 
 import type { EmailBlock } from '@/lib/email-templates/email-block-types'
-import { newBlockId } from '@/lib/email-templates/email-block-types'
-import { emptyEmailDoc } from '@/lib/email-templates/email-doc-serializer'
 
 export function moveEmailBlock(blocks: EmailBlock[], id: string, direction: -1 | 1): EmailBlock[] {
   const index = blocks.findIndex(b => b.id === id)
@@ -27,13 +25,8 @@ function reorderEmailBlocksByIndex(blocks: EmailBlock[], from: number, to: numbe
   return next
 }
 
-export function addParagraphBlock(blocks: EmailBlock[]): EmailBlock[] {
-  const paragraph: EmailBlock = { type: 'paragraph', id: newBlockId(), doc: emptyEmailDoc() }
-  const ctaIndex = blocks.findIndex(b => b.type === 'cta_button')
-  if (ctaIndex >= 0) {
-    return [...blocks.slice(0, ctaIndex), paragraph, ...blocks.slice(ctaIndex)]
-  }
-  return [...blocks, paragraph]
+export function removeEmailBlock(blocks: EmailBlock[], id: string): EmailBlock[] {
+  return blocks.filter(b => b.id !== id)
 }
 
 export function removeParagraphBlock(blocks: EmailBlock[], id: string): EmailBlock[] {
@@ -49,13 +42,19 @@ export function updateParagraphDoc(blocks: EmailBlock[], id: string, doc: JSONCo
 export function updateBlockField(
   blocks: EmailBlock[],
   id: string,
-  patch: Partial<Pick<Extract<EmailBlock, { type: 'cta_button' }>, 'label'>> &
+  patch: Partial<Pick<Extract<EmailBlock, { type: 'cta_button' }>, 'label' | 'href'>> &
     Partial<Pick<Extract<EmailBlock, { type: 'footer_disclaimer' }>, 'text'>>,
 ): EmailBlock[] {
   return blocks.map(b => {
     if ('id' in b && b.id === id) {
-      if (b.type === 'cta_button' && patch.label !== undefined) {
-        return { ...b, label: patch.label }
+      if (b.type === 'cta_button') {
+        if (patch.label !== undefined || patch.href !== undefined) {
+          return {
+            ...b,
+            ...(patch.label !== undefined ? { label: patch.label } : {}),
+            ...(patch.href !== undefined ? { href: patch.href } : {}),
+          }
+        }
       }
       if (b.type === 'footer_disclaimer' && patch.text !== undefined) {
         return { ...b, text: patch.text }

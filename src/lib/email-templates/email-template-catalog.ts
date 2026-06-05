@@ -29,7 +29,7 @@ export const EMAIL_SHARED_TOKEN_META: Record<string, EmailTokenMeta> = {
     sampleValue: 'Budi Santoso',
   },
   event_title: {
-    labelId: 'Judul acara',
+    labelId: 'Nama acara',
     sampleValue: 'Gala Dinner 2026',
   },
   adjustment_amount_idr: {
@@ -55,15 +55,23 @@ export const EMAIL_SHARED_TOKEN_META: Record<string, EmailTokenMeta> = {
   },
   venue: {
     labelId: 'Venue',
-    sampleValue: 'Gedung Serbaguna CISC',
+    descriptionId: 'Nama venue (blok jadwal)',
+    sampleValue: 'Gelora Bung Karno',
+  },
+  venue_address: {
+    labelId: 'Lokasi acara',
+    descriptionId: 'Alamat venue (blok jadwal)',
+    sampleValue: 'Jl. Pintu Satu Senayan, Jakarta Pusat',
+  },
+  venue_map_url: {
+    labelId: 'Tautan peta venue',
+    descriptionId: 'URL peta venue — jika ada, lokasi acara menjadi tautan',
+    sampleValue: 'https://maps.google.com/?q=GBK',
   },
   start_at_formatted: {
-    labelId: 'Waktu kick-off',
-    sampleValue: '1 Juli 2026, 14.00',
-  },
-  open_gate_at_formatted: {
-    labelId: 'Waktu buka gate',
-    sampleValue: '1 Juli 2026, 12.00',
+    labelId: 'Waktu acara',
+    descriptionId: 'Kick-off acara (blok jadwal)',
+    sampleValue: '11 Juni 2026 pukul 14.00',
   },
   bank_name: {
     labelId: 'Nama bank',
@@ -98,6 +106,16 @@ export const EMAIL_SHARED_TOKEN_META: Record<string, EmailTokenMeta> = {
   invite_url: {
     labelId: 'URL undangan admin',
     sampleValue: 'https://example.com/admin/invite/abc',
+  },
+  event_page_url: {
+    labelId: 'URL halaman acara',
+    descriptionId: 'Tautan publik ke halaman acara',
+    sampleValue: 'https://contoh.klub.id/events/gala-dinner',
+  },
+  registration_page_url: {
+    labelId: 'URL konfirmasi pendaftaran',
+    descriptionId: 'Tautan halaman konfirmasi setelah daftar',
+    sampleValue: 'https://contoh.klub.id/events/gala-dinner/register/clxyz123',
   },
   role_label: {
     labelId: 'Peran admin',
@@ -141,7 +159,7 @@ const MAGIC_LINK_DEFAULT_BLOCKS: EmailBlock[] = [
   paragraphBlock(
     'Klik tombol di bawah untuk masuk ke halaman admin Match Screening. Link ini hanya berlaku sekali dan akan kedaluwarsa dalam 5 menit.',
   ),
-  { type: 'cta_button', id: newBlockId(), label: 'Masuk sekarang' },
+  { type: 'cta_button', id: newBlockId(), label: 'Masuk sekarang', href: '{magic_link_url}' },
   {
     type: 'footer_disclaimer',
     id: newBlockId(),
@@ -219,7 +237,7 @@ const REFUNDED_DEFAULT_BLOCKS: EmailBlock[] = [
 
 const ADMIN_INVITE_DEFAULT_BLOCKS: EmailBlock[] = [
   paragraphBlock('Anda diundang sebagai {role_label} di Match Screening. Klik tombol di bawah untuk menyelesaikan pengaturan akun.'),
-  { type: 'cta_button', id: newBlockId(), label: 'Terima undangan' },
+  { type: 'cta_button', id: newBlockId(), label: 'Terima undangan', href: '{invite_url}' },
   {
     type: 'footer_disclaimer',
     id: newBlockId(),
@@ -243,9 +261,10 @@ const REGISTRATION_APPROVED_DEFAULT_BLOCKS: EmailBlock[] = [
       '',
       'Pembayaran Anda untuk *{event_title}* telah kami verifikasi. Pendaftaran Anda disetujui.',
       '',
-      'Berikut ringkasan resmi pendaftaran Anda:',
+      'Berikut ringkasan acara dan pesanan Anda:',
     ].join('\n').replace(/\*/g, ''),
   ),
+  { type: 'event_schedule', id: newBlockId() },
   { type: 'registration_receipt', id: newBlockId() },
   {
     type: 'footer_disclaimer',
@@ -271,7 +290,7 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       'account_number',
       'account_name',
     ],
-    optionalTokens: ['registration_id'],
+    optionalTokens: ['registration_id', 'event_page_url', 'registration_page_url'],
     tokenMeta: {
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
@@ -280,6 +299,8 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       account_number: EMAIL_SHARED_TOKEN_META.account_number,
       account_name: EMAIL_SHARED_TOKEN_META.account_name,
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.invoice_underpayment]: {
@@ -298,7 +319,7 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       'account_number',
       'account_name',
     ],
-    optionalTokens: ['registration_id'],
+    optionalTokens: ['registration_id', 'event_page_url', 'registration_page_url'],
     tokenMeta: {
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
@@ -307,12 +328,14 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       account_number: EMAIL_SHARED_TOKEN_META.account_number,
       account_name: EMAIL_SHARED_TOKEN_META.account_name,
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.registration_approved]: {
     labelId: 'Konfirmasi pembayaran',
     descriptionId:
-      'Bukti resmi pendaftaran setelah pembayaran diverifikasi. Dikirim otomatis saat admin menyetujui registrasi (jika email kontak terisi).',
+      'Konfirmasi pembayaran dengan ringkasan acara dan ringkasan pesanan. Dikirim otomatis saat approve (jika email kontak terisi).',
     triggerDescriptionId: 'Otomatis saat approve (pref) atau kirim ulang manual.',
     sortOrder: 3,
     defaultSubject: 'Pembayaran diterima — {event_title}',
@@ -322,8 +345,11 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       'ticket_qty',
       'ticket_category_name',
       'venue',
+      'venue_address',
+      'venue_map_url',
       'start_at_formatted',
-      'open_gate_at_formatted',
+      'event_page_url',
+      'registration_page_url',
     ],
     tokenMeta: {
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
@@ -333,8 +359,11 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       ticket_qty: EMAIL_SHARED_TOKEN_META.ticket_qty,
       ticket_category_name: EMAIL_SHARED_TOKEN_META.ticket_category_name,
       venue: EMAIL_SHARED_TOKEN_META.venue,
+      venue_address: EMAIL_SHARED_TOKEN_META.venue_address,
+      venue_map_url: EMAIL_SHARED_TOKEN_META.venue_map_url,
       start_at_formatted: EMAIL_SHARED_TOKEN_META.start_at_formatted,
-      open_gate_at_formatted: EMAIL_SHARED_TOKEN_META.open_gate_at_formatted,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.receipt]: {
@@ -345,7 +374,7 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     defaultSubject: 'Pendaftaran diterima — {event_title}',
     defaultBlocks: RECEIPT_DEFAULT_BLOCKS,
     requiredTokens: ['contact_name', 'event_title', 'registration_id', 'computed_total_idr'],
-    optionalTokens: ['ticket_qty', 'ticket_category_name'],
+    optionalTokens: ['ticket_qty', 'ticket_category_name', 'event_page_url', 'registration_page_url'],
     tokenMeta: {
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
@@ -353,6 +382,8 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
       computed_total_idr: EMAIL_SHARED_TOKEN_META.computed_total_idr,
       ticket_qty: EMAIL_SHARED_TOKEN_META.ticket_qty,
       ticket_category_name: EMAIL_SHARED_TOKEN_META.ticket_category_name,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.rejected]: {
@@ -363,12 +394,14 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     defaultSubject: 'Pendaftaran belum disetujui — {event_title}',
     defaultBlocks: REJECTED_DEFAULT_BLOCKS,
     requiredTokens: ['reason'],
-    optionalTokens: ['contact_name', 'event_title', 'registration_id'],
+    optionalTokens: ['contact_name', 'event_title', 'registration_id', 'event_page_url', 'registration_page_url'],
     tokenMeta: {
       reason: EMAIL_SHARED_TOKEN_META.reason,
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.payment_issue]: {
@@ -379,13 +412,22 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     defaultSubject: 'Klarifikasi pembayaran — {event_title}',
     defaultBlocks: PAYMENT_ISSUE_DEFAULT_BLOCKS,
     requiredTokens: ['reason'],
-    optionalTokens: ['contact_name', 'event_title', 'registration_id', 'computed_total_idr'],
+    optionalTokens: [
+      'contact_name',
+      'event_title',
+      'registration_id',
+      'computed_total_idr',
+      'event_page_url',
+      'registration_page_url',
+    ],
     tokenMeta: {
       reason: EMAIL_SHARED_TOKEN_META.reason,
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
       computed_total_idr: EMAIL_SHARED_TOKEN_META.computed_total_idr,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.cancelled]: {
@@ -396,12 +438,14 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     defaultSubject: 'Pendaftaran dibatalkan — {event_title}',
     defaultBlocks: CANCELLED_DEFAULT_BLOCKS,
     requiredTokens: ['contact_name', 'event_title'],
-    optionalTokens: ['registration_id', 'ticket_qty'],
+    optionalTokens: ['registration_id', 'ticket_qty', 'event_page_url', 'registration_page_url'],
     tokenMeta: {
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
       ticket_qty: EMAIL_SHARED_TOKEN_META.ticket_qty,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.refunded]: {
@@ -412,12 +456,14 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     defaultSubject: 'Pengembalian dana — {event_title}',
     defaultBlocks: REFUNDED_DEFAULT_BLOCKS,
     requiredTokens: ['contact_name', 'event_title'],
-    optionalTokens: ['registration_id', 'computed_total_idr'],
+    optionalTokens: ['registration_id', 'computed_total_idr', 'event_page_url', 'registration_page_url'],
     tokenMeta: {
       contact_name: EMAIL_SHARED_TOKEN_META.contact_name,
       event_title: EMAIL_SHARED_TOKEN_META.event_title,
       registration_id: EMAIL_SHARED_TOKEN_META.registration_id,
       computed_total_idr: EMAIL_SHARED_TOKEN_META.computed_total_idr,
+      event_page_url: EMAIL_SHARED_TOKEN_META.event_page_url,
+      registration_page_url: EMAIL_SHARED_TOKEN_META.registration_page_url,
     },
   },
   [EmailTemplateKey.magic_link]: {
@@ -429,7 +475,7 @@ export const EMAIL_TEMPLATE_CATALOG: Record<EmailTemplateKey, EmailTemplateCatal
     defaultSubject: 'Link masuk Match Screening',
     defaultBlocks: MAGIC_LINK_DEFAULT_BLOCKS,
     requiredTokens: [],
-    optionalTokens: ['club_name_nav'],
+    optionalTokens: ['club_name_nav', 'magic_link_url'],
     tokenMeta: {
       club_name_nav: EMAIL_SHARED_TOKEN_META.club_name_nav,
       magic_link_url: EMAIL_SHARED_TOKEN_META.magic_link_url,

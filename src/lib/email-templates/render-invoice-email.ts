@@ -8,11 +8,13 @@ import { renderEmailFromBlocks } from '@/lib/email-templates/render-email-from-b
 import type { EmailTransactionLineItem } from '@/lib/email-templates/email-transaction-line-items'
 import { withTransactionLineItems } from '@/lib/email-templates/email-transaction-line-items'
 import { loadPublicClubBranding, pickClubEmailContact } from '@/lib/public/load-club-branding'
+import { buildRegistrationEmailUrlVars } from '@/lib/email-templates/registration-email-url-vars'
 import { formatWaIdr } from '@/lib/wa-templates/format-wa-idr'
 
 export type InvoiceEmailCtx = {
   contactName: string
   eventTitle: string
+  eventSlug?: string
   adjustmentAmountIdr: number
   registrationTotalIdr: number
   /** Diisi bila kekurangan < total pendaftaran — membantu peserta memahami sisa tagihan. */
@@ -29,6 +31,7 @@ export type InvoiceEmailCtx = {
 export type RegistrationInvoiceEmailCtx = {
   contactName: string
   eventTitle: string
+  eventSlug?: string
   totalAmountIdr: number
   bankName: string
   accountNumber: string
@@ -55,7 +58,17 @@ function varsFromUnderpaymentCtx(ctx: InvoiceEmailCtx): Record<string, string> {
   if (ctx.amountPaidIdr != null && ctx.amountPaidIdr > 0) {
     vars.amount_paid_idr = formatWaIdr(ctx.amountPaidIdr)
   }
-  return withTransactionLineItems(vars, ctx.ticketLineItems ?? [])
+  return withTransactionLineItems(
+    {
+      ...vars,
+      ...buildRegistrationEmailUrlVars({
+        origin: process.env.BETTER_AUTH_URL,
+        eventSlug: ctx.eventSlug,
+        registrationId: ctx.registrationId,
+      }),
+    },
+    ctx.ticketLineItems ?? [],
+  )
 }
 
 function varsFromRegistrationCtx(ctx: RegistrationInvoiceEmailCtx): Record<string, string> {
@@ -70,7 +83,17 @@ function varsFromRegistrationCtx(ctx: RegistrationInvoiceEmailCtx): Record<strin
   if (ctx.registrationId) vars.registration_id = ctx.registrationId
   if (ctx.ticketCategoryName?.trim()) vars.ticket_category_name = ctx.ticketCategoryName.trim()
   if (ctx.ticketQty != null) vars.ticket_qty = String(ctx.ticketQty)
-  return withTransactionLineItems(vars, ctx.ticketLineItems ?? [])
+  return withTransactionLineItems(
+    {
+      ...vars,
+      ...buildRegistrationEmailUrlVars({
+        origin: process.env.BETTER_AUTH_URL,
+        eventSlug: ctx.eventSlug,
+        registrationId: ctx.registrationId,
+      }),
+    },
+    ctx.ticketLineItems ?? [],
+  )
 }
 
 async function renderInvoiceTemplateEmail(
